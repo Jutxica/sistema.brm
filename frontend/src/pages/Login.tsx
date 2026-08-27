@@ -51,7 +51,7 @@ export const Login: React.FC = () => {
 
       {/* Main Card with premium hover effect and layout */}
       <div className="relative w-full max-w-[430px] z-10 animate-fade-in">
-        <div className="glass shadow-premium rounded-[32px] p-8 sm:p-10 bg-white/70 dark:bg-[#12151e]/70 border border-white/50 dark:border-white/5 backdrop-blur-xl">
+        <div className="glass shadow-premium rounded-[28px] p-8 sm:p-10 bg-white/70 dark:bg-[#12151e]/70 border border-white/50 dark:border-white/5 backdrop-blur-xl">
           
           {/* Logo container using image from assets */}
           <div className="flex flex-col items-center mb-8">
@@ -94,7 +94,7 @@ export const Login: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="nome@exemplo.com"
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 text-sm rounded-2xl border border-slate-200/80 dark:border-slate-800 focus:border-secondary dark:focus:border-secondary focus:ring-4 focus:ring-secondary/10 outline-none transition-all duration-200"
+                  className="w-full pl-12 pr-4 py-3 bg-slate-50/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 text-sm rounded-xl border border-slate-200/80 dark:border-slate-800 focus:border-secondary dark:focus:border-secondary focus:ring-4 focus:ring-secondary/10 outline-none transition-all duration-200"
                 />
               </div>
             </div>
@@ -119,7 +119,7 @@ export const Login: React.FC = () => {
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-12 pr-12 py-3 bg-slate-50/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 text-sm rounded-2xl border border-slate-200/80 dark:border-slate-800 focus:border-secondary dark:focus:border-secondary focus:ring-4 focus:ring-secondary/10 outline-none transition-all duration-200"
+                  className="w-full pl-12 pr-12 py-3 bg-slate-50/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 text-sm rounded-xl border border-slate-200/80 dark:border-slate-800 focus:border-secondary dark:focus:border-secondary focus:ring-4 focus:ring-secondary/10 outline-none transition-all duration-200"
                 />
                 <button
                   type="button"
@@ -135,7 +135,7 @@ export const Login: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center justify-center w-full py-3.5 rounded-2xl bg-secondary hover:bg-secondary/95 text-white font-semibold text-sm shadow-premium shadow-secondary/15 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 transition-all duration-200 cursor-pointer mt-6"
+              className="flex items-center justify-center w-full py-3.5 rounded-full bg-secondary hover:bg-secondary/95 text-white font-semibold text-sm shadow-premium shadow-secondary/15 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 transition-all duration-200 cursor-pointer mt-6"
             >
               {loading ? (
                 <>
