@@ -28,7 +28,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     <aside
       className={`fixed top-0 left-0 z-30 h-screen transition-all duration-300 border-r border-slate-200/80 dark:border-slate-800/80 
         ${collapsed ? 'w-20' : 'w-64'} 
-        bg-white dark:bg-[#0b1c2e] text-slate-800 dark:text-slate-200`}
+        bg-white dark:bg-[#12151e] text-slate-800 dark:text-slate-200`}
     >
       {/* Brand Header */}
       <div className="flex items-center justify-between h-16 px-4 border-b border-slate-100 dark:border-slate-800/50">

@@ -40,18 +40,18 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-[#ffffff] dark:bg-[#061320] px-4 overflow-hidden transition-colors duration-500">
+    <div className="relative min-h-screen flex items-center justify-center bg-[#ffffff] dark:bg-[#090a0f] px-4 overflow-hidden transition-colors duration-500">
       
       {/* Decorative blurred background shapes - Ultra-modern organic layout */}
-      <div className="absolute top-[-30%] left-[-20%] w-[50rem] h-[50rem] rounded-full bg-gradient-to-tr from-primary/20 to-secondary/10 dark:from-primary/30 dark:to-secondary/5 blur-[140px] pointer-events-none animate-float-1" />
-      <div className="absolute bottom-[-30%] right-[-20%] w-[45rem] h-[45rem] rounded-full bg-gradient-to-br from-secondary/15 to-accent/10 dark:from-secondary/20 dark:to-accent/5 blur-[150px] pointer-events-none animate-float-2" />
+      <div className="absolute top-[-30%] left-[-20%] w-[50rem] h-[50rem] rounded-full bg-gradient-to-tr from-secondary/10 to-accent/5 dark:from-secondary/20 dark:to-accent/5 blur-[140px] pointer-events-none animate-float-1" />
+      <div className="absolute bottom-[-30%] right-[-20%] w-[45rem] h-[45rem] rounded-full bg-gradient-to-br from-accent/10 to-secondary/5 dark:from-accent/20 dark:to-secondary/5 blur-[150px] pointer-events-none animate-float-2" />
 
       {/* Elegant minimalist grid pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#08284203_1px,transparent_1px),linear-gradient(to_bottom,#08284203_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff01_1px,transparent_1px),linear-gradient(to_bottom,#ffffff01_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#7f00ff02_1px,transparent_1px),linear-gradient(to_bottom,#7f00ff02_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#00f2fe01_1px,transparent_1px),linear-gradient(to_bottom,#00f2fe01_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
 
       {/* Main Card with premium hover effect and layout */}
       <div className="relative w-full max-w-[430px] z-10 animate-fade-in">
-        <div className="glass shadow-premium rounded-[32px] p-8 sm:p-10 bg-white/70 dark:bg-[#0b1c2e]/70 border border-white/50 dark:border-white/5 backdrop-blur-xl">
+        <div className="glass shadow-premium rounded-[32px] p-8 sm:p-10 bg-white/70 dark:bg-[#12151e]/70 border border-white/50 dark:border-white/5 backdrop-blur-xl">
           
           {/* Logo container using image from assets */}
           <div className="flex flex-col items-center mb-8">

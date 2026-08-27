@@ -3,9 +3,10 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-primary: #082842;
-  --color-secondary: #1676c5;
-  --color-accent: #2d8bc6;
+  --color-primary: #090a0f;
+  --color-secondary: #7f00ff;
+  --color-accent: #00f2fe;
+  --color-success: #3fb950;
   
   --font-sans: 'Raleway', sans-serif;
   --font-serif: 'Cormorant Infant', serif;
@@ -23,8 +24,8 @@ body {
 }
 
 .dark body {
-  background-color: #061320;
-  color: #f1f5f9;
+  background-color: #090a0f;
+  color: #e6edf3;
 }
 
 /* Custom Utilities for Premium Look */
@@ -32,11 +33,11 @@ body {
   background: rgba(255, 255, 255, 0.70);
   backdrop-filter: blur(16px) saturate(120%);
   border: 1px solid rgba(255, 255, 255, 0.60);
-  box-shadow: 0 10px 30px -10px rgba(8, 40, 66, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  box-shadow: 0 10px 30px -10px rgba(9, 10, 15, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .dark .glass {
-  background: rgba(11, 28, 46, 0.65);
+  background: rgba(18, 21, 30, 0.65);
   backdrop-filter: blur(16px) saturate(120%);
   border: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);

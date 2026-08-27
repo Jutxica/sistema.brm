@@ -11,7 +11,7 @@ export const Layout: React.FC<LayoutProps> = ({ title = 'Sistema BRM' }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50/60 dark:bg-[#061320] flex transition-colors duration-300 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50/60 dark:bg-[#090a0f] flex transition-colors duration-300 relative overflow-hidden">
       {/* Background blobs for premium glassmorphism blur effect */}
       <div className="absolute top-[-10%] right-[-5%] w-[45rem] h-[45rem] rounded-full bg-secondary/8 dark:bg-secondary/15 blur-[130px] pointer-events-none animate-float-1 z-0" />
       <div className="absolute bottom-[-15%] left-[5%] w-[38rem] h-[38rem] rounded-full bg-accent/8 dark:bg-accent/15 blur-[120px] pointer-events-none animate-float-2 z-0" />
