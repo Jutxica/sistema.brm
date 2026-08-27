@@ -22,7 +22,7 @@
   <!-- Se usar PNG -->
   <link rel="icon" type="image/png" href="img/logo-pequeno.png">
   
-  <title>Sistema - Conventinho SCJ</title>
+  <title>Sistema - Sistema BRM</title>
 
   <?php
     $protocolo = 'http://';
@@ -67,7 +67,7 @@
   <link rel="stylesheet" type="text/css" href="lib/cropper/main.css">
   <link rel="stylesheet" type="text/css" href="lib/cropper/cropper.min.css">
 
-  <!-- Estilo principal do Conventinho SCJ -->
+  <!-- Estilo principal do Sistema BRM -->
   <link rel="stylesheet" href="lib/style.css">
 
   <style>
@@ -440,7 +440,7 @@
 
   <!-- Rodapé -->
   <footer class="main-footer">
-    <strong>&copy; 2025 Conventinho SCJ.</strong> Todos os direitos reservados.
+    <strong>&copy; 2025 Sistema BRM.</strong> Todos os direitos reservados.
   </footer>
 </div>
 <!-- ./wrapper -->

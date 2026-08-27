@@ -55,7 +55,7 @@
   <!-- Se usar PNG -->
   <link rel="icon" type="image/png" href="img/logo-pequeno.png">
   
-  <title>Sistema - Conventinho SCJ</title>
+  <title>Sistema - Sistema BRM</title>
 
   <?php
     $protocolo = 'http://';
@@ -95,7 +95,7 @@
   <!-- Select2 -->
   <link rel="stylesheet" href="vendor/almasaeed2010/adminlte/plugins/select2/css/select2.min.css">
 
-  <!-- Estilo principal do Conventinho SCJ -->
+  <!-- Estilo principal do Sistema BRM -->
   <link rel="stylesheet" href="lib/style.css">
 
   <style>
@@ -115,7 +115,7 @@
       padding: 10px;
     }
     .select2-container--default .select2-selection--multiple .select2-selection__choice {
-      color: var(--conventinho-primary);
+      color: var(--brm-primary);
     }
   </style>
 
@@ -663,7 +663,7 @@
 
   <!-- Rodapé -->
   <footer class="main-footer">
-    <strong>&copy; 2025 Conventinho SCJ.</strong> Todos os direitos reservados.
+    <strong>&copy; 2025 Sistema BRM.</strong> Todos os direitos reservados.
   </footer>
 </div>
 <!-- ./wrapper -->

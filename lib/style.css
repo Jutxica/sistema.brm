@@ -1,42 +1,42 @@
 :root {
-    --conventinho-primary: #900000;
-    --conventinho-primary-dark: #660000;
-    --conventinho-accent: #f4f4f4;
+    --brm-primary: #082842;
+    --brm-primary-dark: #051a2c;
+    --brm-accent: #f4f4f4;
 }
 
 /* Sobrescrevendo o padrão do AdminLTE para as cores da instituição */
 
 /* Botão Primário */
 .btn-primary {
-    background-color: var(--conventinho-primary) !important;
-    border-color: var(--conventinho-primary) !important;
+    background-color: var(--brm-primary) !important;
+    border-color: var(--brm-primary) !important;
     box-shadow: none;
 }
 
 .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
-    background-color: var(--conventinho-primary-dark) !important;
-    border-color: var(--conventinho-primary-dark) !important;
+    background-color: var(--brm-primary-dark) !important;
+    border-color: var(--brm-primary-dark) !important;
 }
 
 /* Card Outline (a linha superior do card) */
 .card-primary.card-outline {
-    border-top: 3px solid var(--conventinho-primary) !important;
+    border-top: 3px solid var(--brm-primary) !important;
 }
 
 /* Títulos de seção que usamos no formulário */
 .text-primary {
-    color: var(--conventinho-primary) !important;
+    color: var(--brm-primary) !important;
 }
 
 /* Ajuste no foco dos inputs para não ficar azul */
 .form-control:focus {
-    border-color: var(--conventinho-primary);
+    border-color: var(--brm-primary);
     box-shadow: 0 0 0 0.2rem rgba(144, 0, 0, 0.25);
 }
 
 /* Customização da Sidebar (se você quiser que o item ativo seja vermelho) */
 .sidebar-light-custom .nav-sidebar > .nav-item > .nav-link.active {
-    background-color: var(--conventinho-primary);
+    background-color: var(--brm-primary);
     color: #fff;
 }
 
@@ -72,12 +72,12 @@ div.dataTables_wrapper div.dataTables_paginate {
 }
 
 .sidebar-light-custom .nav-sidebar > .nav-item > .nav-link.active {
-  background-color: var(--conventinho-primary);
+  background-color: var(--brm-primary);
   color: #fff;
 }
 
 .sidebar-light-custom .nav-sidebar > .nav-item > .nav-link:hover {
-  background-color: var(--conventinho-primary);
+  background-color: var(--brm-primary);
   color: #fff;
 }
 
@@ -103,19 +103,19 @@ div.dataTables_wrapper div.dataTables_paginate {
 
 .btn-primary {
   color: #fff;
-  background-color: var(--conventinho-primary);
-  border-color: var(--conventinho-primary);
+  background-color: var(--brm-primary);
+  border-color: var(--brm-primary);
   box-shadow: none;
 }
 
 .btn-primary:hover {
   color: #fff;
-  background-color: var(--conventinho-primary);
-  border-color: var(--conventinho-primary);
+  background-color: var(--brm-primary);
+  border-color: var(--brm-primary);
 }
 
 .card-danger.card-outline {
-  border-top: 3px solid var(--conventinho-primary);
+  border-top: 3px solid var(--brm-primary);
 }
 
 a {
@@ -175,7 +175,7 @@ div.dataTables_wrapper div.dataTables_filter {
 }
 
 .ms-container .ms-optgroup-label {
-  color: var(--conventinho-primary);
+  color: var(--brm-primary);
 }
 
 div.dataTables_wrapper {

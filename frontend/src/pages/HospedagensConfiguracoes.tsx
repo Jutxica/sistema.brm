@@ -925,7 +925,7 @@ export const HospedagensConfiguracoes: React.FC = () => {
                         type="text"
                         value={editingEstadia.main_remetente || ''}
                         onChange={(e) => setEditingEstadia({ ...editingEstadia, main_remetente: e.target.value })}
-                        placeholder="Conventinho SCJ"
+                        placeholder="Sistema BRM"
                         className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all"
                       />
                     </div>
@@ -935,7 +935,7 @@ export const HospedagensConfiguracoes: React.FC = () => {
                         type="email"
                         value={editingEstadia.main_email || ''}
                         onChange={(e) => setEditingEstadia({ ...editingEstadia, main_email: e.target.value })}
-                        placeholder="contato@conventinho.org.br"
+                        placeholder="contato@brm.org.br"
                         className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all"
                       />
                     </div>

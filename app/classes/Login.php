@@ -43,7 +43,7 @@ class Login extends Conexao {
         session_unset();
         session_destroy();
 
-        echo "<script>window.location='https://sistema.conventinho.org.br';</script>";
+        echo "<script>window.location='https://sistema.brm.org.br';</script>";
     }
 
     public function recuperarSenha($cpf)

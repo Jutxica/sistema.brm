@@ -67,7 +67,7 @@ class Email extends Conexao {
 
         $mensagem = $this->variaveis($estadia[0]['main_mensagememail'],$dados,$lastId);
 
-        $this->enviarEmail($dados['fremail'], "Ficha de Hospedagem - Conventinho SCJ", $mensagem, $lastId, $dados['frestadiamotivo']);
+        $this->enviarEmail($dados['fremail'], "Ficha de Hospedagem - Sistema BRM", $mensagem, $lastId, $dados['frestadiamotivo']);
     }
     
     public function enviarEmail($destinatario, $assunto, $mensagem, $id, $termo)
@@ -95,7 +95,7 @@ class Email extends Conexao {
             $mail->Body    = utf8_decode($mensagem);
 
             // 🔽 Primeiro anexo
-            $url1 = "https://sistema.conventinho.org.br/ficha-hospedagem/".$id;
+            $url1 = "https://sistema.brm.org.br/ficha-hospedagem/".$id;
             $tempFile1 = sys_get_temp_dir() . DIRECTORY_SEPARATOR . "ficha.pdf";
             file_put_contents($tempFile1, file_get_contents($url1));
             if (file_exists($tempFile1)) {
@@ -103,7 +103,7 @@ class Email extends Conexao {
             }
 
             // 🔽 Segundo anexo
-            $url2 = "https://sistema.conventinho.org.br/termos-pdf/".$termo;
+            $url2 = "https://sistema.brm.org.br/termos-pdf/".$termo;
             $tempFile2 = sys_get_temp_dir() . DIRECTORY_SEPARATOR . "termos.pdf";
             file_put_contents($tempFile2, file_get_contents($url2));
             if (file_exists($tempFile2)) {
@@ -154,7 +154,7 @@ class Email extends Conexao {
             $mail->setFrom($info[0]['main_email'], $info[0]['main_remetente']);
             $mail->addAddress($info[0]['hos_email']);
             $mail->isHTML(true);
-            $mail->Subject = utf8_decode("Recibo - Hospedagem Conventinho");
+            $mail->Subject = utf8_decode("Recibo - Hospedagem BRM");
 
             $msgRec = $info[0]['main_recibo_mensagem'];
 
@@ -164,7 +164,7 @@ class Email extends Conexao {
             $mail->Body    = utf8_decode($msgRec);
 
             // 🔽 Primeiro anexo
-            $url1 = "https://sistema.conventinho.org.br/recibo-pdf/".$id;
+            $url1 = "https://sistema.brm.org.br/recibo-pdf/".$id;
             $tempFile1 = sys_get_temp_dir() . DIRECTORY_SEPARATOR . "recibo.pdf";
             file_put_contents($tempFile1, file_get_contents($url1));
             if (file_exists($tempFile1)) {

@@ -17,7 +17,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\classes\JWT;
 
-define('JWT_SECRET', 'yZ0QSbfF)m!]conventinhoSCJsecretkey2026!');
+define('JWT_SECRET', 'yZ0QSbfF)m!]brmsecretkey2026!');
 
 /**
  * Parses and returns the JSON request body as an associative array.

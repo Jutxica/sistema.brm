@@ -38,8 +38,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
           </div>
           {!collapsed && (
             <div className="flex flex-col select-none">
-              <span className="font-serif font-semibold leading-tight text-primary dark:text-secondary text-md">Conventinho</span>
-              <span className="text-[10px] tracking-wider uppercase text-slate-400 font-mono">SCJ SISTEMA</span>
+              <span className="font-serif font-semibold leading-tight text-primary dark:text-secondary text-md">BRM</span>
+              <span className="text-[10px] tracking-wider uppercase text-slate-400 font-mono">SISTEMA</span>
             </div>
           )}
         </div>

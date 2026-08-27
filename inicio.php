@@ -12,7 +12,7 @@
   <!-- Se usar PNG -->
   <link rel="icon" type="image/png" href="img/logo-pequeno.png">
   
-  <title>Sistema - Conventinho SCJ</title>
+  <title>Sistema - Sistema BRM</title>
 
   <?php
     $protocolo = 'http://';
@@ -41,7 +41,7 @@
   <!-- Estilo principal do AdminLTE -->
   <link rel="stylesheet" href="vendor/almasaeed2010/adminlte/dist/css/adminlte.min.css">
 
-  <!-- Estilo principal do Conventinho SCJ -->
+  <!-- Estilo principal do Sistema BRM -->
   <link rel="stylesheet" href="lib/style.css">
 
 </head>
@@ -72,7 +72,7 @@
 
   <!-- Rodapé -->
   <footer class="main-footer">
-    <strong>&copy; 2025 Conventinho SCJ.</strong> Todos os direitos reservados.
+    <strong>&copy; 2025 Sistema BRM.</strong> Todos os direitos reservados.
   </footer>
 </div>
 <!-- ./wrapper -->

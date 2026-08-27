@@ -7,7 +7,7 @@ interface LayoutProps {
   title?: string;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ title = 'Sistema Conventinho' }) => {
+export const Layout: React.FC<LayoutProps> = ({ title = 'Sistema BRM' }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (

@@ -176,7 +176,7 @@ export const Inicio: React.FC = () => {
             Olá, {user?.nome || 'Usuário'}!
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Seja bem-vindo de volta ao painel de gerenciamento do Conventinho SCJ.
+            Seja bem-vindo de volta ao painel de gerenciamento do Sistema BRM.
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0 font-mono">
@@ -307,7 +307,7 @@ export const Inicio: React.FC = () => {
           </div>
 
           <div className="pt-6 border-t border-slate-100 dark:border-slate-800/50 text-[10px] font-mono text-slate-400 leading-normal mt-6">
-            Conventinho SCJ &copy; 2026. Todos os direitos reservados. Design System baseado na marca oficial.
+            Sistema BRM &copy; 2026. Todos os direitos reservados.
           </div>
         </div>
       </div>

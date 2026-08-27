@@ -23,7 +23,7 @@
   <!-- Se usar PNG -->
   <link rel="icon" type="image/png" href="img/logo-pequeno.png">
   
-  <title>Sistema - Conventinho SCJ</title>
+  <title>Sistema - Sistema BRM</title>
 
   <?php
     $protocolo = 'http://';
@@ -52,7 +52,7 @@
   <!-- Estilo principal do AdminLTE -->
   <link rel="stylesheet" href="vendor/almasaeed2010/adminlte/dist/css/adminlte.min.css">
 
-  <!-- Estilo principal do Conventinho SCJ -->
+  <!-- Estilo principal do Sistema BRM -->
   <link rel="stylesheet" href="lib/style.css">
 
 </head>
@@ -61,7 +61,7 @@
   <!-- /.login-logo -->
   <div class="card card-outline card-danger">
     <div class="card-header text-center">
-      <img src="img/logo.png" alt="Logo Conventinho" style="width:80%;">
+      <img src="img/logo.png" alt="Logo Sistema BRM" style="width:80%;">
     </div>
     <div class="card-body">
       <p class="login-box-msg">Área de login</p>

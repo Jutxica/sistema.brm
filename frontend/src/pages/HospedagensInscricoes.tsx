@@ -957,7 +957,7 @@ export const HospedagensInscricoes: React.FC = () => {
                     className="w-5 h-5 text-secondary border-slate-300 focus:ring-secondary/25 rounded-md"
                   />
                   <label htmlFor="termos_checkbox" className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                    O inscrito declara aceitar todos os termos e condições de hospedagem descritos nos regulamentos do Conventinho.
+                    O inscrito declara aceitar todos os termos e condições de hospedagem descritos nos regulamentos do Sistema BRM.
                   </label>
                 </div>
               </div>

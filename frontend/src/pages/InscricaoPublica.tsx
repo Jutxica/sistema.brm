@@ -371,7 +371,7 @@ export const InscricaoPublica: React.FC = () => {
             <Building className="w-6 h-6" />
           </div>
           <h1 className="font-serif text-2xl font-bold text-primary dark:text-slate-100">Ficha de Inscrição</h1>
-          <p className="text-slate-400 text-[10px] font-mono uppercase tracking-wider mt-1">Hospedagens Conventinho SCJ</p>
+          <p className="text-slate-400 text-[10px] font-mono uppercase tracking-wider mt-1">Hospedagens Sistema BRM</p>
           
           {config?.chos_acolhida && step === 1 && (
             <div className="mt-4 text-xs text-slate-500 max-w-lg leading-relaxed bg-white/40 dark:bg-slate-900/40 p-3 rounded-xl border border-slate-200/50 dark:border-slate-800/40">
@@ -883,7 +883,7 @@ export const InscricaoPublica: React.FC = () => {
                   <span>Regulamento da Hospedagem & Termos</span>
                 </label>
                 <div className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 text-xs text-slate-600 dark:text-slate-350 leading-relaxed max-h-72 overflow-y-auto whitespace-pre-line scrollbar-thin">
-                  {selectedCourse?.main_termos || "Eu concordo com as regras e regulamentos estabelecidos pela hospedagem do Conventinho SCJ."}
+                  {selectedCourse?.main_termos || "Eu concordo com as regras e regulamentos estabelecidos pela hospedagem do Sistema BRM."}
                 </div>
               </div>
 

@@ -8,8 +8,8 @@
 <aside class="main-sidebar sidebar-light-custom elevation-4">
 <!-- Logo -->
 <a href="index.html" class="brand-link logo-switch">
-    <img src="img/logo-pequeno.png" class="brand-image-xl logo-xs" alt="Logo Conventinho SCJ">
-    <img src="img/logo.png" class="brand-image-xs logo-xl" alt="Logo Conventinho SCJ">
+    <img src="img/logo-pequeno.png" class="brand-image-xl logo-xs" alt="Logo Sistema BRM">
+    <img src="img/logo.png" class="brand-image-xs logo-xl" alt="Logo Sistema BRM">
 </a>
 
 <!-- Sidebar -->
@@ -55,7 +55,7 @@
 </style>
 
 <li class="nav-item">
-    <a href="/analise?brand=conventinho" class="nav-link nav-analytics">
+    <a href="/analise?brand=brm" class="nav-link nav-analytics">
         <i class="nav-icon fas fa-chart-line"></i>
         <p>Comunicação</p>
     </a>
