@@ -29,7 +29,8 @@ WORKDIR /app
 COPY composer.json composer.lock ./
 
 # Install dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+RUN composer install --ignore-platform-reqs --no-dev --optimize-autoloader --no-interaction
+
 
 # --- Stage 3: Execution environment (Apache + PHP) ---
 FROM php:8.2-apache
