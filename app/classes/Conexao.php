@@ -10,7 +10,7 @@ class Conexao {
         try{
             if(!isset(self::$conexao)):
                 self::$conexao = new \PDO(
-                    "mysql:host=localhost;dbname=conven80_sistema;charset=utf8",
+                    "mysql:host=127.0.0.1;dbname=conven80_sistema;charset=utf8",
                     "conven80_sistema",
                     "yZ0QSbfF)m!]"
                 );
