@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: sistema-conventinho
+    env: docker
+    plan: free
+    region: oregon
+    branch: main
+    envVars:
+      - key: VITE_SUPABASE_URL
+        sync: false
+        description: "URL do projeto Supabase para conexao do frontend React"
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+        description: "Chave anonima do projeto Supabase para conexao do frontend React"

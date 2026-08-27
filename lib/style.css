@@ -1,0 +1,189 @@
+:root {
+    --conventinho-primary: #900000;
+    --conventinho-primary-dark: #660000;
+    --conventinho-accent: #f4f4f4;
+}
+
+/* Sobrescrevendo o padrão do AdminLTE para as cores da instituição */
+
+/* Botão Primário */
+.btn-primary {
+    background-color: var(--conventinho-primary) !important;
+    border-color: var(--conventinho-primary) !important;
+    box-shadow: none;
+}
+
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+    background-color: var(--conventinho-primary-dark) !important;
+    border-color: var(--conventinho-primary-dark) !important;
+}
+
+/* Card Outline (a linha superior do card) */
+.card-primary.card-outline {
+    border-top: 3px solid var(--conventinho-primary) !important;
+}
+
+/* Títulos de seção que usamos no formulário */
+.text-primary {
+    color: var(--conventinho-primary) !important;
+}
+
+/* Ajuste no foco dos inputs para não ficar azul */
+.form-control:focus {
+    border-color: var(--conventinho-primary);
+    box-shadow: 0 0 0 0.2rem rgba(144, 0, 0, 0.25);
+}
+
+/* Customização da Sidebar (se você quiser que o item ativo seja vermelho) */
+.sidebar-light-custom .nav-sidebar > .nav-item > .nav-link.active {
+    background-color: var(--conventinho-primary);
+    color: #fff;
+}
+
+/* Estilo para a linha divisória (HR) */
+hr {
+    border-top: 1px solid rgba(144, 0, 0, 0.2);
+}
+
+.tabelaInteligente td {
+  vertical-align: middle;
+  text-wrap-mode: nowrap;
+}
+.tabelaInteligente th {
+  vertical-align: middle;
+  text-wrap-mode: nowrap;
+}
+div.dataTables_wrapper div.dataTables_info {
+  float: left;
+}
+div.dataTables_wrapper div.dataTables_paginate {
+  float: right;
+}
+.bgGreen {
+  background-color: #90b790;
+}
+.btnAjaxOkIn, .btnAjaxOkOut {
+  width: 100%;
+}
+
+/* Define uma cor personalizada para a sidebar */
+.sidebar-light-custom {
+  background-color: #ffffff;
+}
+
+.sidebar-light-custom .nav-sidebar > .nav-item > .nav-link.active {
+  background-color: var(--conventinho-primary);
+  color: #fff;
+}
+
+.sidebar-light-custom .nav-sidebar > .nav-item > .nav-link:hover {
+  background-color: var(--conventinho-primary);
+  color: #fff;
+}
+
+.nav-sidebar .nav-treeview>.nav-item>.nav-link>.nav-icon {
+  font-size: 10px;
+}
+
+.hierarquia {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    align-content: center;
+    justify-content: space-around;
+    margin: 20px 0;
+}
+.hierarquia div {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    align-content: center;
+}
+
+.btn-primary {
+  color: #fff;
+  background-color: var(--conventinho-primary);
+  border-color: var(--conventinho-primary);
+  box-shadow: none;
+}
+
+.btn-primary:hover {
+  color: #fff;
+  background-color: var(--conventinho-primary);
+  border-color: var(--conventinho-primary);
+}
+
+.card-danger.card-outline {
+  border-top: 3px solid var(--conventinho-primary);
+}
+
+a {
+  color: #a17b09;
+  text-decoration: none;
+  background-color: transparent;
+}
+a:hover {
+  color: #b7911e;
+  text-decoration: none;
+}
+
+div.dataTables_wrapper div.dataTables_filter {
+    float: right;
+}
+
+/* Container das listas */
+.connectedSortable {
+  min-height: 200px;
+  border: 1px solid #d2d6de;
+  background: #f9f9f9;
+  padding: 10px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+/* Itens da lista */
+.connectedSortable li {
+  list-style: none;
+  margin: 5px 0;
+  padding: 10px 15px;
+  background: #ffffff;
+  border: 1px solid #d2d6de;
+  border-radius: 3px;
+  cursor: move;
+}
+
+/* Hover nos itens */
+.connectedSortable li:hover {
+  background: #f4f4f4;
+  border-color: #3c8dbc;
+}
+
+/* Item sendo arrastado */
+.connectedSortable .ui-sortable-helper {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  background: #e6f2fa;
+  border-color: #3c8dbc;
+}
+
+/* Placeholder (onde o item vai cair) */
+.connectedSortable .ui-sortable-placeholder {
+  border: 2px dashed #3c8dbc;
+  background: #f0f8ff;
+  visibility: visible !important;
+  min-height: 40px;
+}
+
+.ms-container .ms-optgroup-label {
+  color: var(--conventinho-primary);
+}
+
+div.dataTables_wrapper {
+  margin: 0px 0 20px 0;
+  border-radius: 10px;
+  box-shadow: 1px 1px 3px 0px #cdcdcd;
+  padding: 10px;
+}
+div.dataTables_wrapper div.dataTables_paginate {
+  margin-top: 20px;
+}

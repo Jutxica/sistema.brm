@@ -1,0 +1,24 @@
+RewriteEngine On
+
+# Ignora reescrita para arquivos estáticos reais que existem na raiz
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Se o arquivo solicitado existe dentro do build do React (frontend/dist), serve-o diretamente
+RewriteCond %{DOCUMENT_ROOT}/frontend/dist%{REQUEST_URI} -f
+RewriteRule ^(.*)$ frontend/dist/$1 [L]
+
+# Direciona /api/alguma_coisa para api/alguma_coisa.php
+RewriteCond %{REQUEST_URI} ^/api/([a-zA-Z0-9_-]+)$
+RewriteRule ^api/([a-zA-Z0-9_-]+)$ api/$1.php [QSA,L]
+
+# Se não for arquivo/diretório real e não for requisição de API, direciona para o SPA React
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/api/
+RewriteRule ^(.*)$ frontend/dist/index.html [L]
+
+# Configurações de erros do PHP
+php_flag display_errors off
+php_value error_reporting 0

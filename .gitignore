@@ -1,0 +1,38 @@
+# Dependency directories
+node_modules/
+vendor/
+
+# Built frontend code (built during Render deploy)
+frontend/dist/
+analise/dist/
+
+# Env & configuration files
+.env
+.env*.local
+config.local.php
+
+# Logs and runtime files
+*.log
+error_log
+ajax/log_email_debug.txt
+
+# Archive files
+*.zip
+*.tar.gz
+*.tgz
+app.zip
+
+# Backups
+bkp/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Host/FTP files
+.ftpquota
+
+# Database dumps
+sql/
+*.sql
+

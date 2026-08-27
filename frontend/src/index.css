@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-primary: #082842;
+  --color-secondary: #1676c5;
+  --color-accent: #2d8bc6;
+  
+  --font-sans: 'Raleway', sans-serif;
+  --font-serif: 'Cormorant Infant', serif;
+  --font-mono: 'Reddit Sans', sans-serif;
+}
+
+/* Custom Base Layer / Global Styles */
+body {
+  font-family: var(--font-sans);
+  background-color: #ffffff;
+  color: #0f172a;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+.dark body {
+  background-color: #061320;
+  color: #f1f5f9;
+}
+
+/* Custom Utilities for Premium Look */
+@utility glass {
+  background: rgba(255, 255, 255, 0.70);
+  backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.60);
+  box-shadow: 0 10px 30px -10px rgba(8, 40, 66, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.dark .glass {
+  background: rgba(11, 28, 46, 0.65);
+  backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+@utility shadow-premium {
+  box-shadow: 0 10px 30px -5px rgba(8, 40, 66, 0.04), 0 2px 8px -2px rgba(8, 40, 66, 0.02);
+}
+
+.dark .shadow-premium {
+  box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.25), 0 2px 10px -2px rgba(0, 0, 0, 0.15);
+}
+@utility hover-lift {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+  &:hover {
+    transform: translateY(-1.5px);
+  }
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Custom floating animations for background blobs */
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-25px) scale(1.05);
+  }
+}
+
+@keyframes float-reverse {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(25px) scale(0.95);
+  }
+}
+
+.animate-float-1 {
+  animation: float-slow 10s ease-in-out infinite;
+}
+
+.animate-float-2 {
+  animation: float-reverse 15s ease-in-out infinite;
+}
+

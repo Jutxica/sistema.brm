@@ -1,0 +1,12 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /analise/
+  
+  # Forward to index.html if file/dir doesn't exist
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /analise/index.html [L]
+  
+  # Standard 404 fallback
+  ErrorDocument 404 /analise/index.html
+</IfModule>

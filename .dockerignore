@@ -1,0 +1,14 @@
+.git
+.gitignore
+.dockerignore
+Dockerfile
+render.yaml
+node_modules
+vendor
+frontend/node_modules
+frontend/dist
+analise/dist
+app.zip
+error_log
+ajax/log_email_debug.txt
+bkp
