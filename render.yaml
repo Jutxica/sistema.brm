@@ -12,3 +12,17 @@ services:
       - key: VITE_SUPABASE_ANON_KEY
         sync: false
         description: "Chave anonima do projeto Supabase para conexao do frontend React"
+      - key: DB_HOST
+        sync: false
+        description: "IP ou Host do Banco de Dados MySQL online (ex: cPanel ou banco remoto)"
+      - key: DB_NAME
+        sync: false
+        description: "Nome do banco de dados MySQL online"
+      - key: DB_USER
+        sync: false
+        description: "Usuario do banco de dados MySQL online"
+      - key: DB_PASSWORD
+        sync: false
+        description: "Senha do banco de dados MySQL online"
+      - key: DB_PORT
+        value: "3306"
