@@ -8,8 +8,18 @@ analise/dist/
 
 # Env & configuration files
 .env
-.env*.local
+.env.*
+!.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
 config.local.php
+
+# Private keys and certificates
+*.key
+*.pem
+*.p12
+*.pfx
 
 # Logs and runtime files
 *.log
@@ -34,5 +44,8 @@ Thumbs.db
 
 # Database dumps
 sql/
-*.sql
+
+# Versioned Supabase migrations/schema
+!supabase/
+!supabase/*.sql
 
