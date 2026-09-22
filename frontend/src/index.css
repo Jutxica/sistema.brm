@@ -8,22 +8,23 @@
   --color-accent: var(--accent);
   --color-success: var(--success);
   
-  --font-sans: 'Raleway', sans-serif;
-  --font-serif: 'Cormorant Infant', serif;
-  --font-mono: 'Reddit Sans', sans-serif;
+  --font-sans: 'General Sans', 'Plus Jakarta Sans', sans-serif;
+  --font-serif: 'Cinzel', serif;
+  --font-heading: 'Cinzel', serif;
+  --font-mono: 'Plus Jakarta Sans', sans-serif;
 }
 
 :root {
-  --primary: #1d1d1f;
-  --secondary: #0071e3;
-  --accent: #0066cc;
+  --primary: #0c3a4a;
+  --secondary: #14b8a6;
+  --accent: #125566;
   --success: #3fb950;
 }
 
 .dark {
-  --primary: #e6edf3;
-  --secondary: #7f00ff;
-  --accent: #00f2fe;
+  --primary: #5eead4;
+  --secondary: #14b8a6;
+  --accent: #125566;
   --success: #3fb950;
 }
 
