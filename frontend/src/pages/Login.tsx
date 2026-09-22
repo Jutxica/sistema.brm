@@ -90,7 +90,7 @@ export const Login: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="exemplo@brm.com"
-                  className="w-full pl-11 pr-4 py-3 bg-[#ffffff] dark:bg-[#090a0f] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#d6d6d6] dark:placeholder-slate-800 text-sm rounded-xl border border-[#d6d6d6] dark:border-slate-800 focus:border-[#0071e3] dark:focus:border-[#7f00ff] focus:ring-4 focus:ring-[#0071e3]/10 dark:focus:ring-[#7f00ff]/10 outline-none transition-all duration-200"
+                  className="w-full pl-11 pr-4 py-3 bg-[#ffffff] dark:bg-[#090a0f] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#d6d6d6] dark:placeholder-slate-800 text-sm rounded-xl border border-[#d6d6d6] dark:border-slate-800 focus:border-[#0c3a4a] dark:focus:border-[#125566] focus:ring-4 focus:ring-[#0c3a4a]/10 dark:focus:ring-[#125566]/10 outline-none transition-all duration-200"
                 />
               </div>
             </div>
@@ -115,7 +115,7 @@ export const Login: React.FC = () => {
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                   placeholder="Digite sua senha"
-                  className="w-full pl-11 pr-11 py-3 bg-[#ffffff] dark:bg-[#090a0f] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#d6d6d6] dark:placeholder-slate-800 text-sm rounded-xl border border-[#d6d6d6] dark:border-slate-800 focus:border-[#0071e3] dark:focus:border-[#7f00ff] focus:ring-4 focus:ring-[#0071e3]/10 dark:focus:ring-[#7f00ff]/10 outline-none transition-all duration-200"
+                  className="w-full pl-11 pr-11 py-3 bg-[#ffffff] dark:bg-[#090a0f] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#d6d6d6] dark:placeholder-slate-800 text-sm rounded-xl border border-[#d6d6d6] dark:border-slate-800 focus:border-[#0c3a4a] dark:focus:border-[#125566] focus:ring-4 focus:ring-[#0c3a4a]/10 dark:focus:ring-[#125566]/10 outline-none transition-all duration-200"
                 />
                 <button
                   type="button"
@@ -131,7 +131,7 @@ export const Login: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center justify-center w-full py-3 px-6 rounded-full bg-[#0071e3] hover:bg-[#0077ed] dark:bg-[#7f00ff] dark:hover:bg-[#8e1aff] text-white font-medium text-sm transition-all duration-250 cursor-pointer mt-6 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+              className="flex items-center justify-center w-full py-3 px-6 rounded-full bg-[#0c3a4a] hover:bg-[#125566] dark:bg-[#125566] dark:hover:bg-[#0c3a4a] text-white font-medium text-sm transition-all duration-250 cursor-pointer mt-6 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
             >
               {loading ? (
                 <>

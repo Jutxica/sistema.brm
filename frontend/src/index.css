@@ -16,14 +16,14 @@
 
 :root {
   --primary: #0c3a4a;
-  --secondary: #14b8a6;
+  --secondary: #0c3a4a;
   --accent: #125566;
   --success: #3fb950;
 }
 
 .dark {
   --primary: #5eead4;
-  --secondary: #14b8a6;
+  --secondary: #125566;
   --accent: #125566;
   --success: #3fb950;
 }
