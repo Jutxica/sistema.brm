@@ -1,515 +1,140 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { AlertCircle, Building, CheckCircle2, ChevronLeft, ChevronRight, Loader2, UserRound } from 'lucide-react';
+import { AlertCircle, Building, CheckCircle2, ChevronLeft, ChevronRight, FileUp, Loader2, Plus, Trash2 } from 'lucide-react';
 
-interface ObraPublica {
-  id: string;
-  nome: string;
-  cidade: string | null;
-  estado: string | null;
-}
+interface ObraReferencia { id: string; nome: string; cidade: string | null; estado: string | null }
+interface Familiar extends Record<string, string> { tipo: 'Pai' | 'Mãe' | 'Irmão'; nome: string; data_nascimento: string; local_nascimento: string; estado_civil: string; data_evento: string }
+interface Sacrament extends Record<string, string> { tipo: string; data: string; paroquia: string; diocese: string; cidade: string; uf: string; livro: string; folha: string; numero_registro: string; celebrante: string; observacoes: string }
+interface DocumentoSelecionado { categoria: string; arquivo: File }
 
-interface FormDataReligioso {
-  grau: string;
-  nome_civil: string;
-  nome_religioso: string;
-  data_nascimento: string;
-  local_nascimento: string;
-  municipio_nascimento: string;
-  estado_nascimento: string;
-  pais_nascimento: string;
-  nacionalidade: string;
-  cpf: string;
-  rg: string;
-  rg_orgao_expedidor: string;
-  rg_data_emissao: string;
-  titulo_eleitor: string;
-  pis: string;
-  cnh: string;
-  cnh_categoria: string;
-  passaporte: string;
-  obra_atual_id: string;
-  email_institucional: string;
-  email_pessoal: string;
-  telefone_celular: string;
-  whatsapp: string;
-  pai_nome: string;
-  mae_nome: string;
-  contato_nome: string;
-  contato_parentesco: string;
-  contato_telefone: string;
-  batismo_data: string;
-  batismo_paroquia: string;
-  primeira_profissao_data: string;
-  votos_perpetuos_data: string;
-  ordenacao_data: string;
-  plano_saude: string;
-  tipo_sanguineo: string;
-  alergias: string;
-  medicamentos: string;
-  observacoes: string;
-  consentimento_dados: boolean;
-}
-
-const initialForm: FormDataReligioso = {
-  grau: 'Padre',
-  nome_civil: '',
-  nome_religioso: '',
-  data_nascimento: '',
-  local_nascimento: '',
-  municipio_nascimento: '',
-  estado_nascimento: '',
-  pais_nascimento: 'Brasil',
-  nacionalidade: 'Brasileira',
-  cpf: '',
-  rg: '',
-  rg_orgao_expedidor: '',
-  rg_data_emissao: '',
-  titulo_eleitor: '',
-  pis: '',
-  cnh: '',
-  cnh_categoria: '',
-  passaporte: '',
-  obra_atual_id: '',
-  email_institucional: '',
-  email_pessoal: '',
-  telefone_celular: '',
-  whatsapp: '',
-  pai_nome: '',
-  mae_nome: '',
-  contato_nome: '',
-  contato_parentesco: '',
-  contato_telefone: '',
-  batismo_data: '',
-  batismo_paroquia: '',
-  primeira_profissao_data: '',
-  votos_perpetuos_data: '',
-  ordenacao_data: '',
-  plano_saude: '',
-  tipo_sanguineo: '',
-  alergias: '',
-  medicamentos: '',
-  observacoes: '',
-  consentimento_dados: false,
-};
-
-const inputClass = 'w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/25 transition-all';
+const etapas = [
+  'Identificação', 'Família', 'Sacramentos', 'Vocação', 'Formação', 'Ministérios',
+  'Acadêmica', 'Idiomas', 'Histórico', 'Missões', 'Endereço', 'Saúde', 'Documentos',
+];
+const inputClass = 'w-full px-3 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white/70 dark:bg-slate-900/50 outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/25';
+const emptySacrament = (tipo: string): Sacrament => ({ tipo, data: '', paroquia: '', diocese: '', cidade: '', uf: '', livro: '', folha: '', numero_registro: '', celebrante: '', observacoes: '' });
+const emptyFamiliar = (tipo: Familiar['tipo'] = 'Irmão'): Familiar => ({ tipo, nome: '', data_nascimento: '', local_nascimento: '', estado_civil: '', data_evento: '' });
 
 export const CadastroReligiosoPublico: React.FC = () => {
-  const [obras, setObras] = useState<ObraPublica[]>([]);
+  const [step, setStep] = useState(1);
+  const [obras, setObras] = useState<ObraReferencia[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [step, setStep] = useState(1);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [formData, setFormData] = useState<FormDataReligioso>(initialForm);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [documentos, setDocumentos] = useState<DocumentoSelecionado[]>([]);
+  const [familiares, setFamiliares] = useState<Familiar[]>([emptyFamiliar('Pai'), emptyFamiliar('Mãe')]);
+  const [sacramentos, setSacramentos] = useState<Sacrament[]>([emptySacrament('Batismo'), emptySacrament('Primeira Eucaristia'), emptySacrament('Crisma')]);
+  const [base, setBase] = useState<Record<string, string>>({
+    grau: 'Padre', nome_civil: '', nome_religioso: '', data_nascimento: '', local_nascimento: '', municipio_nascimento: '', estado_nascimento: '', pais_nascimento: 'Brasil', nacionalidade: 'Brasileira', cpf: '', rg: '', rg_orgao_expedidor: '', rg_data_emissao: '', titulo_eleitor: '', pis: '', cnh: '', cnh_categoria: '', passaporte: '', obra_atual_id: '', comunidade_atual_nome: '', email_institucional: '', email_pessoal: '', telefone_celular: '', whatsapp: '', redes_sociais: '',
+    contato_nome: '', contato_parentesco: '', contato_1: '', contato_2: '', paroquia_origem: '', diocese_origem: '', grupo_movimento_pastoral: '', promotor_vocacional: '', plano_saude: '', numero_plano_saude: '', local_plano_saude: '', sus: '', tipo_sanguineo: '', fator_rh: '', alergias: '', medicamentos_continuos: '', medico_responsavel: '', contato_emergencia: '', informacoes_clinicas: '', cirurgias: '', proteses: '', observacoes_saude: '', consentimento_dados: '',
+  });
+  const [rows, setRows] = useState<Record<string, string>[]>([]);
 
   useEffect(() => {
-    const loadPublicData = async () => {
-      try {
-        const { data } = await supabase
-          .from('obras')
-          .select('id,nome,cidade,estado')
-          .eq('status', 'Ativa')
-          .order('nome', { ascending: true });
-        setObras((data || []) as ObraPublica[]);
-      } catch (err) {
-        console.error('Erro ao carregar obras:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadPublicData();
+    supabase.from('religiosos_obras_referencia').select('id,nome,cidade,estado').eq('status', 'Ativa').order('nome').then(({ data }) => {
+      setObras((data || []) as ObraReferencia[]);
+      setLoading(false);
+    });
   }, []);
 
-  const updateField = <K extends keyof FormDataReligioso>(key: K, value: FormDataReligioso[K]) => {
-    setFormData(prev => ({ ...prev, [key]: value }));
-  };
+  const updateBase = (field: string, value: string) => setBase(previous => ({ ...previous, [field]: value }));
+  const updateRow = (index: number, field: string, value: string) => setRows(previous => previous.map((row, rowIndex) => rowIndex === index ? { ...row, [field]: value } : row));
+  const addRow = (values: Record<string, string> = {}) => setRows(previous => [...previous, values]);
+  const removeRow = (index: number) => setRows(previous => previous.filter((_, rowIndex) => rowIndex !== index));
+  const updateFamiliar = (index: number, field: keyof Familiar, value: string) => setFamiliares(previous => previous.map((row, rowIndex) => rowIndex === index ? { ...row, [field]: value } : row));
+  const updateSacrament = (index: number, field: keyof Sacrament, value: string) => setSacramentos(previous => previous.map((row, rowIndex) => rowIndex === index ? { ...row, [field]: value } : row));
 
   const validateStep = () => {
-    if (step === 1 && (!formData.nome_civil || !formData.grau || !formData.cpf)) {
-      return 'Preencha nome civil, grau e CPF.';
-    }
-    if (step === 2 && (!formData.email_institucional && !formData.email_pessoal) && !formData.telefone_celular) {
-      return 'Informe ao menos um e-mail ou telefone de contato.';
-    }
-    if (step === 4 && !formData.consentimento_dados) {
-      return 'Confirme a autorização de uso dos dados para atualização cadastral.';
-    }
+    if (step === 1 && (!base.nome_civil || !base.cpf)) return 'Nome completo e CPF são obrigatórios.';
+    if (step === 13 && !base.consentimento_dados) return 'É necessário autorizar o uso dos dados para enviar o cadastro.';
     return null;
   };
 
-  const nextStep = () => {
-    const message = validateStep();
-    if (message) {
-      setErrorMsg(message);
-      return;
-    }
-    setErrorMsg(null);
-    setStep(prev => prev + 1);
-  };
-
-  const prevStep = () => {
-    setErrorMsg(null);
-    setStep(prev => prev - 1);
-  };
-
-  const handleSubmit = async (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const message = validateStep();
-    if (message) {
-      setErrorMsg(message);
-      return;
-    }
-    setSubmitting(true);
-    setErrorMsg(null);
-
-    const payload = {
-      origem_cadastro: 'publico',
-      status_cadastro: 'Em revisão',
-      status: 'Ativo',
-      grau: formData.grau,
-      nome_civil: formData.nome_civil,
-      nome_religioso: formData.nome_religioso || null,
-      data_nascimento: formData.data_nascimento || null,
-      local_nascimento: formData.local_nascimento || null,
-      municipio_nascimento: formData.municipio_nascimento || null,
-      estado_nascimento: formData.estado_nascimento || null,
-      pais_nascimento: formData.pais_nascimento || null,
-      nacionalidade: formData.nacionalidade || null,
-      cpf: formData.cpf || null,
-      rg: formData.rg || null,
-      rg_orgao_expedidor: formData.rg_orgao_expedidor || null,
-      rg_data_emissao: formData.rg_data_emissao || null,
-      titulo_eleitor: formData.titulo_eleitor || null,
-      pis: formData.pis || null,
-      cnh: formData.cnh || null,
-      cnh_categoria: formData.cnh_categoria || null,
-      passaporte: formData.passaporte || null,
-      obra_atual_id: formData.obra_atual_id || null,
-      email_institucional: formData.email_institucional || null,
-      email_pessoal: formData.email_pessoal || null,
-      telefone_celular: formData.telefone_celular || null,
-      whatsapp: formData.whatsapp || null,
-      familia: {
-        pai_nome: formData.pai_nome,
-        mae_nome: formData.mae_nome,
-        contato_responsavel: {
-          nome: formData.contato_nome,
-          parentesco: formData.contato_parentesco,
-          telefone: formData.contato_telefone,
-        },
-      },
-      sacramentos: {
-        batismo: {
-          data: formData.batismo_data,
-          paroquia: formData.batismo_paroquia,
-        },
-      },
-      etapas_formacao: {
-        primeira_profissao: { data: formData.primeira_profissao_data },
-        votos_perpetuos: { data: formData.votos_perpetuos_data },
-      },
-      ministerios_ordens: {
-        presbiterado: { data: formData.ordenacao_data },
-      },
-      saude: {
-        plano_saude: formData.plano_saude,
-        tipo_sanguineo: formData.tipo_sanguineo,
-        alergias: formData.alergias,
-        medicamentos: formData.medicamentos,
-      },
-      observacoes: formData.observacoes || null,
-      consentimento_dados: formData.consentimento_dados,
-    };
-
+    const validation = validateStep();
+    if (validation) { setErrorMessage(validation); return; }
+    setSubmitting(true); setErrorMessage(null);
     try {
-      const { error } = await supabase.from('religiosos').insert([payload]);
-      if (error) throw error;
+      const religiosoPayload = {
+        grau: base.grau, nome_civil: base.nome_civil, nome_religioso: base.nome_religioso || null,
+        data_nascimento: base.data_nascimento || null, local_nascimento: base.local_nascimento || null,
+        municipio_nascimento: base.municipio_nascimento || null, estado_nascimento: base.estado_nascimento || null,
+        pais_nascimento: base.pais_nascimento || null, nacionalidade: base.nacionalidade || null,
+        cpf: base.cpf || null, rg: base.rg || null, rg_orgao_expedidor: base.rg_orgao_expedidor || null,
+        rg_data_emissao: base.rg_data_emissao || null, titulo_eleitor: base.titulo_eleitor || null,
+        pis: base.pis || null, cnh: base.cnh || null, cnh_categoria: base.cnh_categoria || null,
+        passaporte: base.passaporte || null, obra_atual_id: base.obra_atual_id || null,
+        comunidade_atual_nome: base.comunidade_atual_nome || null, email_institucional: base.email_institucional || null,
+        email_pessoal: base.email_pessoal || null, telefone_celular: base.telefone_celular || null,
+        whatsapp: base.whatsapp || null, redes_sociais: base.redes_sociais || null,
+        origem_cadastro: 'publico', status_cadastro: 'Em revisão', status: 'Ativo',
+        consentimento_dados: true, consentimento_em: new Date().toISOString(),
+      };
+      const { data: religioso, error: religiosoError } = await supabase.from('religiosos').insert(religiosoPayload).select('id').single();
+      if (religiosoError || !religioso) throw religiosoError || new Error('Não foi possível criar o cadastro.');
+      const id = religioso.id;
+      const insertMany = async (table: string, values: Record<string, unknown>[]) => {
+        const filtered = values.filter(value => Object.values(value).some(item => item !== '' && item !== null && item !== undefined));
+        if (!filtered.length) return;
+        const { error } = await supabase.from(table).insert(filtered.map(value => ({ ...value, religioso_id: id })));
+        if (error) throw error;
+      };
+      await insertMany('religiosos_familiares', familiares.filter(row => row.nome).map(row => row));
+      await insertMany('religiosos_contatos_familiares', [{ nome: base.contato_nome, parentesco: base.contato_parentesco, contato_1: base.contato_1, contato_2: base.contato_2 }]);
+      await insertMany('religiosos_sacramentos', sacramentos.filter(row => Object.values(row).some(value => value && value !== row.tipo)).map(row => row));
+      await insertMany('religiosos_origem_vocacional', [{ paroquia_origem: base.paroquia_origem, diocese: base.diocese_origem, grupo_movimento_pastoral: base.grupo_movimento_pastoral, promotor_vocacional: base.promotor_vocacional }]);
+      await insertMany('religiosos_historico_vocacional', rows.filter(row => row.tipo === 'vocacional').map(row => ({ data_evento: row.data, ano: row.ano ? Number(row.ano) : null, titulo: row.titulo, descricao: row.descricao, local: row.local, responsavel: row.responsavel })));
+      await insertMany('religiosos_formacao_religiosa', rows.filter(row => row.tipo === 'formacao').map(row => ({ etapa: row.etapa, instituicao: row.instituicao, cidade: row.cidade, local: row.local, data_ingresso: row.inicio || null, data_conclusao: row.fim || null, formador: row.formador })));
+      await insertMany('religiosos_profissoes_votos', rows.filter(row => row.tipo === 'voto').map(row => ({ tipo: row.voto_tipo, renovacao: row.renovacao ? Number(row.renovacao) : null, data: row.data || null, local: row.local, celebrante: row.celebrante })));
+      await insertMany('religiosos_ministerios_ordens', rows.filter(row => row.tipo === 'ministerio').map(row => ({ tipo: row.ministerio, data: row.data || null, local: row.local, celebrante: row.celebrante, bispo_ordenante: row.bispo_ordenante })));
+      await insertMany('religiosos_formacao_academica', rows.filter(row => row.tipo === 'academica').map(row => ({ categoria: row.categoria, instituicao: row.instituicao, periodo: row.periodo, cidade: row.cidade, estado: row.estado, observacoes: row.observacoes })));
+      await insertMany('religiosos_idiomas', rows.filter(row => row.tipo === 'idioma').map(row => ({ idioma: row.idioma, nivel: row.nivel, fala: row.fala, audicao: row.audicao, leitura: row.leitura, escrita: row.escrita, observacoes: row.observacoes })));
+      await insertMany('religiosos_competencias', rows.filter(row => row.tipo === 'competencia').map(row => ({ competencia: row.competencia, observacoes: row.observacoes })));
+      await insertMany('religiosos_historico_comunidades', rows.filter(row => row.tipo === 'historico').map(row => ({ periodo_inicio: row.inicio || null, periodo_fim: row.fim || null, instituicao: row.instituicao, funcao: row.funcao, local: row.local, observacoes: row.observacoes })));
+      await insertMany('religiosos_missoes_servicos', rows.filter(row => row.tipo === 'servico').map(row => ({ tipo: row.servico_tipo, instituicao: row.instituicao, funcao: row.funcao, periodo: row.periodo, local: row.local, documento: row.documento, observacao: row.observacao })));
+      await insertMany('religiosos_enderecos_contatos', [{ obra_id: base.obra_atual_id || null, celular: base.telefone_celular, email: base.email_institucional || base.email_pessoal, whatsapp: base.whatsapp, redes_sociais: base.redes_sociais }]);
+      await insertMany('religiosos_saude', [{ plano_saude: base.plano_saude, numero_plano_saude: base.numero_plano_saude, local_plano_saude: base.local_plano_saude, sus: base.sus, tipo_sanguineo: base.tipo_sanguineo, fator_rh: base.fator_rh, alergias: base.alergias, medicamentos_continuos: base.medicamentos_continuos, medico_responsavel: base.medico_responsavel, contato_emergencia: base.contato_emergencia, informacoes_clinicas: base.informacoes_clinicas, cirurgias: base.cirurgias, proteses: base.proteses, observacoes: base.observacoes_saude }]);
+      for (const documento of documentos) {
+        const path = `${id}/${crypto.randomUUID()}-${documento.arquivo.name}`;
+        const upload = await supabase.storage.from('religiosos-documentos').upload(path, documento.arquivo);
+        if (upload.error) throw upload.error;
+        const { error } = await supabase.from('religiosos_documentos').insert({ religioso_id: id, categoria: documento.categoria, nome_arquivo: documento.arquivo.name, caminho_storage: path, mime_type: documento.arquivo.type, tamanho_bytes: documento.arquivo.size, quem_cadastrou: 'Religioso - cadastro público' });
+        if (error) throw error;
+      }
       setSuccess(true);
-    } catch (err) {
-      const messageText = err instanceof Error ? err.message : 'Erro inesperado ao enviar cadastro.';
-      setErrorMsg(messageText);
-    } finally {
-      setSubmitting(false);
-    }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Não foi possível enviar o cadastro.');
+    } finally { setSubmitting(false); }
   };
 
-  if (loading) {
-    return (
-      <PublicShell>
-        <div className="flex flex-col items-center gap-3 py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-secondary" />
-          <span className="text-sm font-medium text-slate-500">Carregando formulário...</span>
-        </div>
-      </PublicShell>
-    );
-  }
+  if (loading) return <PublicShell><Loader2 className="w-8 h-8 animate-spin text-secondary" /></PublicShell>;
+  if (success) return <PublicShell><div className="max-w-xl rounded-2xl bg-white p-10 text-center shadow-premium"><CheckCircle2 className="mx-auto mb-4 h-14 w-14 text-emerald-500" /><h1 className="font-serif text-2xl font-bold">Cadastro enviado</h1><p className="mt-3 text-sm text-slate-500">Os dados e documentos foram recebidos para conferência da secretaria.</p></div></PublicShell>;
 
-  if (success) {
-    return (
-      <PublicShell>
-        <div className="w-full max-w-xl mx-auto rounded-2xl glass shadow-premium p-8 text-center border-t-4 border-t-emerald-500 bg-white/90">
-          <div className="flex items-center justify-center w-14 h-14 rounded-full bg-emerald-500/10 text-emerald-500 mx-auto mb-5">
-            <CheckCircle2 className="w-8 h-8" />
-          </div>
-          <h2 className="font-serif text-2xl font-bold text-primary dark:text-slate-100">Cadastro enviado</h2>
-          <p className="text-sm text-slate-500 mt-3 leading-relaxed">
-            Recebemos a atualização cadastral. A secretaria da Província fará a conferência antes de liberar os dados no painel.
-          </p>
-          <button
-            onClick={() => {
-              setSuccess(false);
-              setStep(1);
-              setFormData(initialForm);
-            }}
-            className="mt-7 px-6 py-2.5 bg-secondary text-white text-xs font-bold rounded-xl shadow-md shadow-secondary/10"
-          >
-            Enviar outro cadastro
-          </button>
-        </div>
-      </PublicShell>
-    );
-  }
-
-  const steps = ['Identificação', 'Contato', 'Família e Vida Religiosa', 'Saúde e Revisão'];
-
-  return (
-    <PublicShell>
-      <form onSubmit={handleSubmit} className="relative w-full max-w-4xl mx-auto rounded-2xl glass shadow-premium p-6 sm:p-8 bg-white/90">
-        <div className="flex flex-col items-center text-center mb-8">
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 dark:bg-secondary/10 text-primary dark:text-secondary mb-3">
-            <UserRound className="w-6 h-6" />
-          </div>
-          <h1 className="font-serif text-2xl font-bold text-primary dark:text-slate-100">Atualização de Dados dos Religiosos</h1>
-          <p className="text-slate-400 text-[10px] font-mono uppercase tracking-wider mt-1">Província BRM</p>
-        </div>
-
-        <div className="mb-8 max-w-2xl mx-auto">
-          <div className="flex items-center justify-between relative">
-            {steps.map((label, index) => {
-              const stepIndex = index + 1;
-              const active = step === stepIndex;
-              const complete = step > stepIndex;
-              return (
-                <div key={label} className="flex flex-col items-center z-10">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${complete ? 'bg-emerald-500 text-white' : active ? 'bg-secondary text-white ring-4 ring-secondary/10' : 'bg-slate-100 text-slate-400'}`}>
-                    {complete ? <CheckCircle2 className="w-4 h-4" /> : stepIndex}
-                  </div>
-                  <span className={`hidden sm:block mt-2 text-[10px] font-bold ${active ? 'text-secondary' : 'text-slate-400'}`}>{label}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {errorMsg && (
-          <div className="mb-5 flex items-start gap-2 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 p-3 text-xs">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
-
-        {step === 1 && (
-          <SectionGrid>
-            <Field label="Grau">
-              <select className={inputClass} value={formData.grau} onChange={(e) => updateField('grau', e.target.value)}>
-                {['Frater', 'Irmão', 'Diácono', 'Padre', 'Bispo'].map(value => <option key={value} value={value}>{value}</option>)}
-              </select>
-            </Field>
-            <Field label="Nome completo">
-              <input required className={inputClass} value={formData.nome_civil} onChange={(e) => updateField('nome_civil', e.target.value)} />
-            </Field>
-            <Field label="Nome religioso">
-              <input className={inputClass} value={formData.nome_religioso} onChange={(e) => updateField('nome_religioso', e.target.value)} />
-            </Field>
-            <Field label="CPF">
-              <input required inputMode="numeric" className={inputClass} value={formData.cpf} onChange={(e) => updateField('cpf', e.target.value)} />
-            </Field>
-            <Field label="Data de nascimento">
-              <input type="date" className={inputClass} value={formData.data_nascimento} onChange={(e) => updateField('data_nascimento', e.target.value)} />
-            </Field>
-            <Field label="Local de nascimento">
-              <input className={inputClass} value={formData.local_nascimento} onChange={(e) => updateField('local_nascimento', e.target.value)} />
-            </Field>
-            <Field label="Município">
-              <input className={inputClass} value={formData.municipio_nascimento} onChange={(e) => updateField('municipio_nascimento', e.target.value)} />
-            </Field>
-            <Field label="Estado">
-              <input className={inputClass} value={formData.estado_nascimento} onChange={(e) => updateField('estado_nascimento', e.target.value)} />
-            </Field>
-            <Field label="Nacionalidade">
-              <input className={inputClass} value={formData.nacionalidade} onChange={(e) => updateField('nacionalidade', e.target.value)} />
-            </Field>
-            <Field label="RG">
-              <input className={inputClass} value={formData.rg} onChange={(e) => updateField('rg', e.target.value)} />
-            </Field>
-            <Field label="Órgão expedidor">
-              <input className={inputClass} value={formData.rg_orgao_expedidor} onChange={(e) => updateField('rg_orgao_expedidor', e.target.value)} />
-            </Field>
-            <Field label="Data de emissão do RG">
-              <input type="date" className={inputClass} value={formData.rg_data_emissao} onChange={(e) => updateField('rg_data_emissao', e.target.value)} />
-            </Field>
-          </SectionGrid>
-        )}
-
-        {step === 2 && (
-          <SectionGrid>
-            <Field label="Obra atual">
-              <select className={inputClass} value={formData.obra_atual_id} onChange={(e) => updateField('obra_atual_id', e.target.value)}>
-                <option value="">Selecione, se aplicável</option>
-                {obras.map(obra => <option key={obra.id} value={obra.id}>{obra.nome} {obra.cidade ? `- ${obra.cidade}/${obra.estado || ''}` : ''}</option>)}
-              </select>
-            </Field>
-            <Field label="E-mail institucional">
-              <input type="email" className={inputClass} value={formData.email_institucional} onChange={(e) => updateField('email_institucional', e.target.value)} />
-            </Field>
-            <Field label="E-mail pessoal">
-              <input type="email" className={inputClass} value={formData.email_pessoal} onChange={(e) => updateField('email_pessoal', e.target.value)} />
-            </Field>
-            <Field label="Celular">
-              <input inputMode="tel" className={inputClass} value={formData.telefone_celular} onChange={(e) => updateField('telefone_celular', e.target.value)} />
-            </Field>
-            <Field label="WhatsApp">
-              <input inputMode="tel" className={inputClass} value={formData.whatsapp} onChange={(e) => updateField('whatsapp', e.target.value)} />
-            </Field>
-            <Field label="Passaporte">
-              <input className={inputClass} value={formData.passaporte} onChange={(e) => updateField('passaporte', e.target.value)} />
-            </Field>
-            <Field label="Título de eleitor">
-              <input className={inputClass} value={formData.titulo_eleitor} onChange={(e) => updateField('titulo_eleitor', e.target.value)} />
-            </Field>
-            <Field label="PIS">
-              <input className={inputClass} value={formData.pis} onChange={(e) => updateField('pis', e.target.value)} />
-            </Field>
-            <Field label="CNH / Categoria">
-              <div className="grid grid-cols-2 gap-2">
-                <input className={inputClass} value={formData.cnh} onChange={(e) => updateField('cnh', e.target.value)} />
-                <input className={inputClass} value={formData.cnh_categoria} onChange={(e) => updateField('cnh_categoria', e.target.value)} />
-              </div>
-            </Field>
-          </SectionGrid>
-        )}
-
-        {step === 3 && (
-          <SectionGrid>
-            <Field label="Nome do pai">
-              <input className={inputClass} value={formData.pai_nome} onChange={(e) => updateField('pai_nome', e.target.value)} />
-            </Field>
-            <Field label="Nome da mãe">
-              <input className={inputClass} value={formData.mae_nome} onChange={(e) => updateField('mae_nome', e.target.value)} />
-            </Field>
-            <Field label="Contato familiar responsável">
-              <input className={inputClass} value={formData.contato_nome} onChange={(e) => updateField('contato_nome', e.target.value)} />
-            </Field>
-            <Field label="Parentesco">
-              <input className={inputClass} value={formData.contato_parentesco} onChange={(e) => updateField('contato_parentesco', e.target.value)} />
-            </Field>
-            <Field label="Telefone do familiar">
-              <input inputMode="tel" className={inputClass} value={formData.contato_telefone} onChange={(e) => updateField('contato_telefone', e.target.value)} />
-            </Field>
-            <Field label="Data do batismo">
-              <input type="date" className={inputClass} value={formData.batismo_data} onChange={(e) => updateField('batismo_data', e.target.value)} />
-            </Field>
-            <Field label="Paróquia do batismo">
-              <input className={inputClass} value={formData.batismo_paroquia} onChange={(e) => updateField('batismo_paroquia', e.target.value)} />
-            </Field>
-            <Field label="Primeira profissão">
-              <input type="date" className={inputClass} value={formData.primeira_profissao_data} onChange={(e) => updateField('primeira_profissao_data', e.target.value)} />
-            </Field>
-            <Field label="Votos perpétuos">
-              <input type="date" className={inputClass} value={formData.votos_perpetuos_data} onChange={(e) => updateField('votos_perpetuos_data', e.target.value)} />
-            </Field>
-            <Field label="Ordenação presbiteral">
-              <input type="date" className={inputClass} value={formData.ordenacao_data} onChange={(e) => updateField('ordenacao_data', e.target.value)} />
-            </Field>
-          </SectionGrid>
-        )}
-
-        {step === 4 && (
-          <div className="space-y-5">
-            <SectionGrid>
-              <Field label="Plano de saúde">
-                <input className={inputClass} value={formData.plano_saude} onChange={(e) => updateField('plano_saude', e.target.value)} />
-              </Field>
-              <Field label="Tipo sanguíneo">
-                <input className={inputClass} value={formData.tipo_sanguineo} onChange={(e) => updateField('tipo_sanguineo', e.target.value)} />
-              </Field>
-              <Field label="Alergias">
-                <input className={inputClass} value={formData.alergias} onChange={(e) => updateField('alergias', e.target.value)} />
-              </Field>
-              <Field label="Medicamentos de uso contínuo">
-                <input className={inputClass} value={formData.medicamentos} onChange={(e) => updateField('medicamentos', e.target.value)} />
-              </Field>
-            </SectionGrid>
-            <Field label="Observações complementares">
-              <textarea rows={4} className={inputClass} value={formData.observacoes} onChange={(e) => updateField('observacoes', e.target.value)} />
-            </Field>
-            <label className="flex items-start gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
-              <input
-                type="checkbox"
-                checked={formData.consentimento_dados}
-                onChange={(e) => updateField('consentimento_dados', e.target.checked)}
-                className="mt-0.5 w-4 h-4 accent-secondary"
-              />
-              <span>Autorizo o uso destes dados pela Província BRM para atualização cadastral, gestão institucional e contato pastoral/administrativo.</span>
-            </label>
-          </div>
-        )}
-
-        <div className="flex justify-between pt-8 mt-8 border-t border-slate-100 dark:border-slate-800">
-          <button
-            type="button"
-            onClick={prevStep}
-            disabled={step === 1}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-500 disabled:opacity-30"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Voltar
-          </button>
-          {step < 4 ? (
-            <button type="button" onClick={nextStep} className="flex items-center gap-2 px-5 py-2.5 bg-secondary text-white text-xs font-bold rounded-xl shadow-md shadow-secondary/10">
-              Avançar
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          ) : (
-            <button type="submit" disabled={submitting} className="flex items-center gap-2 px-5 py-2.5 bg-secondary text-white text-xs font-bold rounded-xl shadow-md shadow-secondary/10 disabled:opacity-50">
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-              Enviar cadastro
-            </button>
-          )}
-        </div>
-      </form>
-    </PublicShell>
-  );
+  return <PublicShell><form onSubmit={submit} className="w-full max-w-6xl rounded-2xl bg-white/95 p-6 shadow-premium sm:p-9">
+    <header className="mb-8 text-center"><h1 className="font-serif text-3xl font-bold text-primary">Atualização de Dados dos Religiosos</h1><p className="mt-1 text-xs uppercase tracking-widest text-slate-400">Província BRM</p></header>
+    <div className="mb-8 grid grid-cols-4 gap-1 sm:grid-cols-13">{etapas.map((label, index) => <button type="button" key={label} onClick={() => setStep(index + 1)} title={label} className={`h-2 rounded-full ${step === index + 1 ? 'bg-secondary' : step > index + 1 ? 'bg-emerald-500' : 'bg-slate-200'}`} />)}</div>
+    {errorMessage && <div className="mb-5 flex gap-2 rounded-xl bg-red-50 p-3 text-xs text-red-600"><AlertCircle className="h-4 w-4 shrink-0" />{errorMessage}</div>}
+    {step === 1 && <Section title="1. Identificação"><Fields fields={['grau', 'nome_civil', 'nome_religioso', 'data_nascimento', 'local_nascimento', 'municipio_nascimento', 'estado_nascimento', 'pais_nascimento', 'nacionalidade', 'cpf', 'rg', 'rg_orgao_expedidor', 'rg_data_emissao', 'titulo_eleitor', 'pis', 'cnh', 'cnh_categoria', 'passaporte']} base={base} update={updateBase} selects={{ grau: ['Frater', 'Irmão', 'Diácono', 'Padre', 'Bispo'] }} /></Section>}
+    {step === 2 && <Section title="2. Dados familiares"><div className="grid gap-4 md:grid-cols-2">{familiares.map((row, index) => <div className="rounded-xl border border-slate-200 p-4" key={`${row.tipo}-${index}`}><div className="mb-3 flex justify-between font-bold text-xs">{row.tipo}{row.tipo === 'Irmão' && <button type="button" onClick={() => setFamiliares(previous => previous.filter((_, rowIndex) => rowIndex !== index))}><Trash2 className="h-4 w-4 text-red-500" /></button>}</div><Fields fields={['nome', 'data_nascimento', 'local_nascimento', 'estado_civil', 'data_evento']} base={row} update={(field, value) => updateFamiliar(index, field as keyof Familiar, value)} /></div>)}</div><button type="button" onClick={() => setFamiliares(previous => [...previous, emptyFamiliar()])} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-secondary px-4 py-2 text-xs font-bold text-white"><Plus className="h-4 w-4" />Adicionar irmão</button><div className="mt-6 grid gap-4 md:grid-cols-2"><Fields fields={['contato_nome', 'contato_parentesco', 'contato_1', 'contato_2']} base={base} update={updateBase} /></div></Section>}
+    {step === 3 && <Section title="3. Sacramentos e iniciação cristã"><div className="grid gap-5 lg:grid-cols-3">{sacramentos.map((row, index) => <div className="rounded-xl border border-slate-200 p-4" key={row.tipo}><h3 className="mb-3 font-bold text-xs">{row.tipo}</h3><Fields fields={['data', 'paroquia', 'diocese', 'cidade', 'uf', 'livro', 'folha', 'numero_registro', 'celebrante', 'observacoes']} base={row} update={(field, value) => updateSacrament(index, field as keyof Sacrament, value)} /></div>)}</div></Section>}
+    {step === 4 && <DynamicSection title="4. Histórico vocacional" type="vocacional" fields={['ano', 'data', 'titulo', 'descricao', 'local', 'responsavel']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow}><Fields fields={['paroquia_origem', 'diocese_origem', 'grupo_movimento_pastoral', 'promotor_vocacional']} base={base} update={updateBase} /></DynamicSection>}
+    {step === 5 && <DynamicSection title="5. Etapas de formação, profissões e votos" type="formacao" fields={['etapa', 'instituicao', 'cidade', 'local', 'inicio', 'fim', 'formador']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow}><div className="mt-5"><DynamicSection title="Profissões e votos" type="voto" fields={['voto_tipo', 'renovacao', 'data', 'local', 'celebrante']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} /></div></DynamicSection>}
+    {step === 6 && <DynamicSection title="6. Ministérios e ordens" type="ministerio" fields={['ministerio', 'data', 'local', 'celebrante', 'bispo_ordenante']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} />}
+    {step === 7 && <DynamicSection title="7. Formação acadêmica" type="academica" fields={['categoria', 'instituicao', 'periodo', 'cidade', 'estado', 'observacoes']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} />}
+    {step === 8 && <DynamicSection title="8. Idiomas e competências" type="idioma" fields={['idioma', 'nivel', 'fala', 'audicao', 'leitura', 'escrita', 'observacoes']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow}><div className="mt-5"><DynamicSection title="Competências" type="competencia" fields={['competencia', 'observacoes']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} /></div></DynamicSection>}
+    {step === 9 && <DynamicSection title="9. Histórico de comunidades e nomeações" type="historico" fields={['inicio', 'fim', 'instituicao', 'funcao', 'local', 'observacoes']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} />}
+    {step === 10 && <DynamicSection title="10. Missões e serviços" type="servico" fields={['servico_tipo', 'instituicao', 'funcao', 'periodo', 'local', 'documento', 'observacao']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} />}
+    {step === 11 && <Section title="11. Endereço atual e contatos"><Fields fields={['obra_atual_id', 'comunidade_atual_nome', 'email_institucional', 'email_pessoal', 'telefone_celular', 'whatsapp', 'redes_sociais']} base={base} update={updateBase} selects={{ obra_atual_id: obras.map(obra => ({ value: obra.id, label: `${obra.nome}${obra.cidade ? ` - ${obra.cidade}/${obra.estado || ''}` : ''}` })) }} /><p className="mt-4 text-xs text-slate-400">A obra selecionada será associada ao endereço atual e seus dados poderão ser completados pela secretaria.</p></Section>}
+    {step === 12 && <Section title="12. Saúde"><Fields fields={['plano_saude', 'numero_plano_saude', 'local_plano_saude', 'sus', 'tipo_sanguineo', 'fator_rh', 'alergias', 'medicamentos_continuos', 'medico_responsavel', 'contato_emergencia', 'informacoes_clinicas', 'cirurgias', 'proteses', 'observacoes_saude']} base={base} update={updateBase} selects={{ fator_rh: ['Positivo', 'Negativo', 'Não informado'] }} /></Section>}
+    {step === 13 && <Section title="13. Documentos e anexos"><p className="mb-4 text-xs text-slate-500">Anexe RG, CPF, sacramentos, documentos da vida religiosa, formação, documentos canônicos e administrativos.</p><div className="grid gap-4 md:grid-cols-2"><label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-secondary p-5 text-xs font-bold text-secondary"><FileUp className="h-5 w-5" />Selecionar arquivos<input type="file" multiple className="hidden" onChange={event => setDocumentos(previous => [...previous, ...Array.from(event.target.files || []).map(arquivo => ({ arquivo, categoria: 'Outros' }))])} /></label>{documentos.map((documento, index) => <div className="flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-xs" key={`${documento.arquivo.name}-${index}`}><select className={inputClass} value={documento.categoria} onChange={event => setDocumentos(previous => previous.map((item, itemIndex) => itemIndex === index ? { ...item, categoria: event.target.value } : item))}>{['RG', 'CPF', 'CNH', 'Passaporte', 'Título de eleitor', 'Certidão de nascimento', 'Batismo', 'Primeira Eucaristia', 'Crisma', 'Admissão ao Postulantado', 'Admissão ao Noviciado', 'Primeira Profissão Religiosa', 'Renovações', 'Votos perpétuos', 'Diaconato', 'Presbiterado', 'Episcopado', 'Histórico escolar', 'Diplomas', 'Certificados', 'Decretos', 'Licenças', 'Dispensas', 'Indultos', 'Contratos', 'Procurações', 'Outros'].map(option => <option key={option}>{option}</option>)}</select><span className="max-w-40 truncate">{documento.arquivo.name}</span><button type="button" onClick={() => setDocumentos(previous => previous.filter((_, itemIndex) => itemIndex !== index))}><Trash2 className="h-4 w-4 text-red-500" /></button></div>)}</div><label className="mt-6 flex gap-3 rounded-xl bg-slate-50 p-4 text-xs text-slate-600"><input type="checkbox" checked={!!base.consentimento_dados} onChange={event => updateBase('consentimento_dados', event.target.checked ? 'true' : '')} />Autorizo o uso dos dados pela Província BRM para atualização cadastral, gestão institucional e contato pastoral/administrativo.</label></Section>}
+    <footer className="mt-8 flex justify-between border-t border-slate-100 pt-6"><button type="button" disabled={step === 1} onClick={() => setStep(previous => previous - 1)} className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-500 disabled:opacity-30"><ChevronLeft className="h-4 w-4" />Voltar</button>{step < etapas.length ? <button type="button" onClick={() => { const validation = validateStep(); if (validation) setErrorMessage(validation); else { setErrorMessage(null); setStep(previous => previous + 1); } }} className="inline-flex items-center gap-2 rounded-xl bg-secondary px-5 py-2.5 text-xs font-bold text-white">Avançar<ChevronRight className="h-4 w-4" /></button> : <button type="submit" disabled={submitting} className="inline-flex items-center gap-2 rounded-xl bg-secondary px-5 py-2.5 text-xs font-bold text-white disabled:opacity-50">{submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}Enviar cadastro</button>}</footer>
+  </form></PublicShell>;
 };
 
-const PublicShell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="min-h-screen bg-slate-50/60 dark:bg-[#061320] py-12 px-4 flex items-center justify-center transition-colors duration-300">
-    <div className="fixed top-6 left-6 flex items-center gap-3 text-primary dark:text-secondary">
-      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 dark:bg-secondary/10">
-        <Building className="w-5 h-5" />
-      </div>
-      <div>
-        <p className="font-serif font-semibold leading-tight">BRM</p>
-        <p className="text-[10px] tracking-wider uppercase text-slate-400 font-mono">Sistema</p>
-      </div>
-    </div>
-    {children}
-  </div>
-);
-
-const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="space-y-1.5">
-    <label className="text-xs font-semibold text-slate-500">{label}</label>
-    {children}
-  </div>
-);
-
-const SectionGrid: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-    {children}
-  </div>
-);
-
+const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => <section><h2 className="mb-5 font-serif text-xl font-bold text-primary">{title}</h2>{children}</section>;
+const Fields: React.FC<{ fields: string[]; base: Record<string, string>; update: (field: string, value: string) => void; selects?: Record<string, string[] | { value: string; label: string }[]> }> = ({ fields, base, update, selects = {} }) => <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">{fields.map(field => <label className="space-y-1.5" key={field}><span className="text-xs font-semibold text-slate-500">{field.replaceAll('_', ' ')}</span>{selects[field] ? <select className={inputClass} value={base[field] || ''} onChange={event => update(field, event.target.value)}><option value="">Selecione</option>{selects[field].map(option => typeof option === 'string' ? <option key={option}>{option}</option> : <option key={option.value} value={option.value}>{option.label}</option>)}</select> : <input className={inputClass} type={field.includes('data') || field === 'inicio' || field === 'fim' ? 'date' : field === 'email' ? 'email' : 'text'} value={base[field] || ''} onChange={event => update(field, event.target.value)} />}</label>)}</div>;
+const DynamicSection: React.FC<{ title: string; type: string; fields: string[]; rows: Record<string, string>[]; addRow: (values?: Record<string, string>) => void; updateRow: (index: number, field: string, value: string) => void; removeRow: (index: number) => void; children?: React.ReactNode }> = ({ title, type, fields, rows, addRow, updateRow, removeRow, children }) => <Section title={title}>{children}<div className="space-y-3">{rows.map((row, index) => row.tipo === type && <div className="rounded-xl border border-slate-200 p-4" key={`${type}-${index}`}><div className="mb-3 flex justify-end"><button type="button" onClick={() => removeRow(index)}><Trash2 className="h-4 w-4 text-red-500" /></button></div><Fields fields={fields} base={row} update={(field, value) => updateRow(index, field, value)} /></div>)}</div><button type="button" onClick={() => addRow({ tipo: type })} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-secondary px-4 py-2 text-xs font-bold text-white"><Plus className="h-4 w-4" />Adicionar registro</button></Section>;
+const PublicShell: React.FC<{ children: React.ReactNode }> = ({ children }) => <div className="min-h-screen bg-slate-50/70 px-4 py-10 dark:bg-[#061320]"><div className="mx-auto flex max-w-7xl items-center gap-3 pb-6 text-primary dark:text-secondary"><Building className="h-7 w-7" /><div><p className="font-serif font-bold">BRM</p><p className="text-[10px] uppercase tracking-widest text-slate-400">Sistema</p></div></div>{children}</div>;
 export default CadastroReligiosoPublico;
