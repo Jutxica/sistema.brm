@@ -1,6 +1,6 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { Home, ClipboardList, Settings, Users, LogOut, ChevronLeft, ChevronRight, Building, UserRound } from 'lucide-react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { Home, ClipboardList, Settings, Users, LogOut, ChevronLeft, ChevronRight, Building, UserRound, ChevronDown, Plus } from 'lucide-react';
 import { useAuth as useAuthHook } from '../contexts/AuthContext';
 
 
@@ -11,12 +11,12 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
   const { logout, user } = useAuthHook();
+  const location = useLocation();
+  const [religiososOpen, setReligiososOpen] = React.useState(location.pathname.startsWith('/religiosos'));
+  const [hospedariaOpen, setHospedariaOpen] = React.useState(location.pathname.startsWith('/hospedagens'));
 
   const menuItems = [
     { name: 'Início', path: '/inicio', icon: Home, accessibility: 'inicio' },
-    { name: 'Religiosos', path: '/religiosos', icon: UserRound, accessibility: 'religiosos' },
-    { name: 'Inscrições', path: '/hospedagens-inscricoes', icon: ClipboardList, accessibility: 'hospedagens' },
-    { name: 'Configurações', path: '/hospedagens-configuracoes', icon: Settings, accessibility: 'configuracoes' },
   ];
 
   // Only show Users to admins
@@ -72,6 +72,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
               </NavLink>
             </li>
           ))}
+          <SidebarGroup label="Religiosos" icon={UserRound} open={religiososOpen} onToggle={() => setReligiososOpen(previous => !previous)} collapsed={collapsed}>
+            <SidebarSubLink to="/religiosos" label="Inscritos" icon={Users} collapsed={collapsed} />
+            <SidebarSubLink to="/religiosos/novo" label="Novo cadastro" icon={Plus} collapsed={collapsed} />
+            <SidebarSubLink to="/religiosos-configuracoes" label="Configurações" icon={Settings} collapsed={collapsed} />
+          </SidebarGroup>
+          <SidebarGroup label="Hospedaria" icon={Building} open={hospedariaOpen} onToggle={() => setHospedariaOpen(previous => !previous)} collapsed={collapsed}>
+            <SidebarSubLink to="/hospedagens-inscricoes" label="Inscrições" icon={ClipboardList} collapsed={collapsed} />
+            <SidebarSubLink to="/hospedagens-configuracoes" label="Configurações" icon={Settings} collapsed={collapsed} />
+          </SidebarGroup>
         </ul>
 
         {/* Footer actions */}
@@ -88,4 +97,31 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     </aside>
   );
 };
+
+const SidebarGroup: React.FC<{
+  label: string;
+  icon: React.ElementType;
+  open: boolean;
+  onToggle: () => void;
+  collapsed: boolean;
+  children: React.ReactNode;
+}> = ({ label, icon: Icon, open, onToggle, collapsed, children }) => (
+  <li>
+    <button type="button" onClick={onToggle} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-all hover:bg-slate-100/80 hover:text-primary dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white">
+      <Icon className="h-5 w-5 shrink-0" />
+      {!collapsed && <><span className="flex-1 text-left">{label}</span><ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} /></>}
+    </button>
+    {open && !collapsed && <ul className="ml-5 mt-1 space-y-1 border-l border-slate-200 pl-3 dark:border-slate-700">{children}</ul>}
+  </li>
+);
+
+const SidebarSubLink: React.FC<{ to: string; label: string; icon: React.ElementType; collapsed: boolean }> = ({ to, label, icon: Icon, collapsed }) => (
+  <li>
+    <NavLink to={to} className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${isActive ? 'bg-primary/10 text-primary dark:bg-secondary/15 dark:text-secondary' : 'text-slate-500 hover:bg-slate-100 hover:text-primary dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white'}`}>
+      <Icon className="h-4 w-4 shrink-0" />
+      {!collapsed && <span>{label}</span>}
+    </NavLink>
+  </li>
+);
+
 export default Sidebar;

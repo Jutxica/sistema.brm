@@ -341,6 +341,30 @@ create table if not exists public.religiosos_documentos (
 );
 
 -- =============================================================
+-- 15. CONFIGURACOES DAS INSCRICOES PUBLICAS
+-- =============================================================
+create table if not exists public.religiosos_configuracoes (
+  id uuid primary key default gen_random_uuid(),
+  ativo boolean not null default true,
+  titulo text not null default 'Atualização de Dados dos Religiosos',
+  mensagem_abertura text not null default 'Preencha todos os dados solicitados e anexe os documentos necessários.',
+  mensagem_fechamento text not null default 'As inscrições estão temporariamente fechadas. Aguarde uma nova abertura.',
+  mensagem_confirmacao text not null default 'Recebemos seus dados e documentos. A secretaria fará a conferência.',
+  termos text not null default 'Autorizo o uso dos dados pela Província BRM para atualização cadastral, gestão institucional e contato pastoral/administrativo.',
+  exigir_documentos boolean not null default true,
+  email_notificacao text,
+  assunto_notificacao text not null default 'Novo cadastro de religioso recebido',
+  instrucoes_documentos text not null default 'Anexe documentos legíveis de identificação, sacramentos, vida religiosa, formação e documentos administrativos.',
+  updated_by uuid,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+insert into public.religiosos_configuracoes (id)
+values ('00000000-0000-0000-0000-000000000001')
+on conflict (id) do nothing;
+
+-- =============================================================
 -- INDICES
 -- =============================================================
 create index if not exists idx_religiosos_cpf on public.religiosos(cpf);
@@ -388,6 +412,10 @@ drop trigger if exists trg_religiosos_documentos_updated_at on public.religiosos
 create trigger trg_religiosos_documentos_updated_at before update on public.religiosos_documentos
 for each row execute function public.religiosos_set_updated_at();
 
+drop trigger if exists trg_religiosos_config_updated_at on public.religiosos_configuracoes;
+create trigger trg_religiosos_config_updated_at before update on public.religiosos_configuracoes
+for each row execute function public.religiosos_set_updated_at();
+
 -- =============================================================
 -- RLS: PUBLICO PODE ENVIAR, APENAS AUTENTICADO LE/GERENCIA
 -- =============================================================
@@ -409,6 +437,15 @@ alter table public.religiosos_missoes_servicos enable row level security;
 alter table public.religiosos_enderecos_contatos enable row level security;
 alter table public.religiosos_saude enable row level security;
 alter table public.religiosos_documentos enable row level security;
+alter table public.religiosos_configuracoes enable row level security;
+
+drop policy if exists religiosos_config_public_select on public.religiosos_configuracoes;
+create policy religiosos_config_public_select on public.religiosos_configuracoes
+for select to anon, authenticated using (true);
+
+drop policy if exists religiosos_config_authenticated_all on public.religiosos_configuracoes;
+create policy religiosos_config_authenticated_all on public.religiosos_configuracoes
+for all to authenticated using (true) with check (true);
 
 drop policy if exists religiosos_obras_public_select on public.religiosos_obras_referencia;
 create policy religiosos_obras_public_select on public.religiosos_obras_referencia
