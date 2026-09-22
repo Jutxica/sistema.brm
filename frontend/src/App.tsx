@@ -7,6 +7,8 @@ import Layout from './components/Layout';
 // Pages
 import Login from './pages/Login';
 import Inicio from './pages/Inicio';
+import Institucional from './pages/Institucional';
+import CadastroReligiosoPublico from './pages/CadastroReligiosoPublico';
 import HospedagensInscricoes from './pages/HospedagensInscricoes';
 import HospedagensConfiguracoes from './pages/HospedagensConfiguracoes';
 import Usuarios from './pages/Usuarios';
@@ -48,6 +50,8 @@ export const App: React.FC = () => {
             {/* Public Access */}
             <Route path="/login" element={<Login />} />
             <Route path="/inscricao" element={<InscricaoPublica />} />
+            <Route path="/cadastro-religiosos" element={<CadastroReligiosoPublico />} />
+            <Route path="/religiosos-publico" element={<CadastroReligiosoPublico />} />
 
             {/* Private Workspace */}
             <Route
@@ -60,6 +64,8 @@ export const App: React.FC = () => {
             >
               <Route index element={<DefaultRedirect />} />
               <Route path="inicio" element={<Inicio />} />
+              <Route path="religiosos" element={<Institucional />} />
+              <Route path="institucional" element={<Institucional />} />
               <Route path="hospedagens-inscricoes" element={<HospedagensInscricoes />} />
               <Route path="hospedagens-configuracoes" element={<HospedagensConfiguracoes />} />
               <Route path="usuarios" element={<Usuarios />} />
