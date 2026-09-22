@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { 
-  Search, Filter, Edit, Trash2, FileText, Mail, Plus, X, 
+  Search, Filter, Edit, Trash2, Mail, Plus, X, 
   Loader2, ArrowLeft, Save, ClipboardList,
 } from 'lucide-react';
 
@@ -1164,16 +1164,6 @@ export const HospedagensInscricoes: React.FC = () => {
                             return (
                               <td key={col} className="p-4">
                                 <div className="flex items-center gap-1.5 whitespace-nowrap">
-                                  {/* PDF actions */}
-                                  <a
-                                    href={`/recibo-pdf.php?id=${item.idhospedagens}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    title="Imprimir Recibo"
-                                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 text-slate-500 hover:text-slate-700 transition-colors"
-                                  >
-                                    <FileText className="w-3.5 h-3.5" />
-                                  </a>
                                   <button
                                     onClick={() => triggerEmailReceipt(item.idhospedagens)}
                                     title="Enviar Recibo por E-mail"

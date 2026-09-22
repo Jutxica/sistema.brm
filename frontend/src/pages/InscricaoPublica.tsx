@@ -172,6 +172,23 @@ export const InscricaoPublica: React.FC = () => {
     }
   };
 
+  // Valida CPF (11 dígitos, dígitos verificadores)
+  const validateCpf = (cpf: string): boolean => {
+    const cleaned = (cpf || '').replace(/\D/g, '');
+    if (cleaned.length !== 11) return false;
+    if (/^(.)(\1){10}$/.test(cleaned)) return false; // todos iguais
+    const calc = (base: string, factorStart: number): number => {
+      let sum = 0;
+      for (let i = 0; i < base.length; i++) sum += parseInt(base[i]) * (factorStart + i);
+      const rest = sum % 11;
+      return rest < 2 ? 0 : 11 - rest;
+    };
+    const base = cleaned.slice(0, 9);
+    const d1 = calc(base, 10);
+    const d2 = calc(base + d1, 11);
+    return cleaned.endsWith('' + d1 + d2);
+  };
+
   const handleNextStep = () => {
     // Basic step validation
     if (step === 1) {
@@ -185,6 +202,10 @@ export const InscricaoPublica: React.FC = () => {
         setErrorMsg("Por favor, preencha todos os campos obrigatórios.");
         return;
       }
+      if (!validateCpf(formData.hos_cpfrg)) {
+        setErrorMsg("CPF inválido. Digite 11 números sem pontos ou traços.");
+        return;
+      }
     }
     if (step === 3) {
       if (!formData.hos_cep || !formData.hos_logradouro || !formData.hos_numero || !formData.hos_cidade || !formData.hos_estado) {
@@ -195,6 +216,16 @@ export const InscricaoPublica: React.FC = () => {
     if (step === 4) {
       if (!formData.hos_previsaochegada || !formData.hos_previsaosaida) {
         setErrorMsg("Selecione a previsão de chegada e saída.");
+        return;
+      }
+      const checkin = new Date(formData.hos_previsaochegada);
+      const checkout = new Date(formData.hos_previsaosaida);
+      if (isNaN(checkin.getTime()) || isNaN(checkout.getTime())) {
+        setErrorMsg("Datas inválidas. Use o formato dd/mm/aaaa.");
+        return;
+      }
+      if (checkout <= checkin) {
+        setErrorMsg("A previsão de saída deve ser posterior à de chegada.");
         return;
       }
     }
@@ -427,6 +458,7 @@ export const InscricaoPublica: React.FC = () => {
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-500">Qual o Curso / Motivo da Estadia?</label>
                 <select
+                    id="f_estadiamotivo"
                   required
                   value={formData.hos_estadiamotivo}
                   onChange={(e) => setFormData({ ...formData, hos_estadiamotivo: e.target.value })}
@@ -440,8 +472,9 @@ export const InscricaoPublica: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500">Módulo Correspondente (se aplicável)</label>
+                <label htmlFor="f_modulo" className="text-xs font-semibold text-slate-500">Módulo Correspondente (se aplicável)</label>
                 <select
+                    id="f_modulo"
                   value={formData.hos_modulo}
                   onChange={(e) => setFormData({ ...formData, hos_modulo: e.target.value })}
                   className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary transition-all cursor-pointer"
@@ -460,7 +493,7 @@ export const InscricaoPublica: React.FC = () => {
             <div className="space-y-5 animate-fade-in">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500">Categoria</label>
+                  <label htmlFor="fCategoria" className="text-xs font-semibold text-slate-500">Categoria</label>
                   <select
                     value={formData.hos_categoria}
                     onChange={(e) => setFormData({ ...formData, hos_categoria: e.target.value })}
@@ -475,10 +508,11 @@ export const InscricaoPublica: React.FC = () => {
                   </select>
                 </div>
                 <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-xs font-semibold text-slate-500">Nome Completo</label>
+                  <label htmlFor="f_nome" className="text-xs font-semibold text-slate-500">Nome Completo<span className="text-red-400 ml-0.5">*</span></label>
                   <input
-                    type="text"
+                    id="f_nome"                    type="text"
                     required
+                    autoComplete="name"
                     value={formData.hos_nome}
                     onChange={(e) => setFormData({ ...formData, hos_nome: e.target.value })}
                     placeholder="Escreva seu nome completo"
@@ -489,9 +523,9 @@ export const InscricaoPublica: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500">Nascimento</label>
+                  <label htmlFor="f_nascimento" className="text-xs font-semibold text-slate-500">Nascimento<span className="text-red-400 ml-0.5">*</span></label>
                   <input
-                    type="date"
+                    id="f_nascimento"                    type="date"
                     required
                     value={formData.hos_nascimento}
                     onChange={(e) => setFormData({ ...formData, hos_nascimento: e.target.value })}
@@ -499,10 +533,12 @@ export const InscricaoPublica: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500">CPF / RG</label>
+                  <label htmlFor="f_cpfrg" className="text-xs font-semibold text-slate-500">CPF / RG<span className="text-red-400 ml-0.5">*</span></label>
                   <input
-                    type="text"
+                    id="f_cpfrg"                    type="text"
                     required
+                    inputMode="numeric"
+                    autoComplete="off"
                     value={formData.hos_cpfrg}
                     onChange={(e) => setFormData({ ...formData, hos_cpfrg: e.target.value })}
                     placeholder="Apenas números"
@@ -510,10 +546,11 @@ export const InscricaoPublica: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500">E-mail</label>
+                  <label htmlFor="f_email" className="text-xs font-semibold text-slate-500">E-mail<span className="text-red-400 ml-0.5">*</span></label>
                   <input
-                    type="email"
+                    id="f_email"                    type="email"
                     required
+                    autoComplete="email"
                     value={formData.hos_email}
                     onChange={(e) => setFormData({ ...formData, hos_email: e.target.value })}
                     placeholder="exemplo@gmail.com"
@@ -524,10 +561,12 @@ export const InscricaoPublica: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500">Celular / Whatsapp</label>
+                  <label htmlFor="f_telefone" className="text-xs font-semibold text-slate-500">Celular / Whatsapp<span className="text-red-400 ml-0.5">*</span></label>
                   <input
-                    type="tel"
+                    id="f_telefone"                    type="tel"
                     required
+                    inputMode="tel"
+                    autoComplete="tel"
                     value={formData.hos_telefone}
                     onChange={(e) => setFormData({ ...formData, hos_telefone: e.target.value })}
                     placeholder="(00) 00000-0000"
@@ -535,10 +574,12 @@ export const InscricaoPublica: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500">Contato de Urgência (Nome/Tel)</label>
+                  <label htmlFor="f_telefoneemergencia" className="text-xs font-semibold text-slate-500">Contato de Urgência (Nome/Tel)<span className="text-red-400 ml-0.5">*</span></label>
                   <input
-                    type="text"
+                    id="f_telefoneemergencia"                    type="text"
                     required
+                    inputMode="tel"
+                    autoComplete="tel"
                     value={formData.hos_telefoneemergencia}
                     onChange={(e) => setFormData({ ...formData, hos_telefoneemergencia: e.target.value })}
                     placeholder="Nome - (00) 00000-0000"
@@ -554,11 +595,13 @@ export const InscricaoPublica: React.FC = () => {
             <div className="space-y-5 animate-fade-in">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="space-y-1.5 relative">
-                  <label className="text-xs font-semibold text-slate-500">CEP</label>
+                  <label htmlFor="f_cep" className="text-xs font-semibold text-slate-500">CEP<span className="text-red-400 ml-0.5">*</span></label>
                   <div className="relative">
                     <input
-                      type="text"
+                    id="f_cep"                      type="text"
                       required
+                    inputMode="numeric"
+                    autoComplete="postal-code"
                       value={formData.hos_cep}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -578,10 +621,11 @@ export const InscricaoPublica: React.FC = () => {
                   </div>
                 </div>
                 <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-xs font-semibold text-slate-500">Logradouro / Endereço</label>
+                  <label htmlFor="f_logradouro" className="text-xs font-semibold text-slate-500">Logradouro / Endereço<span className="text-red-400 ml-0.5">*</span></label>
                   <input
-                    type="text"
+                    id="f_logradouro"                    type="text"
                     required
+                    autoComplete="street-address"
                     value={formData.hos_logradouro}
                     onChange={(e) => setFormData({ ...formData, hos_logradouro: e.target.value })}
                     placeholder="Rua, Avenida..."
@@ -592,10 +636,11 @@ export const InscricaoPublica: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500">Número</label>
+                  <label htmlFor="f_numero" className="text-xs font-semibold text-slate-500">Número<span className="text-red-400 ml-0.5">*</span></label>
                   <input
-                    type="text"
+                    id="f_numero"                    type="text"
                     required
+                    inputMode="numeric"
                     value={formData.hos_numero}
                     onChange={(e) => setFormData({ ...formData, hos_numero: e.target.value })}
                     placeholder="123"
@@ -603,10 +648,11 @@ export const InscricaoPublica: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1.5 md:col-span-3">
-                  <label className="text-xs font-semibold text-slate-500">Bairro</label>
+                  <label htmlFor="f_bairro" className="text-xs font-semibold text-slate-500">Bairro<span className="text-red-400 ml-0.5">*</span></label>
                   <input
-                    type="text"
+                    id="f_bairro"                    type="text"
                     required
+                    autoComplete="address-level2"
                     value={formData.hos_bairro}
                     onChange={(e) => setFormData({ ...formData, hos_bairro: e.target.value })}
                     placeholder="Nome do Bairro"
@@ -617,10 +663,11 @@ export const InscricaoPublica: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-xs font-semibold text-slate-500">Cidade</label>
+                  <label htmlFor="f_cidade" className="text-xs font-semibold text-slate-500">Cidade<span className="text-red-400 ml-0.5">*</span></label>
                   <input
-                    type="text"
+                    id="f_cidade"                    type="text"
                     required
+                    autoComplete="address-level2"
                     value={formData.hos_cidade}
                     onChange={(e) => setFormData({ ...formData, hos_cidade: e.target.value })}
                     placeholder="Cidade"
@@ -628,8 +675,9 @@ export const InscricaoPublica: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500">Estado (UF)</label>
+                  <label htmlFor="f_estado" className="text-xs font-semibold text-slate-500">Estado (UF)<span className="text-red-400 ml-0.5">*</span></label>
                   <input
+                    id="f_estado"
                     type="text"
                     required
                     maxLength={2}
@@ -648,8 +696,9 @@ export const InscricaoPublica: React.FC = () => {
             <div className="space-y-5 animate-fade-in">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500">Tem alguma Alergia?</label>
+                  <label htmlFor="f_alergico" className="text-xs font-semibold text-slate-500">Tem alguma Alergia?</label>
                   <select
+                    id="f_alergico"
                     value={formData.hos_alergico}
                     onChange={(e) => setFormData({ ...formData, hos_alergico: e.target.value })}
                     className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary cursor-pointer"
@@ -660,9 +709,9 @@ export const InscricaoPublica: React.FC = () => {
                 </div>
                 {formData.hos_alergico === 'Sim' && (
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-500">Especifique a Alergia</label>
+                    <label htmlFor="f_especifiquealergia" className="text-xs font-semibold text-slate-500">Especifique a Alergia</label>
                     <input
-                      type="text"
+                    id="f_especifiquealergia"                      type="text"
                       required
                       value={formData.hos_especifiquealergia}
                       onChange={(e) => setFormData({ ...formData, hos_especifiquealergia: e.target.value })}
@@ -675,8 +724,9 @@ export const InscricaoPublica: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500">Tem restrição alimentar?</label>
+                  <label htmlFor="f_restricaoalimentar" className="text-xs font-semibold text-slate-500">Tem restrição alimentar?</label>
                   <select
+                    id="f_restricaoalimentar"
                     value={formData.hos_restricaoalimentar}
                     onChange={(e) => setFormData({ ...formData, hos_restricaoalimentar: e.target.value })}
                     className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary cursor-pointer"
@@ -687,7 +737,7 @@ export const InscricaoPublica: React.FC = () => {
                 </div>
                 {formData.hos_restricaoalimentar === 'Sim' && (
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-500">Especifique a Restrição</label>
+                    <label htmlFor="f_especifiqueresticao" className="text-xs font-semibold text-slate-500">Especifique a Restrição</label>
                     <input
                       type="text"
                       required
@@ -702,8 +752,9 @@ export const InscricaoPublica: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500">Serviço de Lavanderia?</label>
+                  <label htmlFor="f_lavanderia" className="text-xs font-semibold text-slate-500">Serviço de Lavanderia?</label>
                   <select
+                    id="f_lavanderia"
                     value={formData.hos_lavanderia}
                     onChange={(e) => setFormData({ ...formData, hos_lavanderia: e.target.value })}
                     className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary cursor-pointer"
@@ -715,9 +766,9 @@ export const InscricaoPublica: React.FC = () => {
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500">Previsão de Chegada</label>
+                  <label htmlFor="f_chegada" className="text-xs font-semibold text-slate-500">Previsão de Chegada<span className="text-red-400 ml-0.5">*</span></label>
                   <input
-                    type="datetime-local"
+                    id="f_chegada"                    type="datetime-local"
                     required
                     value={formData.hos_previsaochegada}
                     onChange={(e) => setFormData({ ...formData, hos_previsaochegada: e.target.value })}
@@ -725,9 +776,9 @@ export const InscricaoPublica: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500">Previsão de Saída</label>
+                  <label htmlFor="faida" className="text-xs font-semibold text-slate-500">Previsão de Saída<span className="text-red-400 ml-0.5">*</span></label>
                   <input
-                    type="datetime-local"
+                    id="faida"                    type="datetime-local"
                     required
                     value={formData.hos_previsaosaida}
                     onChange={(e) => setFormData({ ...formData, hos_previsaosaida: e.target.value })}
@@ -742,8 +793,9 @@ export const InscricaoPublica: React.FC = () => {
           {step === 5 && (
             <div className="space-y-5 animate-fade-in">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500">Como emitir o recibo de pagamento?</label>
+                <label htmlFor="f_recibo" className="text-xs font-semibold text-slate-500">Como emitir o recibo de pagamento?</label>
                 <select
+                    id="f_recibo"
                   value={formData.hos_recibo}
                   onChange={(e) => setFormData({ ...formData, hos_recibo: e.target.value })}
                   className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary cursor-pointer"
@@ -758,10 +810,11 @@ export const InscricaoPublica: React.FC = () => {
                 <div className="space-y-5 border-t border-slate-100 dark:border-slate-800 pt-4 animate-fade-in">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-500">Nome / Razão Social do Terceiro</label>
+                      <label htmlFor="f_recnome" className="text-xs font-semibold text-slate-500">Nome / Razão Social do Terceiro<span className="text-red-400 ml-0.5">*</span></label>
                       <input
-                        type="text"
+                    id="f_recnome"                        type="text"
                         required
+                    autoComplete="name"
                         value={formData.hos_recnome}
                         onChange={(e) => setFormData({ ...formData, hos_recnome: e.target.value })}
                         placeholder="Nome da Diocese ou Empresa"
@@ -769,10 +822,12 @@ export const InscricaoPublica: React.FC = () => {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-500">CPF ou CNPJ do Terceiro</label>
+                      <label htmlFor="f_reccpfcnpj" className="text-xs font-semibold text-slate-500">CPF ou CNPJ do Terceiro<span className="text-red-400 ml-0.5">*</span></label>
                       <input
-                        type="text"
+                    id="f_reccpfcnpj"                        type="text"
                         required
+                    inputMode="numeric"
+                    autoComplete="off"
                         value={formData.hos_reccpfcnpj}
                         onChange={(e) => setFormData({ ...formData, hos_reccpfcnpj: e.target.value })}
                         placeholder="00.000.000/0000-00"
@@ -783,11 +838,13 @@ export const InscricaoPublica: React.FC = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-500">CEP do Terceiro</label>
+                      <label htmlFor="f_reccep" className="text-xs font-semibold text-slate-500">CEP do Terceiro<span className="text-red-400 ml-0.5">*</span></label>
                       <div className="relative">
                         <input
-                          type="text"
+                    id="f_reccep"                          type="text"
                           required
+                    inputMode="numeric"
+                    autoComplete="postal-code"
                           value={formData.hos_reccep}
                           onChange={(e) => {
                             const val = e.target.value;
@@ -807,10 +864,11 @@ export const InscricaoPublica: React.FC = () => {
                       </div>
                     </div>
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-semibold text-slate-500">Endereço de Faturamento</label>
+                      <label htmlFor="f_recRua" className="text-xs font-semibold text-slate-500">Endereço de Faturamento<span className="text-red-400 ml-0.5">*</span></label>
                       <input
-                        type="text"
+                    id="f_recRua"                        type="text"
                         required
+                    autoComplete="street-address"
                         value={formData.hos_reclogradouro}
                         onChange={(e) => setFormData({ ...formData, hos_reclogradouro: e.target.value })}
                         placeholder="Rua, Avenida..."
@@ -821,10 +879,11 @@ export const InscricaoPublica: React.FC = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-500">Número</label>
+                      <label htmlFor="f_recnumero" className="text-xs font-semibold text-slate-500">Número<span className="text-red-400 ml-0.5">*</span></label>
                       <input
-                        type="text"
+                    id="f_recnumero"                        type="text"
                         required
+                    inputMode="numeric"
                         value={formData.hos_recnumero}
                         onChange={(e) => setFormData({ ...formData, hos_recnumero: e.target.value })}
                         placeholder="123"
@@ -832,10 +891,11 @@ export const InscricaoPublica: React.FC = () => {
                       />
                     </div>
                     <div className="space-y-1.5 md:col-span-3">
-                      <label className="text-xs font-semibold text-slate-500">Bairro</label>
+                      <label htmlFor="f_recbairro" className="text-xs font-semibold text-slate-500">Bairro<span className="text-red-400 ml-0.5">*</span></label>
                       <input
-                        type="text"
+                    id="f_recbairro"                        type="text"
                         required
+                    autoComplete="address-level2"
                         value={formData.hos_recbairro}
                         onChange={(e) => setFormData({ ...formData, hos_recbairro: e.target.value })}
                         placeholder="Bairro"
@@ -846,10 +906,11 @@ export const InscricaoPublica: React.FC = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-semibold text-slate-500">Cidade</label>
+                      <label htmlFor="f_reccidade" className="text-xs font-semibold text-slate-500">Cidade<span className="text-red-400 ml-0.5">*</span></label>
                       <input
-                        type="text"
+                    id="f_reccidade"                        type="text"
                         required
+                    autoComplete="address-level2"
                         value={formData.hos_reccidade}
                         onChange={(e) => setFormData({ ...formData, hos_reccidade: e.target.value })}
                         placeholder="Cidade"
@@ -857,8 +918,9 @@ export const InscricaoPublica: React.FC = () => {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-500">Estado (UF)</label>
+                      <label htmlFor="f_recestado" className="text-xs font-semibold text-slate-500">Estado (UF)<span className="text-red-400 ml-0.5">*</span></label>
                       <input
+                        id="f_recestado"
                         type="text"
                         required
                         maxLength={2}

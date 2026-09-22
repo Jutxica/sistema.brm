@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, ClipboardList, Settings, Users, LogOut, ChevronLeft, ChevronRight, Building } from 'lucide-react';
+import { Home, ClipboardList, Settings, Users, LogOut, ChevronLeft, ChevronRight, Building, UserRound } from 'lucide-react';
 import { useAuth as useAuthHook } from '../contexts/AuthContext';
 
 
@@ -14,6 +14,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
 
   const menuItems = [
     { name: 'Início', path: '/inicio', icon: Home, accessibility: 'inicio' },
+    { name: 'Religiosos', path: '/religiosos', icon: UserRound, accessibility: 'religiosos' },
     { name: 'Inscrições', path: '/hospedagens-inscricoes', icon: ClipboardList, accessibility: 'hospedagens' },
     { name: 'Configurações', path: '/hospedagens-configuracoes', icon: Settings, accessibility: 'configuracoes' },
   ];
