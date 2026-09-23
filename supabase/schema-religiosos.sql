@@ -31,6 +31,19 @@ create table if not exists public.religiosos_obras_referencia (
   updated_at timestamptz not null default now()
 );
 
+alter table public.religiosos_obras_referencia add column if not exists tipo text not null default 'Paróquia';
+alter table public.religiosos_obras_referencia add column if not exists localidade text;
+alter table public.religiosos_obras_referencia add column if not exists uf text;
+alter table public.religiosos_obras_referencia add column if not exists diocese text;
+alter table public.religiosos_obras_referencia add column if not exists fundacao text;
+alter table public.religiosos_obras_referencia add column if not exists assumida_pelos_dehonianos text;
+alter table public.religiosos_obras_referencia add column if not exists endereco text;
+alter table public.religiosos_obras_referencia add column if not exists instagram text;
+alter table public.religiosos_obras_referencia add column if not exists facebook text;
+alter table public.religiosos_obras_referencia add column if not exists youtube text;
+alter table public.religiosos_obras_referencia add column if not exists site text;
+create unique index if not exists idx_obras_referencia_nome_local on public.religiosos_obras_referencia (nome, localidade, uf);
+
 -- =============================================================
 -- 2. IDENTIFICACAO E DADOS BASE
 -- =============================================================

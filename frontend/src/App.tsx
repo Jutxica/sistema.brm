@@ -14,6 +14,7 @@ import HospedagensConfiguracoes from './pages/HospedagensConfiguracoes';
 import Usuarios from './pages/Usuarios';
 import ReligiososAdmin from './pages/ReligiososAdmin';
 import ReligiososConfiguracoes from './pages/ReligiososConfiguracoes';
+import ObrasAdmin from './pages/ObrasAdmin';
 
 // Route guards
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -70,6 +71,7 @@ export const App: React.FC = () => {
               <Route path="religiosos/novo" element={<CadastroReligiosoPublico adminMode />} />
               <Route path="religiosos/editar/:id" element={<CadastroReligiosoPublico adminMode />} />
               <Route path="religiosos-configuracoes" element={<ReligiososConfiguracoes />} />
+              <Route path="obras" element={<ObrasAdmin />} />
               <Route path="institucional" element={<Institucional />} />
               <Route path="hospedagens-inscricoes" element={<HospedagensInscricoes />} />
               <Route path="hospedagens-configuracoes" element={<HospedagensConfiguracoes />} />

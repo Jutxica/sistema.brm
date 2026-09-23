@@ -75,6 +75,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
           <SidebarGroup label="Religiosos" icon={UserRound} open={religiososOpen} onToggle={() => setReligiososOpen(previous => !previous)} collapsed={collapsed}>
             <SidebarSubLink to="/religiosos" label="Inscritos" icon={Users} collapsed={collapsed} />
             <SidebarSubLink to="/religiosos/novo" label="Novo cadastro" icon={Plus} collapsed={collapsed} />
+            <SidebarSubLink to="/obras" label="Obras e paróquias" icon={Building} collapsed={collapsed} />
             <SidebarSubLink to="/religiosos-configuracoes" label="Configurações" icon={Settings} collapsed={collapsed} />
           </SidebarGroup>
           <SidebarGroup label="Hospedaria" icon={Building} open={hospedariaOpen} onToggle={() => setHospedariaOpen(previous => !previous)} collapsed={collapsed}>
