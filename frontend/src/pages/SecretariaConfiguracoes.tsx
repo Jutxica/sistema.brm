@@ -3,7 +3,8 @@ import {
   FileText, Plus, Search, Edit3, Trash2, CheckCircle2, AlertCircle, 
   X, Eye, Copy, Download, Share2, Layers, Settings, Hash, 
   Mail, BookmarkCheck, Check, Sparkles, SlidersHorizontal, 
-  HelpCircle, ArrowRight, Printer, Users, ExternalLink, ShieldCheck
+  HelpCircle, ArrowRight, Printer, Users, ExternalLink, ShieldCheck,
+  Shield, BookOpen
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { FormularioTimbrado } from '../components/FormularioTimbrado';
@@ -715,53 +716,60 @@ export const SecretariaConfiguracoes: React.FC = () => {
         </div>
       )}
 
-      {/* Navegação por Abas Lapidadas */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 overflow-x-auto pb-px">
+      {/* Navegação por Abas Lapidadas (UTXICA Segmented Architectural Control) */}
+      <div className="bg-[#e8ebed]/70 dark:bg-[#12161f] p-1.5 rounded-[8px] border border-[#113240]/10 dark:border-white/10 flex items-center gap-1.5 overflow-x-auto shadow-xs">
         <button
           onClick={() => setTabAtiva('formularios')}
-          className={`px-4 py-2.5 text-xs font-mono uppercase tracking-wider font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-4 py-2 text-xs font-mono uppercase tracking-wider font-semibold rounded-[6px] transition-all flex items-center gap-2 cursor-pointer shrink-0 motion-press ${
             tabAtiva === 'formularios'
-              ? 'border-[#226380] text-[#113240] dark:text-[#A3C3C7]'
-              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
+              ? 'bg-white dark:bg-[#1e2535] text-[#113240] dark:text-white shadow-sm border border-[#113240]/15 dark:border-white/15'
+              : 'text-[#474747] dark:text-[#86868b] hover:text-[#113240] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 border border-transparent'
           }`}
         >
-          <SlidersHorizontal className="w-3.5 h-3.5" />
-          <span>Construtor de Formulários ({formularios.length})</span>
+          <SlidersHorizontal className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7]" />
+          <span>Construtor de Formulários</span>
+          <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-[4px] font-bold ${
+            tabAtiva === 'formularios'
+              ? 'bg-[#226380]/15 text-[#226380] dark:text-[#A3C3C7]'
+              : 'bg-black/5 dark:bg-white/10 text-slate-500'
+          }`}>
+            {formularios.length}
+          </span>
         </button>
 
         <button
           onClick={() => setTabAtiva('atos')}
-          className={`px-4 py-2.5 text-xs font-mono uppercase tracking-wider font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-4 py-2 text-xs font-mono uppercase tracking-wider font-semibold rounded-[6px] transition-all flex items-center gap-2 cursor-pointer shrink-0 motion-press ${
             tabAtiva === 'atos'
-              ? 'border-[#226380] text-[#113240] dark:text-[#A3C3C7]'
-              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
+              ? 'bg-white dark:bg-[#1e2535] text-[#113240] dark:text-white shadow-sm border border-[#113240]/15 dark:border-white/15'
+              : 'text-[#474747] dark:text-[#86868b] hover:text-[#113240] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 border border-transparent'
           }`}
         >
-          <Hash className="w-3.5 h-3.5" />
+          <Hash className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7]" />
           <span>Numeração de Atos & Prefixos</span>
         </button>
 
         <button
           onClick={() => setTabAtiva('timbrado')}
-          className={`px-4 py-2.5 text-xs font-mono uppercase tracking-wider font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-4 py-2 text-xs font-mono uppercase tracking-wider font-semibold rounded-[6px] transition-all flex items-center gap-2 cursor-pointer shrink-0 motion-press ${
             tabAtiva === 'timbrado'
-              ? 'border-[#226380] text-[#113240] dark:text-[#A3C3C7]'
-              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
+              ? 'bg-white dark:bg-[#1e2535] text-[#113240] dark:text-white shadow-sm border border-[#113240]/15 dark:border-white/15'
+              : 'text-[#474747] dark:text-[#86868b] hover:text-[#113240] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 border border-transparent'
           }`}
         >
-          <FileText className="w-3.5 h-3.5" />
+          <FileText className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7]" />
           <span>Papel Timbrado Oficial</span>
         </button>
 
         <button
           onClick={() => setTabAtiva('notificacoes')}
-          className={`px-4 py-2.5 text-xs font-mono uppercase tracking-wider font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-4 py-2 text-xs font-mono uppercase tracking-wider font-semibold rounded-[6px] transition-all flex items-center gap-2 cursor-pointer shrink-0 motion-press ${
             tabAtiva === 'notificacoes'
-              ? 'border-[#226380] text-[#113240] dark:text-[#A3C3C7]'
-              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
+              ? 'bg-white dark:bg-[#1e2535] text-[#113240] dark:text-white shadow-sm border border-[#113240]/15 dark:border-white/15'
+              : 'text-[#474747] dark:text-[#86868b] hover:text-[#113240] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 border border-transparent'
           }`}
         >
-          <Mail className="w-3.5 h-3.5" />
+          <Mail className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7]" />
           <span>Notificações & E-mails</span>
         </button>
       </div>
@@ -771,30 +779,37 @@ export const SecretariaConfiguracoes: React.FC = () => {
       {/* ABA 1: CONSTRUTOR & LISTA DE FORMULÁRIOS */}
       {tabAtiva === 'formularios' && (
         <section className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-[#161b22] p-4 rounded-[6px] border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="text-xs text-slate-600 dark:text-slate-400">
-              <span className="font-semibold text-[#113240] dark:text-white">Formulários de Inscrição Canônica Ativos:</span>
-              <p className="mt-0.5">Estes modelos são associáveis a eventos da Agenda Provincial ou utilizáveis individualmente via link público timbrado.</p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-[#161b22] p-4 rounded-[6px] border border-[#113240]/10 dark:border-white/10 shadow-sm border-l-4 border-l-[#226380]">
+            <div>
+              <div className="flex items-center gap-2">
+                <Shield className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7]" />
+                <span className="font-mono text-xs uppercase font-bold text-[#113240] dark:text-white tracking-wider">
+                  Modelos Oficiais de Inscrição Canônica
+                </span>
+              </div>
+              <p className="text-xs text-[#474747] dark:text-[#86868b] mt-0.5 font-sans">
+                Fichas timbradas com variáveis canônicas configuráveis. Podem ser vinculadas a eventos da Agenda ou preenchidas via link público.
+              </p>
             </div>
             <button
               onClick={handleOpenCreateForm}
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-[#226380] dark:text-[#A3C3C7] bg-[#226380]/10 hover:bg-[#226380]/20 rounded-[6px] border border-[#226380]/30 transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-mono uppercase font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] border border-[#113240] hover:border-[#226380] transition-all cursor-pointer shadow-xs shrink-0 motion-press"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Criar Novo Modelo</span>
+              <span>Novo Modelo de Ficha</span>
             </button>
           </div>
 
           {formularios.length === 0 ? (
-            <div className="p-12 text-center bg-white dark:bg-[#161b22] rounded-[6px] border border-slate-200 dark:border-slate-800">
-              <FileText className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-700 mb-3" />
-              <h3 className="font-cinzel text-base font-bold text-slate-700 dark:text-slate-300">Nenhum formulário cadastrado</h3>
-              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+            <div className="p-12 text-center bg-white dark:bg-[#161b22] rounded-[6px] border border-[#113240]/10 dark:border-white/10 shadow-sm">
+              <FileText className="w-10 h-10 mx-auto text-[#226380]/40 dark:text-[#A3C3C7]/40 mb-3" />
+              <h3 className="font-cinzel text-base font-bold text-[#113240] dark:text-white">Nenhum formulário cadastrado</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto font-sans">
                 Crie um modelo de inscrição usando o construtor de variáveis para conectar a eventos e assembleias provinciais.
               </p>
               <button
                 onClick={handleOpenCreateForm}
-                className="mt-4 px-4 py-2 text-xs font-mono uppercase font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] transition-all cursor-pointer"
+                className="mt-4 px-4 py-2 text-xs font-mono uppercase font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] transition-all cursor-pointer shadow-sm motion-press"
               >
                 Abrir Construtor de Variáveis
               </button>
@@ -807,71 +822,78 @@ export const SecretariaConfiguracoes: React.FC = () => {
                   <div
                     key={form.id}
                     style={staggerStyle(idx)}
-                    className="p-5 bg-white dark:bg-[#161b22] rounded-[6px] border border-slate-200 dark:border-slate-800 hover:border-[#226380]/60 transition-all shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+                    className="p-5 bg-white dark:bg-[#161b22] rounded-[6px] border border-[#113240]/10 dark:border-white/10 hover:border-[#226380]/60 transition-all shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-l-4 border-l-[#226380] hover-lift"
                   >
-                    <div className="space-y-1.5 flex-1">
+                    <div className="space-y-2 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         {form.codigo && (
-                          <span className="font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded-[4px] bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7] border border-[#226380]/20">
+                          <span className="font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded-[4px] bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7] border border-[#226380]/30 shadow-2xs">
                             {form.codigo}
                           </span>
                         )}
-                        <span className={`text-[10px] font-mono uppercase font-semibold px-2 py-0.5 rounded-[4px] border ${
+                        <span className={`text-[10px] font-mono uppercase font-bold px-2 py-0.5 rounded-[4px] border ${
                           form.ativo 
-                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20' 
-                            : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-300 dark:border-slate-700'
+                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' 
+                            : 'bg-slate-200/80 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-300 dark:border-slate-700'
                         }`}>
-                          {form.ativo ? 'Ativo / Recebendo Inscrições' : 'Inativo / Encerrado'}
+                          {form.ativo ? 'Ativo • Recebendo Inscrições' : 'Inativo / Encerrado'}
                         </span>
                         {form.limite_vagas && (
-                          <span className="text-[10px] font-mono text-slate-500">
+                          <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-[4px] border border-slate-200 dark:border-slate-700">
                             Limite: {form.limite_vagas} vagas
                           </span>
                         )}
                       </div>
 
-                      <h3 className="font-cinzel text-base font-bold text-[#113240] dark:text-white">
+                      <h3 className="font-cinzel text-base font-bold text-[#113240] dark:text-white tracking-tight">
                         {form.titulo}
                       </h3>
 
                       {form.descricao && (
-                        <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 font-sans">
+                        <p className="text-xs text-[#474747] dark:text-[#86868b] line-clamp-2 font-sans">
                           {form.descricao}
                         </p>
                       )}
 
-                      {/* Lista resumida de variáveis */}
+                      {/* Lista resumida de variáveis com badges lapidados */}
                       <div className="pt-1 flex flex-wrap items-center gap-1.5">
-                        <span className="text-[10px] font-mono uppercase text-slate-400">Variáveis ({form.campos.length}):</span>
+                        <span className="text-[10px] font-mono uppercase text-slate-400 font-semibold">Variáveis ({form.campos.length}):</span>
                         {form.campos.slice(0, 5).map(campo => (
-                          <span key={campo.id} className="text-[10px] font-mono px-1.5 py-0.5 rounded-[4px] bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                            {campo.label} {campo.obrigatorio && '*'}
+                          <span 
+                            key={campo.id} 
+                            className={`text-[10px] font-mono px-2 py-0.5 rounded-[4px] border ${
+                              campo.obrigatorio 
+                                ? 'bg-[#F2C894]/20 text-[#854d0e] dark:text-[#F2C894] border-[#F2C894]/50' 
+                                : 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                            }`}
+                          >
+                            {campo.label} {campo.obrigatorio && '★'}
                           </span>
                         ))}
                         {form.campos.length > 5 && (
-                          <span className="text-[10px] font-mono text-[#226380] dark:text-[#A3C3C7]">
-                            +{form.campos.length - 5} campos
+                          <span className="text-[10px] font-mono font-semibold text-[#226380] dark:text-[#A3C3C7] bg-[#226380]/5 px-1.5 py-0.5 rounded-[4px]">
+                            +{form.campos.length - 5} campos adicionais
                           </span>
                         )}
                       </div>
                     </div>
 
                     {/* Ações do Formulário */}
-                    <div className="flex flex-wrap items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800 shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-[#113240]/10 dark:border-white/10 shrink-0">
                       {/* Respostas / Inscrições */}
                       <button
                         onClick={() => setVerRespostasForm(form)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-medium rounded-[6px] border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-semibold rounded-[6px] border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer motion-press"
                         title="Visualizar inscrições efetuadas"
                       >
-                        <Users className="w-3.5 h-3.5 text-[#226380]" />
+                        <Users className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7]" />
                         <span>Inscrições ({respostasCont})</span>
                       </button>
 
                       {/* Pré-visualizar no Papel Timbrado */}
                       <button
                         onClick={() => setPreviewForm(form)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-medium rounded-[6px] border border-[#226380]/30 bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7] hover:bg-[#226380]/20 transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-semibold rounded-[6px] border border-[#226380]/30 bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7] hover:bg-[#226380]/20 transition-colors cursor-pointer motion-press"
                         title="Pré-visualizar como documento timbrado"
                       >
                         <Eye className="w-3.5 h-3.5" />
@@ -881,7 +903,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
                       {/* Copiar Link */}
                       <button
                         onClick={() => handleCopiarLink(form.id)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono font-medium rounded-[6px] border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono font-semibold rounded-[6px] border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer motion-press"
                         title="Copiar link público para divulgar aos confrades"
                       >
                         {linkCopiadoId === form.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -891,7 +913,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
                       {/* Editar Campos */}
                       <button
                         onClick={() => handleOpenEditForm(form)}
-                        className="p-1.5 rounded-[6px] border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-[#113240] dark:hover:text-white transition-colors cursor-pointer"
+                        className="p-1.5 rounded-[6px] border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-[#113240] dark:hover:text-white transition-colors cursor-pointer motion-press"
                         title="Editar formulário e variáveis"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
@@ -900,7 +922,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
                       {/* Excluir */}
                       <button
                         onClick={() => handleDeleteForm(form)}
-                        className="p-1.5 rounded-[6px] border border-red-200 dark:border-red-900/40 hover:bg-red-500/10 text-red-600 dark:text-red-400 transition-colors cursor-pointer"
+                        className="p-1.5 rounded-[6px] border border-red-200 dark:border-red-900/40 hover:bg-red-500/10 text-red-600 dark:text-red-400 transition-colors cursor-pointer motion-press"
                         title="Excluir formulário"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -916,145 +938,217 @@ export const SecretariaConfiguracoes: React.FC = () => {
 
       {/* ABA 2: NUMERAÇÃO & PREFIXOS DE ATOS */}
       {tabAtiva === 'atos' && (
-        <form onSubmit={handleSalvarConfiguracoes} className="bg-white dark:bg-[#161b22] p-6 rounded-[6px] border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
-          <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
-            <h2 className="font-cinzel text-lg font-bold text-[#113240] dark:text-white">
-              Sistemas de Numeração Canônica & Prefixos de Atos
-            </h2>
-            <p className="text-xs text-slate-500 mt-1 font-sans">
-              Configure as regras de indexação e sequenciamento automático de decretos, portarias, circulares e formulários emitidos pela Secretaria Provincial.
-            </p>
+        <form onSubmit={handleSalvarConfiguracoes} className="bg-white dark:bg-[#161b22] p-6 rounded-[8px] border border-[#113240]/10 dark:border-white/10 shadow-sm space-y-6">
+          <div className="border-b border-[#113240]/10 dark:border-white/10 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-[#226380] dark:text-[#A3C3C7]" />
+                <h2 className="font-cinzel text-lg font-bold text-[#113240] dark:text-white">
+                  Livros Canônicos & Protocolo Sequencial de Atos
+                </h2>
+              </div>
+              <p className="text-xs text-[#474747] dark:text-[#86868b] mt-0.5 font-sans">
+                Configure as regras de chancela, indexação e numeração automática de decretos, portarias, circulares e formulários emitidos pela Secretaria Provincial.
+              </p>
+            </div>
+            <span className="font-mono text-[10px] uppercase font-bold text-[#226380] dark:text-[#A3C3C7] bg-[#226380]/10 px-2.5 py-1 rounded-[4px] border border-[#226380]/20 self-start sm:self-auto">
+              Chancelas Oficiais BRM
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Decretos Provinciais */}
-            <div className="p-4 rounded-[6px] bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+            <div className="p-4 rounded-[6px] bg-[#fafafa] dark:bg-[#12161f] border border-[#113240]/10 dark:border-white/10 space-y-3.5 border-l-4 border-l-[#226380]">
               <div className="flex items-center justify-between">
-                <span className="font-cinzel text-sm font-bold text-[#113240] dark:text-white">Decretos Provinciais</span>
-                <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7]">
-                  Ex: {configuracao.prefixo_decretos}-{new Date().getFullYear()}/{String(configuracao.numero_atual_decretos).padStart(3, '0')}
+                <div>
+                  <span className="font-mono text-[9px] uppercase tracking-wider text-[#226380] dark:text-[#A3C3C7] font-bold block">
+                    Livro Canônico I
+                  </span>
+                  <span className="font-cinzel text-sm font-bold text-[#113240] dark:text-white">
+                    Decretos Provinciais
+                  </span>
+                </div>
+                <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7] font-bold border border-[#226380]/20">
+                  {configuracao.prefixo_decretos}
                 </span>
               </div>
+
+              {/* Preview de Chancela */}
+              <div className="p-2.5 rounded-[4px] bg-[#113240]/5 dark:bg-white/5 border border-[#113240]/10 dark:border-white/10 flex items-center justify-between font-mono">
+                <span className="text-[10px] text-slate-500 uppercase font-semibold">Exemplo da Chancela:</span>
+                <span className="text-xs font-bold text-[#113240] dark:text-[#A3C3C7] tracking-wider">
+                  {configuracao.prefixo_decretos}-{new Date().getFullYear()}/{String(configuracao.numero_atual_decretos).padStart(3, '0')}
+                </span>
+              </div>
+
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <label className="block text-[11px] font-mono text-slate-500 mb-1">Prefixo Oficial</label>
+                  <label className="block text-[11px] font-mono font-semibold text-slate-600 dark:text-slate-400 mb-1">Prefixo Oficial</label>
                   <input
                     type="text"
                     value={configuracao.prefixo_decretos}
                     onChange={(e) => setConfiguracao(prev => ({ ...prev, prefixo_decretos: e.target.value }))}
-                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none font-mono"
+                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-[#1a2230] border border-[#113240]/20 dark:border-white/15 focus:border-[#226380] outline-none font-mono text-xs font-semibold"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-mono text-slate-500 mb-1">Último Número Emitido</label>
+                  <label className="block text-[11px] font-mono font-semibold text-slate-600 dark:text-slate-400 mb-1">Último Número Emitido</label>
                   <input
                     type="number"
                     value={configuracao.numero_atual_decretos}
                     onChange={(e) => setConfiguracao(prev => ({ ...prev, numero_atual_decretos: Number(e.target.value) }))}
-                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none font-mono"
+                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-[#1a2230] border border-[#113240]/20 dark:border-white/15 focus:border-[#226380] outline-none font-mono text-xs font-semibold"
                   />
                 </div>
               </div>
             </div>
 
             {/* Portarias & Nomeações */}
-            <div className="p-4 rounded-[6px] bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+            <div className="p-4 rounded-[6px] bg-[#fafafa] dark:bg-[#12161f] border border-[#113240]/10 dark:border-white/10 space-y-3.5 border-l-4 border-l-[#226380]">
               <div className="flex items-center justify-between">
-                <span className="font-cinzel text-sm font-bold text-[#113240] dark:text-white">Portarias & Provisões</span>
-                <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7]">
-                  Ex: {configuracao.prefixo_portarias}-{new Date().getFullYear()}/{String(configuracao.numero_atual_portarias).padStart(3, '0')}
+                <div>
+                  <span className="font-mono text-[9px] uppercase tracking-wider text-[#226380] dark:text-[#A3C3C7] font-bold block">
+                    Livro Canônico II
+                  </span>
+                  <span className="font-cinzel text-sm font-bold text-[#113240] dark:text-white">
+                    Portarias & Provisões
+                  </span>
+                </div>
+                <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7] font-bold border border-[#226380]/20">
+                  {configuracao.prefixo_portarias}
                 </span>
               </div>
+
+              {/* Preview de Chancela */}
+              <div className="p-2.5 rounded-[4px] bg-[#113240]/5 dark:bg-white/5 border border-[#113240]/10 dark:border-white/10 flex items-center justify-between font-mono">
+                <span className="text-[10px] text-slate-500 uppercase font-semibold">Exemplo da Chancela:</span>
+                <span className="text-xs font-bold text-[#113240] dark:text-[#A3C3C7] tracking-wider">
+                  {configuracao.prefixo_portarias}-{new Date().getFullYear()}/{String(configuracao.numero_atual_portarias).padStart(3, '0')}
+                </span>
+              </div>
+
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <label className="block text-[11px] font-mono text-slate-500 mb-1">Prefixo Oficial</label>
+                  <label className="block text-[11px] font-mono font-semibold text-slate-600 dark:text-slate-400 mb-1">Prefixo Oficial</label>
                   <input
                     type="text"
                     value={configuracao.prefixo_portarias}
                     onChange={(e) => setConfiguracao(prev => ({ ...prev, prefixo_portarias: e.target.value }))}
-                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none font-mono"
+                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-[#1a2230] border border-[#113240]/20 dark:border-white/15 focus:border-[#226380] outline-none font-mono text-xs font-semibold"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-mono text-slate-500 mb-1">Último Número Emitido</label>
+                  <label className="block text-[11px] font-mono font-semibold text-slate-600 dark:text-slate-400 mb-1">Último Número Emitido</label>
                   <input
                     type="number"
                     value={configuracao.numero_atual_portarias}
                     onChange={(e) => setConfiguracao(prev => ({ ...prev, numero_atual_portarias: Number(e.target.value) }))}
-                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none font-mono"
+                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-[#1a2230] border border-[#113240]/20 dark:border-white/15 focus:border-[#226380] outline-none font-mono text-xs font-semibold"
                   />
                 </div>
               </div>
             </div>
 
             {/* Circulares Provinciais */}
-            <div className="p-4 rounded-[6px] bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+            <div className="p-4 rounded-[6px] bg-[#fafafa] dark:bg-[#12161f] border border-[#113240]/10 dark:border-white/10 space-y-3.5 border-l-4 border-l-[#226380]">
               <div className="flex items-center justify-between">
-                <span className="font-cinzel text-sm font-bold text-[#113240] dark:text-white">Cartas Circulares</span>
-                <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7]">
-                  Ex: {configuracao.prefixo_circulares}-{new Date().getFullYear()}/{String(configuracao.numero_atual_circulares).padStart(3, '0')}
+                <div>
+                  <span className="font-mono text-[9px] uppercase tracking-wider text-[#226380] dark:text-[#A3C3C7] font-bold block">
+                    Livro Canônico III
+                  </span>
+                  <span className="font-cinzel text-sm font-bold text-[#113240] dark:text-white">
+                    Cartas Circulares
+                  </span>
+                </div>
+                <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7] font-bold border border-[#226380]/20">
+                  {configuracao.prefixo_circulares}
                 </span>
               </div>
+
+              {/* Preview de Chancela */}
+              <div className="p-2.5 rounded-[4px] bg-[#113240]/5 dark:bg-white/5 border border-[#113240]/10 dark:border-white/10 flex items-center justify-between font-mono">
+                <span className="text-[10px] text-slate-500 uppercase font-semibold">Exemplo da Chancela:</span>
+                <span className="text-xs font-bold text-[#113240] dark:text-[#A3C3C7] tracking-wider">
+                  {configuracao.prefixo_circulares}-{new Date().getFullYear()}/{String(configuracao.numero_atual_circulares).padStart(3, '0')}
+                </span>
+              </div>
+
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <label className="block text-[11px] font-mono text-slate-500 mb-1">Prefixo Oficial</label>
+                  <label className="block text-[11px] font-mono font-semibold text-slate-600 dark:text-slate-400 mb-1">Prefixo Oficial</label>
                   <input
                     type="text"
                     value={configuracao.prefixo_circulares}
                     onChange={(e) => setConfiguracao(prev => ({ ...prev, prefixo_circulares: e.target.value }))}
-                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none font-mono"
+                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-[#1a2230] border border-[#113240]/20 dark:border-white/15 focus:border-[#226380] outline-none font-mono text-xs font-semibold"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-mono text-slate-500 mb-1">Último Número Emitido</label>
+                  <label className="block text-[11px] font-mono font-semibold text-slate-600 dark:text-slate-400 mb-1">Último Número Emitido</label>
                   <input
                     type="number"
                     value={configuracao.numero_atual_circulares}
                     onChange={(e) => setConfiguracao(prev => ({ ...prev, numero_atual_circulares: Number(e.target.value) }))}
-                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none font-mono"
+                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-[#1a2230] border border-[#113240]/20 dark:border-white/15 focus:border-[#226380] outline-none font-mono text-xs font-semibold"
                   />
                 </div>
               </div>
             </div>
 
             {/* Fichas & Formulários */}
-            <div className="p-4 rounded-[6px] bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+            <div className="p-4 rounded-[6px] bg-[#fafafa] dark:bg-[#12161f] border border-[#113240]/10 dark:border-white/10 space-y-3.5 border-l-4 border-l-[#226380]">
               <div className="flex items-center justify-between">
-                <span className="font-cinzel text-sm font-bold text-[#113240] dark:text-white">Formulários & Fichas</span>
-                <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7]">
-                  Ex: {configuracao.prefixo_formularios}-{new Date().getFullYear()}/{String(configuracao.numero_atual_formularios).padStart(3, '0')}
+                <div>
+                  <span className="font-mono text-[9px] uppercase tracking-wider text-[#226380] dark:text-[#A3C3C7] font-bold block">
+                    Livro Canônico IV
+                  </span>
+                  <span className="font-cinzel text-sm font-bold text-[#113240] dark:text-white">
+                    Formulários & Fichas Oficiais
+                  </span>
+                </div>
+                <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7] font-bold border border-[#226380]/20">
+                  {configuracao.prefixo_formularios}
                 </span>
               </div>
+
+              {/* Preview de Chancela */}
+              <div className="p-2.5 rounded-[4px] bg-[#113240]/5 dark:bg-white/5 border border-[#113240]/10 dark:border-white/10 flex items-center justify-between font-mono">
+                <span className="text-[10px] text-slate-500 uppercase font-semibold">Exemplo da Chancela:</span>
+                <span className="text-xs font-bold text-[#113240] dark:text-[#A3C3C7] tracking-wider">
+                  {configuracao.prefixo_formularios}-{new Date().getFullYear()}/{String(configuracao.numero_atual_formularios).padStart(3, '0')}
+                </span>
+              </div>
+
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <label className="block text-[11px] font-mono text-slate-500 mb-1">Prefixo Oficial</label>
+                  <label className="block text-[11px] font-mono font-semibold text-slate-600 dark:text-slate-400 mb-1">Prefixo Oficial</label>
                   <input
                     type="text"
                     value={configuracao.prefixo_formularios}
                     onChange={(e) => setConfiguracao(prev => ({ ...prev, prefixo_formularios: e.target.value }))}
-                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none font-mono"
+                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-[#1a2230] border border-[#113240]/20 dark:border-white/15 focus:border-[#226380] outline-none font-mono text-xs font-semibold"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-mono text-slate-500 mb-1">Último Número Emitido</label>
+                  <label className="block text-[11px] font-mono font-semibold text-slate-600 dark:text-slate-400 mb-1">Último Número Emitido</label>
                   <input
                     type="number"
                     value={configuracao.numero_atual_formularios}
                     onChange={(e) => setConfiguracao(prev => ({ ...prev, numero_atual_formularios: Number(e.target.value) }))}
-                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none font-mono"
+                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-[#1a2230] border border-[#113240]/20 dark:border-white/15 focus:border-[#226380] outline-none font-mono text-xs font-semibold"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+          <div className="pt-4 border-t border-[#113240]/10 dark:border-white/10 flex justify-end">
             <button
               type="submit"
-              className="inline-flex items-center gap-2 px-5 py-2 text-xs font-mono uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-mono uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Salvar Regras de Numeração</span>
+              <span>Salvar Regras de Numeração Canônica</span>
             </button>
           </div>
         </form>
@@ -1062,13 +1156,13 @@ export const SecretariaConfiguracoes: React.FC = () => {
 
       {/* ABA 3: PAPEL TIMBRADO OFICIAL */}
       {tabAtiva === 'timbrado' && (
-        <form onSubmit={handleSalvarConfiguracoes} className="bg-white dark:bg-[#161b22] p-6 rounded-[6px] border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
-          <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+        <form onSubmit={handleSalvarConfiguracoes} className="bg-white dark:bg-[#161b22] p-6 rounded-[8px] border border-[#113240]/10 dark:border-white/10 shadow-sm space-y-6">
+          <div className="border-b border-[#113240]/10 dark:border-white/10 pb-4">
             <h2 className="font-cinzel text-lg font-bold text-[#113240] dark:text-white">
               Identidade Visual & Textos do Papel Timbrado Canônico
             </h2>
-            <p className="text-xs text-slate-500 mt-1 font-sans">
-              Personalize o cabeçalho canônico, o lema congregacional em latim e os dados de expediente que figuram em todos os formulários e certidões emitidas.
+            <p className="text-xs text-[#474747] dark:text-[#86868b] mt-0.5 font-sans">
+              Personalize o cabeçalho canônico oficial, o lema congregacional em latim e os dados de expediente que figuram em todos os formulários e certidões emitidas pela Província.
             </p>
           </div>
 
@@ -1081,7 +1175,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
                 type="text"
                 value={configuracao.cabecalho_institucional}
                 onChange={(e) => setConfiguracao(prev => ({ ...prev, cabecalho_institucional: e.target.value }))}
-                className="w-full px-3.5 py-2 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none font-cinzel text-sm"
+                className="w-full px-3.5 py-2 rounded-[6px] bg-[#fafafa] dark:bg-[#12161f] border border-[#113240]/20 dark:border-white/15 outline-none font-cinzel text-sm focus:border-[#226380]"
               />
             </div>
 
@@ -1093,7 +1187,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
                 type="text"
                 value={configuracao.subtitulo_provincia}
                 onChange={(e) => setConfiguracao(prev => ({ ...prev, subtitulo_provincia: e.target.value }))}
-                className="w-full px-3.5 py-2 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none"
+                className="w-full px-3.5 py-2 rounded-[6px] bg-[#fafafa] dark:bg-[#12161f] border border-[#113240]/20 dark:border-white/15 outline-none font-sans focus:border-[#226380]"
               />
             </div>
 
@@ -1105,31 +1199,31 @@ export const SecretariaConfiguracoes: React.FC = () => {
                 type="text"
                 value={configuracao.orgao_emissor}
                 onChange={(e) => setConfiguracao(prev => ({ ...prev, orgao_emissor: e.target.value }))}
-                className="w-full px-3.5 py-2 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none"
+                className="w-full px-3.5 py-2 rounded-[6px] bg-[#fafafa] dark:bg-[#12161f] border border-[#113240]/20 dark:border-white/15 outline-none font-sans focus:border-[#226380]"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold font-mono text-[#113240] dark:text-slate-300 mb-1">
-                Lema Oficial no Rodapé
+                Lema Oficial no Rodapé (Latim)
               </label>
               <input
                 type="text"
                 value={configuracao.lema_oficial}
                 onChange={(e) => setConfiguracao(prev => ({ ...prev, lema_oficial: e.target.value }))}
-                className="w-full px-3.5 py-2 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none font-cinzel text-sm"
+                className="w-full px-3.5 py-2 rounded-[6px] bg-[#fafafa] dark:bg-[#12161f] border border-[#113240]/20 dark:border-white/15 outline-none font-cinzel text-sm focus:border-[#226380]"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold font-mono text-[#113240] dark:text-slate-300 mb-1">
-                E-mail de Contato da Secretaria
+                E-mail Oficial de Contato da Secretaria
               </label>
               <input
                 type="email"
                 value={configuracao.email_secretaria}
                 onChange={(e) => setConfiguracao(prev => ({ ...prev, email_secretaria: e.target.value }))}
-                className="w-full px-3.5 py-2 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none font-mono"
+                className="w-full px-3.5 py-2 rounded-[6px] bg-[#fafafa] dark:bg-[#12161f] border border-[#113240]/20 dark:border-white/15 outline-none font-mono focus:border-[#226380]"
               />
             </div>
 
@@ -1141,32 +1235,37 @@ export const SecretariaConfiguracoes: React.FC = () => {
                 type="text"
                 value={configuracao.telefone_secretaria}
                 onChange={(e) => setConfiguracao(prev => ({ ...prev, telefone_secretaria: e.target.value }))}
-                className="w-full px-3.5 py-2 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none font-mono"
+                className="w-full px-3.5 py-2 rounded-[6px] bg-[#fafafa] dark:bg-[#12161f] border border-[#113240]/20 dark:border-white/15 outline-none font-mono focus:border-[#226380]"
               />
             </div>
 
-            <div className="flex items-center gap-3 pt-6">
-              <label className="flex items-center gap-2 cursor-pointer">
+            <div className="flex items-center gap-3 pt-4 md:col-span-2">
+              <label className="flex items-center gap-2.5 cursor-pointer p-3 rounded-[6px] bg-[#fafafa] dark:bg-[#12161f] border border-[#113240]/10 dark:border-white/10 w-full hover:border-[#226380]/40 transition-colors">
                 <input
                   type="checkbox"
                   checked={configuracao.exibir_marca_dagua}
                   onChange={(e) => setConfiguracao(prev => ({ ...prev, exibir_marca_dagua: e.target.checked }))}
                   className="accent-[#226380] w-4 h-4 rounded-[4px] cursor-pointer"
                 />
-                <span className="text-xs font-mono text-slate-700 dark:text-slate-300">
-                  Exibir marca d'água com brasão dehoniano em impressões
-                </span>
+                <div>
+                  <span className="text-xs font-mono font-semibold text-[#113240] dark:text-white block">
+                    Exibir marca d'água com brasão dehoniano em impressões
+                  </span>
+                  <span className="text-[11px] text-slate-500 font-sans block">
+                    Insere sutilmente a cruz dehoniana em 3% de opacidade no centro geométrico de todas as páginas timbradas.
+                  </span>
+                </div>
               </label>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+          <div className="pt-4 border-t border-[#113240]/10 dark:border-white/10 flex justify-end">
             <button
               type="submit"
-              className="inline-flex items-center gap-2 px-5 py-2 text-xs font-mono uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-mono uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Salvar Papel Timbrado</span>
+              <span>Salvar Papel Timbrado Canônico</span>
             </button>
           </div>
         </form>
@@ -1174,18 +1273,18 @@ export const SecretariaConfiguracoes: React.FC = () => {
 
       {/* ABA 4: NOTIFICAÇÕES & E-MAILS */}
       {tabAtiva === 'notificacoes' && (
-        <form onSubmit={handleSalvarConfiguracoes} className="bg-white dark:bg-[#161b22] p-6 rounded-[6px] border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
-          <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+        <form onSubmit={handleSalvarConfiguracoes} className="bg-white dark:bg-[#161b22] p-6 rounded-[8px] border border-[#113240]/10 dark:border-white/10 shadow-sm space-y-6">
+          <div className="border-b border-[#113240]/10 dark:border-white/10 pb-4">
             <h2 className="font-cinzel text-lg font-bold text-[#113240] dark:text-white">
               Notificações Automáticas & E-mails de Confirmação
             </h2>
-            <p className="text-xs text-slate-500 mt-1 font-sans">
+            <p className="text-xs text-[#474747] dark:text-[#86868b] mt-0.5 font-sans">
               Comportamento de comunicação automática com confrades e secretários provinciais após o preenchimento de inscrições.
             </p>
           </div>
 
           <div className="space-y-4">
-            <div className="p-4 rounded-[6px] border border-slate-200 dark:border-slate-800 flex items-start gap-3 bg-slate-50 dark:bg-slate-900/40">
+            <div className="p-4 rounded-[6px] border border-[#113240]/10 dark:border-white/10 flex items-start gap-3.5 bg-[#fafafa] dark:bg-[#12161f] hover:border-[#226380]/40 transition-colors">
               <input
                 type="checkbox"
                 id="notif_confrade"
@@ -1194,16 +1293,16 @@ export const SecretariaConfiguracoes: React.FC = () => {
                 className="accent-[#226380] w-4 h-4 rounded-[4px] mt-0.5 cursor-pointer"
               />
               <label htmlFor="notif_confrade" className="cursor-pointer space-y-1">
-                <span className="text-xs font-bold text-[#113240] dark:text-white block">
-                  Enviar comprovante por e-mail ao confrade
+                <span className="text-xs font-bold text-[#113240] dark:text-white block font-sans">
+                  Enviar comprovante por e-mail ao confrade inscrito
                 </span>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                <p className="text-[11px] text-[#474747] dark:text-[#86868b] font-sans">
                   Dispara automaticamente um e-mail com a ficha timbrada em PDF e o número de protocolo canônico para o e-mail informado na inscrição.
                 </p>
               </label>
             </div>
 
-            <div className="p-4 rounded-[6px] border border-slate-200 dark:border-slate-800 flex items-start gap-3 bg-slate-50 dark:bg-slate-900/40">
+            <div className="p-4 rounded-[6px] border border-[#113240]/10 dark:border-white/10 flex items-start gap-3.5 bg-[#fafafa] dark:bg-[#12161f] hover:border-[#226380]/40 transition-colors">
               <input
                 type="checkbox"
                 id="notif_sec"
@@ -1212,20 +1311,20 @@ export const SecretariaConfiguracoes: React.FC = () => {
                 className="accent-[#226380] w-4 h-4 rounded-[4px] mt-0.5 cursor-pointer"
               />
               <label htmlFor="notif_sec" className="cursor-pointer space-y-1">
-                <span className="text-xs font-bold text-[#113240] dark:text-white block">
+                <span className="text-xs font-bold text-[#113240] dark:text-white block font-sans">
                   Avisar Secretaria Provincial a cada nova inscrição
                 </span>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Envia um alerta para <span className="font-mono text-[#226380]">{configuracao.email_secretaria}</span> sempre que um religioso confirmar presença em evento com vagas limitadas.
+                <p className="text-[11px] text-[#474747] dark:text-[#86868b] font-sans">
+                  Envia um alerta para <span className="font-mono text-[#226380] font-semibold">{configuracao.email_secretaria}</span> sempre que um religioso confirmar presença em evento com vagas limitadas.
                 </p>
               </label>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+          <div className="pt-4 border-t border-[#113240]/10 dark:border-white/10 flex justify-end">
             <button
               type="submit"
-              className="inline-flex items-center gap-2 px-5 py-2 text-xs font-mono uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-mono uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Salvar Preferências de Notificação</span>
@@ -1238,31 +1337,31 @@ export const SecretariaConfiguracoes: React.FC = () => {
       {/* MODAL CONSTRUTOR DE VARIÁVEIS (PADRÃO 3 COLUNAS - IDÊNTICO À FOTO DO USUÁRIO) */}
       {/* ========================================================================= */}
       {isBuilderOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#161b22] w-full max-w-5xl max-h-[92vh] rounded-[6px] border border-slate-300 dark:border-slate-700 shadow-2xl flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#113240]/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#161b22] w-full max-w-5xl max-h-[92vh] rounded-[8px] border border-[#113240]/20 dark:border-white/15 shadow-2xl flex flex-col overflow-hidden">
             
             {/* Header do Construtor */}
-            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-3 bg-slate-50/70 dark:bg-slate-900/50">
+            <div className="p-4 sm:p-5 border-b border-[#113240]/10 dark:border-white/10 flex items-start justify-between gap-3 bg-[#fafafa] dark:bg-[#12161f]">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7] border border-[#226380]/20">
+                  <span className="font-mono text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-[4px] bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7] border border-[#226380]/30 shadow-2xs">
                     {formCodigo || 'NOVO FORMULÁRIO'}
                   </span>
-                  <span className="font-mono text-[10px] text-slate-500">
+                  <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400 bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-[4px]">
                     {totalSelecionadas} variáveis selecionadas
                   </span>
                 </div>
-                <h2 className="font-cinzel text-lg sm:text-xl font-bold text-[#113240] dark:text-white">
+                <h2 className="font-cinzel text-lg sm:text-xl font-bold text-[#113240] dark:text-white tracking-tight">
                   Construtor de Variáveis & Campos da Ficha
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-sans">
+                <p className="text-xs text-[#474747] dark:text-[#86868b] font-sans">
                   Marque as caixas de seleção abaixo para incluir as variáveis no formulário timbrado oficial.
                 </p>
               </div>
 
               <button
                 onClick={() => setIsBuilderOpen(false)}
-                className="p-1.5 rounded-[6px] text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="p-1.5 rounded-[6px] text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1272,7 +1371,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
             <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6">
               
               {/* Metadados Básicos do Formulário */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-[6px] bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 p-4 rounded-[6px] bg-[#fafafa] dark:bg-[#12161f] border border-[#113240]/10 dark:border-white/10">
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold font-mono text-[#113240] dark:text-slate-300 mb-1">
                     Título Oficial do Formulário *
@@ -1283,7 +1382,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
                     value={formTitulo}
                     onChange={(e) => setFormTitulo(e.target.value)}
                     placeholder="Ex: Ficha de Inscrição - Retiro Anual dos Presbíteros 2026"
-                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none text-xs text-slate-900 dark:text-white font-sans"
+                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-[#1a2230] border border-[#113240]/20 dark:border-white/15 focus:border-[#226380] outline-none text-xs text-slate-900 dark:text-white font-sans"
                   />
                 </div>
 
@@ -1296,7 +1395,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
                     value={formCodigo}
                     onChange={(e) => setFormCodigo(e.target.value)}
                     placeholder="FORM-2026/001"
-                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none text-xs font-mono text-slate-900 dark:text-white"
+                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-[#1a2230] border border-[#113240]/20 dark:border-white/15 focus:border-[#226380] outline-none text-xs font-mono font-semibold text-slate-900 dark:text-white"
                   />
                 </div>
 
@@ -1309,12 +1408,12 @@ export const SecretariaConfiguracoes: React.FC = () => {
                     value={formDescricao}
                     onChange={(e) => setFormDescricao(e.target.value)}
                     placeholder="Orientações aos confrades sobre prazos, documentos e acolhida..."
-                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none text-xs text-slate-900 dark:text-white resize-none"
+                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-[#1a2230] border border-[#113240]/20 dark:border-white/15 focus:border-[#226380] outline-none text-xs text-slate-900 dark:text-white resize-none font-sans"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-mono text-slate-500 mb-1">
+                  <label className="block text-[11px] font-mono text-slate-600 dark:text-slate-400 mb-1">
                     Limite de Vagas (opcional)
                   </label>
                   <input
@@ -1322,19 +1421,19 @@ export const SecretariaConfiguracoes: React.FC = () => {
                     value={formLimiteVagas}
                     onChange={(e) => setFormLimiteVagas(e.target.value ? Number(e.target.value) : '')}
                     placeholder="Ex: 50"
-                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none text-xs font-mono"
+                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-[#1a2230] border border-[#113240]/20 dark:border-white/15 focus:border-[#226380] outline-none text-xs font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-mono text-slate-500 mb-1">
+                  <label className="block text-[11px] font-mono text-slate-600 dark:text-slate-400 mb-1">
                     Prazo Limite para Inscrição
                   </label>
                   <input
                     type="date"
                     value={formPrazo}
                     onChange={(e) => setFormPrazo(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none text-xs font-mono"
+                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-[#1a2230] border border-[#113240]/20 dark:border-white/15 focus:border-[#226380] outline-none text-xs font-mono"
                   />
                 </div>
 
@@ -1357,32 +1456,32 @@ export const SecretariaConfiguracoes: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
                   <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                    <span className="font-mono text-slate-400 text-[11px] uppercase mr-1">Predefinições Rápidas:</span>
+                    <span className="font-mono text-slate-400 text-[11px] uppercase mr-1 font-semibold">Predefinições Rápidas:</span>
                     <button
                       type="button"
                       onClick={() => aplicarPreset('retiro')}
-                      className="px-2.5 py-1 rounded-[4px] bg-[#226380]/10 hover:bg-[#226380]/20 text-[#226380] dark:text-[#A3C3C7] border border-[#226380]/30 font-mono text-[11px] transition-colors cursor-pointer"
+                      className="px-2.5 py-1 rounded-[4px] bg-[#226380]/10 hover:bg-[#226380]/20 text-[#226380] dark:text-[#A3C3C7] border border-[#226380]/30 font-mono text-[11px] font-semibold transition-colors cursor-pointer motion-press"
                     >
                       Preset Retiro Espiritual
                     </button>
                     <button
                       type="button"
                       onClick={() => aplicarPreset('assembleia')}
-                      className="px-2.5 py-1 rounded-[4px] bg-[#226380]/10 hover:bg-[#226380]/20 text-[#226380] dark:text-[#A3C3C7] border border-[#226380]/30 font-mono text-[11px] transition-colors cursor-pointer"
+                      className="px-2.5 py-1 rounded-[4px] bg-[#226380]/10 hover:bg-[#226380]/20 text-[#226380] dark:text-[#A3C3C7] border border-[#226380]/30 font-mono text-[11px] font-semibold transition-colors cursor-pointer motion-press"
                     >
                       Preset Assembleia Provincial
                     </button>
                     <button
                       type="button"
                       onClick={() => aplicarPreset('todos')}
-                      className="px-2.5 py-1 rounded-[4px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 font-mono text-[11px] transition-colors cursor-pointer"
+                      className="px-2.5 py-1 rounded-[4px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 font-mono text-[11px] transition-colors cursor-pointer motion-press"
                     >
                       Selecionar Todos
                     </button>
                     <button
                       type="button"
                       onClick={() => aplicarPreset('nenhum')}
-                      className="px-2.5 py-1 rounded-[4px] bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-300 dark:border-slate-700 font-mono text-[11px] transition-colors cursor-pointer"
+                      className="px-2.5 py-1 rounded-[4px] bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-300 dark:border-slate-700 font-mono text-[11px] transition-colors cursor-pointer motion-press"
                     >
                       Limpar
                     </button>
@@ -1407,7 +1506,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
                       value={buscaVariavel}
                       onChange={(e) => setBuscaVariavel(e.target.value)}
                       placeholder="Filtrar variáveis por nome ou finalidade..."
-                      className="w-full pl-9 pr-3 py-1.5 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs outline-none focus:border-[#226380]"
+                      className="w-full pl-9 pr-3 py-1.5 rounded-[6px] bg-white dark:bg-[#12161f] border border-[#113240]/20 dark:border-white/15 text-xs outline-none focus:border-[#226380]"
                     />
                   </div>
 
@@ -1419,8 +1518,8 @@ export const SecretariaConfiguracoes: React.FC = () => {
                         onClick={() => setFiltroCategoriaVariavel(cat)}
                         className={`px-2.5 py-1 rounded-[4px] text-[11px] font-mono whitespace-nowrap transition-colors cursor-pointer border ${
                           filtroCategoriaVariavel === cat
-                            ? 'bg-[#113240] text-white border-[#113240] dark:bg-[#226380] dark:border-[#226380]'
-                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                            ? 'bg-[#113240] text-white border-[#113240] dark:bg-[#226380] dark:border-[#226380] font-semibold'
+                            : 'bg-white dark:bg-[#12161f] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50'
                         }`}
                       >
                         {cat}
@@ -1430,7 +1529,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
                 </div>
               </div>
 
-              {/* GRID DE VARIÁVEIS EM 3 COLUNAS (IDÊNTICO AO LAYOUT DA FOTO) */}
+              {/* GRID DE VARIÁVEIS EM 3 COLUNAS (IDÊNTICO AO LAYOUT DA FOTO DE REFERÊNCIA) */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {variaveisFiltradas.map((campo) => {
                   const estado = camposSelecionados[campo.id] || { selecionado: false, obrigatorio: false };
@@ -1440,10 +1539,10 @@ export const SecretariaConfiguracoes: React.FC = () => {
                     <div
                       key={campo.id}
                       onClick={() => toggleVariavel(campo.id)}
-                      className={`relative p-3.5 rounded-[6px] border transition-all cursor-pointer select-none flex flex-col justify-between gap-2.5 ${
+                      className={`relative p-3.5 rounded-[6px] transition-all cursor-pointer select-none flex flex-col justify-between gap-2.5 ${
                         isChecked
-                          ? 'border-[#226380] bg-[#226380]/5 dark:bg-[#226380]/15 shadow-sm'
-                          : 'border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#1a202c]/50 hover:border-slate-300 dark:hover:border-slate-700'
+                          ? 'border-2 border-[#226380] bg-[#226380]/8 dark:bg-[#226380]/20 shadow-xs'
+                          : 'border border-black/10 dark:border-white/10 bg-[#fafafa] dark:bg-[#12161f] hover:border-[#226380]/50 shadow-2xs'
                       }`}
                     >
                       <div className="flex items-start gap-2.5">
@@ -1459,7 +1558,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
                           }`}>
                             {campo.label}
                           </span>
-                          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 block mt-0.5">
+                          <span className="text-[10px] font-mono text-[#226380] dark:text-[#A3C3C7] block mt-0.5 uppercase tracking-wider font-medium">
                             {campo.categoria} • {campo.tipo}
                           </span>
                         </div>
@@ -1467,15 +1566,15 @@ export const SecretariaConfiguracoes: React.FC = () => {
 
                       {/* Controle de Obrigatório vs Opcional (quando marcado) */}
                       {isChecked && (
-                        <div className="pt-2 border-t border-[#226380]/15 flex items-center justify-between text-[10px] font-mono">
-                          <span className="text-slate-500">Regra de validação:</span>
+                        <div className="pt-2 border-t border-[#226380]/20 flex items-center justify-between text-[10px] font-mono">
+                          <span className="text-slate-500 font-medium">Regra de validação:</span>
                           <button
                             type="button"
                             onClick={(e) => toggleObrigatorio(campo.id, e)}
                             className={`px-2 py-0.5 rounded-[4px] font-bold uppercase transition-colors cursor-pointer border ${
                               estado.obrigatorio
-                                ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30'
-                                : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'
+                                ? 'bg-[#F2C894]/30 text-[#854d0e] dark:bg-[#F2C894]/25 dark:text-[#F2C894] border-[#F2C894]/80 shadow-2xs'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'
                             }`}
                             title="Clique para alternar entre Obrigatório e Opcional"
                           >
@@ -1496,7 +1595,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
             </div>
 
             {/* Footer do Construtor (Botões Cancelar e Salvar - como na foto) */}
-            <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="p-4 sm:p-5 border-t border-[#113240]/10 dark:border-white/10 bg-[#fafafa] dark:bg-[#12161f] flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="text-xs font-mono text-slate-500">
                 <span className="text-[#113240] dark:text-white font-bold">{totalSelecionadas}</span> variáveis comporão a ficha timbrada.
               </div>
@@ -1505,14 +1604,14 @@ export const SecretariaConfiguracoes: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsBuilderOpen(false)}
-                  className="px-4 py-2 rounded-[6px] text-xs font-mono uppercase font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer border border-slate-300 dark:border-slate-700 motion-press"
+                  className="px-4 py-2 rounded-[6px] text-xs font-mono uppercase font-semibold text-slate-600 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer border border-slate-300 dark:border-slate-700 motion-press"
                 >
                   Cancelar
                 </button>
                 <button
                   type="button"
                   onClick={handleSaveFormulario}
-                  className="inline-flex items-center gap-2 px-6 py-2 text-xs font-mono uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-mono uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>Salvar & Concluir Formulário</span>
@@ -1528,18 +1627,21 @@ export const SecretariaConfiguracoes: React.FC = () => {
       {/* MODAL CRIAR VARIÁVEL PERSONALIZADA */}
       {/* ========================================================================= */}
       {isNovaVariavelModalOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-[#161b22] w-full max-w-md rounded-[6px] border border-slate-300 dark:border-slate-700 shadow-xl p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-[#113240]/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-[#161b22] w-full max-w-md rounded-[8px] border border-[#113240]/20 dark:border-white/15 shadow-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#113240]/10 dark:border-white/10 pb-3">
               <h3 className="font-cinzel text-base font-bold text-[#113240] dark:text-white">
-                Nova Variável Personalizada
+                Nova Variável Canônica Personalizada
               </h3>
-              <button onClick={() => setIsNovaVariavelModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+              <button 
+                onClick={() => setIsNovaVariavelModalOpen(false)} 
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCriarNovaVariavel} className="space-y-3 text-xs">
+            <form onSubmit={handleCriarNovaVariavel} className="space-y-3.5 text-xs">
               <div>
                 <label className="block text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Nome / Rótulo da Variável *
@@ -1550,7 +1652,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
                   value={novaVarNome}
                   onChange={(e) => setNovaVarNome(e.target.value)}
                   placeholder="Ex: Número do Quarto no Seminário"
-                  className="w-full px-3 py-1.5 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none"
+                  className="w-full px-3 py-1.5 rounded-[6px] bg-[#fafafa] dark:bg-[#12161f] border border-[#113240]/20 dark:border-white/15 outline-none font-sans focus:border-[#226380]"
                 />
               </div>
 
@@ -1562,7 +1664,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
                   <select
                     value={novaVarCategoria}
                     onChange={(e) => setNovaVarCategoria(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none font-mono"
+                    className="w-full px-3 py-1.5 rounded-[6px] bg-[#fafafa] dark:bg-[#12161f] border border-[#113240]/20 dark:border-white/15 outline-none font-mono focus:border-[#226380]"
                   >
                     <option value="Identificação">Identificação</option>
                     <option value="Contato">Contato</option>
@@ -1580,7 +1682,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
                   <select
                     value={novaVarTipo}
                     onChange={(e) => setNovaVarTipo(e.target.value as any)}
-                    className="w-full px-3 py-1.5 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none font-mono"
+                    className="w-full px-3 py-1.5 rounded-[6px] bg-[#fafafa] dark:bg-[#12161f] border border-[#113240]/20 dark:border-white/15 outline-none font-mono focus:border-[#226380]"
                   >
                     <option value="text">Texto Curto</option>
                     <option value="textarea">Texto Longo (Área)</option>
@@ -1603,7 +1705,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
                     value={novaVarOpcoes}
                     onChange={(e) => setNovaVarOpcoes(e.target.value)}
                     placeholder="Opção 1, Opção 2, Opção 3"
-                    className="w-full px-3 py-1.5 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none"
+                    className="w-full px-3 py-1.5 rounded-[6px] bg-[#fafafa] dark:bg-[#12161f] border border-[#113240]/20 dark:border-white/15 outline-none font-sans focus:border-[#226380]"
                   />
                 </div>
               )}
@@ -1617,11 +1719,11 @@ export const SecretariaConfiguracoes: React.FC = () => {
                   value={novaVarPlaceholder}
                   onChange={(e) => setNovaVarPlaceholder(e.target.value)}
                   placeholder="Ex: Instrução de preenchimento para o confrade..."
-                  className="w-full px-3 py-1.5 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none"
+                  className="w-full px-3 py-1.5 rounded-[6px] bg-[#fafafa] dark:bg-[#12161f] border border-[#113240]/20 dark:border-white/15 outline-none font-sans focus:border-[#226380]"
                 />
               </div>
 
-              <div className="flex items-center gap-2 pt-2">
+              <div className="flex items-center gap-2 pt-1">
                 <input
                   type="checkbox"
                   id="nova_obr"
@@ -1634,17 +1736,17 @@ export const SecretariaConfiguracoes: React.FC = () => {
                 </label>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
+              <div className="pt-3 border-t border-[#113240]/10 dark:border-white/10 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsNovaVariavelModalOpen(false)}
-                  className="px-3 py-1.5 rounded-[6px] text-xs font-mono uppercase text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="px-3.5 py-1.5 rounded-[6px] text-xs font-mono uppercase font-semibold text-slate-600 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer border border-slate-300 dark:border-slate-700 motion-press"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 rounded-[6px] text-xs font-mono uppercase font-semibold text-white bg-[#113240] hover:bg-[#226380]"
+                  className="px-4 py-1.5 rounded-[6px] text-xs font-mono uppercase font-semibold text-white bg-[#113240] hover:bg-[#226380] transition-all cursor-pointer shadow-sm motion-press"
                 >
                   Adicionar ao Construtor
                 </button>
@@ -1658,24 +1760,25 @@ export const SecretariaConfiguracoes: React.FC = () => {
       {/* MODAL PRÉ-VISUALIZAÇÃO DE DOCUMENTO TIMBRADO */}
       {/* ========================================================================= */}
       {previewForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#0d1117] w-full max-w-4xl max-h-[94vh] rounded-[6px] border border-slate-300 dark:border-slate-700 shadow-2xl flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-[#113240]/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#0d1117] w-full max-w-4xl max-h-[94vh] rounded-[8px] border border-[#113240]/20 dark:border-white/15 shadow-2xl flex flex-col overflow-hidden">
             
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900">
+            <div className="p-4 border-b border-[#113240]/10 dark:border-white/10 flex items-center justify-between bg-[#fafafa] dark:bg-[#12161f]">
               <div className="flex items-center gap-2">
-                <span className="font-mono text-xs uppercase font-bold text-[#226380] dark:text-[#A3C3C7]">
+                <FileText className="w-4 h-4 text-[#226380] dark:text-[#A3C3C7]" />
+                <span className="font-mono text-xs uppercase font-bold text-[#226380] dark:text-[#A3C3C7] tracking-wider">
                   Pré-visualização Oficial no Padrão Timbrado BRM
                 </span>
               </div>
               <button
                 onClick={() => setPreviewForm(null)}
-                className="p-1 rounded-[6px] text-slate-400 hover:text-slate-700 dark:hover:text-white"
+                className="p-1 rounded-[6px] text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-4 sm:p-6 overflow-y-auto flex-1 bg-slate-100 dark:bg-[#090d16]">
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 bg-[#F2F2F2] dark:bg-[#090d16]">
               <FormularioTimbrado
                 titulo={previewForm.titulo}
                 subtitulo={previewForm.codigo}
@@ -1693,10 +1796,10 @@ export const SecretariaConfiguracoes: React.FC = () => {
               />
             </div>
 
-            <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-end">
+            <div className="p-3 border-t border-[#113240]/10 dark:border-white/10 bg-[#fafafa] dark:bg-[#12161f] flex justify-end">
               <button
                 onClick={() => setPreviewForm(null)}
-                className="px-4 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-[6px] hover:bg-slate-200"
+                className="px-4 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[6px] hover:bg-slate-100 transition-colors cursor-pointer motion-press"
               >
                 Fechar Visualização
               </button>
@@ -1709,12 +1812,12 @@ export const SecretariaConfiguracoes: React.FC = () => {
       {/* MODAL RESPOSTAS / INSCRIÇÕES RECEBIDAS */}
       {/* ========================================================================= */}
       {verRespostasForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#161b22] w-full max-w-5xl max-h-[92vh] rounded-[6px] border border-slate-300 dark:border-slate-700 shadow-2xl flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#113240]/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#161b22] w-full max-w-5xl max-h-[92vh] rounded-[8px] border border-[#113240]/20 dark:border-white/15 shadow-2xl flex flex-col overflow-hidden">
             
-            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-3 bg-slate-50 dark:bg-slate-900/50">
+            <div className="p-4 sm:p-5 border-b border-[#113240]/10 dark:border-white/10 flex items-start justify-between gap-3 bg-[#fafafa] dark:bg-[#12161f]">
               <div>
-                <span className="font-mono text-[10px] uppercase font-bold text-[#226380] dark:text-[#A3C3C7]">
+                <span className="font-mono text-[10px] uppercase font-bold text-[#226380] dark:text-[#A3C3C7] tracking-wider">
                   Protocolos & Inscrições Recebidas
                 </span>
                 <h2 className="font-cinzel text-lg font-bold text-[#113240] dark:text-white">
@@ -1725,14 +1828,14 @@ export const SecretariaConfiguracoes: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => exportarCSV(verRespostasForm)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-[6px] transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-[#226380] dark:text-[#A3C3C7] bg-[#226380]/10 hover:bg-[#226380]/20 border border-[#226380]/30 rounded-[6px] transition-colors cursor-pointer motion-press"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Exportar CSV</span>
                 </button>
                 <button
                   onClick={() => setVerRespostasForm(null)}
-                  className="p-1.5 rounded-[6px] text-slate-400 hover:text-slate-700 dark:hover:text-white"
+                  className="p-1.5 rounded-[6px] text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1751,11 +1854,11 @@ export const SecretariaConfiguracoes: React.FC = () => {
                 }
 
                 return (
-                  <div className="border border-slate-200 dark:border-slate-800 rounded-[6px] overflow-hidden">
+                  <div className="border border-[#113240]/10 dark:border-white/10 rounded-[6px] overflow-hidden shadow-2xs">
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs border-collapse">
                         <thead>
-                          <tr className="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-[11px] font-mono uppercase text-slate-500">
+                          <tr className="bg-[#113240]/5 dark:bg-[#12161f] border-b border-[#113240]/10 dark:border-white/10 text-[11px] font-mono uppercase text-[#226380] dark:text-[#A3C3C7] font-semibold">
                             <th className="p-3">Protocolo</th>
                             <th className="p-3">Data / Hora</th>
                             <th className="p-3">Nome / Confrade</th>
@@ -1767,7 +1870,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                           {lista.map(r => (
-                            <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors font-sans">
+                            <tr key={r.id} className="hover:bg-[#226380]/5 transition-colors font-sans">
                               <td className="p-3 font-mono text-[11px] font-bold text-[#226380] dark:text-[#A3C3C7]">
                                 {r.protocolo}
                               </td>
@@ -1806,10 +1909,10 @@ export const SecretariaConfiguracoes: React.FC = () => {
               })()}
             </div>
 
-            <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex justify-end">
+            <div className="p-3 border-t border-[#113240]/10 dark:border-white/10 bg-[#fafafa] dark:bg-[#12161f] flex justify-end">
               <button
                 onClick={() => setVerRespostasForm(null)}
-                className="px-4 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[6px] hover:bg-slate-100"
+                className="px-4 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[6px] hover:bg-slate-100 transition-colors cursor-pointer motion-press"
               >
                 Fechar Inscrições
               </button>
