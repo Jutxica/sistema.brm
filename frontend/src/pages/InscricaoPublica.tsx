@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { 
   Loader2, CheckCircle2, ChevronRight, ChevronLeft, Building, 
-  AlertCircle, FileText
+  AlertCircle, FileText, ShieldCheck
 } from 'lucide-react';
 
 interface Config {
@@ -29,6 +30,15 @@ interface Lavanderia {
   lav_servico: string;
 }
 
+interface CasaReferencia {
+  id: string;
+  nome: string;
+  tipo?: string;
+  localidade?: string;
+  cidade?: string;
+  uf?: string;
+}
+
 export const InscricaoPublica: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -40,6 +50,7 @@ export const InscricaoPublica: React.FC = () => {
   const [estadias, setEstadias] = useState<Estadia[]>([]);
   const [modulos, setModulos] = useState<Modulo[]>([]);
   const [lavanderias, setLavanderias] = useState<Lavanderia[]>([]);
+  const [casasAcolhida, setCasasAcolhida] = useState<CasaReferencia[]>([]);
 
   // Form State
   const [step, setStep] = useState(1);
@@ -62,6 +73,7 @@ export const InscricaoPublica: React.FC = () => {
     hos_restricaoalimentar: 'Não',
     hos_especifiquerestricao: '',
     hos_lavanderia: 'Não',
+    hos_casa_acolhida: '',
     hos_estadiamotivo: '',
     hos_modulo: '',
     hos_previsaochegada: '',
@@ -90,12 +102,14 @@ export const InscricaoPublica: React.FC = () => {
           { data: configData },
           { data: estadiasData },
           { data: modulosData },
-          { data: lavanderiaData }
+          { data: lavanderiaData },
+          { data: obrasData }
         ] = await Promise.all([
-          supabase.from('confighospedagens').select('*').eq('idconfighospedagens', 1).maybeSingle(),
-          supabase.from('mainhospedagem').select('*').eq('main_status', 'Ativo').order('idmainhospedagem', { ascending: false }),
-          supabase.from('modulos').select('*').eq('mod_status', 'Ativo').order('idmodulos', { ascending: false }),
-          supabase.from('lavanderia').select('*').order('idlavanderia', { ascending: false })
+          supabase.from('confighospedagens').select('idconfighospedagens, chos_acolhida, chos_ativar, chos_txtinativo').eq('idconfighospedagens', 1).maybeSingle(),
+          supabase.from('mainhospedagem').select('idmainhospedagem, main_motivo, main_termos, main_mensagemtela, main_mensagememail').eq('main_status', 'Ativo').order('idmainhospedagem', { ascending: false }),
+          supabase.from('modulos').select('idmodulos, mod_nome').eq('mod_status', 'Ativo').order('idmodulos', { ascending: false }),
+          supabase.from('lavanderia').select('idlavanderia, lav_servico').order('idlavanderia', { ascending: false }),
+          supabase.from('religiosos_obras_referencia').select('id, nome, tipo, localidade, cidade, uf').eq('status', 'Ativa').order('nome')
         ]);
 
         if (configData) {
@@ -110,10 +124,14 @@ export const InscricaoPublica: React.FC = () => {
         setEstadias(estList);
         setModulos((modulosData || []).map(m => ({ ...m, idmodulos: String(m.idmodulos) })) as Modulo[]);
         setLavanderias((lavanderiaData || []).map(l => ({ ...l, idlavanderia: String(l.idlavanderia) })) as Lavanderia[]);
+        setCasasAcolhida((obrasData || []) as CasaReferencia[]);
 
-        // Pre-select first course
-        if (estList.length > 0) {
-          setFormData(prev => ({ ...prev, hos_estadiamotivo: estList[0].idmainhospedagem }));
+        // Verificar pré-seleção vinda de URL (?casa=...)
+        const urlParams = new URLSearchParams(window.location.search);
+        const casaParam = urlParams.get('casa');
+        if (casaParam) {
+          const decoded = decodeURIComponent(casaParam);
+          setFormData(prev => ({ ...prev, hos_casa_acolhida: decoded }));
         }
       } catch (err) {
         console.error("Erro ao carregar dados da página pública:", err);
@@ -193,7 +211,7 @@ export const InscricaoPublica: React.FC = () => {
     // Basic step validation
     if (step === 1) {
       if (!formData.hos_estadiamotivo) {
-        setErrorMsg("Selecione o Curso ou Estadia.");
+        setErrorMsg("Por favor, selecione um Curso ou Estadia para continuar.");
         return;
       }
     }
@@ -267,16 +285,36 @@ export const InscricaoPublica: React.FC = () => {
     payload.hos_quarto = null; // admin assigns this later
 
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('hospedagens')
         .insert([payload])
         .select('idhospedagens')
         .single();
 
+      if (error && (error.message?.includes('hos_casa_acolhida') || (error as any).code === '42703')) {
+        delete payload.hos_casa_acolhida;
+        payload.hos_especifiquerestricao = formData.hos_casa_acolhida
+          ? `[Destino da Estadia: ${formData.hos_casa_acolhida}] ${formData.hos_especifiquerestricao || ''}`.trim()
+          : formData.hos_especifiquerestricao;
+        const retry = await supabase
+          .from('hospedagens')
+          .insert([payload])
+          .select('idhospedagens')
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
+
       if (error) throw error;
 
       if (data) {
         setRegistrationId(String(data.idhospedagens));
+        // Disparar e-mail de confirmação via Supabase Edge Function em segundo plano
+        supabase.functions.invoke('send-receipt', {
+          body: { id: data.idhospedagens }
+        }).catch((emailErr) => {
+          console.warn("Aviso: Envio do e-mail de confirmação pendente ou Edge Function ainda não implantada:", emailErr);
+        });
       }
       setSuccess(true);
     } catch (err: any) {
@@ -307,8 +345,8 @@ export const InscricaoPublica: React.FC = () => {
         <div className="absolute top-[-10%] right-[-5%] w-[40rem] h-[40rem] rounded-full bg-secondary/8 dark:bg-secondary/15 blur-[130px] pointer-events-none animate-float-1 z-0" />
         <div className="absolute bottom-[-15%] left-[5%] w-[35rem] h-[35rem] rounded-full bg-accent/8 dark:bg-accent/15 blur-[120px] pointer-events-none animate-float-2 z-0" />
         
-        <div className="relative w-full max-w-xl rounded-2xl glass shadow-premium p-8 z-10 text-center border-l-4 border-l-amber-500">
-          <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 mx-auto mb-4">
+        <div className="relative w-full max-w-xl rounded-[6px] bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-800 p-8 z-10 text-center border-l-4 border-l-amber-500">
+          <div className="flex items-center justify-center w-12 h-12 rounded-[6px] border border-amber-500/20 bg-amber-500/10 text-amber-500 mx-auto mb-4">
             <AlertCircle className="w-6 h-6" />
           </div>
           <h2 className="font-serif text-xl font-bold text-primary dark:text-slate-100">Inscrições Suspensas</h2>
@@ -328,8 +366,8 @@ export const InscricaoPublica: React.FC = () => {
         <div className="absolute top-[-10%] right-[-5%] w-[40rem] h-[40rem] rounded-full bg-secondary/8 dark:bg-secondary/15 blur-[130px] pointer-events-none animate-float-1 z-0" />
         <div className="absolute bottom-[-15%] left-[5%] w-[35rem] h-[35rem] rounded-full bg-accent/8 dark:bg-accent/15 blur-[120px] pointer-events-none animate-float-2 z-0" />
         
-        <div className="relative w-full max-w-xl rounded-2xl glass shadow-premium p-8 z-10 text-center border-l-4 border-l-amber-500">
-          <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 mx-auto mb-4">
+        <div className="relative w-full max-w-xl rounded-[6px] bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-800 p-8 z-10 text-center border-l-4 border-l-amber-500">
+          <div className="flex items-center justify-center w-12 h-12 rounded-[6px] border border-amber-500/20 bg-amber-500/10 text-amber-500 mx-auto mb-4">
             <AlertCircle className="w-6 h-6" />
           </div>
           <h2 className="font-serif text-xl font-bold text-primary dark:text-slate-100">Inscrições Indisponíveis</h2>
@@ -344,18 +382,15 @@ export const InscricaoPublica: React.FC = () => {
 
   if (success) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50/60 dark:bg-[#061320] px-4 relative overflow-hidden">
-        <div className="absolute top-[-10%] right-[-5%] w-[40rem] h-[40rem] rounded-full bg-secondary/8 dark:bg-secondary/15 blur-[130px] pointer-events-none animate-float-1 z-0" />
-        <div className="absolute bottom-[-15%] left-[5%] w-[35rem] h-[35rem] rounded-full bg-accent/8 dark:bg-accent/15 blur-[120px] pointer-events-none animate-float-2 z-0" />
-        
-        <div className="relative w-full max-w-xl rounded-2xl glass shadow-premium p-8 z-10 text-center border-t-4 border-t-emerald-500">
-          <div className="flex items-center justify-center w-14 h-14 rounded-full bg-emerald-500/10 text-emerald-500 mx-auto mb-5 animate-bounce">
+      <div className="flex items-center justify-center min-h-screen bg-[#f5f5f7] dark:bg-[#0d1117] px-4 transition-colors">
+        <div className="relative w-full max-w-xl rounded-[6px] bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-800 p-8 sm:p-10 text-center transition-colors">
+          <div className="flex items-center justify-center w-16 h-16 rounded-[6px] border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mx-auto mb-5">
             <CheckCircle2 className="w-8 h-8" />
           </div>
-          <h2 className="font-serif text-2xl font-bold text-primary dark:text-slate-100">Inscrição Enviada!</h2>
-          <p className="text-slate-400 text-xs font-mono tracking-wider mt-1 uppercase">Inscrição Nº {registrationId || 'N/A'}</p>
+          <h2 className="text-2xl font-bold tracking-tight text-[#1d1d1f] dark:text-white font-serif">Inscrição Enviada!</h2>
+          <p className="text-[#707070] dark:text-[#86868b] text-xs font-medium uppercase tracking-wider mt-1">Inscrição Nº {registrationId || 'N/A'}</p>
           
-          <div className="mt-6 text-sm text-slate-600 dark:text-slate-350 leading-relaxed border-t border-slate-100 dark:border-slate-800 pt-4 text-left whitespace-pre-line">
+          <div className="mt-6 text-sm text-[#1d1d1f] dark:text-[#f5f5f7] leading-relaxed border-t border-slate-200 dark:border-slate-800 pt-5 text-left whitespace-pre-line">
             {selectedCourse?.main_mensagemtela || "Sua inscrição foi realizada com sucesso no sistema. Aguarde a confirmação por e-mail."}
           </div>
 
@@ -375,7 +410,7 @@ export const InscricaoPublica: React.FC = () => {
                   hos_termo: 'Não'
                 }));
               }}
-              className="px-6 py-2.5 bg-secondary text-white text-xs font-bold rounded-xl shadow-md shadow-secondary/10 hover:scale-[1.02] transition-all cursor-pointer"
+              className="px-7 py-3 bg-slate-900 hover:bg-black dark:bg-white dark:text-slate-900 text-white text-xs font-semibold rounded-[6px] transition-all cursor-pointer shadow-none active:scale-[0.98]"
             >
               Realizar Nova Inscrição
             </button>
@@ -390,63 +425,54 @@ export const InscricaoPublica: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50/60 dark:bg-[#061320] py-12 px-4 flex items-center justify-center relative overflow-hidden transition-colors duration-300">
-      {/* Animated Background Blurs */}
-      <div className="absolute top-[-10%] right-[-5%] w-[45rem] h-[45rem] rounded-full bg-secondary/8 dark:bg-secondary/15 blur-[130px] pointer-events-none animate-float-1 z-0" />
-      <div className="absolute bottom-[-15%] left-[5%] w-[38rem] h-[38rem] rounded-full bg-accent/8 dark:bg-accent/15 blur-[120px] pointer-events-none animate-float-2 z-0" />
-
+    <div className="min-h-screen bg-[#f5f5f7] dark:bg-[#0d1117] py-10 md:py-16 px-4 flex items-center justify-center transition-colors">
       {/* Main Container */}
-      <div className="relative w-full max-w-3xl rounded-2xl glass shadow-premium p-6 sm:p-8 z-10">
+      <div className="relative w-full max-w-3xl rounded-[6px] bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-800 p-6 sm:p-10 transition-colors">
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 dark:bg-secondary/10 text-primary dark:text-secondary mb-3">
+          <div className="flex items-center justify-center w-12 h-12 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-white/5 text-slate-800 dark:text-slate-100 mb-3">
             <Building className="w-6 h-6" />
           </div>
-          <h1 className="font-serif text-2xl font-bold text-primary dark:text-slate-100">Ficha de Inscrição</h1>
-          <p className="text-slate-400 text-[10px] font-mono uppercase tracking-wider mt-1">Hospedagens Sistema BRM</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1d1d1f] dark:text-white font-serif">Ficha de Inscrição</h1>
+          <p className="text-[#707070] dark:text-[#86868b] text-xs uppercase tracking-wider mt-1">Hospedagens · Província BRM</p>
           
           {config?.chos_acolhida && step === 1 && (
-            <div className="mt-4 text-xs text-slate-500 max-w-lg leading-relaxed bg-white/40 dark:bg-slate-900/40 p-3 rounded-xl border border-slate-200/50 dark:border-slate-800/40">
+            <div className="mt-4 text-xs text-[#707070] dark:text-[#86868b] max-w-lg leading-relaxed bg-slate-50 dark:bg-white/5 p-4 rounded-[6px] border border-slate-200 dark:border-slate-800">
               {config.chos_acolhida}
             </div>
           )}
         </div>
 
-        {/* Multi-step progress bar */}
-        <div className="mb-8 max-w-xl mx-auto">
-          <div className="flex items-center justify-between relative">
-            {stepsLabel.map((lbl, idx) => {
-              const stepIndex = idx + 1;
-              const isCompleted = step > stepIndex;
-              const isActive = step === stepIndex;
+        {/* Apple Horizontal Stepper */}
+        <div className="mb-8 max-w-xl mx-auto flex items-center justify-between gap-1 overflow-x-auto pb-2 -mx-2 px-2">
+          {stepsLabel.map((lbl, idx) => {
+            const stepIndex = idx + 1;
+            const isCompleted = step > stepIndex;
+            const isActive = step === stepIndex;
 
-              return (
-                <div key={lbl} className="flex flex-col items-center z-10">
-                  <div 
-                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold font-mono transition-all
-                      ${isCompleted 
-                        ? 'bg-emerald-500 text-white' 
-                        : isActive 
-                          ? 'bg-secondary text-white ring-4 ring-secondary/20' 
-                          : 'bg-white dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700'}`}
-                  >
-                    {stepIndex}
-                  </div>
-                  <span className="text-[10px] font-semibold text-slate-400 mt-1.5 hidden sm:block">{lbl}</span>
-                </div>
-              );
-            })}
-            {/* Background line */}
-            <div className="absolute top-3.5 left-0 right-0 h-0.5 bg-slate-200 dark:bg-slate-800 -z-10" />
-            <div 
-              className="absolute top-3.5 left-0 h-0.5 bg-secondary transition-all duration-350 -z-10"
-              style={{ width: `${((step - 1) / (stepsLabel.length - 1)) * 100}%` }}
-            />
-          </div>
+            return (
+              <div key={lbl} className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => { if (stepIndex < step) setStep(stepIndex); }}
+                  className={`inline-flex items-center gap-1.5 rounded-[6px] px-3 py-1.5 text-xs font-medium transition-all border ${
+                    isActive 
+                      ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white' 
+                      : isCompleted 
+                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-500/30' 
+                        : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-slate-800 text-[#707070] dark:text-[#86868b]'}`}
+                >
+                  <span className={`text-[10px] font-bold ${isActive ? 'text-white' : isCompleted ? 'text-emerald-600' : 'text-[#707070]'}`}>{stepIndex}</span>
+                  <span className="hidden sm:inline">{lbl}</span>
+                </button>
+                {idx < stepsLabel.length - 1 && <span className="text-[#d6d6d6] dark:text-white/10 text-xs">›</span>}
+              </div>
+            );
+          })}
         </div>
 
         {errorMsg && (
-          <div className="flex items-start gap-2.5 p-4 rounded-xl bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-xs mb-6 border border-red-100 dark:border-red-950/50">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="flex items-center gap-2.5 p-4 rounded-[6px] bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-xs mb-6 border border-rose-200 dark:border-rose-900/30">
+            <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
@@ -455,14 +481,43 @@ export const InscricaoPublica: React.FC = () => {
           {/* STEP 1: CURSO & ESTADIA */}
           {step === 1 && (
             <div className="space-y-5 animate-fade-in">
+              {/* Casa / Comunidade de Acolhida da Província BRM */}
+              <div className="space-y-1.5">
+                <label htmlFor="f_casa_acolhida" className="text-xs font-semibold text-slate-500">
+                  Casa / Comunidade de Acolhida da Província BRM (Destino da Estadia) *
+                </label>
+                <select
+                  id="f_casa_acolhida"
+                  required
+                  value={formData.hos_casa_acolhida}
+                  onChange={(e) => {
+                    setFormData({ ...formData, hos_casa_acolhida: e.target.value });
+                    if (errorMsg) setErrorMsg(null);
+                  }}
+                  className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary transition-all cursor-pointer font-medium"
+                >
+                  <option value="" disabled>Selecione a Casa ou Obra de destino...</option>
+                  {casasAcolhida.map(c => {
+                    const label = `${c.nome} • ${c.cidade || c.localidade || ''}/${c.uf || ''}`;
+                    return <option key={c.id} value={label}>{label} ({c.tipo || 'Comunidade'})</option>;
+                  })}
+                </select>
+                <span className="text-[11px] text-slate-400 block">
+                  Selecione a casa religiosa oficial da Província BRM onde você solicita hospedagem.
+                </span>
+              </div>
+
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-500">Qual o Curso / Motivo da Estadia?</label>
                 <select
                     id="f_estadiamotivo"
                   required
                   value={formData.hos_estadiamotivo}
-                  onChange={(e) => setFormData({ ...formData, hos_estadiamotivo: e.target.value })}
-                  className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary transition-all cursor-pointer"
+                  onChange={(e) => {
+                    setFormData({ ...formData, hos_estadiamotivo: e.target.value });
+                    if (errorMsg) setErrorMsg(null);
+                  }}
+                  className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary transition-all cursor-pointer"
                 >
                   <option value="" disabled>Selecione um curso...</option>
                   {estadias.map(item => (
@@ -477,7 +532,7 @@ export const InscricaoPublica: React.FC = () => {
                     id="f_modulo"
                   value={formData.hos_modulo}
                   onChange={(e) => setFormData({ ...formData, hos_modulo: e.target.value })}
-                  className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary transition-all cursor-pointer"
+                  className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary transition-all cursor-pointer"
                 >
                   <option value="">Nenhum / Não se aplica</option>
                   {modulos.map(item => (
@@ -497,7 +552,7 @@ export const InscricaoPublica: React.FC = () => {
                   <select
                     value={formData.hos_categoria}
                     onChange={(e) => setFormData({ ...formData, hos_categoria: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary cursor-pointer"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary cursor-pointer"
                   >
                     <option value="Padre">Padre</option>
                     <option value="Diácono">Diácono</option>
@@ -516,7 +571,7 @@ export const InscricaoPublica: React.FC = () => {
                     value={formData.hos_nome}
                     onChange={(e) => setFormData({ ...formData, hos_nome: e.target.value })}
                     placeholder="Escreva seu nome completo"
-                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary transition-all"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary transition-all"
                   />
                 </div>
               </div>
@@ -529,7 +584,7 @@ export const InscricaoPublica: React.FC = () => {
                     required
                     value={formData.hos_nascimento}
                     onChange={(e) => setFormData({ ...formData, hos_nascimento: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -542,7 +597,7 @@ export const InscricaoPublica: React.FC = () => {
                     value={formData.hos_cpfrg}
                     onChange={(e) => setFormData({ ...formData, hos_cpfrg: e.target.value })}
                     placeholder="Apenas números"
-                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -554,7 +609,7 @@ export const InscricaoPublica: React.FC = () => {
                     value={formData.hos_email}
                     onChange={(e) => setFormData({ ...formData, hos_email: e.target.value })}
                     placeholder="exemplo@gmail.com"
-                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                   />
                 </div>
               </div>
@@ -570,7 +625,7 @@ export const InscricaoPublica: React.FC = () => {
                     value={formData.hos_telefone}
                     onChange={(e) => setFormData({ ...formData, hos_telefone: e.target.value })}
                     placeholder="(00) 00000-0000"
-                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -583,7 +638,7 @@ export const InscricaoPublica: React.FC = () => {
                     value={formData.hos_telefoneemergencia}
                     onChange={(e) => setFormData({ ...formData, hos_telefoneemergencia: e.target.value })}
                     placeholder="Nome - (00) 00000-0000"
-                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                   />
                 </div>
               </div>
@@ -611,7 +666,7 @@ export const InscricaoPublica: React.FC = () => {
                         }
                       }}
                       placeholder="00000-000"
-                      className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                      className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                     />
                     {cepLoading && (
                       <span className="absolute right-3.5 top-3 text-slate-400">
@@ -629,7 +684,7 @@ export const InscricaoPublica: React.FC = () => {
                     value={formData.hos_logradouro}
                     onChange={(e) => setFormData({ ...formData, hos_logradouro: e.target.value })}
                     placeholder="Rua, Avenida..."
-                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                   />
                 </div>
               </div>
@@ -644,7 +699,7 @@ export const InscricaoPublica: React.FC = () => {
                     value={formData.hos_numero}
                     onChange={(e) => setFormData({ ...formData, hos_numero: e.target.value })}
                     placeholder="123"
-                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                   />
                 </div>
                 <div className="space-y-1.5 md:col-span-3">
@@ -656,7 +711,7 @@ export const InscricaoPublica: React.FC = () => {
                     value={formData.hos_bairro}
                     onChange={(e) => setFormData({ ...formData, hos_bairro: e.target.value })}
                     placeholder="Nome do Bairro"
-                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                   />
                 </div>
               </div>
@@ -671,7 +726,7 @@ export const InscricaoPublica: React.FC = () => {
                     value={formData.hos_cidade}
                     onChange={(e) => setFormData({ ...formData, hos_cidade: e.target.value })}
                     placeholder="Cidade"
-                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -684,7 +739,7 @@ export const InscricaoPublica: React.FC = () => {
                     value={formData.hos_estado}
                     onChange={(e) => setFormData({ ...formData, hos_estado: e.target.value.toUpperCase() })}
                     placeholder="SP"
-                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                   />
                 </div>
               </div>
@@ -701,7 +756,7 @@ export const InscricaoPublica: React.FC = () => {
                     id="f_alergico"
                     value={formData.hos_alergico}
                     onChange={(e) => setFormData({ ...formData, hos_alergico: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary cursor-pointer"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary cursor-pointer"
                   >
                     <option value="Não">Não</option>
                     <option value="Sim">Sim</option>
@@ -716,7 +771,7 @@ export const InscricaoPublica: React.FC = () => {
                       value={formData.hos_especifiquealergia}
                       onChange={(e) => setFormData({ ...formData, hos_especifiquealergia: e.target.value })}
                       placeholder="Medicamentos, poeira..."
-                      className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                      className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                     />
                   </div>
                 )}
@@ -729,7 +784,7 @@ export const InscricaoPublica: React.FC = () => {
                     id="f_restricaoalimentar"
                     value={formData.hos_restricaoalimentar}
                     onChange={(e) => setFormData({ ...formData, hos_restricaoalimentar: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary cursor-pointer"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary cursor-pointer"
                   >
                     <option value="Não">Não</option>
                     <option value="Sim">Sim</option>
@@ -744,7 +799,7 @@ export const InscricaoPublica: React.FC = () => {
                       value={formData.hos_especifiquerestricao}
                       onChange={(e) => setFormData({ ...formData, hos_especifiquerestricao: e.target.value })}
                       placeholder="Sem glúten, sem lactose..."
-                      className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                      className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                     />
                   </div>
                 )}
@@ -757,7 +812,7 @@ export const InscricaoPublica: React.FC = () => {
                     id="f_lavanderia"
                     value={formData.hos_lavanderia}
                     onChange={(e) => setFormData({ ...formData, hos_lavanderia: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary cursor-pointer"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary cursor-pointer"
                   >
                     <option value="Não">Não precisarei</option>
                     {lavanderias.map(l => (
@@ -772,7 +827,7 @@ export const InscricaoPublica: React.FC = () => {
                     required
                     value={formData.hos_previsaochegada}
                     onChange={(e) => setFormData({ ...formData, hos_previsaochegada: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary cursor-pointer"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary cursor-pointer"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -782,7 +837,7 @@ export const InscricaoPublica: React.FC = () => {
                     required
                     value={formData.hos_previsaosaida}
                     onChange={(e) => setFormData({ ...formData, hos_previsaosaida: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary cursor-pointer"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary cursor-pointer"
                   />
                 </div>
               </div>
@@ -798,7 +853,7 @@ export const InscricaoPublica: React.FC = () => {
                     id="f_recibo"
                   value={formData.hos_recibo}
                   onChange={(e) => setFormData({ ...formData, hos_recibo: e.target.value })}
-                  className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary cursor-pointer"
+                  className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary cursor-pointer"
                 >
                   <option value="Emitir o recibo no meu próprio nome.">Emitir no meu próprio nome (dados pessoais)</option>
                   <option value="Emitir o recibo no nome de terceiro.">Emitir no nome de terceiro (empresa, diocese, etc.)</option>
@@ -818,7 +873,7 @@ export const InscricaoPublica: React.FC = () => {
                         value={formData.hos_recnome}
                         onChange={(e) => setFormData({ ...formData, hos_recnome: e.target.value })}
                         placeholder="Nome da Diocese ou Empresa"
-                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -831,7 +886,7 @@ export const InscricaoPublica: React.FC = () => {
                         value={formData.hos_reccpfcnpj}
                         onChange={(e) => setFormData({ ...formData, hos_reccpfcnpj: e.target.value })}
                         placeholder="00.000.000/0000-00"
-                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                       />
                     </div>
                   </div>
@@ -854,7 +909,7 @@ export const InscricaoPublica: React.FC = () => {
                             }
                           }}
                           placeholder="00000-000"
-                          className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                          className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                         />
                         {recCepLoading && (
                           <span className="absolute right-3.5 top-3 text-slate-400">
@@ -872,7 +927,7 @@ export const InscricaoPublica: React.FC = () => {
                         value={formData.hos_reclogradouro}
                         onChange={(e) => setFormData({ ...formData, hos_reclogradouro: e.target.value })}
                         placeholder="Rua, Avenida..."
-                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                       />
                     </div>
                   </div>
@@ -887,7 +942,7 @@ export const InscricaoPublica: React.FC = () => {
                         value={formData.hos_recnumero}
                         onChange={(e) => setFormData({ ...formData, hos_recnumero: e.target.value })}
                         placeholder="123"
-                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                       />
                     </div>
                     <div className="space-y-1.5 md:col-span-3">
@@ -899,7 +954,7 @@ export const InscricaoPublica: React.FC = () => {
                         value={formData.hos_recbairro}
                         onChange={(e) => setFormData({ ...formData, hos_recbairro: e.target.value })}
                         placeholder="Bairro"
-                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                       />
                     </div>
                   </div>
@@ -914,7 +969,7 @@ export const InscricaoPublica: React.FC = () => {
                         value={formData.hos_reccidade}
                         onChange={(e) => setFormData({ ...formData, hos_reccidade: e.target.value })}
                         placeholder="Cidade"
-                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -927,7 +982,7 @@ export const InscricaoPublica: React.FC = () => {
                         value={formData.hos_recestado}
                         onChange={(e) => setFormData({ ...formData, hos_recestado: e.target.value.toUpperCase() })}
                         placeholder="SP"
-                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none focus:border-secondary"
+                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none focus:border-secondary"
                       />
                     </div>
                   </div>
@@ -944,9 +999,23 @@ export const InscricaoPublica: React.FC = () => {
                   <FileText className="w-4 h-4 text-secondary" />
                   <span>Regulamento da Hospedagem & Termos</span>
                 </label>
-                <div className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 text-xs text-slate-600 dark:text-slate-350 leading-relaxed max-h-72 overflow-y-auto whitespace-pre-line scrollbar-thin">
+                <div className="w-full p-4 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 text-xs text-slate-600 dark:text-slate-350 leading-relaxed max-h-72 overflow-y-auto whitespace-pre-line scrollbar-thin">
                   {selectedCourse?.main_termos || "Eu concordo com as regras e regulamentos estabelecidos pela hospedagem do Sistema BRM."}
                 </div>
+              </div>
+
+              {/* LGPD Information Card */}
+              <div className="p-4 rounded-[6px] bg-[#226380]/5 border border-[#226380]/20 space-y-2 text-xs">
+                <div className="flex items-center gap-2 font-semibold text-[#226380] dark:text-[#A3C3C7]">
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Proteção de Dados Pessoais (LGPD — Lei nº 13.709/2018)</span>
+                </div>
+                <p className="text-[#474747] dark:text-[#86868b] leading-relaxed text-[11px]">
+                  Os dados informados (incluindo identificação, contatos e eventuais necessidades ou restrições alimentares) serão tratados exclusivamente para a gestão da hospedagem, acolhida e atendimento de emergência médica nas dependências da Província BRM. Conheça nossa{' '}
+                  <Link to="/privacidade" target="_blank" className="font-semibold underline text-[#226380] dark:text-[#A3C3C7]">
+                    Política de Privacidade
+                  </Link>.
+                </p>
               </div>
 
               <div className="flex items-start gap-2.5 pt-2">
@@ -955,23 +1024,23 @@ export const InscricaoPublica: React.FC = () => {
                   id="termo_aceite"
                   checked={formData.hos_termo === 'Aceito'}
                   onChange={(e) => setFormData({ ...formData, hos_termo: e.target.checked ? 'Aceito' : 'Não' })}
-                  className="w-4.5 h-4.5 mt-0.5 border border-slate-200 dark:border-slate-800 rounded text-secondary focus:ring-secondary/25 cursor-pointer"
+                  className="w-4.5 h-4.5 mt-0.5 border border-slate-200 dark:border-slate-800 rounded text-[#226380] focus:ring-[#226380]/25 cursor-pointer accent-[#226380]"
                 />
-                <label htmlFor="termo_aceite" className="text-xs font-semibold text-slate-500 dark:text-slate-400 select-none cursor-pointer leading-tight">
-                  Li e concordo integralmente com os termos de regulamento descritos acima.
+                <label htmlFor="termo_aceite" className="text-xs font-semibold text-slate-700 dark:text-slate-300 select-none cursor-pointer leading-tight">
+                  Li e concordo com o regulamento e autorizo o tratamento dos meus dados pessoais nos termos da LGPD.
                 </label>
               </div>
             </div>
           )}
 
-          {/* BUTTONS CONTROL */}
-          <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-800/80 pt-5 mt-8">
+          {/* Apple Pill Action Buttons */}
+          <div className="flex justify-between items-center border-t border-[#e5e5ea] dark:border-white/10 pt-6 mt-8">
             {step > 1 ? (
               <button
                 type="button"
                 onClick={handlePrevStep}
                 disabled={submitting}
-                className="flex items-center gap-1.5 px-4.5 py-2.5 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-[6px] border border-slate-200 dark:border-slate-800 px-5 py-2.5 text-xs font-semibold text-[#707070] hover:text-[#1d1d1f] hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer disabled:opacity-50"
               >
                 <ChevronLeft className="w-4 h-4" />
                 <span>Anterior</span>
@@ -984,7 +1053,7 @@ export const InscricaoPublica: React.FC = () => {
               <button
                 type="button"
                 onClick={handleNextStep}
-                className="flex items-center gap-1.5 px-5 py-2.5 bg-secondary text-white text-xs font-bold rounded-xl shadow-md shadow-secondary/15 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-[6px] bg-slate-900 hover:bg-black dark:bg-white dark:text-slate-900 text-white text-xs font-semibold px-7 py-3 transition-all cursor-pointer shadow-none active:scale-[0.98]"
               >
                 <span>Avançar</span>
                 <ChevronRight className="w-4 h-4" />
@@ -993,7 +1062,7 @@ export const InscricaoPublica: React.FC = () => {
               <button
                 type="submit"
                 disabled={submitting || formData.hos_termo !== 'Aceito'}
-                className="flex items-center gap-1.5 px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-500/15 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-[6px] bg-slate-900 hover:bg-black dark:bg-white dark:text-slate-900 text-white text-xs font-semibold px-8 py-3 transition-all cursor-pointer shadow-none active:scale-[0.98] disabled:opacity-50"
               >
                 {submitting ? (
                   <>
@@ -1010,6 +1079,12 @@ export const InscricaoPublica: React.FC = () => {
             )}
           </div>
         </form>
+
+        <div className="text-center mt-6">
+          <Link to="/privacidade" target="_blank" className="text-[11px] text-[#707070] dark:text-[#86868b] hover:text-[#226380] transition-colors">
+            Política de Privacidade & Termos LGPD
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -102,7 +102,7 @@ const Field: React.FC<{
   </div>
 );
 
-const inputClass = 'w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary';
+const inputClass = 'w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-slate-900 dark:focus:border-white font-mono';
 
 export const Institucional: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('religiosos');
@@ -296,7 +296,7 @@ export const Institucional: React.FC = () => {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Pesquisar religiosos..."
-              className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white/80 dark:bg-slate-900/70 outline-none focus:border-secondary"
+              className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900/70 outline-none focus:border-slate-900 dark:focus:border-white font-mono"
             />
           </div>
           <button
@@ -305,7 +305,7 @@ export const Institucional: React.FC = () => {
               if (activeTab === 'comunidades') setEditingComunidade(emptyComunidade);
               if (activeTab === 'obras') setEditingObra(emptyObra);
             }}
-            className="flex items-center gap-2 px-3 py-2 bg-secondary hover:bg-secondary/95 text-white text-xs font-semibold rounded-xl shadow-premium shadow-secondary/20 transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-black dark:bg-white dark:text-slate-900 text-white text-xs font-semibold rounded-[6px] transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Novo</span>
@@ -318,15 +318,19 @@ export const Institucional: React.FC = () => {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
+            className={`flex items-center gap-2 px-3 py-2 rounded-[6px] border text-xs font-semibold transition-all cursor-pointer ${
               activeTab === tab.key
-                ? 'bg-secondary text-white border-secondary shadow-premium shadow-secondary/15'
-                : 'bg-white/80 dark:bg-slate-900/70 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-secondary/40'
+                ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white'
+                : 'bg-white dark:bg-slate-900/70 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-400'
             }`}
           >
             <tab.icon className="w-4 h-4" />
             <span>{tab.label}</span>
-            <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${activeTab === tab.key ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800'}`}>
+            <span className={`px-1.5 py-0.5 rounded-[6px] border text-[10px] ${
+              activeTab === tab.key 
+                ? 'border-white/30 bg-white/20 dark:border-slate-900/30 dark:bg-slate-900/20' 
+                : 'border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800'
+            }`}>
               {tab.count}
             </span>
           </button>
@@ -334,7 +338,7 @@ export const Institucional: React.FC = () => {
       </div>
 
       {editingReligioso && (
-        <form onSubmit={handleSaveReligioso} className="glass shadow-premium rounded-2xl overflow-hidden bg-white/90">
+        <form onSubmit={handleSaveReligioso} className="border border-slate-200 dark:border-slate-800 rounded-[6px] overflow-hidden bg-white dark:bg-[#161b22]">
           <FormHeader title={editingReligioso.id ? 'Editar Religioso' : 'Novo Religioso'} onCancel={() => setEditingReligioso(null)} saving={saving} />
           <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Field label="Nome civil">
@@ -345,7 +349,7 @@ export const Institucional: React.FC = () => {
             </Field>
             <Field label="Grau">
               <select className={inputClass} value={editingReligioso.grau || 'Padre'} onChange={(e) => setEditingReligioso({ ...editingReligioso, grau: e.target.value })}>
-                {['Frater', 'Irmão', 'Diácono', 'Padre', 'Bispo'].map(value => <option key={value} value={value}>{value}</option>)}
+                {['Padre', 'Diácono Transitório', 'Frater (Configuração)', 'Frater (Tirocinante)', 'Irmão', 'Bispo'].map(value => <option key={value} value={value}>{value}</option>)}
               </select>
             </Field>
             <Field label="Comunidade atual">
@@ -379,7 +383,7 @@ export const Institucional: React.FC = () => {
       )}
 
       {editingComunidade && (
-        <form onSubmit={handleSaveComunidade} className="glass shadow-premium rounded-2xl overflow-hidden bg-white/90">
+        <form onSubmit={handleSaveComunidade} className="border border-slate-200 dark:border-slate-800 rounded-[6px] overflow-hidden bg-white dark:bg-[#161b22]">
           <FormHeader title={editingComunidade.id ? 'Editar Comunidade' : 'Nova Comunidade'} onCancel={() => setEditingComunidade(null)} saving={saving} />
           <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Field label="Nome">
@@ -411,7 +415,7 @@ export const Institucional: React.FC = () => {
       )}
 
       {editingObra && (
-        <form onSubmit={handleSaveObra} className="glass shadow-premium rounded-2xl overflow-hidden bg-white/90">
+        <form onSubmit={handleSaveObra} className="border border-slate-200 dark:border-slate-800 rounded-[6px] overflow-hidden bg-white dark:bg-[#161b22]">
           <FormHeader title={editingObra.id ? 'Editar Obra' : 'Nova Obra'} onCancel={() => setEditingObra(null)} saving={saving} />
           <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Field label="Nome">
@@ -451,7 +455,7 @@ export const Institucional: React.FC = () => {
                 type="checkbox"
                 checked={Boolean(editingObra.permite_hospedagem)}
                 onChange={(e) => setEditingObra({ ...editingObra, permite_hospedagem: e.target.checked })}
-                className="w-4 h-4 accent-secondary"
+                className="w-4 h-4 rounded-[4px] accent-slate-900"
               />
               Permite módulo de hospedagem
             </label>
@@ -460,7 +464,7 @@ export const Institucional: React.FC = () => {
       )}
 
       {activeTab === 'religiosos' && (
-        <div className="glass shadow-premium rounded-2xl overflow-hidden bg-white/90">
+        <div className="border border-slate-200 dark:border-slate-800 rounded-[6px] overflow-hidden bg-white dark:bg-[#161b22]">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/30 text-slate-500 font-semibold tracking-wider font-mono">
@@ -527,14 +531,14 @@ export const Institucional: React.FC = () => {
 };
 
 const FormHeader: React.FC<{ title: string; onCancel: () => void; saving: boolean }> = ({ title, onCancel, saving }) => (
-  <div className="flex justify-between items-center px-6 py-4 border-b bg-slate-50/50 dark:bg-slate-900/30">
-    <span className="text-xs font-bold text-slate-500 font-mono uppercase tracking-wider">{title}</span>
+  <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
+    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 font-serif uppercase tracking-wider">{title}</span>
     <div className="flex gap-2">
-      <button type="button" onClick={onCancel} className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 text-slate-600 dark:text-slate-400 text-xs font-semibold">
+      <button type="button" onClick={onCancel} className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-[6px] hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400 text-xs font-semibold cursor-pointer">
         <X className="w-4 h-4" />
         Cancelar
       </button>
-      <button type="submit" disabled={saving} className="flex items-center gap-1.5 px-4 py-2 bg-secondary text-white rounded-xl text-xs font-semibold shadow-premium shadow-secondary/15 disabled:opacity-50">
+      <button type="submit" disabled={saving} className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-[6px] text-xs font-semibold hover:bg-black dark:hover:bg-slate-100 disabled:opacity-50 cursor-pointer">
         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
         Salvar
       </button>
@@ -543,12 +547,12 @@ const FormHeader: React.FC<{ title: string; onCancel: () => void; saving: boolea
 );
 
 const StatusBadge: React.FC<{ value: string }> = ({ value }) => (
-  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] border text-[10px] font-semibold ${
     value === 'Aprovado'
-      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
       : value === 'Arquivado'
-        ? 'bg-slate-500/10 text-slate-500'
-        : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+        ? 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+        : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
   }`}>
     <Check className="w-3 h-3" />
     {value}
@@ -557,10 +561,10 @@ const StatusBadge: React.FC<{ value: string }> = ({ value }) => (
 
 const ActionButtons: React.FC<{ onEdit: () => void; onDelete: () => void }> = ({ onEdit, onDelete }) => (
   <div className="flex items-center justify-center gap-1.5">
-    <button onClick={onEdit} className="p-1 rounded border border-slate-200 dark:border-slate-800 hover:bg-slate-50 text-amber-500">
+    <button onClick={onEdit} className="p-1 rounded-[6px] border border-slate-200 dark:border-slate-800 hover:bg-slate-50 text-slate-600 dark:text-slate-300 cursor-pointer">
       <Edit className="w-3.5 h-3.5" />
     </button>
-    <button onClick={onDelete} className="p-1 rounded border border-slate-200 dark:border-slate-800 hover:bg-slate-50 text-red-500">
+    <button onClick={onDelete} className="p-1 rounded-[6px] border border-slate-200 dark:border-slate-800 hover:bg-slate-50 text-red-500 cursor-pointer">
       <Trash2 className="w-3.5 h-3.5" />
     </button>
   </div>
@@ -585,14 +589,14 @@ const SimpleCards = <T extends { id: string; status: string }>({
 }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
     {items.map(item => (
-      <div key={item.id} className="glass shadow-premium rounded-2xl bg-white/90 p-5 border border-slate-100 dark:border-slate-800/70">
+      <div key={item.id} className="border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-[#161b22] p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 text-primary dark:bg-secondary/10 dark:text-secondary">
+            <div className="flex items-center justify-center w-10 h-10 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-slate-50 text-slate-700 dark:bg-white/5 dark:text-white">
               <Icon className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{getTitle(item)}</h3>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 font-serif">{getTitle(item)}</h3>
               <p className="text-xs text-slate-500 mt-1">{getSubtitle(item)}</p>
               <p className="text-[10px] text-slate-400 mt-2 font-mono">{getMeta(item)}</p>
             </div>

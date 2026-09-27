@@ -8,63 +8,139 @@
   --color-accent: var(--accent);
   --color-success: var(--success);
   
-  --font-sans: 'General Sans', 'Plus Jakarta Sans', sans-serif;
-  --font-serif: 'Cinzel', serif;
-  --font-heading: 'Cinzel', serif;
-  --font-mono: 'Plus Jakarta Sans', sans-serif;
+  /* BRM Official Identity Palette */
+  --color-brm-navy: #113240;
+  --color-brm-petroleum: #226380;
+  --color-brm-glacial: #A3C3C7;
+  --color-brm-gold: #F2C894;
+  --color-brm-parchment: #F2E2CE;
+  --color-brm-canvas: #F2F2F2;
+  --color-brm-coal: #232626;
+
+  --color-primary-ink: #232626;
+  --color-mid-gray: #707070;
+  --color-deep-gray: #474747;
+  --color-hairline: #e5e5ea;
+  --color-canvas: #F2F2F2;
+  --color-paper: #ffffff;
+  --color-cool-wash: #e8e8ed;
+  --color-faded-surface: #fafafc;
+  --color-quiet-dot: #777779;
+  --color-electric-blue: #226380;
+  --color-link-blue: #226380;
+  --color-ember: #b64400;
+
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Cinzel', Georgia, serif;
+  --font-cinzel: 'Cinzel', Georgia, serif;
+  --font-heading: 'Cinzel', Georgia, serif;
+  --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-jakarta: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 :root {
-  --primary: #0c3a4a;
-  --secondary: #0c3a4a;
-  --accent: #125566;
-  --success: #3fb950;
+  --primary: #113240;
+  --secondary: #226380;
+  --accent: #A3C3C7;
+  --success: #34c759;
+  --electric-blue: #226380;
+
+  /* UTXICA Design Engineering Motion Tokens */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.15);
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --duration-fast: 160ms;
+  --duration-normal: 220ms;
+  --duration-modal: 280ms;
 }
 
 .dark {
-  --primary: #5eead4;
-  --secondary: #125566;
-  --accent: #125566;
-  --success: #3fb950;
+  --primary: #A3C3C7;
+  --secondary: #226380;
+  --accent: #F2C894;
+  --success: #30d158;
+  --electric-blue: #A3C3C7;
 }
 
 /* Custom Base Layer / Global Styles */
 body {
   font-family: var(--font-sans);
-  background-color: #f5f5f7;
-  color: #1d1d1f;
+  background-color: #F2F2F2;
+  color: #232626;
   margin: 0;
   padding: 0;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .dark body {
-  background-color: #090a0f;
-  color: #e6edf3;
+  background-color: #15191c;
+  color: #f5f5f7;
 }
 
-/* Custom Utilities for Premium Look */
+/* Institutional Headings - Cinzel */
+.font-cinzel,
+.font-serif,
+.title-institutional {
+  font-family: var(--font-cinzel);
+}
+
+/* Tables, Data Cells & Grid Elements - Inter */
+table,
+thead,
+tbody,
+th,
+td {
+  font-family: var(--font-inter);
+}
+
+/* Form Inputs, Selects & Textareas - Inter for crisp typing */
+input:not(.font-mono):not(.font-cinzel),
+textarea:not(.font-mono):not(.font-cinzel),
+select:not(.font-mono):not(.font-cinzel) {
+  font-family: var(--font-inter);
+}
+
+/* Apple-grade frosted glass */
 @utility glass {
-  background: rgba(255, 255, 255, 0.70);
-  backdrop-filter: blur(16px) saturate(120%);
-  border: 1px solid rgba(255, 255, 255, 0.60);
-  box-shadow: 0 10px 30px -10px rgba(9, 10, 15, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .dark .glass {
-  background: rgba(18, 21, 30, 0.65);
-  backdrop-filter: blur(16px) saturate(120%);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  background: rgba(22, 27, 34, 0.80);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Institutional border card with clean architectural contours */
+@utility apple-card {
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark .apple-card {
+  background-color: #161b22;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 @utility shadow-premium {
-  box-shadow: 0 10px 30px -5px rgba(8, 40, 66, 0.04), 0 2px 8px -2px rgba(8, 40, 66, 0.02);
+  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.04), 0 1px 3px 0 rgba(0, 0, 0, 0.02);
 }
 
 .dark .shadow-premium {
-  box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.25), 0 2px 10px -2px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 28px -2px rgba(0, 0, 0, 0.35);
 }
+
 @utility hover-lift {
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
   &:hover {
@@ -159,30 +235,257 @@ body {
   background: #475569;
 }
 
-/* Custom floating animations for background blobs */
-@keyframes float-slow {
-  0%, 100% {
-    transform: translateY(0) scale(1);
-  }
-  50% {
-    transform: translateY(-25px) scale(1.05);
-  }
-}
-
-@keyframes float-reverse {
-  0%, 100% {
-    transform: translateY(0) scale(1);
-  }
-  50% {
-    transform: translateY(25px) scale(0.95);
+/* Provincial Design Utilities - Clean & Architectural */
+@utility apple-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  user-select: none;
+  &:active {
+    transform: scale(0.98);
   }
 }
 
-.animate-float-1 {
-  animation: float-slow 10s ease-in-out infinite;
+@utility apple-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 14px;
+  font-size: 13px;
+  border-radius: 6px;
+  background-color: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #1d1d1f;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  &:focus {
+    border-color: #226380;
+    box-shadow: 0 0 0 1px #226380;
+  }
 }
 
-.animate-float-2 {
-  animation: float-reverse 15s ease-in-out infinite;
+.dark .apple-input {
+  background-color: #161b22;
+  border-color: #30363d;
+  color: #f5f5f7;
 }
+
+@utility apple-headline {
+  letter-spacing: -0.025em;
+  font-weight: 700;
+}
+
+/* Modernist Corporate Editorial Utilities (Linear/Stripe style) */
+@utility btn-brm-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  background-color: #113240;
+  color: #ffffff;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid rgba(17, 50, 64, 0.6);
+  box-shadow: 0 1px 2px rgba(17, 50, 64, 0.2);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  &:hover {
+    background-color: #226380;
+    border-color: #226380;
+    box-shadow: 0 2px 6px rgba(34, 99, 128, 0.25);
+  }
+  &:active {
+    transform: scale(0.99);
+  }
+}
+
+@utility btn-brm-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #113240;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid #d6d6d6;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  &:hover {
+    background-color: #F2F2F2;
+    border-color: #A3C3C7;
+  }
+  &:active {
+    transform: scale(0.99);
+  }
+}
+
+@utility card-editorial {
+  border-radius: 6px;
+  background-color: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 1px 3px rgba(17, 50, 64, 0.03);
+  transition: all 0.2s ease;
+}
+
+.dark .card-editorial {
+  background-color: #1c2227;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+@utility card-editorial-masthead {
+  border-radius: 6px;
+  background-color: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-top: 2px solid #226380;
+  box-shadow: 0 1px 4px rgba(17, 50, 64, 0.04);
+  transition: all 0.2s ease;
+}
+
+.dark .card-editorial-masthead {
+  background-color: #1c2227;
+  border-color: rgba(255, 255, 255, 0.08);
+  border-top-color: #226380;
+}
+
+/* Print optimization for canonical documents & forms */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  aside,
+  nav,
+  header button,
+  .no-print {
+    display: none !important;
+  }
+
+  main, form, .apple-card {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  input, select, textarea {
+    border: 1px solid #d1d5db !important;
+    background-color: transparent !important;
+    color: #000000 !important;
+  }
+}
+
+/* UTXICA & Emil Kowalski Motion Design Utilities */
+@utility motion-press {
+  transition: transform 160ms var(--ease-out);
+  cursor: pointer;
+  user-select: none;
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+@utility motion-lift {
+  transition: transform 220ms var(--ease-out), box-shadow 220ms var(--ease-out), border-color 220ms ease;
+  will-change: transform;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -4px rgba(17, 50, 64, 0.08), 0 4px 6px -2px rgba(17, 50, 64, 0.03);
+  }
+}
+
+.dark .motion-lift:hover {
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.45);
+}
+
+@utility motion-dropdown {
+  transform-origin: top right;
+  animation: dropdownIn 180ms var(--ease-out) forwards;
+}
+
+@utility motion-modal {
+  transform-origin: center;
+  animation: modalScaleIn 240ms var(--ease-out) forwards;
+}
+
+@utility motion-backdrop {
+  animation: backdropFadeIn 200ms var(--ease-out) forwards;
+}
+
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes backdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes staggerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.motion-stagger-item {
+  opacity: 0;
+  animation: staggerFadeIn 280ms var(--ease-out) forwards;
+  animation-delay: calc(var(--stagger-index, 0) * 40ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .motion-press:active,
+  .motion-lift:hover {
+    transform: none !important;
+  }
+}
+
 

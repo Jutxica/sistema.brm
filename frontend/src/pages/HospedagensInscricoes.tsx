@@ -25,6 +25,7 @@ interface Hospedagem {
   hos_restricaoalimentar: string;
   hos_especifiquerestricao: string;
   hos_lavanderia: string;
+  hos_casa_acolhida?: string;
   hos_estadiamotivo: string;
   hos_modulo: string;
   hos_previsaochegada: string;
@@ -407,24 +408,27 @@ export const HospedagensInscricoes: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* HEADER SECTION */}
+      {/* HEADER SECTION - Apple Design System */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-serif font-bold text-[#082842] dark:text-slate-100">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500 font-cinzel">
+            Acolhida & Hospedagem • Província BRM
+          </span>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-white mt-1 font-cinzel">
             {editMode ? 'Ficha de Hospedagem' : 'Gerenciamento de Inscrições'}
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            {editMode ? 'Preencha ou altere os dados do inscrito.' : 'Consulte, edite ou altere o status dos hóspedes cadastrados.'}
+          </h1>
+          <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            {editMode ? 'Preencha ou altere os dados do hóspede.' : 'Consulte, edite ou altere o status dos hóspedes cadastrados.'}
           </p>
         </div>
 
         {!editMode && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <button
               onClick={() => setColModalOpen(true)}
-              className="flex items-center gap-2 px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-[#0b1c2e] hover:bg-slate-50 text-slate-600 dark:text-slate-300 text-xs font-bold shadow-premium transition-all cursor-pointer hover-lift"
+              className="flex items-center gap-2 px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-[6px] bg-white dark:bg-[#161b22] hover:bg-slate-50 text-slate-700 dark:text-slate-300 text-xs font-medium transition-colors cursor-pointer"
             >
-              <Filter className="w-4 h-4" />
+              <Filter className="w-3.5 h-3.5 text-slate-400" />
               <span>Colunas Visíveis</span>
             </button>
             <button
@@ -438,9 +442,9 @@ export const HospedagensInscricoes: React.FC = () => {
                 });
                 setEditMode(true);
               }}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-secondary hover:bg-secondary/95 text-white text-xs font-bold shadow-premium shadow-secondary/20 transition-all cursor-pointer hover-lift"
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium border border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900 hover:opacity-90 transition-opacity cursor-pointer rounded-[6px]"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5" />
               <span>Nova Inscrição</span>
             </button>
           </div>
@@ -449,55 +453,60 @@ export const HospedagensInscricoes: React.FC = () => {
 
       {/* EDIT MODE PANEL */}
       {editMode && editItem && (
-        <div className="bg-white dark:bg-[#0b1c2e] border border-slate-100 dark:border-slate-800/80 rounded-2xl shadow-premium overflow-hidden transition-all animate-fade-in">
+        <div className="apple-card rounded-[6px] overflow-hidden border border-slate-200 dark:border-slate-800 shadow-none animate-fade-in">
           {/* Top Panel Actions */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/30">
+          <div className="flex items-center justify-between px-6 md:px-8 py-5 border-b border-slate-100 dark:border-slate-800 bg-[#fbfbfd] dark:bg-slate-900/40">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => {
                   setEditMode(false);
                   setEditItem(null);
                 }}
-                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"
+                className="w-8 h-8 rounded-[6px] border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 font-mono uppercase tracking-wider">
-                {editItem.idhospedagens ? `Editar Inscrição #${editItem.idhospedagens}` : 'Novo Cadastro'}
-              </span>
+              <div>
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block font-mono">
+                  {editItem.idhospedagens ? `Inscrição #${editItem.idhospedagens}` : 'Novo Registro'}
+                </span>
+                <span className="text-sm font-semibold text-slate-900 dark:text-white block font-cinzel">
+                  {editItem.hos_nome || 'Cadastro de Hóspede'}
+                </span>
+              </div>
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2.5">
               <button
                 onClick={() => {
                   setEditMode(false);
                   setEditItem(null);
                 }}
-                className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 text-slate-600 dark:text-slate-400 text-xs font-semibold transition-colors cursor-pointer"
+                className="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-[6px] hover:bg-slate-50 text-slate-700 dark:text-slate-300 text-xs font-medium transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSaveEdit}
                 disabled={submitting}
-                className="flex items-center gap-1.5 px-4 py-2 bg-secondary hover:bg-secondary/95 text-white rounded-xl text-xs font-semibold shadow-premium shadow-secondary/10 transition-colors cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-5 py-2 text-xs font-medium border border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900 hover:opacity-90 disabled:opacity-50 cursor-pointer rounded-[6px]"
               >
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                 <span>Salvar Ficha</span>
               </button>
             </div>
           </div>
 
           {/* Form Tabs Menu */}
-          <div className="flex border-b border-slate-100 dark:border-slate-800/50 px-6">
+          <div className="flex border-b border-slate-100 dark:border-slate-800 px-6 md:px-8 bg-[#fbfbfd]/50 dark:bg-slate-900/20">
             {(['pessoais', 'estadia', 'recibo'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`py-3.5 px-4 text-xs font-semibold relative transition-all border-b-2
+                className={`py-3.5 px-4 text-xs relative transition-all border-b-2
                   ${activeTab === tab 
-                    ? 'border-secondary text-secondary font-bold' 
-                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                    ? 'border-[#226380] text-[#226380] font-semibold' 
+                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-medium'}`}
               >
                 {tab === 'pessoais' && 'Dados Pessoais'}
                 {tab === 'estadia' && 'Estadia e Lavanderia'}
@@ -540,7 +549,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_nome || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_nome: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -550,7 +559,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_nascimento || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_nascimento: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
                     />
                   </div>
                 </div>
@@ -563,7 +572,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_cpfrg || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_cpfrg: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -573,7 +582,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_email || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_email: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -586,7 +595,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_telefone || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_telefone: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -596,7 +605,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_telefoneemergencia || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_telefoneemergencia: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
                     />
                   </div>
                 </div>
@@ -610,7 +619,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_logradouro || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_logradouro: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -620,7 +629,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_numero || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_numero: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -630,7 +639,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_cep || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_cep: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
                     />
                   </div>
                 </div>
@@ -643,7 +652,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_bairro || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_bairro: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -653,7 +662,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_cidade || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_cidade: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -663,7 +672,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_estado || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_estado: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
                     />
                   </div>
                 </div>
@@ -674,13 +683,13 @@ export const HospedagensInscricoes: React.FC = () => {
               <div className="space-y-6">
                 {/* Saúde e Restrições */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/20 space-y-4">
+                  <div className="p-4 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/20 space-y-4">
                     <div className="flex justify-between items-center">
                       <label className="text-xs font-bold text-slate-600 dark:text-slate-400">É Alérgico?</label>
                       <select
                         value={editItem.hos_alergico || 'Não'}
                         onChange={(e) => setEditItem({ ...editItem, hos_alergico: e.target.value })}
-                        className="text-xs py-1 px-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg outline-none"
+                        className="text-xs py-1 px-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-[6px] outline-none"
                       >
                         <option value="Sim">Sim</option>
                         <option value="Não">Não</option>
@@ -694,19 +703,19 @@ export const HospedagensInscricoes: React.FC = () => {
                           required
                           value={editItem.hos_especifiquealergia || ''}
                           onChange={(e) => setEditItem({ ...editItem, hos_especifiquealergia: e.target.value })}
-                          className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 focus:border-secondary outline-none"
+                          className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 focus:border-secondary outline-none"
                         />
                       </div>
                     )}
                   </div>
 
-                  <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/20 space-y-4">
+                  <div className="p-4 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/20 space-y-4">
                     <div className="flex justify-between items-center">
                       <label className="text-xs font-bold text-slate-600 dark:text-slate-400">Restrição Alimentar?</label>
                       <select
                         value={editItem.hos_restricaoalimentar || 'Não'}
                         onChange={(e) => setEditItem({ ...editItem, hos_restricaoalimentar: e.target.value })}
-                        className="text-xs py-1 px-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg outline-none"
+                        className="text-xs py-1 px-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-[6px] outline-none"
                       >
                         <option value="Sim">Sim</option>
                         <option value="Não">Não</option>
@@ -720,7 +729,7 @@ export const HospedagensInscricoes: React.FC = () => {
                           required
                           value={editItem.hos_especifiquerestricao || ''}
                           onChange={(e) => setEditItem({ ...editItem, hos_especifiquerestricao: e.target.value })}
-                          className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 focus:border-secondary outline-none"
+                          className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 focus:border-secondary outline-none"
                         />
                       </div>
                     )}
@@ -733,13 +742,25 @@ export const HospedagensInscricoes: React.FC = () => {
                   <select
                     value={editItem.hos_lavanderia || ''}
                     onChange={(e) => setEditItem({ ...editItem, hos_lavanderia: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none"
                   >
                     <option value="">Selecione...</option>
                     {meta?.lavanderias.map(l => (
                       <option key={l.idlavanderia} value={l.lav_servico}>{l.lav_servico}</option>
                     ))}
                   </select>
+                </div>
+
+                {/* Casa / Obra de Acolhida da Província BRM */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-500">Casa / Obra de Acolhida (Província BRM)</label>
+                  <input
+                    type="text"
+                    value={editItem.hos_casa_acolhida || ''}
+                    onChange={(e) => setEditItem({ ...editItem, hos_casa_acolhida: e.target.value })}
+                    placeholder="Ex: Casa Padre Dehon • Brusque/SC"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none"
+                  />
                 </div>
 
                 {/* Motivo e Módulo */}
@@ -750,7 +771,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_estadiamotivo || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_estadiamotivo: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none"
                     >
                       <option value="">Selecione...</option>
                       {meta?.motivos.map(m => (
@@ -764,7 +785,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_modulo || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_modulo: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none"
                     >
                       <option value="">Selecione...</option>
                       {meta?.modulos.map(m => (
@@ -777,7 +798,7 @@ export const HospedagensInscricoes: React.FC = () => {
                 {/* Previsões chegada e saída */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Chegada */}
-                  <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/20 space-y-4">
+                  <div className="p-4 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/20 space-y-4">
                     <h4 className="text-xs font-bold text-slate-600 dark:text-slate-400 border-b pb-2">Previsão de Chegada</h4>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
@@ -790,7 +811,7 @@ export const HospedagensInscricoes: React.FC = () => {
                             const time = editItem.hos_previsaochegada?.split('T')[1] || '12:00:00';
                             setEditItem({ ...editItem, hos_previsaochegada: `${e.target.value}T${time}` });
                           }}
-                          className="w-full px-2 py-1 text-xs border border-slate-200 dark:border-slate-800 rounded bg-white dark:bg-slate-900 outline-none"
+                          className="w-full px-2 py-1 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none"
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -803,14 +824,14 @@ export const HospedagensInscricoes: React.FC = () => {
                             const date = editItem.hos_previsaochegada?.split('T')[0] || new Date().toISOString().split('T')[0];
                             setEditItem({ ...editItem, hos_previsaochegada: `${date}T${e.target.value}:00` });
                           }}
-                          className="w-full px-2 py-1 text-xs border border-slate-200 dark:border-slate-800 rounded bg-white dark:bg-slate-900 outline-none"
+                          className="w-full px-2 py-1 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none"
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* Saída */}
-                  <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/20 space-y-4">
+                  <div className="p-4 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/20 space-y-4">
                     <h4 className="text-xs font-bold text-slate-600 dark:text-slate-400 border-b pb-2">Previsão de Saída</h4>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
@@ -823,7 +844,7 @@ export const HospedagensInscricoes: React.FC = () => {
                             const time = editItem.hos_previsaosaida?.split('T')[1] || '12:00:00';
                             setEditItem({ ...editItem, hos_previsaosaida: `${e.target.value}T${time}` });
                           }}
-                          className="w-full px-2 py-1 text-xs border border-slate-200 dark:border-slate-800 rounded bg-white dark:bg-slate-900 outline-none"
+                          className="w-full px-2 py-1 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none"
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -836,7 +857,7 @@ export const HospedagensInscricoes: React.FC = () => {
                             const date = editItem.hos_previsaosaida?.split('T')[0] || new Date().toISOString().split('T')[0];
                             setEditItem({ ...editItem, hos_previsaosaida: `${date}T${e.target.value}:00` });
                           }}
-                          className="w-full px-2 py-1 text-xs border border-slate-200 dark:border-slate-800 rounded bg-white dark:bg-slate-900 outline-none"
+                          className="w-full px-2 py-1 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none"
                         />
                       </div>
                     </div>
@@ -853,7 +874,7 @@ export const HospedagensInscricoes: React.FC = () => {
                   <select
                     value={editItem.hos_recibo || ''}
                     onChange={(e) => setEditItem({ ...editItem, hos_recibo: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none"
                   >
                     <option value="Emitir o recibo no meu próprio nome.">Emitir o recibo no meu próprio nome.</option>
                     <option value="Emitir o recibo no nome de terceiro.">Emitir o recibo no nome de terceiro.</option>
@@ -861,7 +882,7 @@ export const HospedagensInscricoes: React.FC = () => {
                 </div>
 
                 {editItem.hos_recibo === 'Emitir o recibo no nome de terceiro.' && (
-                  <div className="space-y-5 border border-slate-100 dark:border-slate-800 p-5 rounded-2xl bg-slate-50/20 dark:bg-slate-900/10">
+                  <div className="space-y-5 border border-slate-200 dark:border-slate-800 p-5 rounded-[6px] bg-slate-50/20 dark:bg-slate-900/10">
                     <h4 className="text-xs font-bold text-primary dark:text-secondary uppercase tracking-wider font-mono">Dados do Terceiro</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div className="space-y-1.5">
@@ -871,7 +892,7 @@ export const HospedagensInscricoes: React.FC = () => {
                           required
                           value={editItem.hos_recnome || ''}
                           onChange={(e) => setEditItem({ ...editItem, hos_recnome: e.target.value })}
-                          className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none"
+                          className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none"
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -881,7 +902,7 @@ export const HospedagensInscricoes: React.FC = () => {
                           required
                           value={editItem.hos_reccpfcnpj || ''}
                           onChange={(e) => setEditItem({ ...editItem, hos_reccpfcnpj: e.target.value })}
-                          className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none"
+                          className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none"
                         />
                       </div>
                     </div>
@@ -893,7 +914,7 @@ export const HospedagensInscricoes: React.FC = () => {
                           type="text"
                           value={editItem.hos_reclogradouro || ''}
                           onChange={(e) => setEditItem({ ...editItem, hos_reclogradouro: e.target.value })}
-                          className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none"
+                          className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none"
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -902,7 +923,7 @@ export const HospedagensInscricoes: React.FC = () => {
                           type="text"
                           value={editItem.hos_recnumero || ''}
                           onChange={(e) => setEditItem({ ...editItem, hos_recnumero: e.target.value })}
-                          className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none"
+                          className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none"
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -911,7 +932,7 @@ export const HospedagensInscricoes: React.FC = () => {
                           type="text"
                           value={editItem.hos_reccep || ''}
                           onChange={(e) => setEditItem({ ...editItem, hos_reccep: e.target.value })}
-                          className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none"
+                          className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none"
                         />
                       </div>
                     </div>
@@ -922,7 +943,7 @@ export const HospedagensInscricoes: React.FC = () => {
                           type="text"
                           value={editItem.hos_recbairro || ''}
                           onChange={(e) => setEditItem({ ...editItem, hos_recbairro: e.target.value })}
-                          className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none"
+                          className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none"
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -931,7 +952,7 @@ export const HospedagensInscricoes: React.FC = () => {
                           type="text"
                           value={editItem.hos_reccidade || ''}
                           onChange={(e) => setEditItem({ ...editItem, hos_reccidade: e.target.value })}
-                          className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none"
+                          className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none"
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -940,7 +961,7 @@ export const HospedagensInscricoes: React.FC = () => {
                           type="text"
                           value={editItem.hos_recestado || ''}
                           onChange={(e) => setEditItem({ ...editItem, hos_recestado: e.target.value })}
-                          className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 outline-none"
+                          className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-slate-900 outline-none"
                         />
                       </div>
                     </div>
@@ -948,13 +969,13 @@ export const HospedagensInscricoes: React.FC = () => {
                 )}
 
                 {/* Termos checkbox */}
-                <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
+                <div className="flex items-center gap-3 p-4 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
                   <input
                     type="checkbox"
                     id="termos_checkbox"
                     checked={editItem.hos_termo === 'Aceito'}
                     onChange={(e) => setEditItem({ ...editItem, hos_termo: e.target.checked ? 'Aceito' : 'Recusado' })}
-                    className="w-5 h-5 text-secondary border-slate-300 focus:ring-secondary/25 rounded-md"
+                    className="w-5 h-5 text-secondary border-slate-300 focus:ring-secondary/25 rounded-[4px]"
                   />
                   <label htmlFor="termos_checkbox" className="text-xs font-medium text-slate-600 dark:text-slate-300">
                     O inscrito declara aceitar todos os termos e condições de hospedagem descritos nos regulamentos do Sistema BRM.
@@ -968,16 +989,16 @@ export const HospedagensInscricoes: React.FC = () => {
 
       {/* SEARCH AND FILTERS */}
       {!editMode && (
-        <div className="glass shadow-premium rounded-2xl p-6 space-y-4 animate-fade-in bg-white/90">
+        <div className="apple-card rounded-[6px] p-6 border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] shadow-none animate-fade-in">
           <form onSubmit={handleBuscar} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
             {/* Motivo select */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-[#082842] dark:text-slate-400">Motivo (Curso / Estadia)</label>
-              <div className="border border-slate-200/80 dark:border-slate-800 rounded-xl p-3 h-28 overflow-y-auto space-y-1 bg-white/50 dark:bg-slate-900/40 scrollbar-thin">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Motivo (Curso / Estadia)</label>
+              <div className="border border-slate-200 dark:border-slate-800 rounded-[6px] p-3 h-28 overflow-y-auto space-y-1 bg-[#f5f5f7]/40 dark:bg-slate-900/40 scrollbar-thin">
                 {meta?.motivos.map(m => {
                   const isChecked = selectedMotivos.includes(m.idmainhospedagem);
                   return (
-                    <label key={m.idmainhospedagem} className="flex items-center gap-2.5 px-2 py-1 hover:bg-slate-50 dark:hover:bg-slate-800/40 rounded-lg text-xs font-semibold cursor-pointer select-none text-slate-700 dark:text-slate-300">
+                    <label key={m.idmainhospedagem} className="flex items-center gap-2.5 px-2.5 py-1.5 hover:bg-white dark:hover:bg-slate-800 rounded-[6px] text-xs font-medium cursor-pointer select-none text-slate-700 dark:text-slate-300 transition-colors">
                       <input
                         type="checkbox"
                         checked={isChecked}
@@ -988,7 +1009,7 @@ export const HospedagensInscricoes: React.FC = () => {
                             setSelectedMotivos(selectedMotivos.filter(id => id !== m.idmainhospedagem));
                           }
                         }}
-                        className="w-4 h-4 text-secondary border-slate-300 focus:ring-secondary/20 rounded cursor-pointer"
+                        className="w-4 h-4 text-[#226380] border-slate-300 focus:ring-[#226380]/20 rounded-[4px] cursor-pointer"
                       />
                       <span className="truncate">{m.main_motivo}</span>
                     </label>
@@ -998,13 +1019,13 @@ export const HospedagensInscricoes: React.FC = () => {
             </div>
 
             {/* Modulo select */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-[#082842] dark:text-slate-400">Módulo</label>
-              <div className="border border-slate-200/80 dark:border-slate-800 rounded-xl p-3 h-28 overflow-y-auto space-y-1 bg-white/50 dark:bg-slate-900/40 scrollbar-thin">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Módulo</label>
+              <div className="border border-slate-200 dark:border-slate-800 rounded-[6px] p-3 h-28 overflow-y-auto space-y-1 bg-[#f5f5f7]/40 dark:bg-slate-900/40 scrollbar-thin">
                 {meta?.modulos.map(m => {
                   const isChecked = selectedModulos.includes(m.idmodulos);
                   return (
-                    <label key={m.idmodulos} className="flex items-center gap-2.5 px-2 py-1 hover:bg-slate-50 dark:hover:bg-slate-800/40 rounded-lg text-xs font-semibold cursor-pointer select-none text-slate-700 dark:text-slate-300">
+                    <label key={m.idmodulos} className="flex items-center gap-2.5 px-2.5 py-1.5 hover:bg-white dark:hover:bg-slate-800 rounded-[6px] text-xs font-medium cursor-pointer select-none text-slate-700 dark:text-slate-300 transition-colors">
                       <input
                         type="checkbox"
                         checked={isChecked}
@@ -1015,7 +1036,7 @@ export const HospedagensInscricoes: React.FC = () => {
                             setSelectedModulos(selectedModulos.filter(id => id !== m.idmodulos));
                           }
                         }}
-                        className="w-4 h-4 text-secondary border-slate-300 focus:ring-secondary/20 rounded cursor-pointer"
+                        className="w-4 h-4 text-[#226380] border-slate-300 focus:ring-[#226380]/20 rounded-[4px] cursor-pointer"
                       />
                       <span className="truncate">{m.mod_nome}</span>
                     </label>
@@ -1025,24 +1046,24 @@ export const HospedagensInscricoes: React.FC = () => {
             </div>
 
             {/* Buscar button & Search input */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               <button
                 type="submit"
-                className="w-full py-2.5 bg-secondary hover:bg-secondary/95 text-white font-bold text-xs rounded-xl shadow-md shadow-secondary/15 transition-all cursor-pointer hover-lift"
+                className="w-full px-4 py-2.5 text-xs font-medium border border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900 rounded-[6px] transition-colors cursor-pointer uppercase tracking-wider"
               >
                 Pesquisar no Banco
               </button>
               
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 pointer-events-none">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400 pointer-events-none">
                   <Search className="w-4 h-4" />
                 </span>
                 <input
                   type="text"
-                  placeholder="Pesquisa rápida (nome, cidade, cpf...)"
+                  placeholder="Pesquisa rápida (nome, cidade, CPF...)"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 text-xs border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 rounded-[6px] outline-none font-sans"
                 />
               </div>
             </div>
@@ -1052,31 +1073,31 @@ export const HospedagensInscricoes: React.FC = () => {
 
       {/* DATA TABLE */}
       {!editMode && (
-        <div className="glass shadow-premium rounded-2xl overflow-hidden bg-white/90">
+        <div className="apple-card rounded-[6px] overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] shadow-none">
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="flex flex-col items-center gap-3">
-                <Loader2 className="w-8 h-8 animate-spin text-secondary" />
-                <span className="text-xs font-semibold text-slate-400">Pesquisando hóspedes...</span>
+                <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+                <span className="text-xs font-medium text-slate-400">Pesquisando hóspedes...</span>
               </div>
             </div>
           ) : filteredInscricoes.length === 0 ? (
             <div className="text-center py-16 text-slate-500">
-              <ClipboardList className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
-              <p className="text-sm font-semibold">Nenhuma inscrição encontrada</p>
+              <ClipboardList className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3 stroke-[1.5]" />
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Nenhuma inscrição encontrada</p>
               <p className="text-xs text-slate-400 mt-1">Experimente alterar os filtros ou pesquisar no banco.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/30 text-slate-500 dark:text-slate-400 font-semibold tracking-wider font-mono">
+                  <tr className="border-b border-slate-100 dark:border-slate-800/80 bg-[#fbfbfd] dark:bg-slate-900/60 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
                     {meta?.colunasVisiveis.map(col => (
                       <th key={col} className="p-4 whitespace-nowrap">{col}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100/50 dark:divide-slate-800/40 text-slate-700 dark:text-slate-300">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-slate-700 dark:text-slate-300">
                   {filteredInscricoes.map(item => (
                     <tr key={item.idhospedagens} className="hover:bg-slate-50/30 dark:hover:bg-slate-800/10 transition-colors">
                       {meta?.colunasVisiveis.map(col => {
@@ -1102,7 +1123,7 @@ export const HospedagensInscricoes: React.FC = () => {
                                   disabled={loadingInline}
                                   value={item.hos_status || '0'}
                                   onChange={(e) => handleStatusChange(item.idhospedagens, e.target.value)}
-                                  className="text-[11px] py-1 px-2 border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 rounded-lg outline-none cursor-pointer"
+                                  className="text-[11px] py-1 px-2 border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 rounded-[6px] outline-none cursor-pointer"
                                 >
                                   <option value="0">Pendente</option>
                                   {meta?.status.map(s => (
@@ -1118,7 +1139,7 @@ export const HospedagensInscricoes: React.FC = () => {
                                   disabled={loadingInline}
                                   value={item.hos_quarto || '0'}
                                   onChange={(e) => handleQuartoChange(item.idhospedagens, e.target.value)}
-                                  className="text-[11px] py-1 px-2 border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 rounded-lg outline-none cursor-pointer"
+                                  className="text-[11px] py-1 px-2 border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 rounded-[6px] outline-none cursor-pointer"
                                 >
                                   <option value="0">Não Atribuído</option>
                                   {meta?.quartos.map(q => (
@@ -1132,7 +1153,7 @@ export const HospedagensInscricoes: React.FC = () => {
                               <td key={col} className="p-4 font-mono text-[11px] whitespace-nowrap">
                                 <button
                                   onClick={() => handleCheckinToggle(item.idhospedagens, item.hos_checkin)}
-                                  className={`px-2 py-1 rounded font-semibold text-[10px] cursor-pointer hover-lift
+                                  className={`px-2 py-1 rounded-[6px] font-semibold text-[10px] cursor-pointer
                                     ${item.hos_checkin 
                                       ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20' 
                                       : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200'}`}
@@ -1149,7 +1170,7 @@ export const HospedagensInscricoes: React.FC = () => {
                                 <button
                                   onClick={() => handleCheckoutToggle(item.idhospedagens, item.hos_checkout)}
                                   disabled={!item.hos_checkin}
-                                  className={`px-2 py-1 rounded font-semibold text-[10px] cursor-pointer disabled:opacity-40 hover-lift
+                                  className={`px-2 py-1 rounded-[6px] font-semibold text-[10px] cursor-pointer disabled:opacity-40
                                     ${item.hos_checkout 
                                       ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20' 
                                       : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200'}`}
@@ -1167,7 +1188,7 @@ export const HospedagensInscricoes: React.FC = () => {
                                   <button
                                     onClick={() => triggerEmailReceipt(item.idhospedagens)}
                                     title="Enviar Recibo por E-mail"
-                                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 text-slate-500 hover:text-slate-700 transition-colors"
+                                    className="p-1.5 rounded-[6px] border border-slate-200 dark:border-slate-800 hover:bg-slate-50 text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
                                   >
                                     <Mail className="w-3.5 h-3.5" />
                                   </button>
@@ -1179,14 +1200,14 @@ export const HospedagensInscricoes: React.FC = () => {
                                       setEditMode(true);
                                     }}
                                     title="Editar Dados"
-                                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-amber-50 text-amber-500 hover:text-amber-600 transition-colors font-semibold"
+                                    className="p-1.5 rounded-[6px] border border-slate-200 dark:border-slate-800 hover:bg-amber-50 text-amber-500 hover:text-amber-600 transition-colors font-semibold cursor-pointer"
                                   >
                                     <Edit className="w-3.5 h-3.5" />
                                   </button>
                                   <button
                                     onClick={() => handleDelete(item.idhospedagens)}
                                     title="Excluir Inscrição"
-                                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-red-50 text-red-500 hover:text-red-600 transition-colors"
+                                    className="p-1.5 rounded-[6px] border border-slate-200 dark:border-slate-800 hover:bg-red-50 text-red-500 hover:text-red-600 transition-colors cursor-pointer"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
@@ -1263,19 +1284,25 @@ export const HospedagensInscricoes: React.FC = () => {
 
       {/* COLUMN CUSTOMIZER MODAL */}
       {colModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setColModalOpen(false)} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-md animate-fade-in">
+          <div className="fixed inset-0" onClick={() => setColModalOpen(false)} />
           
-          <div className="relative w-full max-w-2xl bg-white dark:bg-[#0b1c2e] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-premium p-6 z-10 max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between border-b pb-4 mb-4">
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Personalizar Colunas Visíveis</h3>
-              <button onClick={() => setColModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+          <div className="relative w-full max-w-2xl bg-white dark:bg-[#161b22] border border-slate-300 dark:border-slate-700 shadow-2xl p-6 md:p-8 z-10 max-h-[85vh] flex flex-col rounded-[6px]">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 mb-4">
+              <div>
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Visualização da Tabela</span>
+                <h3 className="text-base font-semibold text-slate-900 dark:text-white mt-0.5">Personalizar Colunas Visíveis</h3>
+              </div>
+              <button 
+                onClick={() => setColModalOpen(false)} 
+                className="w-8 h-8 rounded-[6px] border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
             
-            <p className="text-xs text-slate-400 mb-4">
-              Marque as colunas que deseja exibir na tabela de hóspedes. Desmarque as que deseja ocultar para uma visão mais focada.
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 font-sans">
+              Selecione as colunas que deseja exibir na tabela de hóspedes. Desmarque as que deseja ocultar para uma visão mais compacta.
             </p>
             
             <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-2 sm:grid-cols-3 gap-2.5">
@@ -1284,10 +1311,10 @@ export const HospedagensInscricoes: React.FC = () => {
                 return (
                   <label
                     key={col}
-                    className={`flex items-center gap-2.5 p-2 rounded-xl border text-xs font-semibold cursor-pointer select-none transition-all
+                    className={`flex items-center gap-2.5 p-3 rounded-[6px] border text-xs font-medium cursor-pointer select-none transition-all
                       ${isChecked 
-                        ? 'border-secondary bg-secondary/5 text-secondary dark:border-secondary/40' 
-                        : 'border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50'}`}
+                        ? 'border-slate-900 bg-slate-100 dark:border-white dark:bg-slate-800 text-slate-900 dark:text-white' 
+                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40'}`}
                   >
                     <input
                       type="checkbox"
@@ -1301,7 +1328,7 @@ export const HospedagensInscricoes: React.FC = () => {
                           setTempVisCols(tempVisCols.filter(c => c !== col));
                         }
                       }}
-                      className="w-4 h-4 text-secondary focus:ring-secondary/25 rounded border-slate-300"
+                      className="w-4 h-4 text-slate-900 border-slate-300 focus:ring-slate-400 rounded-[4px] cursor-pointer"
                     />
                     <span className="truncate">{col}</span>
                   </label>
@@ -1309,18 +1336,18 @@ export const HospedagensInscricoes: React.FC = () => {
               })}
             </div>
             
-            <div className="flex justify-end gap-2 border-t pt-4 mt-6">
+            <div className="flex justify-end gap-2.5 border-t border-slate-200 dark:border-slate-800 pt-4 mt-6">
               <button
                 onClick={() => setColModalOpen(false)}
-                className="px-4 py-2 border border-slate-200 dark:border-slate-800 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-[6px] border border-slate-300 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSaveColumns}
-                className="px-4 py-2 bg-secondary hover:bg-secondary/95 text-white text-xs font-semibold rounded-xl shadow-premium shadow-secondary/15 transition-colors cursor-pointer"
+                className="px-6 py-2.5 text-xs font-medium border border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900 rounded-[6px] cursor-pointer uppercase tracking-wider"
               >
-                Salvar Colunas
+                Salvar Preferências
               </button>
             </div>
           </div>

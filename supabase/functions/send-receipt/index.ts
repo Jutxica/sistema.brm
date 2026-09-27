@@ -9,12 +9,11 @@
 //   [[hos_nome]]           -> nome do inscrito
 //   [[hos_estadiamotivo]]   -> id do evento (substituído pelo motivo textual)
 //
-// Deploy: supabase functions deploy send-receipt --verify-jwt
-import { SMTPClient } from "https://deno.land/x/smtp/mod.ts";
+// Deploy: Criar no Dashboard do Supabase (Edge Functions -> New Function -> Via Editor)
+// Nome da função: send-receipt
+import nodemailer from "npm:nodemailer@6.9.13";
 
-
-// Headers CORS — o Supabase repassa se a function não definir, mas custom functions
-// devem devolvê-los para que o SPA (http://localhost:5173) consiga ler a resposta.
+// Headers CORS para permitir chamadas do frontend
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -45,7 +44,7 @@ interface Estadia {
   main_email: string | null;
   main_senha: string | null;
   main_host: string | null;
-  main_porta: number | null;
+  main_porta: string | number | null;
   main_seguranca: string | null;
   main_remetente: string | null;
 }
@@ -125,40 +124,45 @@ Deno.serve(async (req: Request) => {
     "[[hos_nome]]": inscrito.hos_nome || "",
     "[[hos_estadiamotivo]]": estadia.main_motivo || String(inscrito.hos_estadiamotivo ?? ""),
   };
-  const subject = "Confirmação de Inscrição";
+  const subject = `Confirmação de Inscrição: ${estadia.main_motivo || 'Hospedaria'}`;
   const htmlBody = replacePlaceholders(template, map);
 
   const host = estadia.main_host;
-  const port = estadia.main_porta ?? 587;
+  const port = estadia.main_porta ? Number(estadia.main_porta) : 587;
   const user = estadia.main_email;
   const pass = estadia.main_senha;
-  const from = estadia.main_remetente || user;
+  const fromName = estadia.main_remetente || "Província BRM";
+  const fromAddress = user;
 
   if (!host || !user || !pass) {
     return corsResponse(JSON.stringify({ error: "Configuração SMTP incompleta em mainhospedagem" }), { status: 422 });
   }
 
   try {
-    const client = new SMTPClient({
-      host,
-      port,
+    const transporter = nodemailer.createTransport({
+      host: host,
+      port: port,
+      secure: port === 465, // SSL direto na 465, STARTTLS na 587
       auth: {
-        username: user,
-        password: pass,
+        user: user,
+        pass: pass,
+      },
+      tls: {
+        rejectUnauthorized: false, // Evita falhas com certificados autoassinados de cPanel
       },
     });
-    await client.send({
-      from,
+
+    const info = await transporter.sendMail({
+      from: `"${fromName}" <${fromAddress}>`,
       to: inscrito.hos_email,
-      subject,
-      content: htmlBody,
+      subject: subject,
       html: htmlBody,
     });
-    await client.close();
 
-    return corsResponse(JSON.stringify({ success: true, to: inscrito.hos_email }), { status: 200 });
+    return corsResponse(JSON.stringify({ success: true, to: inscrito.hos_email, messageId: info.messageId }), { status: 200 });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    console.error("Erro no envio SMTP:", msg);
     return corsResponse(JSON.stringify({ error: msg }), { status: 500 });
   }
 });

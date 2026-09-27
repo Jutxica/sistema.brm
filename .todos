@@ -1,0 +1,25 @@
+# Todo do Projeto
+
+## Concluído
+- [x] Revisão inicial do sistema
+- [x] Análise da estrutura e schema de dados
+- [x] Criação de módulos e fluxos de religiosos
+- [x] Centralização das referências de obras/paróquias/casas
+- [x] Ajuste de campos e datas no cadastro
+- [x] Melhorias visuais no painel e identidade BRM
+- [x] Correção do hero em azul institucional
+- [x] Ajuste do botão de importação de Excel/CSV
+- [x] Validação final da build do frontend
+
+## Em andamento
+- [ ] Revisão final de telas administrativas
+- [ ] Teste com planilhas reais em produção
+- [ ] Ajuste final de fluxo de cadastro e edição
+- [ ] Verificação de permissões e regras do banco
+
+## A fazer
+- [ ] Finalizar refinamento da navegação
+- [ ] Validar experiência pública e administrativa integrada
+- [ ] Documentar deploy e manutenção
+- [ ] Revisar dados finais e consistência de registros
+- [ ] Fechar pendências operacionais e de UX

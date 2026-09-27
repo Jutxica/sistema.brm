@@ -1,20 +1,43 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Layout from './components/Layout';
+import AppleErrorBoundary from './components/AppleErrorBoundary';
 
-// Pages
-import Login from './pages/Login';
-import Inicio from './pages/Inicio';
-import Institucional from './pages/Institucional';
-import CadastroReligiosoPublico from './pages/CadastroReligiosoPublico';
-import HospedagensInscricoes from './pages/HospedagensInscricoes';
-import HospedagensConfiguracoes from './pages/HospedagensConfiguracoes';
-import Usuarios from './pages/Usuarios';
-import ReligiososAdmin from './pages/ReligiososAdmin';
-import ReligiososConfiguracoes from './pages/ReligiososConfiguracoes';
-import ObrasAdmin from './pages/ObrasAdmin';
+// Lazy-loaded Pages (Code-Splitting)
+const Login = lazy(() => import('./pages/Login'));
+const Inicio = lazy(() => import('./pages/Inicio'));
+const Institucional = lazy(() => import('./pages/Institucional'));
+const CadastroReligiosoPublico = lazy(() => import('./pages/CadastroReligiosoPublico'));
+const HospedagensInscricoes = lazy(() => import('./pages/HospedagensInscricoes'));
+const HospedagensConfiguracoes = lazy(() => import('./pages/HospedagensConfiguracoes'));
+const Usuarios = lazy(() => import('./pages/Usuarios'));
+const ReligiososAdmin = lazy(() => import('./pages/ReligiososAdmin'));
+const ReligiososConfiguracoes = lazy(() => import('./pages/ReligiososConfiguracoes'));
+const ObrasAdmin = lazy(() => import('./pages/ObrasAdmin'));
+const ObraForm = lazy(() => import('./pages/ObraForm'));
+const InscricaoPublica = lazy(() => import('./pages/InscricaoPublica'));
+const PoliticaPrivacidade = lazy(() => import('./pages/PoliticaPrivacidade'));
+const AtualizarObraPublico = lazy(() => import('./pages/AtualizarObraPublico'));
+const EstatisticaBRM = lazy(() => import('./pages/EstatisticaBRM'));
+const MeuPerfilReligioso = lazy(() => import('./pages/MeuPerfilReligioso'));
+const AnuarioBRM = lazy(() => import('./pages/AnuarioBRM'));
+const PortalReligioso = lazy(() => import('./pages/portal-religioso/PortalReligioso'));
+const DocumentosAdmin = lazy(() => import('./pages/DocumentosAdmin'));
+const AgendaAdmin = lazy(() => import('./pages/AgendaAdmin'));
+
+// Apple Loading Spinner Fallback
+const AppleLoadingFallback: React.FC = () => (
+  <div className="flex items-center justify-center min-h-[50vh] w-full py-16">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-8 h-8 rounded-full border-2 border-[#0071e3]/20 border-t-[#0071e3] animate-spin" />
+      <span className="text-[11px] font-medium text-[#707070] dark:text-[#86868b] tracking-wider uppercase">
+        Carregando módulo...
+      </span>
+    </div>
+  </div>
+);
 
 // Route guards
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -22,16 +45,35 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-[#061320]">
+      <div className="flex items-center justify-center min-h-screen bg-[#f5f5f7] dark:bg-[#0d1117]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-secondary border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-sm font-medium text-slate-500">Verificando sessão...</span>
+          <div className="w-8 h-8 rounded-full border-2 border-[#0071e3]/20 border-t-[#0071e3] animate-spin" />
+          <span className="text-xs font-medium text-[#707070] dark:text-[#86868b]">Verificando sessão...</span>
         </div>
       </div>
     );
   }
   
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+};
+
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading, isAuthenticated } = useAuth();
+
+  if (loading) {
+    return <AppleLoadingFallback />;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const isAdmin = Boolean(user?.acessos?.includes('admin') || user?.acessos?.includes('usuarios'));
+  if (!isAdmin) {
+    return <Navigate to="/inicio" replace />;
+  }
+
+  return <>{children}</>;
 };
 
 const DefaultRedirect: React.FC = () => {
@@ -42,48 +84,71 @@ const DefaultRedirect: React.FC = () => {
   return <Navigate to={isAuthenticated ? "/inicio" : "/login"} replace />;
 };
 
-import InscricaoPublica from './pages/InscricaoPublica';
-
 export const App: React.FC = () => {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Public Access */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/inscricao" element={<InscricaoPublica />} />
-            <Route path="/cadastro-religiosos" element={<CadastroReligiosoPublico />} />
-            <Route path="/religiosos-publico" element={<CadastroReligiosoPublico />} />
+    <AppleErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <Suspense fallback={<AppleLoadingFallback />}>
+              <Routes>
+                {/* Standalone Religious Member Area (Portal do Confrade) */}
+                <Route path="/portal-religioso" element={<PortalReligioso />} />
+                <Route path="/area-religioso" element={<PortalReligioso />} />
 
-            {/* Private Workspace */}
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Layout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<DefaultRedirect />} />
-              <Route path="inicio" element={<Inicio />} />
-              <Route path="religiosos" element={<ReligiososAdmin />} />
-              <Route path="religiosos/novo" element={<CadastroReligiosoPublico adminMode />} />
-              <Route path="religiosos/editar/:id" element={<CadastroReligiosoPublico adminMode />} />
-              <Route path="religiosos-configuracoes" element={<ReligiososConfiguracoes />} />
-              <Route path="obras" element={<ObrasAdmin />} />
-              <Route path="institucional" element={<Institucional />} />
-              <Route path="hospedagens-inscricoes" element={<HospedagensInscricoes />} />
-              <Route path="hospedagens-configuracoes" element={<HospedagensConfiguracoes />} />
-              <Route path="usuarios" element={<Usuarios />} />
-            </Route>
+                {/* Public Access */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/inscricao" element={<InscricaoPublica />} />
+                <Route path="/cadastro-religiosos" element={<CadastroReligiosoPublico />} />
+                <Route path="/religiosos-publico" element={<CadastroReligiosoPublico />} />
+                <Route path="/privacidade" element={<PoliticaPrivacidade />} />
+                <Route path="/atualizar-obra/:token" element={<AtualizarObraPublico />} />
+                <Route path="/preview-obras" element={<ObrasAdmin />} />
 
-            {/* Fallback */}
-            <Route path="*" element={<DefaultRedirect />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </ThemeProvider>
+                {/* Private Administrative Workspace */}
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <Layout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<DefaultRedirect />} />
+                  <Route path="inicio" element={<Inicio />} />
+                  <Route path="meu-perfil" element={<MeuPerfilReligioso />} />
+                  <Route path="anuario" element={<AnuarioBRM />} />
+                  <Route path="religiosos" element={<ReligiososAdmin />} />
+                  <Route path="estatisticas-brm" element={<EstatisticaBRM />} />
+                  <Route path="documentos" element={<DocumentosAdmin />} />
+                  <Route path="agenda" element={<AgendaAdmin />} />
+                  <Route path="religiosos/novo" element={<CadastroReligiosoPublico adminMode />} />
+                  <Route path="religiosos/editar/:id" element={<CadastroReligiosoPublico adminMode />} />
+                  <Route path="religiosos-configuracoes" element={<ReligiososConfiguracoes />} />
+                  <Route path="obras" element={<ObrasAdmin />} />
+                  <Route path="obras/nova" element={<ObraForm />} />
+                  <Route path="obras/editar/:id" element={<ObraForm />} />
+                  <Route path="institucional" element={<Institucional />} />
+                  <Route path="hospedagens-inscricoes" element={<HospedagensInscricoes />} />
+                  <Route path="hospedagens-configuracoes" element={<HospedagensConfiguracoes />} />
+                  <Route
+                    path="usuarios"
+                    element={
+                      <AdminRoute>
+                        <Usuarios />
+                      </AdminRoute>
+                    }
+                  />
+                </Route>
+
+                {/* Fallback */}
+                <Route path="*" element={<DefaultRedirect />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </AuthProvider>
+      </ThemeProvider>
+    </AppleErrorBoundary>
   );
 };
 

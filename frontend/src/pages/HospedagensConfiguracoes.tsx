@@ -144,29 +144,29 @@ const TagTextarea: React.FC<{
   return (
     <div className="space-y-1.5 relative">
       <div className="flex justify-between items-center">
-        <label className="text-xs font-semibold text-slate-500">{label}</label>
+        <label className="text-xs font-medium text-slate-500">{label}</label>
         <div className="relative">
           <button
             type="button"
             onClick={() => setShowTags(!showTags)}
-            className="flex items-center gap-1.5 px-3 py-1 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-50 text-[10px] font-bold text-slate-600 dark:text-slate-300 shadow-sm cursor-pointer select-none"
+            className="flex items-center gap-1.5 px-3 py-1 border border-slate-300 dark:border-slate-700 rounded-[6px] bg-white dark:bg-slate-900 hover:bg-slate-50 text-[11px] font-medium text-slate-700 dark:text-slate-300 shadow-sm cursor-pointer select-none transition-colors"
           >
             <span>Campos Dinâmicos</span>
             <span className="text-[8px] opacity-60">▼</span>
           </button>
           
           {showTags && (
-            <div className="absolute right-0 mt-1 w-80 max-h-72 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-20 p-3.5 space-y-3 scrollbar-thin">
+            <div className="absolute right-0 mt-1 w-80 max-h-72 overflow-y-auto bg-white dark:bg-[#161b22] rounded-[6px] shadow-xl z-20 p-3.5 space-y-3 scrollbar-thin border border-slate-300 dark:border-slate-700">
               {tags.map(cat => (
                 <div key={cat.category} className="space-y-1">
-                  <span className="block text-[9px] font-extrabold uppercase tracking-wider text-slate-400 font-mono border-b border-slate-100 dark:border-slate-800/60 pb-0.5">{cat.category}</span>
+                  <span className="block text-[9px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800/60 pb-0.5">{cat.category}</span>
                   <div className="flex flex-wrap gap-1">
                     {cat.items.map(item => (
                       <button
                         key={item.tag}
                         type="button"
                         onClick={() => handleInsertTag(item.tag)}
-                        className="px-2 py-0.5 border border-slate-100 dark:border-slate-800 bg-slate-50 hover:bg-secondary/10 hover:text-secondary hover:border-secondary/20 dark:bg-slate-800 rounded text-[10px] transition-colors cursor-pointer"
+                        className="px-2 py-0.5 border border-slate-200 dark:border-slate-800 bg-[#f5f5f7]/80 hover:bg-[#226380]/10 hover:text-[#226380] hover:border-[#226380]/20 dark:bg-slate-800 rounded-[6px] text-[10px] font-medium transition-colors cursor-pointer"
                       >
                         {item.name}
                       </button>
@@ -185,7 +185,7 @@ const TagTextarea: React.FC<{
         onChange={(e) => onChange(e.target.value)}
         rows={rows}
         placeholder={placeholder}
-        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/25 transition-all"
+        className="w-full apple-input px-3.5 py-2.5 text-xs rounded-[6px] outline-none transition-all font-mono"
       />
     </div>
   );
@@ -584,17 +584,22 @@ export const HospedagensConfiguracoes: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* HEADER SECTION */}
+      {/* HEADER SECTION - Apple Design System */}
       <div>
-        <h2 className="text-xl font-serif font-bold text-[#082842] dark:text-slate-100">Configurações de Hospedagem</h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          Ajuste as diretrizes e os cadastros auxiliares do sistema.
+        <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+          Parâmetros do Sistema • Hospedagem
+        </span>
+        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-900 dark:text-white mt-1">
+          Configurações de Hospedagem
+        </h1>
+        <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1">
+          Ajuste as diretrizes, serviços de lavanderia, quartos, cursos e status do sistema.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-        {/* Left Side Tab Menu */}
-        <div className="glass shadow-premium rounded-2xl p-3 flex flex-col gap-1.5 transition-all">
+        {/* Left Side Tab Menu - Apple Sidebar Style */}
+        <div className="apple-card rounded-[6px] p-2 flex flex-col gap-1 border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] shadow-none">
           {tabsConfig.map(t => (
             <button
               key={t.key}
@@ -602,10 +607,10 @@ export const HospedagensConfiguracoes: React.FC = () => {
                 setActiveTab(t.key);
                 setEditingEstadia(null);
               }}
-              className={`flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-xs font-bold text-left transition-all duration-200 cursor-pointer hover-lift
+              className={`flex items-center gap-3 w-full px-3.5 py-2.5 rounded-[6px] text-xs font-medium text-left transition-all duration-150 cursor-pointer
                 ${activeTab === t.key 
-                  ? 'bg-secondary text-white shadow-md shadow-secondary/15' 
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/30 hover:text-secondary'}`}
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-semibold shadow-sm' 
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'}`}
             >
               <t.icon className="w-4 h-4 shrink-0" />
               <span>{t.label}</span>
@@ -616,22 +621,25 @@ export const HospedagensConfiguracoes: React.FC = () => {
         {/* Right Side Content Pane */}
         <div className="lg:col-span-3">
           {activeTab === 'geral' && (
-            <form onSubmit={handleSaveGeral} className="glass shadow-premium rounded-2xl p-6 space-y-6 animate-fade-in bg-white/90">
-              <h3 className="text-xs font-extrabold text-[#082842] dark:text-[#2d8bc6] uppercase tracking-wider font-mono">Configuração Geral</h3>
+            <form onSubmit={handleSaveGeral} className="apple-card rounded-[6px] p-6 md:p-8 space-y-6 animate-fade-in border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] shadow-none">
+              <div className="pb-3 border-b border-slate-100 dark:border-slate-800">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Diretrizes da Casa</span>
+                <h3 className="text-base font-semibold text-slate-900 dark:text-white mt-0.5">Configuração Geral de Acolhida</h3>
+              </div>
               
               <div className="grid grid-cols-1 gap-5">
-                <div className="flex items-center justify-between p-4.5 rounded-xl border border-amber-500/20 bg-amber-500/5 text-slate-700 dark:text-slate-300">
+                <div className="flex items-center justify-between p-4 rounded-[6px] border border-amber-500/20 bg-amber-500/5 text-slate-700 dark:text-slate-300">
                   <div className="space-y-0.5">
-                    <p className="text-xs font-bold flex items-center gap-2 text-amber-800 dark:text-amber-400">
+                    <p className="text-xs font-semibold flex items-center gap-2 text-amber-800 dark:text-amber-400">
                       <ShieldAlert className="w-4 h-4" />
                       Status de Inscrições Externas
                     </p>
-                    <p className="text-[10px] text-slate-500">Ativa ou suspende a abertura do formulário público.</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Ativa ou suspende a abertura do formulário público de hospedagens.</p>
                   </div>
                   <select
                     value={configGeral.chos_ativar}
                     onChange={(e) => setConfigGeral({ ...configGeral, chos_ativar: e.target.value as 'Sim' | 'Não' })}
-                    className="text-xs font-semibold py-2 px-3 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl outline-none cursor-pointer focus:ring-1 focus:ring-secondary/20"
+                    className="apple-input text-xs font-medium py-2 px-3.5 rounded-[6px] outline-none cursor-pointer"
                   >
                     <option value="Sim">Ativo (Permitir Inscrições)</option>
                     <option value="Não">Inativo (Bloquear Inscrições)</option>
@@ -640,38 +648,38 @@ export const HospedagensConfiguracoes: React.FC = () => {
 
                 {configGeral.chos_ativar === 'Não' && (
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-500">Mensagem para Formulário Inativo</label>
+                    <label className="text-xs font-medium text-slate-500">Mensagem para Formulário Inativo</label>
                     <textarea
                       required
                       value={configGeral.chos_txtinativo}
                       onChange={(e) => setConfigGeral({ ...configGeral, chos_txtinativo: e.target.value })}
                       rows={3}
-                      className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all"
+                      className="w-full apple-input px-3.5 py-2.5 text-xs rounded-[6px] outline-none"
                       placeholder="Ex: As inscrições para hospedagens estão temporariamente suspensas..."
                     />
                   </div>
                 )}
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500">Texto de Acolhida (Início do Formulário)</label>
+                  <label className="text-xs font-medium text-slate-500">Texto de Acolhida (Início do Formulário)</label>
                   <textarea
                     required
                     value={configGeral.chos_acolhida}
                     onChange={(e) => setConfigGeral({ ...configGeral, chos_acolhida: e.target.value })}
                     rows={6}
-                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all"
+                    className="w-full apple-input px-3.5 py-2.5 text-xs rounded-[6px] outline-none"
                     placeholder="Escreva a mensagem de acolhida que aparecerá no cabeçalho da ficha externa..."
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end pt-2">
+              <div className="flex justify-end pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex items-center gap-1.5 px-5 py-2.5 bg-secondary hover:bg-secondary/95 text-white font-bold text-xs rounded-xl shadow-md shadow-secondary/15 transition-all cursor-pointer disabled:opacity-50 hover-lift"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-medium border border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900 rounded-[6px] cursor-pointer disabled:opacity-50 uppercase tracking-wider"
                 >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                   <span>Salvar Alterações</span>
                 </button>
               </div>
@@ -681,20 +689,24 @@ export const HospedagensConfiguracoes: React.FC = () => {
           {activeTab === 'lavanderia' && (
             <div className="space-y-6 animate-fade-in">
               {/* Add form */}
-              <form onSubmit={handleSaveLavanderia} className="glass shadow-premium rounded-2xl p-6 bg-white/90">
-                <h3 className="text-xs font-extrabold text-[#082842] dark:text-[#2d8bc6] uppercase tracking-wider font-mono mb-4">
-                  {newLavanderia.idlavanderia ? 'Editar Serviço' : 'Adicionar Serviço de Lavanderia'}
-                </h3>
+              <form onSubmit={handleSaveLavanderia} className="apple-card rounded-[6px] p-6 md:p-8 border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] shadow-none">
+                <div className="pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Serviços Adicionais</span>
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-white mt-0.5">
+                    {newLavanderia.idlavanderia ? 'Editar Serviço' : 'Cadastrar Serviço de Lavanderia'}
+                  </h3>
+                </div>
+
                 <div className="flex flex-col sm:flex-row gap-4 items-end">
                   <div className="space-y-1.5 flex-1 w-full">
-                    <label className="text-xs font-semibold text-slate-500">Identificador / Descrição do Serviço</label>
+                    <label className="text-xs font-medium text-slate-500">Descrição / Opção do Serviço</label>
                     <input
                       type="text"
                       required
                       value={newLavanderia.lav_servico}
                       onChange={(e) => setNewLavanderia({ ...newLavanderia, lav_servico: e.target.value })}
                       placeholder="Ex: Preciso de lavanderia (Completo), Não preciso de lavanderia"
-                      className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/25 transition-all"
+                      className="w-full apple-input px-3.5 py-2.5 text-xs rounded-[6px] outline-none"
                     />
                   </div>
                   <div className="flex gap-2 w-full sm:w-auto">
@@ -702,14 +714,14 @@ export const HospedagensConfiguracoes: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setNewLavanderia({ idlavanderia: '', lav_servico: '' })}
-                        className="px-4 py-2.5 border border-slate-200 dark:border-slate-800 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition-colors cursor-pointer shrink-0"
+                        className="px-4 py-2.5 border border-slate-300 dark:border-slate-700 text-xs font-medium rounded-[6px] text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition-colors cursor-pointer shrink-0"
                       >
                         Cancelar
                       </button>
                     )}
                     <button
                       type="submit"
-                      className="px-5 py-2.5 bg-secondary text-white text-xs font-bold rounded-xl shadow-md shadow-secondary/10 shrink-0 cursor-pointer hover-lift"
+                      className="px-6 py-2.5 text-xs font-medium border border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900 rounded-[6px] shrink-0 cursor-pointer uppercase tracking-wider"
                     >
                       {newLavanderia.idlavanderia ? 'Salvar' : 'Adicionar'}
                     </button>
@@ -718,25 +730,29 @@ export const HospedagensConfiguracoes: React.FC = () => {
               </form>
 
               {/* List */}
-              <div className="glass shadow-premium rounded-2xl p-6 bg-white/90">
-                <h3 className="text-xs font-extrabold text-[#082842] dark:text-[#2d8bc6] uppercase tracking-wider font-mono mb-4">Serviços de Lavanderia Cadastrados</h3>
+              <div className="apple-card rounded-[6px] p-6 md:p-8 border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] shadow-none">
+                <div className="pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Itens Disponíveis</span>
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-white mt-0.5">Serviços Cadastrados</h3>
+                </div>
+
                 {lavanderias.length === 0 ? (
-                  <p className="text-xs text-slate-400">Nenhum serviço de lavanderia cadastrado.</p>
+                  <p className="text-xs text-slate-400 py-4 text-center">Nenhum serviço de lavanderia cadastrado.</p>
                 ) : (
-                  <div className="divide-y divide-slate-100 dark:divide-slate-800/50 text-xs text-slate-700 dark:text-slate-300">
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs text-slate-700 dark:text-slate-300">
                     {lavanderias.map(l => (
-                      <div key={l.idlavanderia} className="py-3 flex items-center justify-between gap-4">
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">{l.lav_servico}</span>
+                      <div key={l.idlavanderia} className="py-3.5 flex items-center justify-between gap-4">
+                        <span className="font-semibold text-slate-900 dark:text-slate-100">{l.lav_servico}</span>
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => setNewLavanderia({ idlavanderia: l.idlavanderia, lav_servico: l.lav_servico })}
-                            className="p-1.5 rounded-lg border border-slate-200 hover:bg-amber-50 text-amber-500 cursor-pointer transition-colors"
+                            className="w-8 h-8 rounded-[6px] border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                           >
                             <Edit className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleDeleteLavanderia(l.idlavanderia)}
-                            className="p-1.5 rounded-lg border border-slate-200 hover:bg-red-50 text-red-500 cursor-pointer transition-colors"
+                            className="w-8 h-8 rounded-[6px] border border-slate-200 dark:border-slate-800 flex items-center justify-center text-rose-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -751,9 +767,12 @@ export const HospedagensConfiguracoes: React.FC = () => {
 
           {activeTab === 'estadias' && !editingEstadia && (
             <div className="space-y-6 animate-fade-in">
-              <div className="glass shadow-premium rounded-2xl p-6 bg-white/90">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xs font-extrabold text-[#082842] dark:text-[#2d8bc6] uppercase tracking-wider font-mono">Cursos e Estadias Cadastrados</h3>
+              <div className="apple-card rounded-[6px] p-6 md:p-8 border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] shadow-none">
+                <div className="flex justify-between items-center pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
+                  <div>
+                    <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Eventos & Cursos</span>
+                    <h3 className="text-base font-semibold text-slate-900 dark:text-white mt-0.5">Cursos e Estadias Cadastrados</h3>
+                  </div>
                   <button
                     onClick={() => {
                       setEditingEstadia({
@@ -770,27 +789,27 @@ export const HospedagensConfiguracoes: React.FC = () => {
                       });
                       setCourseSubTab('smtp');
                     }}
-                    className="flex items-center gap-1.5 px-4.5 py-2.5 bg-secondary text-white text-xs font-bold rounded-xl shadow-md shadow-secondary/15 transition-all cursor-pointer hover-lift"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-medium border border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900 rounded-[6px] cursor-pointer uppercase tracking-wider"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-3.5 h-3.5" />
                     <span>Novo Curso</span>
                   </button>
                 </div>
 
-                <div className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
                   {estadias.map(item => (
                     <div key={item.idmainhospedagem} className="py-4 flex items-center justify-between gap-4">
                       <div>
-                        <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">{item.main_motivo}</h4>
-                        <p className="text-[10px] text-slate-400 mt-1 font-mono">
-                          Servidor: {item.main_host || 'N/A'} | Status: <span className={item.main_status === 'Ativo' ? 'text-emerald-500 font-bold' : 'text-rose-500'}>{item.main_status}</span>
+                        <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-100">{item.main_motivo}</h4>
+                        <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                          Servidor: {item.main_host || 'N/A'} • Status: <span className={item.main_status === 'Ativo' ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-rose-500'}>{item.main_status}</span>
                         </p>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           onClick={() => handleDuplicateEstadia(item.idmainhospedagem)}
                           title="Duplicar"
-                          className="p-1.5 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 text-slate-500 hover:text-slate-700 transition-colors"
+                          className="w-8 h-8 rounded-[6px] border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                         >
                           <Copy className="w-3.5 h-3.5" />
                         </button>
@@ -800,14 +819,14 @@ export const HospedagensConfiguracoes: React.FC = () => {
                             setCourseSubTab('smtp');
                           }}
                           title="Editar"
-                          className="p-1.5 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-amber-50 text-amber-500 transition-colors"
+                          className="w-8 h-8 rounded-[6px] border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                         >
                           <Edit className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteEstadia(item.idmainhospedagem)}
                           title="Excluir"
-                          className="p-1.5 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-red-50 text-red-500 transition-colors"
+                          className="w-8 h-8 rounded-[6px] border border-slate-200 dark:border-slate-800 flex items-center justify-center text-rose-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -820,31 +839,34 @@ export const HospedagensConfiguracoes: React.FC = () => {
           )}
 
           {activeTab === 'estadias' && editingEstadia && (
-            <form onSubmit={handleSaveEstadia} className="glass shadow-premium rounded-2xl p-6 space-y-6 animate-fade-in bg-white/90">
+            <form onSubmit={handleSaveEstadia} className="apple-card rounded-[6px] p-6 md:p-8 space-y-6 animate-fade-in border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] shadow-none">
               <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-4">
-                <h3 className="text-xs font-extrabold text-[#082842] dark:text-[#2d8bc6] uppercase tracking-wider font-mono">
-                  {editingEstadia.idmainhospedagem ? 'Editar Curso' : 'Novo Curso / Estadia'}
-                </h3>
+                <div>
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Configuração de Evento</span>
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-white mt-0.5">
+                    {editingEstadia.idmainhospedagem ? `Editar: ${editingEstadia.main_motivo || 'Curso'}` : 'Novo Curso / Estadia'}
+                  </h3>
+                </div>
                 <button
                   type="button"
                   onClick={() => setEditingEstadia(null)}
-                  className="text-xs font-bold text-slate-500 hover:text-[#082842]"
+                  className="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-[6px] text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   Voltar
                 </button>
               </div>
 
               {/* Sub-tab Navigation for Course Editing */}
-              <div className="flex flex-wrap border-b border-slate-100 dark:border-slate-800/60 pb-0.5 gap-2">
+              <div className="flex flex-wrap border-b border-slate-100 dark:border-slate-800 pb-0.5 gap-2">
                 {(['smtp', 'mensagens', 'recibo', 'termos'] as const).map(subTab => (
                   <button
                     key={subTab}
                     type="button"
                     onClick={() => setCourseSubTab(subTab)}
-                    className={`py-2 px-3 text-xs font-bold transition-all border-b-2 cursor-pointer
+                    className={`py-2 px-3.5 text-xs transition-all border-b-2 cursor-pointer
                       ${courseSubTab === subTab
-                        ? 'border-secondary text-secondary font-black'
-                        : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                        ? 'border-[#226380] text-[#226380] font-semibold'
+                        : 'border-transparent text-slate-400 hover:text-slate-600 font-medium'}`}
                   >
                     {subTab === 'smtp' && 'Identificação & SMTP'}
                     {subTab === 'mensagens' && 'Confirmações'}
@@ -865,7 +887,7 @@ export const HospedagensConfiguracoes: React.FC = () => {
                         required
                         value={editingEstadia.main_motivo || ''}
                         onChange={(e) => setEditingEstadia({ ...editingEstadia, main_motivo: e.target.value })}
-                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all"
+                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -873,7 +895,7 @@ export const HospedagensConfiguracoes: React.FC = () => {
                       <select
                         value={editingEstadia.main_status || 'Ativo'}
                         onChange={(e) => setEditingEstadia({ ...editingEstadia, main_status: e.target.value as 'Ativo' | 'Inativo' })}
-                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none cursor-pointer focus:border-secondary transition-all"
+                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 outline-none cursor-pointer focus:border-secondary transition-all"
                       >
                         <option value="Ativo">Ativo</option>
                         <option value="Inativo">Inativo</option>
@@ -891,7 +913,7 @@ export const HospedagensConfiguracoes: React.FC = () => {
                         value={editingEstadia.main_host || ''}
                         onChange={(e) => setEditingEstadia({ ...editingEstadia, main_host: e.target.value })}
                         placeholder="smtp.dehoniana.org.br"
-                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all"
+                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all font-mono"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -899,7 +921,7 @@ export const HospedagensConfiguracoes: React.FC = () => {
                       <select
                         value={editingEstadia.main_seguranca || 'TLS'}
                         onChange={(e) => setEditingEstadia({ ...editingEstadia, main_seguranca: e.target.value })}
-                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none cursor-pointer focus:border-secondary transition-all"
+                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 outline-none cursor-pointer focus:border-secondary transition-all"
                       >
                         <option value="SSL">SSL</option>
                         <option value="TLS">TLS</option>
@@ -916,7 +938,7 @@ export const HospedagensConfiguracoes: React.FC = () => {
                         value={editingEstadia.main_porta || ''}
                         onChange={(e) => setEditingEstadia({ ...editingEstadia, main_porta: e.target.value })}
                         placeholder="587"
-                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all"
+                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all font-mono"
                       />
                     </div>
                     <div className="space-y-1.5 md:col-span-2">
@@ -926,7 +948,7 @@ export const HospedagensConfiguracoes: React.FC = () => {
                         value={editingEstadia.main_remetente || ''}
                         onChange={(e) => setEditingEstadia({ ...editingEstadia, main_remetente: e.target.value })}
                         placeholder="Sistema BRM"
-                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all"
+                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -936,7 +958,7 @@ export const HospedagensConfiguracoes: React.FC = () => {
                         value={editingEstadia.main_email || ''}
                         onChange={(e) => setEditingEstadia({ ...editingEstadia, main_email: e.target.value })}
                         placeholder="contato@brm.org.br"
-                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all"
+                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all font-mono"
                       />
                     </div>
                   </div>
@@ -949,7 +971,7 @@ export const HospedagensConfiguracoes: React.FC = () => {
                         placeholder="••••••••"
                         value={editingEstadia.main_senha || ''}
                         onChange={(e) => setEditingEstadia({ ...editingEstadia, main_senha: e.target.value })}
-                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all"
+                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all font-mono"
                       />
                     </div>
                   </div>
@@ -1010,20 +1032,20 @@ export const HospedagensConfiguracoes: React.FC = () => {
                 </div>
               )}
 
-              <div className="flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800 pt-4">
+              <div className="flex justify-end gap-2.5 border-t border-slate-100 dark:border-slate-800 pt-4">
                 <button
                   type="button"
                   onClick={() => setEditingEstadia(null)}
-                  className="px-4 py-2.5 border border-slate-200 dark:border-slate-800 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition-colors cursor-pointer"
+                  className="px-5 py-2.5 border border-slate-300 dark:border-slate-700 text-xs font-medium rounded-[6px] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   Voltar
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex items-center gap-1.5 px-4.5 py-2.5 bg-secondary text-white text-xs font-bold rounded-xl shadow-md shadow-secondary/15 disabled:opacity-50 hover-lift"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-medium border border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900 rounded-[6px] cursor-pointer disabled:opacity-50 uppercase tracking-wider"
                 >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                   <span>Salvar Curso</span>
                 </button>
               </div>
@@ -1033,20 +1055,24 @@ export const HospedagensConfiguracoes: React.FC = () => {
           {activeTab === 'modulos' && (
             <div className="space-y-6 animate-fade-in">
               {/* Add form */}
-              <form onSubmit={handleSaveModulo} className="glass shadow-premium rounded-2xl p-6 bg-white/90">
-                <h3 className="text-xs font-extrabold text-[#082842] dark:text-[#2d8bc6] uppercase tracking-wider font-mono mb-4">
-                  {newModulo.idmodulos ? 'Editar Módulo' : 'Adicionar Módulo'}
-                </h3>
+              <form onSubmit={handleSaveModulo} className="apple-card rounded-[6px] p-6 md:p-8 border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] shadow-none">
+                <div className="pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Estrutura de Cursos</span>
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-white mt-0.5">
+                    {newModulo.idmodulos ? 'Editar Módulo' : 'Cadastrar Novo Módulo'}
+                  </h3>
+                </div>
+
                 <div className="flex flex-col sm:flex-row gap-4 items-end">
                   <div className="space-y-1.5 flex-1 w-full">
-                    <label className="text-xs font-semibold text-slate-500">Nome do Módulo</label>
+                    <label className="text-xs font-medium text-slate-500">Nome do Módulo</label>
                     <input
                       type="text"
                       required
                       value={newModulo.mod_nome}
                       onChange={(e) => setNewModulo({ ...newModulo, mod_nome: e.target.value })}
                       placeholder="Ex: Módulo I - Primeiro Semestre"
-                      className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/25 transition-all"
+                      className="w-full apple-input px-3.5 py-2.5 text-xs rounded-[6px] outline-none"
                     />
                   </div>
                   <div className="flex gap-2 w-full sm:w-auto">
@@ -1054,14 +1080,14 @@ export const HospedagensConfiguracoes: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setNewModulo({ idmodulos: '', mod_nome: '', mod_status: 'Ativo' })}
-                        className="px-4 py-2.5 border border-slate-200 dark:border-slate-800 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition-colors cursor-pointer shrink-0"
+                        className="px-4 py-2.5 border border-slate-300 dark:border-slate-700 text-xs font-medium rounded-[6px] text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition-colors cursor-pointer shrink-0"
                       >
                         Cancelar
                       </button>
                     )}
                     <button
                       type="submit"
-                      className="px-5 py-2.5 bg-secondary text-white text-xs font-bold rounded-xl shadow-md shadow-secondary/10 shrink-0 cursor-pointer hover-lift"
+                      className="px-6 py-2.5 text-xs font-medium border border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900 rounded-[6px] shrink-0 cursor-pointer uppercase tracking-wider"
                     >
                       {newModulo.idmodulos ? 'Salvar' : 'Adicionar'}
                     </button>
@@ -1070,22 +1096,26 @@ export const HospedagensConfiguracoes: React.FC = () => {
               </form>
 
               {/* List */}
-              <div className="glass shadow-premium rounded-2xl p-6 bg-white/90">
-                <h3 className="text-xs font-extrabold text-[#082842] dark:text-[#2d8bc6] uppercase tracking-wider font-mono mb-4">Módulos Cadastrados</h3>
-                <div className="divide-y divide-slate-100 dark:divide-slate-800/50 text-xs text-slate-700 dark:text-slate-300">
+              <div className="apple-card rounded-[6px] p-6 md:p-8 border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] shadow-none">
+                <div className="pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Itens Disponíveis</span>
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-white mt-0.5">Módulos Cadastrados</h3>
+                </div>
+
+                <div className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs text-slate-700 dark:text-slate-300">
                   {modulos.map(m => (
-                    <div key={m.idmodulos} className="py-3 flex items-center justify-between gap-4">
-                      <span className="font-semibold text-slate-800 dark:text-slate-200">{m.mod_nome}</span>
+                    <div key={m.idmodulos} className="py-3.5 flex items-center justify-between gap-4">
+                      <span className="font-semibold text-slate-900 dark:text-slate-100">{m.mod_nome}</span>
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => setNewModulo({ idmodulos: m.idmodulos, mod_nome: m.mod_nome, mod_status: m.mod_status })}
-                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-amber-50 text-amber-500 cursor-pointer transition-colors"
+                          className="w-8 h-8 rounded-[6px] border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                         >
                           <Edit className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteModulo(m.idmodulos)}
-                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-red-50 text-red-500 cursor-pointer transition-colors"
+                          className="w-8 h-8 rounded-[6px] border border-slate-200 dark:border-slate-800 flex items-center justify-center text-rose-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1100,20 +1130,24 @@ export const HospedagensConfiguracoes: React.FC = () => {
           {activeTab === 'quartos' && (
             <div className="space-y-6 animate-fade-in">
               {/* Add Form */}
-              <form onSubmit={handleSaveQuarto} className="glass shadow-premium rounded-2xl p-6 bg-white/90">
-                <h3 className="text-xs font-extrabold text-[#082842] dark:text-[#2d8bc6] uppercase tracking-wider font-mono mb-4">
-                  {newQuarto.idhos_quartos ? 'Editar Quarto' : 'Adicionar Quarto'}
-                </h3>
+              <form onSubmit={handleSaveQuarto} className="apple-card rounded-[6px] p-6 md:p-8 border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] shadow-none">
+                <div className="pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Acomodações</span>
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-white mt-0.5">
+                    {newQuarto.idhos_quartos ? 'Editar Quarto' : 'Cadastrar Novo Quarto'}
+                  </h3>
+                </div>
+
                 <div className="flex flex-col sm:flex-row gap-4 items-end">
                   <div className="space-y-1.5 flex-1 w-full">
-                    <label className="text-xs font-semibold text-slate-500">Identificador / Nome do Quarto</label>
+                    <label className="text-xs font-medium text-slate-500">Identificador / Número do Quarto</label>
                     <input
                       type="text"
                       required
                       value={newQuarto.hos_qua_nome}
                       onChange={(e) => setNewQuarto({ ...newQuarto, hos_qua_nome: e.target.value })}
                       placeholder="Ex: Quarto 102 - Ala Leste"
-                      className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/25 transition-all"
+                      className="w-full apple-input px-3.5 py-2.5 text-xs rounded-[6px] outline-none"
                     />
                   </div>
                   <div className="flex gap-2 w-full sm:w-auto">
@@ -1121,14 +1155,14 @@ export const HospedagensConfiguracoes: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setNewQuarto({ idhos_quartos: '', hos_qua_nome: '', hos_qua_status: 'Ativo' })}
-                        className="px-4 py-2.5 border border-slate-200 dark:border-slate-800 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition-colors cursor-pointer shrink-0"
+                        className="px-4 py-2.5 border border-slate-300 dark:border-slate-700 text-xs font-medium rounded-[6px] text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition-colors cursor-pointer shrink-0"
                       >
                         Cancelar
                       </button>
                     )}
                     <button
                       type="submit"
-                      className="px-5 py-2.5 bg-secondary text-white text-xs font-bold rounded-xl shadow-md shadow-secondary/10 shrink-0 cursor-pointer hover-lift"
+                      className="px-6 py-2.5 text-xs font-medium border border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900 rounded-[6px] shrink-0 cursor-pointer uppercase tracking-wider"
                     >
                       {newQuarto.idhos_quartos ? 'Salvar' : 'Adicionar'}
                     </button>
@@ -1137,22 +1171,26 @@ export const HospedagensConfiguracoes: React.FC = () => {
               </form>
 
               {/* List */}
-              <div className="glass shadow-premium rounded-2xl p-6 bg-white/90">
-                <h3 className="text-xs font-extrabold text-[#082842] dark:text-[#2d8bc6] uppercase tracking-wider font-mono mb-4">Quartos Cadastrados</h3>
-                <div className="divide-y divide-slate-100 dark:divide-slate-800/50 text-xs text-slate-700 dark:text-slate-300">
+              <div className="apple-card rounded-[6px] p-6 md:p-8 border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] shadow-none">
+                <div className="pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Itens Disponíveis</span>
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-white mt-0.5">Quartos Cadastrados</h3>
+                </div>
+
+                <div className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs text-slate-700 dark:text-slate-300">
                   {quartos.map(q => (
-                    <div key={q.idhos_quartos} className="py-3 flex items-center justify-between gap-4">
-                      <span className="font-semibold text-slate-800 dark:text-slate-200">{q.hos_qua_nome}</span>
+                    <div key={q.idhos_quartos} className="py-3.5 flex items-center justify-between gap-4">
+                      <span className="font-semibold text-slate-900 dark:text-slate-100">{q.hos_qua_nome}</span>
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => setNewQuarto({ idhos_quartos: q.idhos_quartos, hos_qua_nome: q.hos_qua_nome, hos_qua_status: q.hos_qua_status })}
-                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-amber-50 text-amber-500 cursor-pointer transition-colors"
+                          className="w-8 h-8 rounded-[6px] border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                         >
                           <Edit className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteQuarto(q.idhos_quartos)}
-                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-red-50 text-red-500 cursor-pointer transition-colors"
+                          className="w-8 h-8 rounded-[6px] border border-slate-200 dark:border-slate-800 flex items-center justify-center text-rose-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1167,20 +1205,24 @@ export const HospedagensConfiguracoes: React.FC = () => {
           {activeTab === 'status' && (
             <div className="space-y-6 animate-fade-in">
               {/* Add Form */}
-              <form onSubmit={handleSaveStatus} className="glass shadow-premium rounded-2xl p-6 bg-white/90">
-                <h3 className="text-xs font-extrabold text-[#082842] dark:text-[#2d8bc6] uppercase tracking-wider font-mono mb-4">
-                  {newStatus.idstatushospedagem ? 'Editar Status' : 'Adicionar Status'}
-                </h3>
+              <form onSubmit={handleSaveStatus} className="apple-card rounded-[6px] p-6 md:p-8 border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] shadow-none">
+                <div className="pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Ciclo de Atendimento</span>
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-white mt-0.5">
+                    {newStatus.idstatushospedagem ? 'Editar Status' : 'Cadastrar Novo Status'}
+                  </h3>
+                </div>
+
                 <div className="flex flex-col sm:flex-row gap-4 items-end">
                   <div className="space-y-1.5 flex-1 w-full">
-                    <label className="text-xs font-semibold text-slate-500">Nome do Status</label>
+                    <label className="text-xs font-medium text-slate-500">Nome do Status</label>
                     <input
                       type="text"
                       required
                       value={newStatus.sta_nome}
                       onChange={(e) => setNewStatus({ ...newStatus, sta_nome: e.target.value })}
-                      placeholder="Ex: Confirmado, Pago, Cancelado"
-                      className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/25 transition-all"
+                      placeholder="Ex: Confirmado, Em análise, Cancelado"
+                      className="w-full apple-input px-3.5 py-2.5 text-xs rounded-[6px] outline-none"
                     />
                   </div>
                   <div className="flex gap-2 w-full sm:w-auto">
@@ -1188,14 +1230,14 @@ export const HospedagensConfiguracoes: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setNewStatus({ idstatushospedagem: '', sta_nome: '', sta_status: 'Ativo' })}
-                        className="px-4 py-2.5 border border-slate-200 dark:border-slate-800 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition-colors cursor-pointer shrink-0"
+                        className="px-4 py-2.5 border border-slate-300 dark:border-slate-700 text-xs font-medium rounded-[6px] text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition-colors cursor-pointer shrink-0"
                       >
                         Cancelar
                       </button>
                     )}
                     <button
                       type="submit"
-                      className="px-5 py-2.5 bg-secondary text-white text-xs font-bold rounded-xl shadow-md shadow-secondary/10 shrink-0 cursor-pointer hover-lift"
+                      className="px-6 py-2.5 text-xs font-medium border border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900 rounded-[6px] shrink-0 cursor-pointer uppercase tracking-wider"
                     >
                       {newStatus.idstatushospedagem ? 'Salvar' : 'Adicionar'}
                     </button>
@@ -1204,22 +1246,26 @@ export const HospedagensConfiguracoes: React.FC = () => {
               </form>
 
               {/* List */}
-              <div className="glass shadow-premium rounded-2xl p-6 bg-white/90">
-                <h3 className="text-xs font-extrabold text-[#082842] dark:text-[#2d8bc6] uppercase tracking-wider font-mono mb-4">Status Disponíveis</h3>
-                <div className="divide-y divide-slate-100 dark:divide-slate-800/50 text-xs text-slate-700 dark:text-slate-300">
+              <div className="apple-card rounded-[6px] p-6 md:p-8 border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] shadow-none">
+                <div className="pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Itens Disponíveis</span>
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-white mt-0.5">Status Disponíveis</h3>
+                </div>
+
+                <div className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs text-slate-700 dark:text-slate-300">
                   {statuses.map(s => (
-                    <div key={s.idstatushospedagem} className="py-3 flex items-center justify-between gap-4">
-                      <span className="font-semibold text-slate-800 dark:text-slate-200">{s.sta_nome}</span>
+                    <div key={s.idstatushospedagem} className="py-3.5 flex items-center justify-between gap-4">
+                      <span className="font-semibold text-slate-900 dark:text-slate-100">{s.sta_nome}</span>
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => setNewStatus({ idstatushospedagem: s.idstatushospedagem, sta_nome: s.sta_nome, sta_status: s.sta_status })}
-                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-amber-50 text-amber-500 cursor-pointer transition-colors"
+                          className="w-8 h-8 rounded-[6px] border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                         >
                           <Edit className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteStatus(s.idstatushospedagem)}
-                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-red-50 text-red-500 cursor-pointer transition-colors"
+                          className="w-8 h-8 rounded-[6px] border border-slate-200 dark:border-slate-800 flex items-center justify-center text-rose-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
