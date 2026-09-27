@@ -26,6 +26,8 @@ const AnuarioBRM = lazy(() => import('./pages/AnuarioBRM'));
 const PortalReligioso = lazy(() => import('./pages/portal-religioso/PortalReligioso'));
 const DocumentosAdmin = lazy(() => import('./pages/DocumentosAdmin'));
 const AgendaAdmin = lazy(() => import('./pages/AgendaAdmin'));
+const SecretariaConfiguracoes = lazy(() => import('./pages/SecretariaConfiguracoes'));
+const FormularioPublicoInscricao = lazy(() => import('./pages/FormularioPublicoInscricao'));
 
 // Apple Loading Spinner Fallback
 const AppleLoadingFallback: React.FC = () => (
@@ -104,6 +106,7 @@ export const App: React.FC = () => {
                 <Route path="/privacidade" element={<PoliticaPrivacidade />} />
                 <Route path="/atualizar-obra/:token" element={<AtualizarObraPublico />} />
                 <Route path="/preview-obras" element={<ObrasAdmin />} />
+                <Route path="/formularios/:id" element={<FormularioPublicoInscricao />} />
 
                 {/* Private Administrative Workspace */}
                 <Route
@@ -122,6 +125,7 @@ export const App: React.FC = () => {
                   <Route path="estatisticas-brm" element={<EstatisticaBRM />} />
                   <Route path="documentos" element={<DocumentosAdmin />} />
                   <Route path="agenda" element={<AgendaAdmin />} />
+                  <Route path="secretaria-configuracoes" element={<SecretariaConfiguracoes />} />
                   <Route path="religiosos/novo" element={<CadastroReligiosoPublico adminMode />} />
                   <Route path="religiosos/editar/:id" element={<CadastroReligiosoPublico adminMode />} />
                   <Route path="religiosos-configuracoes" element={<ReligiososConfiguracoes />} />

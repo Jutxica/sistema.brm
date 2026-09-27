@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { 
   Calendar, Plus, Search, MapPin, Clock, Users, Edit3, Trash2, 
-  CheckCircle2, AlertCircle, X, ChevronRight, Filter, Building2, Tag
+  CheckCircle2, AlertCircle, X, ChevronRight, Filter, Building2, Tag,
+  FileText, ExternalLink, Download, SlidersHorizontal, Check, Eye, Copy
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { staggerStyle } from '../hooks/useMotion';
+import { FormularioTimbrado } from '../components/FormularioTimbrado';
+import type { FormularioSecretaria, RespostaFormulario } from './SecretariaConfiguracoes';
 
 export type TipoEvento = 
   | 'Assembleia'
@@ -31,6 +35,10 @@ export interface EventoProvincial {
   descricao?: string | null;
   publico_alvo?: string | null;
   status: StatusEvento;
+  exige_inscricao?: boolean;
+  formulario_id?: string | null;
+  limite_vagas?: number | null;
+  prazo_inscricao?: string | null;
   created_at: string;
 }
 
@@ -70,6 +78,10 @@ const SEED_EVENTOS: EventoProvincial[] = [
     descricao: 'Retiro anual de espiritualidade dehoniana para a primeira turma de presbíteros da Província BRM.',
     publico_alvo: 'Presbíteros',
     status: 'Confirmado',
+    exige_inscricao: true,
+    formulario_id: 'form-retiro-presbiteros-2026',
+    limite_vagas: 60,
+    prazo_inscricao: '2026-03-05',
     created_at: new Date('2026-01-10').toISOString()
   },
   {
@@ -85,6 +97,7 @@ const SEED_EVENTOS: EventoProvincial[] = [
     descricao: 'Sessão com o Superior Provincial e Conselheiros para avaliação pastoral e atos canônicos.',
     publico_alvo: 'Governo Provincial',
     status: 'Confirmado',
+    exige_inscricao: false,
     created_at: new Date('2026-01-10').toISOString()
   },
   {
@@ -100,6 +113,10 @@ const SEED_EVENTOS: EventoProvincial[] = [
     descricao: 'Convivência vocacional, partilha pastoral e aprofundamento do carisma do Pe. Dehon.',
     publico_alvo: 'Fratres',
     status: 'Confirmado',
+    exige_inscricao: true,
+    formulario_id: 'form-encontro-fratres-2026',
+    limite_vagas: 30,
+    prazo_inscricao: '2026-05-10',
     created_at: new Date('2026-01-10').toISOString()
   },
   {
@@ -115,6 +132,7 @@ const SEED_EVENTOS: EventoProvincial[] = [
     descricao: 'Festa titular da Congregação com renovação comunitária dos votos e adoração reparadora.',
     publico_alvo: 'Toda a Província',
     status: 'Confirmado',
+    exige_inscricao: false,
     created_at: new Date('2026-01-10').toISOString()
   },
   {
@@ -130,6 +148,7 @@ const SEED_EVENTOS: EventoProvincial[] = [
     descricao: 'Celebração eucarística em honra ao nosso fundador com súplica pela beatificação.',
     publico_alvo: 'Toda a Província',
     status: 'Confirmado',
+    exige_inscricao: false,
     created_at: new Date('2026-01-10').toISOString()
   },
   {
@@ -145,13 +164,20 @@ const SEED_EVENTOS: EventoProvincial[] = [
     descricao: 'Assembleia anual com a presença de todos os confrades perpétuos e temporários para planejamento e avaliação pastoral.',
     publico_alvo: 'Toda a Província',
     status: 'Confirmado',
+    exige_inscricao: true,
+    formulario_id: 'form-assembleia-provincial-2026',
+    limite_vagas: 120,
+    prazo_inscricao: '2026-09-20',
     created_at: new Date('2026-01-10').toISOString()
   }
 ];
 
 export const AgendaAdmin: React.FC = () => {
+  const navigate = useNavigate();
   const [eventos, setEventos] = useState<EventoProvincial[]>([]);
   const [casas, setCasas] = useState<CasaReferencia[]>([]);
+  const [formularios, setFormularios] = useState<FormularioSecretaria[]>([]);
+  const [respostas, setRespostas] = useState<RespostaFormulario[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedTipo, setSelectedTipo] = useState<string>('Todos');
@@ -162,6 +188,11 @@ export const AgendaAdmin: React.FC = () => {
   const [editingEvento, setEditingEvento] = useState<EventoProvincial | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+
+  // Modais de Inscrição & Visualização
+  const [inscritosModalEvento, setInscritosModalEvento] = useState<EventoProvincial | null>(null);
+  const [previewFormModal, setPreviewFormModal] = useState<FormularioSecretaria | null>(null);
+  const [copiadoLinkEventoId, setCopiadoLinkEventoId] = useState<string | null>(null);
 
   // Form Fields
   const [formTitulo, setFormTitulo] = useState('');
@@ -175,6 +206,10 @@ export const AgendaAdmin: React.FC = () => {
   const [formDescricao, setFormDescricao] = useState('');
   const [formPublico, setFormPublico] = useState('Toda a Província');
   const [formStatus, setFormStatus] = useState<StatusEvento>('Confirmado');
+  const [formExigeInscricao, setFormExigeInscricao] = useState(false);
+  const [formFormularioId, setFormFormularioId] = useState('');
+  const [formLimiteVagas, setFormLimiteVagas] = useState<number | ''>('');
+  const [formPrazoInscricao, setFormPrazoInscricao] = useState('');
 
   // Carregar Dados
   const carregarDados = async () => {
@@ -191,7 +226,40 @@ export const AgendaAdmin: React.FC = () => {
         setCasas(casasData as CasaReferencia[]);
       }
 
-      // 2. Carregar Eventos
+      // 2. Carregar Formulários da Secretaria para vincular aos eventos
+      try {
+        const { data: fData } = await supabase
+          .from('secretaria_formularios')
+          .select('*')
+          .order('titulo');
+        if (fData && fData.length > 0) {
+          setFormularios(fData as FormularioSecretaria[]);
+        } else {
+          const savedForms = localStorage.getItem('brm_secretaria_formularios_v1');
+          if (savedForms) setFormularios(JSON.parse(savedForms));
+        }
+      } catch {
+        const savedForms = localStorage.getItem('brm_secretaria_formularios_v1');
+        if (savedForms) setFormularios(JSON.parse(savedForms));
+      }
+
+      // 3. Carregar Respostas/Inscrições
+      try {
+        const { data: rData } = await supabase
+          .from('secretaria_respostas_formulario')
+          .select('*');
+        if (rData) {
+          setRespostas(rData as RespostaFormulario[]);
+        } else {
+          const savedResp = localStorage.getItem('brm_secretaria_respostas_v1');
+          if (savedResp) setRespostas(JSON.parse(savedResp));
+        }
+      } catch {
+        const savedResp = localStorage.getItem('brm_secretaria_respostas_v1');
+        if (savedResp) setRespostas(JSON.parse(savedResp));
+      }
+
+      // 4. Carregar Eventos
       const { data: eventosData, error } = await supabase
         .from('eventos_provinciais')
         .select('*')
@@ -241,6 +309,10 @@ export const AgendaAdmin: React.FC = () => {
     setFormDescricao('');
     setFormPublico('Toda a Província');
     setFormStatus('Confirmado');
+    setFormExigeInscricao(false);
+    setFormFormularioId('');
+    setFormLimiteVagas('');
+    setFormPrazoInscricao('');
     setFormError('');
     setIsModalOpen(true);
   };
@@ -259,6 +331,10 @@ export const AgendaAdmin: React.FC = () => {
     setFormDescricao(evt.descricao || '');
     setFormPublico(evt.publico_alvo || 'Toda a Província');
     setFormStatus(evt.status);
+    setFormExigeInscricao(Boolean(evt.exige_inscricao));
+    setFormFormularioId(evt.formulario_id || '');
+    setFormLimiteVagas(evt.limite_vagas || '');
+    setFormPrazoInscricao(evt.prazo_inscricao || '');
     setFormError('');
     setIsModalOpen(true);
   };
@@ -309,7 +385,11 @@ export const AgendaAdmin: React.FC = () => {
           uf: formUf.trim() || null,
           descricao: formDescricao.trim() || null,
           publico_alvo: formPublico.trim() || null,
-          status: formStatus
+          status: formStatus,
+          exige_inscricao: formExigeInscricao,
+          formulario_id: formExigeInscricao ? (formFormularioId || null) : null,
+          limite_vagas: formExigeInscricao && formLimiteVagas ? Number(formLimiteVagas) : null,
+          prazo_inscricao: formExigeInscricao && formPrazoInscricao ? formPrazoInscricao : null
         };
 
         try {
@@ -339,6 +419,10 @@ export const AgendaAdmin: React.FC = () => {
           descricao: formDescricao.trim() || null,
           publico_alvo: formPublico.trim() || null,
           status: formStatus,
+          exige_inscricao: formExigeInscricao,
+          formulario_id: formExigeInscricao ? (formFormularioId || null) : null,
+          limite_vagas: formExigeInscricao && formLimiteVagas ? Number(formLimiteVagas) : null,
+          prazo_inscricao: formExigeInscricao && formPrazoInscricao ? formPrazoInscricao : null,
           created_at: new Date().toISOString()
         };
 
@@ -614,6 +698,13 @@ export const AgendaAdmin: React.FC = () => {
                             {evt.publico_alvo}
                           </span>
                         )}
+                        {evt.exige_inscricao && (
+                          <span className="text-[9px] font-mono px-2 py-0.5 rounded-[4px] bg-[#226380]/15 text-[#113240] dark:text-[#A3C3C7] border border-[#226380]/40 flex items-center gap-1 font-semibold">
+                            <FileText className="w-2.5 h-2.5" />
+                            Inscrição Canônica Exigida
+                            {evt.limite_vagas ? ` (${evt.limite_vagas} vagas)` : ''}
+                          </span>
+                        )}
                       </div>
 
                       <h4 className="text-[14px] font-semibold text-[#113240] dark:text-white leading-snug">
@@ -650,7 +741,59 @@ export const AgendaAdmin: React.FC = () => {
                   </div>
 
                   {/* Ações */}
-                  <div className="flex items-center gap-1.5 self-start md:self-center shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 self-start md:self-center shrink-0">
+                    {/* Botões específicos para eventos com Inscrição */}
+                    {evt.exige_inscricao && (
+                      <>
+                        {(() => {
+                          const inscritosCount = respostas.filter(r => r.evento_id === evt.id || (evt.formulario_id && r.formulario_id === evt.formulario_id)).length;
+                          const formAssociado = formularios.find(f => f.id === evt.formulario_id);
+
+                          return (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setInscritosModalEvento(evt)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-mono text-[#113240] dark:text-slate-200 font-semibold transition-colors cursor-pointer"
+                                title="Ver lista de confrades inscritos"
+                              >
+                                <Users className="w-3 h-3 text-[#226380]" />
+                                <span>Inscritos ({inscritosCount})</span>
+                              </button>
+
+                              {formAssociado && (
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewFormModal(formAssociado)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] border border-[#226380]/30 bg-[#226380]/10 hover:bg-[#226380]/20 text-[11px] font-mono text-[#226380] dark:text-[#A3C3C7] font-semibold transition-colors cursor-pointer"
+                                  title="Pré-visualizar ficha timbrada deste evento"
+                                >
+                                  <Eye className="w-3 h-3" />
+                                  <span className="hidden sm:inline">Ver Ficha</span>
+                                </button>
+                              )}
+
+                              {evt.formulario_id && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const url = `${window.location.origin}/formularios/${evt.formulario_id}`;
+                                    navigator.clipboard.writeText(url);
+                                    setCopiadoLinkEventoId(evt.id);
+                                    setTimeout(() => setCopiadoLinkEventoId(null), 3000);
+                                  }}
+                                  className="p-1.5 rounded-[6px] border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 hover:text-[#113240] transition-colors cursor-pointer"
+                                  title="Copiar link da ficha de inscrição"
+                                >
+                                  {copiadoLinkEventoId === evt.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                                </button>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => handleOpenEdit(evt)}
@@ -885,6 +1028,98 @@ export const AgendaAdmin: React.FC = () => {
                 />
               </div>
 
+              {/* Inscrição Canônica & Construtor de Formulários */}
+              <div className="p-4 rounded-[6px] bg-[#226380]/5 dark:bg-[#226380]/15 border border-[#226380]/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formExigeInscricao}
+                      onChange={(e) => setFormExigeInscricao(e.target.checked)}
+                      className="accent-[#226380] w-4 h-4 rounded-[4px] cursor-pointer"
+                    />
+                    <span className="text-xs font-bold text-[#113240] dark:text-white font-cinzel">
+                      Este evento exige Inscrição Prévia dos Religiosos
+                    </span>
+                  </label>
+                  {formExigeInscricao && (
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#226380] text-white uppercase font-bold">
+                      Ficha Timbrada Ativa
+                    </span>
+                  )}
+                </div>
+
+                {formExigeInscricao && (
+                  <div className="space-y-3 pt-2 border-t border-[#226380]/20">
+                    <div>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-1">
+                        <label className="block text-xs font-semibold font-mono text-[#113240] dark:text-slate-300">
+                          Selecione o Formulário Timbrado Oficial *
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsModalOpen(false);
+                            navigate('/secretaria-configuracoes');
+                          }}
+                          className="text-[11px] font-mono text-[#226380] dark:text-[#A3C3C7] hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+                        >
+                          <SlidersHorizontal className="w-3 h-3" />
+                          <span>Personalizar Campos no Construtor da Secretaria &rarr;</span>
+                        </button>
+                      </div>
+
+                      <select
+                        value={formFormularioId}
+                        onChange={(e) => setFormFormularioId(e.target.value)}
+                        className="w-full px-3.5 py-2 rounded-[6px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 outline-none text-slate-900 dark:text-white font-sans text-xs focus:border-[#226380]"
+                      >
+                        <option value="">-- Selecione um modelo de formulário timbrado --</option>
+                        {formularios.map((f) => (
+                          <option key={f.id} value={f.id}>
+                            {f.titulo} {f.codigo ? `(${f.codigo})` : ''} • {f.campos.length} variáveis
+                          </option>
+                        ))}
+                      </select>
+
+                      {formularios.length === 0 && (
+                        <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-mono flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>Nenhum formulário ativo. Vá ao Construtor de Formulários da Secretaria para criar um modelo.</span>
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-mono text-slate-500 dark:text-slate-400 mb-1">
+                          Limite de Vagas Disponíveis (opcional)
+                        </label>
+                        <input
+                          type="number"
+                          value={formLimiteVagas}
+                          onChange={(e) => setFormLimiteVagas(e.target.value ? Number(e.target.value) : '')}
+                          placeholder="Ex: 60"
+                          className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 outline-none text-xs font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-mono text-slate-500 dark:text-slate-400 mb-1">
+                          Prazo Limite para Inscrição (opcional)
+                        </label>
+                        <input
+                          type="date"
+                          value={formPrazoInscricao}
+                          onChange={(e) => setFormPrazoInscricao(e.target.value)}
+                          className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 outline-none text-xs font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Footer */}
               <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2.5">
                 <button
@@ -916,6 +1151,187 @@ export const AgendaAdmin: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* MODAL LISTA DE CONFRADES INSCRITOS NO EVENTO */}
+      {/* ========================================================================= */}
+      {inscritosModalEvento && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#161b22] w-full max-w-4xl max-h-[90vh] rounded-[6px] border border-slate-300 dark:border-slate-700 shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-3 bg-slate-50 dark:bg-slate-900/50">
+              <div>
+                <span className="font-mono text-[10px] uppercase font-bold text-[#226380] dark:text-[#A3C3C7]">
+                  Inscrições Canônicas do Evento
+                </span>
+                <h3 className="font-cinzel text-lg font-bold text-[#113240] dark:text-white">
+                  {inscritosModalEvento.titulo}
+                </h3>
+                <p className="text-xs text-slate-500 font-sans mt-0.5">
+                  {inscritosModalEvento.local} • {formatPeriodo(inscritosModalEvento.data_inicio, inscritosModalEvento.data_fim)}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const inscritos = respostas.filter(r => r.evento_id === inscritosModalEvento.id || (inscritosModalEvento.formulario_id && r.formulario_id === inscritosModalEvento.formulario_id));
+                    if (inscritos.length === 0) {
+                      alert('Não há inscrições para exportar.');
+                      return;
+                    }
+                    const cabecalhos = ['Protocolo', 'Data Submissão', 'Nome Confrade', 'Grau/Vínculo', 'Comunidade', 'Telefone', 'Hospedagem', 'Status'];
+                    const linhas = inscritos.map(r => [
+                      `"${r.protocolo}"`,
+                      `"${new Date(r.created_at).toLocaleDateString('pt-BR')}"`,
+                      `"${r.dados.nome_religioso || r.dados.nome_completo || ''}"`,
+                      `"${r.dados.grau_ordem || ''}"`,
+                      `"${r.dados.comunidade_atual || ''}"`,
+                      `"${r.dados.telefone_whatsapp || ''}"`,
+                      `"${r.dados.necessita_hospedagem ? 'Sim' : 'Não'}"`,
+                      `"${r.status}"`
+                    ].join(','));
+                    const csv = '\uFEFF' + [cabecalhos.join(','), ...linhas].join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `inscritos_${inscritosModalEvento.id}.csv`;
+                    link.click();
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-[6px] transition-colors cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Exportar CSV</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInscritosModalEvento(null)}
+                  className="p-1.5 rounded-[6px] text-slate-400 hover:text-slate-700 dark:hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+              {(() => {
+                const lista = respostas.filter(r => r.evento_id === inscritosModalEvento.id || (inscritosModalEvento.formulario_id && r.formulario_id === inscritosModalEvento.formulario_id));
+
+                if (lista.length === 0) {
+                  return (
+                    <div className="p-12 text-center text-slate-400 font-mono text-xs">
+                      Nenhum confrade inscrito neste evento até o momento.
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-[6px] overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-[11px] font-mono uppercase text-slate-500">
+                            <th className="p-3">Protocolo</th>
+                            <th className="p-3">Confrade</th>
+                            <th className="p-3">Grau</th>
+                            <th className="p-3">Comunidade</th>
+                            <th className="p-3">Hospedagem</th>
+                            <th className="p-3">Telefone</th>
+                            <th className="p-3 text-right">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                          {lista.map(r => (
+                            <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 font-sans">
+                              <td className="p-3 font-mono text-[11px] font-bold text-[#226380] dark:text-[#A3C3C7]">
+                                {r.protocolo}
+                              </td>
+                              <td className="p-3 font-medium text-[#113240] dark:text-white">
+                                {r.dados.nome_religioso || r.dados.nome_completo || 'Sem identificação'}
+                              </td>
+                              <td className="p-3 text-slate-600 dark:text-slate-400 font-mono text-[11px]">
+                                {r.dados.grau_ordem || '-'}
+                              </td>
+                              <td className="p-3 text-slate-600 dark:text-slate-400">
+                                {r.dados.comunidade_atual || '-'}
+                              </td>
+                              <td className="p-3 font-mono text-[11px] text-slate-600 dark:text-slate-400">
+                                {r.dados.necessita_hospedagem ? 'Sim' : 'Não'}
+                              </td>
+                              <td className="p-3 font-mono text-[11px] text-slate-600 dark:text-slate-400">
+                                {r.dados.telefone_whatsapp || '-'}
+                              </td>
+                              <td className="p-3 text-right">
+                                <span className="font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                                  {r.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setInscritosModalEvento(null)}
+                className="px-4 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[6px] hover:bg-slate-100"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL PRÉ-VISUALIZAÇÃO DA FICHA TIMBRADA DO EVENTO */}
+      {/* ========================================================================= */}
+      {previewFormModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#0d1117] w-full max-w-4xl max-h-[94vh] rounded-[6px] border border-slate-300 dark:border-slate-700 shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900">
+              <span className="font-mono text-xs uppercase font-bold text-[#226380] dark:text-[#A3C3C7]">
+                Ficha Timbrada Oficial do Evento
+              </span>
+              <button
+                type="button"
+                onClick={() => setPreviewFormModal(null)}
+                className="p-1 rounded-[6px] text-slate-400 hover:text-slate-700 dark:hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 bg-slate-100 dark:bg-[#090d16]">
+              <FormularioTimbrado
+                titulo={previewFormModal.titulo}
+                subtitulo={previewFormModal.codigo}
+                descricao={previewFormModal.descricao}
+                campos={previewFormModal.campos}
+                modo="preview"
+                onVoltar={() => setPreviewFormModal(null)}
+              />
+            </div>
+
+            <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setPreviewFormModal(null)}
+                className="px-4 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-[6px] hover:bg-slate-200"
+              >
+                Fechar Visualização
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

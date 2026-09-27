@@ -16,7 +16,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
   const { logout, user } = useAuthHook();
   const location = useLocation();
   const [secretariaOpen, setSecretariaOpen] = React.useState(
-    location.pathname.startsWith('/documentos') || location.pathname.startsWith('/agenda')
+    location.pathname.startsWith('/documentos') || location.pathname.startsWith('/agenda') || location.pathname.startsWith('/secretaria-configuracoes')
   );
   const [religiososOpen, setReligiososOpen] = React.useState(
     location.pathname.startsWith('/religiosos') || location.pathname.startsWith('/estatisticas-brm')
@@ -25,7 +25,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
   const [hospedariaOpen, setHospedariaOpen] = React.useState(location.pathname.startsWith('/hospedagens'));
 
   React.useEffect(() => {
-    if (location.pathname.startsWith('/documentos') || location.pathname.startsWith('/agenda')) {
+    if (location.pathname.startsWith('/documentos') || location.pathname.startsWith('/agenda') || location.pathname.startsWith('/secretaria-configuracoes')) {
       setSecretariaOpen(true);
     }
     if (location.pathname.startsWith('/religiosos') || location.pathname.startsWith('/estatisticas-brm')) {
@@ -97,6 +97,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
           <SidebarGroup label="Secretaria & Atos" icon={FileText} open={secretariaOpen} onToggle={() => setSecretariaOpen(previous => !previous)} collapsed={collapsed}>
             <SidebarSubLink to="/documentos" label="Documentos Oficiais" icon={FileText} collapsed={collapsed} />
             <SidebarSubLink to="/agenda" label="Agenda & Eventos" icon={Calendar} collapsed={collapsed} />
+            <SidebarSubLink to="/secretaria-configuracoes" label="Configurações & Formulários" icon={Settings} collapsed={collapsed} />
           </SidebarGroup>
 
           {/* 4. Comunidades & Obras */}

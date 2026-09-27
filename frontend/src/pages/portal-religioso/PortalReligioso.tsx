@@ -16,6 +16,9 @@ import FichaCanonicaPDF from './FichaCanonicaPDF';
 import type { DocumentoProvincial, CategoriaDocumento } from '../DocumentosAdmin';
 import type { EventoProvincial } from '../AgendaAdmin';
 import { staggerStyle } from '../../hooks/useMotion';
+import { FormularioTimbrado } from '../../components/FormularioTimbrado';
+import { SEED_FORMULARIOS } from '../SecretariaConfiguracoes';
+import type { FormularioSecretaria, RespostaFormulario } from '../SecretariaConfiguracoes';
 
 interface CasaAcolhida {
   id: string;
@@ -61,6 +64,13 @@ export const PortalReligioso: React.FC = () => {
   const [loadingEventos, setLoadingEventos] = useState(false);
   const [eventoFiltroTipo, setEventoFiltroTipo] = useState<string>('Todos');
   const [eventoSearch, setEventoSearch] = useState('');
+
+  // Formulários & Inscrições Canônicas da Secretaria
+  const [formulariosSecretaria, setFormulariosSecretaria] = useState<FormularioSecretaria[]>([]);
+  const [respostasInscricoes, setRespostasInscricoes] = useState<RespostaFormulario[]>([]);
+  const [eventoInscricaoModal, setEventoInscricaoModal] = useState<EventoProvincial | null>(null);
+  const [formularioInscricaoAtivo, setFormularioInscricaoAtivo] = useState<FormularioSecretaria | null>(null);
+  const [salvandoInscricao, setSalvandoInscricao] = useState(false);
 
   // Registration State
   const [regGrau, setRegGrau] = useState('Padre');
@@ -296,6 +306,9 @@ export const PortalReligioso: React.FC = () => {
                 descricao: 'Retiro anual de espiritualidade dehoniana para a primeira turma de presbíteros da Província BRM.',
                 publico_alvo: 'Presbíteros',
                 status: 'Confirmado',
+                exige_inscricao: true,
+                formulario_id: 'form-retiro-presbiteros-2026',
+                limite_vagas: 60,
                 created_at: new Date('2026-01-10').toISOString()
               },
               {
@@ -326,6 +339,9 @@ export const PortalReligioso: React.FC = () => {
                 descricao: 'Convivência vocacional, partilha pastoral e aprofundamento do carisma do Pe. Dehon.',
                 publico_alvo: 'Fratres',
                 status: 'Confirmado',
+                exige_inscricao: true,
+                formulario_id: 'form-encontro-fratres-2026',
+                limite_vagas: 30,
                 created_at: new Date('2026-01-10').toISOString()
               },
               {
@@ -387,8 +403,59 @@ export const PortalReligioso: React.FC = () => {
       }
     };
 
+    const fetchFormulariosERespostas = async () => {
+      let formsCarregados: FormularioSecretaria[] = [];
+      try {
+        const { data: fData } = await supabase.from('secretaria_formularios').select('*');
+        if (fData && fData.length > 0) {
+          formsCarregados = fData as FormularioSecretaria[];
+        } else {
+          const savedForms = localStorage.getItem('brm_secretaria_formularios_v1');
+          if (savedForms) {
+            const parsed = JSON.parse(savedForms);
+            if (Array.isArray(parsed) && parsed.length > 0) formsCarregados = parsed;
+          }
+        }
+      } catch {
+        const savedForms = localStorage.getItem('brm_secretaria_formularios_v1');
+        if (savedForms) {
+          try {
+            const parsed = JSON.parse(savedForms);
+            if (Array.isArray(parsed) && parsed.length > 0) formsCarregados = parsed;
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      if (formsCarregados.length === 0) {
+        formsCarregados = SEED_FORMULARIOS;
+      }
+      setFormulariosSecretaria(formsCarregados);
+
+      try {
+        const { data: rData } = await supabase.from('secretaria_respostas_formulario').select('*');
+        if (rData && Array.isArray(rData)) {
+          setRespostasInscricoes(rData as RespostaFormulario[]);
+        } else {
+          const savedResp = localStorage.getItem('brm_secretaria_respostas_v1');
+          if (savedResp) setRespostasInscricoes(JSON.parse(savedResp));
+        }
+      } catch {
+        const savedResp = localStorage.getItem('brm_secretaria_respostas_v1');
+        if (savedResp) {
+          try {
+            setRespostasInscricoes(JSON.parse(savedResp));
+          } catch {
+            setRespostasInscricoes([]);
+          }
+        }
+      }
+    };
+
     fetchDocumentos();
     fetchEventos();
+    fetchFormulariosERespostas();
   }, []);
 
   useEffect(() => {
@@ -1768,6 +1835,12 @@ export const PortalReligioso: React.FC = () => {
                                 {evt.publico_alvo}
                               </span>
                             )}
+                            {evt.exige_inscricao && (
+                              <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-[#0071e3]/10 text-[#0071e3] border border-[#0071e3]/20 flex items-center gap-1">
+                                <FileText className="w-2.5 h-2.5" />
+                                Inscrição Aberta
+                              </span>
+                            )}
                             <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
                               evt.status === 'Confirmado'
                                 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
@@ -1803,11 +1876,58 @@ export const PortalReligioso: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="self-start md:self-auto shrink-0">
+                        <div className="self-start md:self-auto shrink-0 flex flex-col sm:flex-row items-start sm:items-center gap-2">
                           <span className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold bg-[#f5f5f7] dark:bg-[#1d1d1f] text-[#1d1d1f] dark:text-[#f5f5f7] border border-[#d6d6d6]/60 dark:border-white/10 whitespace-nowrap shadow-sm">
                             <Calendar className="w-3.5 h-3.5 text-[#0071e3]" />
                             {formatPeriodo(evt.data_inicio, evt.data_fim)}
                           </span>
+
+                          {evt.exige_inscricao && (() => {
+                            const jaInscrito = respostasInscricoes.find(
+                              r => (r.evento_id === evt.id || (evt.formulario_id && r.formulario_id === evt.formulario_id)) &&
+                                   (r.dados?.email === (religiosoData?.email_institucional || user?.email) || 
+                                    r.dados?.nome_religioso === religiosoData?.nome_religioso || 
+                                    r.dados?.nome_completo === religiosoData?.nome_civil)
+                            );
+
+                            const formVinculado = formulariosSecretaria.find(f => f.id === evt.formulario_id);
+
+                            if (jaInscrito) {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (formVinculado) {
+                                      setEventoInscricaoModal(evt);
+                                      setFormularioInscricaoAtivo(formVinculado);
+                                    }
+                                  }}
+                                  className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 whitespace-nowrap cursor-pointer hover:bg-emerald-500/20 transition-colors"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>Inscrição ({jaInscrito.protocolo})</span>
+                                </button>
+                              );
+                            }
+
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (formVinculado) {
+                                    setEventoInscricaoModal(evt);
+                                    setFormularioInscricaoAtivo(formVinculado);
+                                  } else {
+                                    alert('O formulário para este evento está em fase de homologação pela Secretaria.');
+                                  }
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold bg-[#0071e3] text-white hover:bg-[#0077ed] whitespace-nowrap shadow-sm cursor-pointer transition-all active:scale-95"
+                              >
+                                <FileText className="w-3.5 h-3.5" />
+                                <span>Inscrever-se no Evento</span>
+                              </button>
+                            );
+                          })()}
                         </div>
                       </div>
                     ))}
@@ -2125,6 +2245,92 @@ export const PortalReligioso: React.FC = () => {
 
         </main>
       </div>
+
+      {/* Modal Ficha Timbrada de Inscrição Oficial para o Religioso */}
+      {eventoInscricaoModal && formularioInscricaoAtivo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#0d1117] w-full max-w-4xl max-h-[94vh] rounded-[16px] border border-slate-300 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/90">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-mono uppercase font-bold text-[#0071e3]">
+                  Inscrição Oficial Canônica • {eventoInscricaoModal.titulo}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEventoInscricaoModal(null);
+                  setFormularioInscricaoAtivo(null);
+                }}
+                className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 bg-slate-100/70 dark:bg-[#090d16]">
+              <FormularioTimbrado
+                titulo={formularioInscricaoAtivo.titulo}
+                subtitulo={formularioInscricaoAtivo.codigo}
+                descricao={formularioInscricaoAtivo.descricao}
+                nomeEvento={eventoInscricaoModal.titulo}
+                dataEvento={formatPeriodo(eventoInscricaoModal.data_inicio, eventoInscricaoModal.data_fim)}
+                localEvento={eventoInscricaoModal.local}
+                campos={formularioInscricaoAtivo.campos}
+                valoresIniciais={{
+                  nome_completo: religiosoData?.nome_civil || religiosoData?.nome_religioso || '',
+                  nome_religioso: religiosoData?.nome_religioso || '',
+                  grau_ordem: religiosoData?.grau || 'Presbítero',
+                  comunidade_atual: religiosoData?.comunidade_atual_nome || '',
+                  cargo_funcao: religiosoData?.cargo_funcao || '',
+                  email: religiosoData?.email_institucional || user?.email || '',
+                  telefone_whatsapp: religiosoData?.telefone_whatsapp || religiosoData?.telefone_celular || '',
+                  cpf: religiosoData?.cpf || '',
+                  data_nascimento: religiosoData?.data_nascimento || '',
+                  necessita_hospedagem: 'Sim'
+                }}
+                carregando={salvandoInscricao}
+                onSubmit={async (respostas) => {
+                  setSalvandoInscricao(true);
+                  try {
+                    const protocolo = `FORM-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+                    const novaResp: RespostaFormulario = {
+                      id: 'resp-' + Date.now().toString(36),
+                      formulario_id: formularioInscricaoAtivo.id,
+                      evento_id: eventoInscricaoModal.id,
+                      dados: respostas,
+                      protocolo,
+                      status: 'Confirmada',
+                      created_at: new Date().toISOString()
+                    };
+
+                    try {
+                      await supabase.from('secretaria_respostas_formulario').insert([novaResp]);
+                    } catch (e) {
+                      console.warn('Salvando localmente resposta do religioso:', e);
+                    }
+
+                    const saved = localStorage.getItem('brm_secretaria_respostas_v1');
+                    const list = saved ? JSON.parse(saved) : [];
+                    list.unshift(novaResp);
+                    localStorage.setItem('brm_secretaria_respostas_v1', JSON.stringify(list));
+
+                    setRespostasInscricoes(prev => [novaResp, ...prev]);
+                    setEventoInscricaoModal(null);
+                    setFormularioInscricaoAtivo(null);
+                  } finally {
+                    setSalvandoInscricao(false);
+                  }
+                }}
+                onVoltar={() => {
+                  setEventoInscricaoModal(null);
+                  setFormularioInscricaoAtivo(null);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
