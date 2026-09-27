@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { FormularioTimbrado } from '../components/FormularioTimbrado';
-import type { VariavelCampo } from '../components/FormularioTimbrado';
-import { CATALOGO_VARIAVEIS_PADRAO } from './SecretariaConfiguracoes';
 import type { FormularioSecretaria, RespostaFormulario } from './SecretariaConfiguracoes';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 

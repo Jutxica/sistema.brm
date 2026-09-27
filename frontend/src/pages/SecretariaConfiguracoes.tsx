@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   FileText, Plus, Search, Edit3, Trash2, CheckCircle2, AlertCircle, 
-  X, Eye, Copy, Download, Share2, Layers, Settings, Hash, 
-  Mail, BookmarkCheck, Check, Sparkles, SlidersHorizontal, 
-  HelpCircle, ArrowRight, Printer, Users, ExternalLink, ShieldCheck,
+  X, Eye, Copy, Download, Hash, 
+  Mail, Check, SlidersHorizontal, 
   Shield, BookOpen
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
@@ -241,7 +240,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
   const [formularios, setFormularios] = useState<FormularioSecretaria[]>([]);
   const [respostas, setRespostas] = useState<RespostaFormulario[]>([]);
   const [configuracao, setConfiguracao] = useState<ConfiguracaoSecretaria>(CONFIG_PADRAO);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
   const [feedbackMsg, setFeedbackMsg] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
 
   // Estados do Modal Construtor de Variáveis (Igual à foto de referência)
