@@ -19,7 +19,7 @@ export function useAnimatedNumber(
 
   useEffect(() => {
     let cancelFn: (() => void) | null = null;
-    let timerId: NodeJS.Timeout | null = null;
+    let timerId: ReturnType<typeof setTimeout> | null = null;
 
     const startAnimation = () => {
       cancelFn = animateNumber({

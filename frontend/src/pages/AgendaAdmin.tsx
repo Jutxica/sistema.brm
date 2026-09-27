@@ -3,11 +3,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   Calendar, Plus, Search, MapPin, Clock, Users, Edit3, Trash2, 
   CheckCircle2, AlertCircle, X, ChevronRight, Filter, Building2, Tag,
-  FileText, ExternalLink, Download, SlidersHorizontal, Check, Eye, Copy
+  FileText, ExternalLink, Download, SlidersHorizontal, Check, Eye, Copy,
+  Printer, ArrowLeft
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { staggerStyle } from '../hooks/useMotion';
 import { FormularioTimbrado } from '../components/FormularioTimbrado';
+import { RelatorioInscricoesPrint } from '../components/RelatorioInscricoesPrint';
+import { FichaInscricaoIndividualPrint } from '../components/FichaInscricaoIndividualPrint';
 import type { FormularioSecretaria, RespostaFormulario } from './SecretariaConfiguracoes';
 
 export type TipoEvento = 
@@ -189,10 +192,12 @@ export const AgendaAdmin: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
-  // Modais de Inscrição & Visualização
+  // Modais de Inscrição & Visualização (Páginas completas)
   const [inscritosModalEvento, setInscritosModalEvento] = useState<EventoProvincial | null>(null);
   const [previewFormModal, setPreviewFormModal] = useState<FormularioSecretaria | null>(null);
   const [copiadoLinkEventoId, setCopiadoLinkEventoId] = useState<string | null>(null);
+  const [relatorioPrintEvento, setRelatorioPrintEvento] = useState<EventoProvincial | null>(null);
+  const [fichaPrintResposta, setFichaPrintResposta] = useState<RespostaFormulario | null>(null);
 
   // Form Fields
   const [formTitulo, setFormTitulo] = useState('');
@@ -530,6 +535,81 @@ export const AgendaAdmin: React.FC = () => {
     }
   };
 
+  // Se estiver gerando Relatório Completo para Impressão do Evento (Página Completa)
+  if (relatorioPrintEvento) {
+    const formVinculado = formularios.find(f => f.id === relatorioPrintEvento.formulario_id);
+    const listaResp = respostas.filter(r => 
+      r.evento_id === relatorioPrintEvento.id || 
+      (relatorioPrintEvento.formulario_id && r.formulario_id === relatorioPrintEvento.formulario_id)
+    );
+
+    return (
+      <RelatorioInscricoesPrint
+        formulario={formVinculado || null}
+        tituloDocumento={`Lista Oficial de Inscritos — ${relatorioPrintEvento.titulo}`}
+        subtitulo={`${relatorioPrintEvento.local}${relatorioPrintEvento.cidade ? ` • ${relatorioPrintEvento.cidade}/${relatorioPrintEvento.uf || ''}` : ''}`}
+        nomeEvento={relatorioPrintEvento.titulo}
+        respostas={listaResp}
+        onVoltar={() => setRelatorioPrintEvento(null)}
+      />
+    );
+  }
+
+  // Se estiver visualizando a Ficha Individual de Inscrição para Impressão (Página Completa)
+  if (fichaPrintResposta) {
+    const formVinculado = formularios.find(f => f.id === fichaPrintResposta.formulario_id);
+    return (
+      <FichaInscricaoIndividualPrint
+        resposta={fichaPrintResposta}
+        formulario={formVinculado}
+        onVoltar={() => setFichaPrintResposta(null)}
+        onAtualizarStatus={(respostaId, novoStatus) => {
+          setRespostas(prev => prev.map(r => r.id === respostaId ? { ...r, status: novoStatus } : r));
+        }}
+      />
+    );
+  }
+
+  // Se estiver em Pré-visualização Timbrada da Ficha do Evento (Página Completa, sem modal)
+  if (previewFormModal) {
+    return (
+      <div className="min-h-screen bg-[#F2F2F2] dark:bg-[#090d16] py-6 px-3 sm:px-6">
+        <div className="max-w-4xl mx-auto space-y-4">
+          <div className="flex items-center justify-between bg-white dark:bg-[#12161f] p-3 px-4 rounded-[6px] border border-[#113240]/10 dark:border-white/10 shadow-xs print:hidden">
+            <button
+              type="button"
+              onClick={() => setPreviewFormModal(null)}
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 hover:text-[#113240] dark:hover:text-white bg-slate-100 dark:bg-slate-800 rounded-[6px] transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Voltar à Agenda</span>
+            </button>
+            <span className="font-mono text-[11px] uppercase font-bold text-[#226380] dark:text-[#A3C3C7]">
+              Ficha Timbrada Oficial do Evento — Página Completa
+            </span>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] transition-colors cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Imprimir Ficha</span>
+            </button>
+          </div>
+
+          <FormularioTimbrado
+            titulo={previewFormModal.titulo}
+            subtitulo={previewFormModal.codigo}
+            descricao={previewFormModal.descricao}
+            campos={previewFormModal.campos}
+            modo="preview"
+            onVoltar={() => setPreviewFormModal(null)}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Masthead Secretaria Provincial — Modernismo Corporativo Editorial */}
@@ -761,12 +841,24 @@ export const AgendaAdmin: React.FC = () => {
                                 <span>Inscritos ({inscritosCount})</span>
                               </button>
 
+                              {inscritosCount > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setRelatorioPrintEvento(evt)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] border border-[#113240]/20 bg-[#113240]/5 hover:bg-[#113240]/10 text-[11px] font-mono text-[#113240] dark:text-[#F2C894] font-semibold transition-colors cursor-pointer"
+                                  title="Imprimir lista oficial de presença/inscrições deste evento"
+                                >
+                                  <Printer className="w-3 h-3" />
+                                  <span className="hidden sm:inline">Imprimir Lista</span>
+                                </button>
+                              )}
+
                               {formAssociado && (
                                 <button
                                   type="button"
                                   onClick={() => setPreviewFormModal(formAssociado)}
                                   className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] border border-[#226380]/30 bg-[#226380]/10 hover:bg-[#226380]/20 text-[11px] font-mono text-[#226380] dark:text-[#A3C3C7] font-semibold transition-colors cursor-pointer"
-                                  title="Pré-visualizar ficha timbrada deste evento"
+                                  title="Pré-visualizar ficha timbrada deste evento em página completa"
                                 >
                                   <Eye className="w-3 h-3" />
                                   <span className="hidden sm:inline">Ver Ficha</span>
@@ -1175,6 +1267,18 @@ export const AgendaAdmin: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
+                    const evt = inscritosModalEvento;
+                    setInscritosModalEvento(null);
+                    setRelatorioPrintEvento(evt);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] transition-colors cursor-pointer shadow-xs"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Imprimir Lista Oficial</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
                     const inscritos = respostas.filter(r => r.evento_id === inscritosModalEvento.id || (inscritosModalEvento.formulario_id && r.formulario_id === inscritosModalEvento.formulario_id));
                     if (inscritos.length === 0) {
                       alert('Não há inscrições para exportar.');
@@ -1237,7 +1341,7 @@ export const AgendaAdmin: React.FC = () => {
                             <th className="p-3">Comunidade</th>
                             <th className="p-3">Hospedagem</th>
                             <th className="p-3">Telefone</th>
-                            <th className="p-3 text-right">Status</th>
+                            <th className="p-3 text-right">Ações</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1262,9 +1366,23 @@ export const AgendaAdmin: React.FC = () => {
                                 {r.dados.telefone_whatsapp || '-'}
                               </td>
                               <td className="p-3 text-right">
-                                <span className="font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                                  {r.status}
-                                </span>
+                                <div className="flex items-center justify-end gap-2">
+                                  <span className="font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                                    {r.status}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setInscritosModalEvento(null);
+                                      setFichaPrintResposta(r);
+                                    }}
+                                    title="Ver ficha completa de inscrição com todas as respostas canônicas"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono font-semibold text-[#226380] hover:text-[#113240] dark:text-[#A3C3C7] dark:hover:text-white bg-slate-100 hover:bg-[#226380]/15 dark:bg-slate-800 rounded-[4px] transition-colors cursor-pointer border border-[#226380]/20"
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                    <span>Ver Ficha</span>
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -1280,52 +1398,9 @@ export const AgendaAdmin: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setInscritosModalEvento(null)}
-                className="px-4 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[6px] hover:bg-slate-100"
+                className="px-4 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[6px] hover:bg-slate-100 cursor-pointer"
               >
                 Fechar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL PRÉ-VISUALIZAÇÃO DA FICHA TIMBRADA DO EVENTO */}
-      {/* ========================================================================= */}
-      {previewFormModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#0d1117] w-full max-w-4xl max-h-[94vh] rounded-[6px] border border-slate-300 dark:border-slate-700 shadow-2xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900">
-              <span className="font-mono text-xs uppercase font-bold text-[#226380] dark:text-[#A3C3C7]">
-                Ficha Timbrada Oficial do Evento
-              </span>
-              <button
-                type="button"
-                onClick={() => setPreviewFormModal(null)}
-                className="p-1 rounded-[6px] text-slate-400 hover:text-slate-700 dark:hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-4 sm:p-6 overflow-y-auto flex-1 bg-slate-100 dark:bg-[#090d16]">
-              <FormularioTimbrado
-                titulo={previewFormModal.titulo}
-                subtitulo={previewFormModal.codigo}
-                descricao={previewFormModal.descricao}
-                campos={previewFormModal.campos}
-                modo="preview"
-                onVoltar={() => setPreviewFormModal(null)}
-              />
-            </div>
-
-            <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setPreviewFormModal(null)}
-                className="px-4 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-[6px] hover:bg-slate-200"
-              >
-                Fechar Visualização
               </button>
             </div>
           </div>

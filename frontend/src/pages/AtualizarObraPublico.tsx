@@ -94,7 +94,7 @@ export const AtualizarObraPublico: React.FC = () => {
   );
 
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitialLoad = useRef(true);
 
   // Carregar dados da Obra a partir do token (com fallback para ID)
@@ -832,7 +832,7 @@ export const AtualizarObraPublico: React.FC = () => {
                     )}
 
                     <input
-                      ref={el => fileInputRefs.current[index] = el}
+                      ref={el => { fileInputRefs.current[index] = el; }}
                       type="file"
                       accept="image/*"
                       className="hidden"

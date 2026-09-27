@@ -323,7 +323,7 @@ export const DocumentosAdmin: React.FC = () => {
 
   // Alternar Status (Ativo / Arquivado)
   const handleToggleStatus = async (doc: DocumentoProvincial) => {
-    const novoStatus = doc.status === 'Ativo' ? 'Arquivado' : 'Ativo';
+    const novoStatus: 'Ativo' | 'Arquivado' = doc.status === 'Ativo' ? 'Arquivado' : 'Ativo';
     try {
       await supabase
         .from('documentos_provinciais')

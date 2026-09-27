@@ -3,11 +3,13 @@ import {
   FileText, Plus, Search, Edit3, Trash2, CheckCircle2, AlertCircle, 
   X, Eye, Copy, Download, Hash, 
   Mail, Check, SlidersHorizontal, 
-  Shield, BookOpen
+  Shield, BookOpen, Users, Printer, ArrowLeft, Filter, Calendar, Home
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { FormularioTimbrado } from '../components/FormularioTimbrado';
 import type { VariavelCampo } from '../components/FormularioTimbrado';
+import { RelatorioInscricoesPrint } from '../components/RelatorioInscricoesPrint';
+import { FichaInscricaoIndividualPrint } from '../components/FichaInscricaoIndividualPrint';
 import { staggerStyle } from '../hooks/useMotion';
 
 // Definições de Tipos
@@ -236,12 +238,19 @@ const CONFIG_PADRAO: ConfiguracaoSecretaria = {
 };
 
 export const SecretariaConfiguracoes: React.FC = () => {
-  const [tabAtiva, setTabAtiva] = useState<'formularios' | 'atos' | 'timbrado' | 'notificacoes'>('formularios');
+  const [tabAtiva, setTabAtiva] = useState<'formularios' | 'inscricoes' | 'atos' | 'timbrado' | 'notificacoes'>('formularios');
   const [formularios, setFormularios] = useState<FormularioSecretaria[]>([]);
   const [respostas, setRespostas] = useState<RespostaFormulario[]>([]);
   const [configuracao, setConfiguracao] = useState<ConfiguracaoSecretaria>(CONFIG_PADRAO);
   const [_loading, setLoading] = useState(true);
   const [feedbackMsg, setFeedbackMsg] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
+
+  // Estados da Central de Inscrições & Impressão
+  const [filtroInscricaoFormId, setFiltroInscricaoFormId] = useState<string>('todos');
+  const [filtroInscricaoStatus, setFiltroInscricaoStatus] = useState<string>('todos');
+  const [buscaInscricao, setBuscaInscricao] = useState<string>('');
+  const [relatorioPrintForm, setRelatorioPrintForm] = useState<FormularioSecretaria | 'todos' | null>(null);
+  const [fichaPrintResposta, setFichaPrintResposta] = useState<RespostaFormulario | null>(null);
 
   // Estados do Modal Construtor de Variáveis (Igual à foto de referência)
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
@@ -269,14 +278,31 @@ export const SecretariaConfiguracoes: React.FC = () => {
   const [novaVarPlaceholder, setNovaVarPlaceholder] = useState('');
   const [novaVarOpcoes, setNovaVarOpcoes] = useState('');
 
-  // Modal de Pré-Visualização Timbrada
+  // Exibição em Página Completa (Substitui Modais)
   const [previewForm, setPreviewForm] = useState<FormularioSecretaria | null>(null);
-
-  // Modal de Respostas de um Formulário
-  const [verRespostasForm, setVerRespostasForm] = useState<FormularioSecretaria | null>(null);
 
   // Link copiado feedback
   const [linkCopiadoId, setLinkCopiadoId] = useState<string | null>(null);
+
+  // Atualizar status de uma inscrição
+  const handleAtualizarStatusResposta = async (id: string, novoStatus: 'Confirmada' | 'Pendente' | 'Cancelada') => {
+    setRespostas(prev => prev.map(r => r.id === id ? { ...r, status: novoStatus } : r));
+    try {
+      await supabase.from('secretaria_respostas_formulario').update({ status: novoStatus }).eq('id', id);
+    } catch (e) {
+      console.warn('Erro ao atualizar status no supabase:', e);
+    }
+    const saved = localStorage.getItem(LOCAL_STORAGE_RESPOSTAS);
+    if (saved) {
+      const list: RespostaFormulario[] = JSON.parse(saved);
+      const updated = list.map(r => r.id === id ? { ...r, status: novoStatus } : r);
+      localStorage.setItem(LOCAL_STORAGE_RESPOSTAS, JSON.stringify(updated));
+    }
+    if (fichaPrintResposta?.id === id) {
+      setFichaPrintResposta(prev => prev ? { ...prev, status: novoStatus } : null);
+    }
+    setFeedbackMsg({ tipo: 'sucesso', texto: `Status da inscrição atualizado para ${novoStatus}.` });
+  };
 
   // Carregar dados (com resiliência Supabase + localStorage)
   const carregarDados = async () => {
@@ -628,29 +654,69 @@ export const SecretariaConfiguracoes: React.FC = () => {
     mostrarAlerta('sucesso', 'Configurações institucionais salvas com sucesso!');
   };
 
-  // Exportar Respostas em CSV
-  const exportarCSV = (form: FormularioSecretaria) => {
-    const respDoForm = respostas.filter(r => r.formulario_id === form.id);
-    if (respDoForm.length === 0) {
-      alert('Não há respostas registradas para este formulário ainda.');
+  // Exportar Respostas em CSV (Geral ou por Formulário)
+  const exportarCSVGeral = (form?: FormularioSecretaria | null) => {
+    const lista = form 
+      ? respostas.filter(r => r.formulario_id === form.id) 
+      : (filtroInscricaoFormId === 'todos' 
+          ? respostas 
+          : respostas.filter(r => r.formulario_id === filtroInscricaoFormId));
+    
+    if (lista.length === 0) {
+      alert('Não há inscrições registradas para exportar.');
       return;
     }
 
-    const cabecalhos = ['Protocolo', 'Data Submissão', 'Status', ...form.campos.map(c => c.label)];
-    const linhas = respDoForm.map(r => {
-      const vals = form.campos.map(c => {
-        const v = r.dados[c.id];
-        if (v === undefined || v === null) return '""';
-        return `"${String(v).replace(/"/g, '""')}"`;
-      });
-      return [`"${r.protocolo}"`, `"${new Date(r.created_at).toLocaleDateString('pt-BR')}"`, `"${r.status}"`, ...vals].join(',');
+    const cabecalhos = [
+      'Ordem',
+      'Protocolo',
+      'Data Submissão',
+      'Formulário',
+      'Nome Confrade',
+      'Nome Civil',
+      'Grau de Ordem',
+      'Comunidade',
+      'Hospedagem',
+      'Tipo de Quarto',
+      'Data Chegada',
+      'Meio Transporte',
+      'Restrições Alimentares',
+      'Tamanho Paramento',
+      'Telefone/WhatsApp',
+      'E-mail',
+      'Status',
+      'Observações'
+    ];
+
+    const linhas = lista.map((r, idx) => {
+      const fVinculado = formularios.find(f => f.id === r.formulario_id);
+      return [
+        idx + 1,
+        `"${r.protocolo}"`,
+        `"${new Date(r.created_at).toLocaleString('pt-BR')}"`,
+        `"${fVinculado?.titulo || r.formulario_id}"`,
+        `"${r.dados?.nome_religioso || r.dados?.nome_completo || ''}"`,
+        `"${r.dados?.nome_completo || ''}"`,
+        `"${r.dados?.grau_ordem || ''}"`,
+        `"${r.dados?.comunidade_atual || ''}"`,
+        `"${r.dados?.necessita_hospedagem ? 'Sim' : 'Não'}"`,
+        `"${r.dados?.tipo_quarto || ''}"`,
+        `"${r.dados?.data_chegada || ''}"`,
+        `"${r.dados?.meio_transporte || ''}"`,
+        `"${r.dados?.restricao_alimentar || ''}"`,
+        `"${r.dados?.tamanho_paramento || ''}"`,
+        `"${r.dados?.telefone_whatsapp || ''}"`,
+        `"${r.dados?.email || ''}"`,
+        `"${r.status}"`,
+        `"${(r.dados?.observacoes_gerais || '').replace(/\n/g, ' ')}"`
+      ].join(',');
     });
 
     const csvContent = '\uFEFF' + [cabecalhos.join(','), ...linhas].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `inscricoes_${form.id}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `relatorio_inscricoes_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
   };
 
@@ -665,6 +731,97 @@ export const SecretariaConfiguracoes: React.FC = () => {
   });
 
   const totalSelecionadas = Object.values(camposSelecionados).filter(v => v.selecionado).length;
+
+  // Se estiver gerando Relatório Completo para Impressão (Página Completa)
+  if (relatorioPrintForm) {
+    const formRef = relatorioPrintForm === 'todos' ? null : relatorioPrintForm;
+    const listaResp = relatorioPrintForm === 'todos' 
+      ? (filtroInscricaoFormId === 'todos' ? respostas : respostas.filter(r => r.formulario_id === filtroInscricaoFormId))
+      : respostas.filter(r => r.formulario_id === relatorioPrintForm.id);
+    
+    return (
+      <RelatorioInscricoesPrint
+        formulario={formRef}
+        tituloDocumento={formRef ? formRef.titulo : 'Relatório Geral de Inscrições Provinciais'}
+        subtitulo={formRef ? formRef.codigo : 'Geral - Todos os Formulários'}
+        nomeEvento={formRef?.titulo}
+        respostas={listaResp}
+        onVoltar={() => setRelatorioPrintForm(null)}
+        cabecalho={{
+          congregacao: configuracao.cabecalho_institucional,
+          provincia: configuracao.subtitulo_provincia,
+          orgao: configuracao.orgao_emissor,
+          lema: configuracao.lema_oficial
+        }}
+      />
+    );
+  }
+
+  // Se estiver visualizando a Ficha Individual de Inscrição para Impressão (Página Completa)
+  if (fichaPrintResposta) {
+    const formVinculado = formularios.find(f => f.id === fichaPrintResposta.formulario_id);
+    return (
+      <FichaInscricaoIndividualPrint
+        resposta={fichaPrintResposta}
+        formulario={formVinculado}
+        onVoltar={() => setFichaPrintResposta(null)}
+        onAtualizarStatus={handleAtualizarStatusResposta}
+        cabecalho={{
+          congregacao: configuracao.cabecalho_institucional,
+          provincia: configuracao.subtitulo_provincia,
+          orgao: configuracao.orgao_emissor,
+          lema: configuracao.lema_oficial
+        }}
+      />
+    );
+  }
+
+  // Se estiver em Pré-visualização Timbrada (Página Completa, sem modal)
+  if (previewForm) {
+    return (
+      <div className="min-h-screen bg-[#F2F2F2] dark:bg-[#090d16] py-6 px-3 sm:px-6">
+        <div className="max-w-4xl mx-auto space-y-4">
+          <div className="flex items-center justify-between bg-white dark:bg-[#12161f] p-3 px-4 rounded-[6px] border border-[#113240]/10 dark:border-white/10 shadow-xs print:hidden">
+            <button
+              type="button"
+              onClick={() => setPreviewForm(null)}
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 hover:text-[#113240] dark:hover:text-white bg-slate-100 dark:bg-slate-800 rounded-[6px] transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Voltar às Configurações</span>
+            </button>
+            <span className="font-mono text-[11px] uppercase font-bold text-[#226380] dark:text-[#A3C3C7]">
+              Visualização Timbrada em Página Completa
+            </span>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] transition-colors cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Imprimir Ficha</span>
+            </button>
+          </div>
+
+          <FormularioTimbrado
+            titulo={previewForm.titulo}
+            subtitulo={previewForm.codigo}
+            descricao={previewForm.descricao}
+            campos={previewForm.campos}
+            modo="preview"
+            onVoltar={() => setPreviewForm(null)}
+            cabecalhoPersonalizado={{
+              congregacao: configuracao.cabecalho_institucional,
+              provincia: configuracao.subtitulo_provincia,
+              orgao: configuracao.orgao_emissor,
+              lema: configuracao.lema_oficial,
+              emailContato: configuracao.email_secretaria
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -733,6 +890,25 @@ export const SecretariaConfiguracoes: React.FC = () => {
               : 'bg-black/5 dark:bg-white/10 text-slate-500'
           }`}>
             {formularios.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setTabAtiva('inscricoes')}
+          className={`px-4 py-2 text-xs font-mono uppercase tracking-wider font-semibold rounded-[6px] transition-all flex items-center gap-2 cursor-pointer shrink-0 motion-press ${
+            tabAtiva === 'inscricoes'
+              ? 'bg-white dark:bg-[#1e2535] text-[#113240] dark:text-white shadow-sm border border-[#113240]/15 dark:border-white/15'
+              : 'text-[#474747] dark:text-[#86868b] hover:text-[#113240] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 border border-transparent'
+          }`}
+        >
+          <Users className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7]" />
+          <span>Inscrições & Protocolos</span>
+          <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-[4px] font-bold ${
+            tabAtiva === 'inscricoes'
+              ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+              : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+          }`}>
+            {respostas.length}
           </span>
         </button>
 
@@ -881,9 +1057,12 @@ export const SecretariaConfiguracoes: React.FC = () => {
                     <div className="flex flex-wrap items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-[#113240]/10 dark:border-white/10 shrink-0">
                       {/* Respostas / Inscrições */}
                       <button
-                        onClick={() => setVerRespostasForm(form)}
+                        onClick={() => {
+                          setFiltroInscricaoFormId(form.id);
+                          setTabAtiva('inscricoes');
+                        }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-semibold rounded-[6px] border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer motion-press"
-                        title="Visualizar inscrições efetuadas"
+                        title="Visualizar inscrições e respostas deste formulário"
                       >
                         <Users className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7]" />
                         <span>Inscrições ({respostasCont})</span>
@@ -932,6 +1111,347 @@ export const SecretariaConfiguracoes: React.FC = () => {
               })}
             </div>
           )}
+        </section>
+      )}
+
+      {/* ABA 2: INSCRIÇÕES & PROTOCOLOS (CENTRAL COMPLETA) */}
+      {tabAtiva === 'inscricoes' && (
+        <section className="space-y-6">
+          {/* Cabeçalho da Central com Ações de Impressão e Filtros */}
+          <div className="bg-white dark:bg-[#161b22] p-5 sm:p-6 rounded-[8px] border border-[#113240]/10 dark:border-white/10 shadow-sm space-y-5">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-100 dark:border-white/10 pb-4">
+              <div>
+                <span className="font-mono text-[10px] uppercase font-bold text-[#226380] dark:text-[#A3C3C7] tracking-wider block">
+                  Gestão Canônica & Administrativa
+                </span>
+                <h2 className="font-cinzel text-xl font-bold text-[#113240] dark:text-white">
+                  Central de Inscrições & Protocolos
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-sans mt-0.5">
+                  Consulte os dados completos de cada confrade, filtre por formulário ou status e imprima a lista completa ou fichas individuais timbradas.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => exportarCSVGeral(filtroInscricaoFormId === 'todos' ? null : formularios.find(f => f.id === filtroInscricaoFormId))}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-[6px] transition-colors cursor-pointer shadow-2xs motion-press"
+                  title="Exportar arquivo CSV com todos os campos e opções"
+                >
+                  <Download className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Exportar CSV</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const formSelecionado = filtroInscricaoFormId === 'todos' ? 'todos' : (formularios.find(f => f.id === filtroInscricaoFormId) || 'todos');
+                    setRelatorioPrintForm(formSelecionado);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-mono uppercase font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] transition-colors cursor-pointer shadow-sm motion-press"
+                  title="Abrir tela de impressão oficial da lista completa de inscritos"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Imprimir Lista Completa</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Painel de Filtros e Busca */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Filtro por Formulário */}
+              <div>
+                <label className="block text-[10px] font-mono uppercase font-bold text-slate-500 mb-1">
+                  Filtrar por Formulário:
+                </label>
+                <select
+                  value={filtroInscricaoFormId}
+                  onChange={(e) => setFiltroInscricaoFormId(e.target.value)}
+                  className="w-full px-3 py-2 text-xs font-sans rounded-[6px] border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-[#226380]"
+                >
+                  <option value="todos">Todos os Formulários ({respostas.length})</option>
+                  {formularios.map(f => {
+                    const c = respostas.filter(r => r.formulario_id === f.id).length;
+                    return (
+                      <option key={f.id} value={f.id}>
+                        {f.titulo} ({c})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              {/* Filtro por Status */}
+              <div>
+                <label className="block text-[10px] font-mono uppercase font-bold text-slate-500 mb-1">
+                  Filtrar por Status:
+                </label>
+                <select
+                  value={filtroInscricaoStatus}
+                  onChange={(e) => setFiltroInscricaoStatus(e.target.value)}
+                  className="w-full px-3 py-2 text-xs font-sans rounded-[6px] border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-[#226380]"
+                >
+                  <option value="todos">Todos os Status</option>
+                  <option value="Confirmada">Confirmadas</option>
+                  <option value="Pendente">Pendentes</option>
+                  <option value="Cancelada">Canceladas</option>
+                </select>
+              </div>
+
+              {/* Busca Textual */}
+              <div className="sm:col-span-2">
+                <label className="block text-[10px] font-mono uppercase font-bold text-slate-500 mb-1">
+                  Buscar Confrade ou Dados:
+                </label>
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Nome, protocolo, comunidade, telefone ou opção..."
+                    value={buscaInscricao}
+                    onChange={(e) => setBuscaInscricao(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-xs font-sans rounded-[6px] border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-[#226380]"
+                  />
+                  {buscaInscricao && (
+                    <button
+                      type="button"
+                      onClick={() => setBuscaInscricao('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Quadro de Resumo Rápido de Métricas */}
+            {(() => {
+              const inscricoesFiltradas = respostas.filter(r => {
+                const matchForm = filtroInscricaoFormId === 'todos' || r.formulario_id === filtroInscricaoFormId;
+                const matchStatus = filtroInscricaoStatus === 'todos' || r.status === filtroInscricaoStatus;
+                const buscaLower = buscaInscricao.toLowerCase();
+                const matchBusca = !buscaInscricao || 
+                  (r.protocolo && r.protocolo.toLowerCase().includes(buscaLower)) ||
+                  (r.dados?.nome_religioso && r.dados.nome_religioso.toLowerCase().includes(buscaLower)) ||
+                  (r.dados?.nome_completo && r.dados.nome_completo.toLowerCase().includes(buscaLower)) ||
+                  (r.dados?.comunidade_atual && r.dados.comunidade_atual.toLowerCase().includes(buscaLower)) ||
+                  (r.dados?.telefone_whatsapp && r.dados.telefone_whatsapp.toLowerCase().includes(buscaLower));
+                return matchForm && matchStatus && matchBusca;
+              });
+
+              const total = inscricoesFiltradas.length;
+              const confirmadas = inscricoesFiltradas.filter(r => r.status === 'Confirmada').length;
+              const pendentes = inscricoesFiltradas.filter(r => r.status === 'Pendente').length;
+              const hospedagem = inscricoesFiltradas.filter(r => r.dados?.necessita_hospedagem === true || r.dados?.necessita_hospedagem === 'Sim').length;
+
+              return (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-[6px] border border-slate-200 dark:border-slate-800">
+                    <span className="font-mono text-[10px] uppercase text-slate-400 block font-semibold">Total Filtrado</span>
+                    <span className="font-mono text-xl font-bold text-[#113240] dark:text-white">{total}</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-[6px] border border-slate-200 dark:border-slate-800">
+                    <span className="font-mono text-[10px] uppercase text-emerald-600 block font-semibold">Confirmadas</span>
+                    <span className="font-mono text-xl font-bold text-emerald-600">{confirmadas}</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-[6px] border border-slate-200 dark:border-slate-800">
+                    <span className="font-mono text-[10px] uppercase text-amber-600 block font-semibold">Pendentes</span>
+                    <span className="font-mono text-xl font-bold text-amber-600">{pendentes}</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-[6px] border border-slate-200 dark:border-slate-800">
+                    <span className="font-mono text-[10px] uppercase text-[#226380] block font-semibold">Com Hospedagem</span>
+                    <span className="font-mono text-xl font-bold text-[#226380]">{hospedagem}</span>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Tabela de Inscrições com Opções Detalhadas */}
+          {(() => {
+            const inscricoesFiltradas = respostas.filter(r => {
+              const matchForm = filtroInscricaoFormId === 'todos' || r.formulario_id === filtroInscricaoFormId;
+              const matchStatus = filtroInscricaoStatus === 'todos' || r.status === filtroInscricaoStatus;
+              const buscaLower = buscaInscricao.toLowerCase();
+              const matchBusca = !buscaInscricao || 
+                (r.protocolo && r.protocolo.toLowerCase().includes(buscaLower)) ||
+                (r.dados?.nome_religioso && r.dados.nome_religioso.toLowerCase().includes(buscaLower)) ||
+                (r.dados?.nome_completo && r.dados.nome_completo.toLowerCase().includes(buscaLower)) ||
+                (r.dados?.comunidade_atual && r.dados.comunidade_atual.toLowerCase().includes(buscaLower)) ||
+                (r.dados?.telefone_whatsapp && r.dados.telefone_whatsapp.toLowerCase().includes(buscaLower));
+              return matchForm && matchStatus && matchBusca;
+            });
+
+            if (inscricoesFiltradas.length === 0) {
+              return (
+                <div className="bg-white dark:bg-[#161b22] p-12 text-center rounded-[8px] border border-slate-200 dark:border-slate-800 space-y-3">
+                  <Users className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600" />
+                  <h3 className="font-cinzel text-base font-bold text-[#113240] dark:text-white">
+                    Nenhuma Inscrição Encontrada
+                  </h3>
+                  <p className="text-xs text-slate-500 font-sans max-w-sm mx-auto">
+                    Não há registros com os filtros atuais. Tente selecionar outro formulário ou limpar a busca.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFiltroInscricaoFormId('todos');
+                      setFiltroInscricaoStatus('todos');
+                      setBuscaInscricao('');
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono uppercase font-semibold text-[#226380] bg-[#226380]/10 hover:bg-[#226380]/20 rounded-[6px] transition-colors cursor-pointer"
+                  >
+                    <span>Limpar Filtros</span>
+                  </button>
+                </div>
+              );
+            }
+
+            return (
+              <div className="bg-white dark:bg-[#161b22] rounded-[8px] border border-[#113240]/10 dark:border-white/10 shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
+                  <span className="font-mono text-xs font-bold uppercase text-[#113240] dark:text-white">
+                    Confrades Inscritos ({inscricoesFiltradas.length})
+                  </span>
+                  <span className="font-mono text-[10px] text-slate-400">
+                    Clique em &quot;Ver Ficha Completa&quot; para inspecionar todas as respostas
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-[#113240]/5 dark:bg-[#12161f] border-b border-[#113240]/10 dark:border-white/10 text-[11px] font-mono uppercase text-[#226380] dark:text-[#A3C3C7] font-semibold">
+                        <th className="p-3">Protocolo</th>
+                        <th className="p-3">Confrade & Grau</th>
+                        <th className="p-3">Formulário</th>
+                        <th className="p-3">Comunidade</th>
+                        <th className="p-3">Hospedagem & Chegada</th>
+                        <th className="p-3">Opções & Restrições</th>
+                        <th className="p-3">Contato</th>
+                        <th className="p-3">Status</th>
+                        <th className="p-3 text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {inscricoesFiltradas.map(r => {
+                        const formVinculado = formularios.find(f => f.id === r.formulario_id);
+                        return (
+                          <tr key={r.id} className="hover:bg-[#226380]/5 transition-colors font-sans">
+                            <td className="p-3 font-mono text-[11px] font-bold text-[#226380] dark:text-[#A3C3C7] whitespace-nowrap">
+                              {r.protocolo}
+                              <span className="block text-[9px] text-slate-400 font-normal">
+                                {new Date(r.created_at).toLocaleDateString('pt-BR')}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <strong className="block text-slate-900 dark:text-white font-medium">
+                                {r.dados?.nome_religioso || r.dados?.nome_completo || 'Sem identificação'}
+                              </strong>
+                              {r.dados?.nome_completo && r.dados?.nome_completo !== r.dados?.nome_religioso && (
+                                <span className="block text-[10px] text-slate-500">
+                                  {r.dados?.nome_completo}
+                                </span>
+                              )}
+                              {r.dados?.grau_ordem && (
+                                <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded font-mono text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                                  {r.dados?.grau_ordem}
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-3 text-[11px] text-slate-700 dark:text-slate-300 max-w-[180px] truncate" title={formVinculado?.titulo || r.formulario_id}>
+                              {formVinculado?.titulo || r.formulario_id}
+                            </td>
+                            <td className="p-3 text-slate-600 dark:text-slate-400 text-[11px]">
+                              {r.dados?.comunidade_atual || '-'}
+                            </td>
+                            <td className="p-3 font-mono text-[11px] text-slate-600 dark:text-slate-400">
+                              {r.dados?.necessita_hospedagem ? (
+                                <div>
+                                  <span className="font-bold text-[#226380] dark:text-[#A3C3C7]">Sim</span>
+                                  {r.dados?.tipo_quarto && (
+                                    <span className="block text-[9px] text-slate-500">{r.dados?.tipo_quarto}</span>
+                                  )}
+                                  {r.dados?.data_chegada && (
+                                    <span className="block text-[9px] text-slate-500">Chegada: {r.dados?.data_chegada}</span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-slate-400">Não</span>
+                              )}
+                            </td>
+                            <td className="p-3 text-[10px] text-slate-600 dark:text-slate-400 max-w-[180px]">
+                              {r.dados?.restricao_alimentar && (
+                                <div className="truncate" title={r.dados?.restricao_alimentar}>
+                                  <strong className="text-amber-700 dark:text-amber-400">Alimentação: </strong>
+                                  <span>{r.dados?.restricao_alimentar}</span>
+                                </div>
+                              )}
+                              {r.dados?.tamanho_paramento && (
+                                <div>
+                                  <strong>Paramento: </strong>{r.dados?.tamanho_paramento}
+                                </div>
+                              )}
+                              {r.dados?.meio_transporte && (
+                                <div className="truncate" title={r.dados?.meio_transporte}>
+                                  <strong>Transp: </strong>{r.dados?.meio_transporte}
+                                </div>
+                              )}
+                              {!r.dados?.restricao_alimentar && !r.dados?.tamanho_paramento && !r.dados?.meio_transporte && (
+                                <span className="text-slate-400">-</span>
+                              )}
+                            </td>
+                            <td className="p-3 font-mono text-[10px] text-slate-600 dark:text-slate-400">
+                              <div>{r.dados?.telefone_whatsapp || '-'}</div>
+                              {r.dados?.email && (
+                                <div className="text-[9px] text-slate-400 truncate max-w-[120px]" title={r.dados?.email}>
+                                  {r.dados?.email}
+                                </div>
+                              )}
+                            </td>
+                            <td className="p-3">
+                              <span className={`inline-block font-mono text-[9px] uppercase font-bold px-2 py-0.5 rounded border ${
+                                r.status === 'Confirmada'
+                                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                                  : r.status === 'Cancelada'
+                                  ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30'
+                                  : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                              }`}>
+                                {r.status}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setFichaPrintResposta(r)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-mono font-semibold text-[#226380] dark:text-[#A3C3C7] bg-[#226380]/10 hover:bg-[#226380]/20 border border-[#226380]/30 rounded-[4px] transition-colors cursor-pointer"
+                                  title="Ver ficha completa de respostas e imprimir"
+                                >
+                                  <FileText className="w-3 h-3" />
+                                  <span>Ver Ficha</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setFichaPrintResposta(r)}
+                                  className="p-1 rounded-[4px] text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                  title="Imprimir ficha individual"
+                                >
+                                  <Printer className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
         </section>
       )}
 
@@ -1751,171 +2271,6 @@ export const SecretariaConfiguracoes: React.FC = () => {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL PRÉ-VISUALIZAÇÃO DE DOCUMENTO TIMBRADO */}
-      {/* ========================================================================= */}
-      {previewForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-[#113240]/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#0d1117] w-full max-w-4xl max-h-[94vh] rounded-[8px] border border-[#113240]/20 dark:border-white/15 shadow-2xl flex flex-col overflow-hidden">
-            
-            <div className="p-4 border-b border-[#113240]/10 dark:border-white/10 flex items-center justify-between bg-[#fafafa] dark:bg-[#12161f]">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#226380] dark:text-[#A3C3C7]" />
-                <span className="font-mono text-xs uppercase font-bold text-[#226380] dark:text-[#A3C3C7] tracking-wider">
-                  Pré-visualização Oficial no Padrão Timbrado BRM
-                </span>
-              </div>
-              <button
-                onClick={() => setPreviewForm(null)}
-                className="p-1 rounded-[6px] text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-4 sm:p-6 overflow-y-auto flex-1 bg-[#F2F2F2] dark:bg-[#090d16]">
-              <FormularioTimbrado
-                titulo={previewForm.titulo}
-                subtitulo={previewForm.codigo}
-                descricao={previewForm.descricao}
-                campos={previewForm.campos}
-                modo="preview"
-                onVoltar={() => setPreviewForm(null)}
-                cabecalhoPersonalizado={{
-                  congregacao: configuracao.cabecalho_institucional,
-                  provincia: configuracao.subtitulo_provincia,
-                  orgao: configuracao.orgao_emissor,
-                  lema: configuracao.lema_oficial,
-                  emailContato: configuracao.email_secretaria
-                }}
-              />
-            </div>
-
-            <div className="p-3 border-t border-[#113240]/10 dark:border-white/10 bg-[#fafafa] dark:bg-[#12161f] flex justify-end">
-              <button
-                onClick={() => setPreviewForm(null)}
-                className="px-4 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[6px] hover:bg-slate-100 transition-colors cursor-pointer motion-press"
-              >
-                Fechar Visualização
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL RESPOSTAS / INSCRIÇÕES RECEBIDAS */}
-      {/* ========================================================================= */}
-      {verRespostasForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#113240]/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#161b22] w-full max-w-5xl max-h-[92vh] rounded-[8px] border border-[#113240]/20 dark:border-white/15 shadow-2xl flex flex-col overflow-hidden">
-            
-            <div className="p-4 sm:p-5 border-b border-[#113240]/10 dark:border-white/10 flex items-start justify-between gap-3 bg-[#fafafa] dark:bg-[#12161f]">
-              <div>
-                <span className="font-mono text-[10px] uppercase font-bold text-[#226380] dark:text-[#A3C3C7] tracking-wider">
-                  Protocolos & Inscrições Recebidas
-                </span>
-                <h2 className="font-cinzel text-lg font-bold text-[#113240] dark:text-white">
-                  {verRespostasForm.titulo}
-                </h2>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => exportarCSV(verRespostasForm)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-[#226380] dark:text-[#A3C3C7] bg-[#226380]/10 hover:bg-[#226380]/20 border border-[#226380]/30 rounded-[6px] transition-colors cursor-pointer motion-press"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Exportar CSV</span>
-                </button>
-                <button
-                  onClick={() => setVerRespostasForm(null)}
-                  className="p-1.5 rounded-[6px] text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            <div className="p-4 sm:p-6 overflow-y-auto flex-1">
-              {(() => {
-                const lista = respostas.filter(r => r.formulario_id === verRespostasForm.id);
-                if (lista.length === 0) {
-                  return (
-                    <div className="p-12 text-center text-slate-400 font-mono text-xs">
-                      Nenhuma inscrição protocolada para este formulário até o momento.
-                    </div>
-                  );
-                }
-
-                return (
-                  <div className="border border-[#113240]/10 dark:border-white/10 rounded-[6px] overflow-hidden shadow-2xs">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead>
-                          <tr className="bg-[#113240]/5 dark:bg-[#12161f] border-b border-[#113240]/10 dark:border-white/10 text-[11px] font-mono uppercase text-[#226380] dark:text-[#A3C3C7] font-semibold">
-                            <th className="p-3">Protocolo</th>
-                            <th className="p-3">Data / Hora</th>
-                            <th className="p-3">Nome / Confrade</th>
-                            <th className="p-3">Comunidade</th>
-                            <th className="p-3">Hospedagem</th>
-                            <th className="p-3">Contato</th>
-                            <th className="p-3 text-right">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                          {lista.map(r => (
-                            <tr key={r.id} className="hover:bg-[#226380]/5 transition-colors font-sans">
-                              <td className="p-3 font-mono text-[11px] font-bold text-[#226380] dark:text-[#A3C3C7]">
-                                {r.protocolo}
-                              </td>
-                              <td className="p-3 font-mono text-[11px] text-slate-500">
-                                {new Date(r.created_at).toLocaleString('pt-BR')}
-                              </td>
-                              <td className="p-3 font-medium text-[#113240] dark:text-white">
-                                {r.dados.nome_religioso || r.dados.nome_completo || 'Sem identificação'}
-                                {r.dados.grau_ordem && (
-                                  <span className="block text-[10px] text-slate-400 font-mono">
-                                    {r.dados.grau_ordem}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="p-3 text-slate-600 dark:text-slate-400">
-                                {r.dados.comunidade_atual || '-'}
-                              </td>
-                              <td className="p-3 text-slate-600 dark:text-slate-400 font-mono text-[11px]">
-                                {r.dados.necessita_hospedagem ? `Sim (${r.dados.tipo_quarto || 'Quarto'})` : 'Não'}
-                              </td>
-                              <td className="p-3 text-slate-600 dark:text-slate-400 font-mono text-[11px]">
-                                {r.dados.telefone_whatsapp || r.dados.email || '-'}
-                              </td>
-                              <td className="p-3 text-right">
-                                <span className="font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                                  {r.status}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-
-            <div className="p-3 border-t border-[#113240]/10 dark:border-white/10 bg-[#fafafa] dark:bg-[#12161f] flex justify-end">
-              <button
-                onClick={() => setVerRespostasForm(null)}
-                className="px-4 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[6px] hover:bg-slate-100 transition-colors cursor-pointer motion-press"
-              >
-                Fechar Inscrições
-              </button>
-            </div>
           </div>
         </div>
       )}

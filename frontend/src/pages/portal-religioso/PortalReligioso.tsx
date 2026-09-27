@@ -1095,6 +1095,110 @@ export const PortalReligioso: React.FC = () => {
   const displayName = religiosoData?.nome_religioso || religiosoData?.nome_civil || user?.nome || 'Confrade Dehoniano';
   const displayGrau = religiosoData?.grau || 'Religioso SCJ';
 
+  // Se o confrade estiver preenchendo a ficha oficial de inscrição de um evento (Página Completa - Sem Modal)
+  if (eventoInscricaoModal && formularioInscricaoAtivo) {
+    return (
+      <div className="min-h-screen bg-[#f5f5f7] dark:bg-[#090d16] text-[#1d1d1f] dark:text-[#f5f5f7] py-6 sm:py-8 px-3 sm:px-6">
+        <div className="max-w-4xl mx-auto space-y-4">
+          {/* Barra Superior de Navegação */}
+          <div className="bg-white dark:bg-[#161617] p-4 rounded-[12px] border border-[#d6d6d6]/60 dark:border-white/10 shadow-xs flex flex-wrap items-center justify-between gap-3 print:hidden">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setEventoInscricaoModal(null);
+                  setFormularioInscricaoAtivo(null);
+                }}
+                className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 hover:text-[#0071e3] dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-[6px] transition-colors cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Voltar ao Portal do Confrade</span>
+              </button>
+              <div className="h-5 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
+              <div>
+                <span className="font-mono text-[10px] uppercase font-bold text-[#0071e3] tracking-wider block">
+                  Ficha Oficial de Inscrição Canônica
+                </span>
+                <span className="text-xs text-slate-600 dark:text-slate-400 font-sans font-medium">
+                  {eventoInscricaoModal.titulo} • {formatPeriodo(eventoInscricaoModal.data_inicio, eventoInscricaoModal.data_fim)}
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[6px] transition-colors cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Imprimir Ficha</span>
+            </button>
+          </div>
+
+          {/* Documento Timbrado em Página Completa */}
+          <FormularioTimbrado
+            titulo={formularioInscricaoAtivo.titulo}
+            subtitulo={formularioInscricaoAtivo.codigo}
+            descricao={formularioInscricaoAtivo.descricao}
+            nomeEvento={eventoInscricaoModal.titulo}
+            dataEvento={formatPeriodo(eventoInscricaoModal.data_inicio, eventoInscricaoModal.data_fim)}
+            localEvento={eventoInscricaoModal.local}
+            campos={formularioInscricaoAtivo.campos}
+            valoresIniciais={{
+              nome_completo: religiosoData?.nome_civil || religiosoData?.nome_religioso || '',
+              nome_religioso: religiosoData?.nome_religioso || '',
+              grau_ordem: religiosoData?.grau || 'Presbítero',
+              comunidade_atual: religiosoData?.comunidade_atual_nome || '',
+              cargo_funcao: religiosoData?.cargo_funcao || '',
+              email: religiosoData?.email_institucional || user?.email || '',
+              telefone_whatsapp: religiosoData?.telefone_whatsapp || religiosoData?.telefone_celular || '',
+              cpf: religiosoData?.cpf || '',
+              data_nascimento: religiosoData?.data_nascimento || '',
+              necessita_hospedagem: 'Sim'
+            }}
+            carregando={salvandoInscricao}
+            onSubmit={async (respostas) => {
+              setSalvandoInscricao(true);
+              try {
+                const protocolo = `FORM-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+                const novaResp: RespostaFormulario = {
+                  id: 'resp-' + Date.now().toString(36),
+                  formulario_id: formularioInscricaoAtivo.id,
+                  evento_id: eventoInscricaoModal.id,
+                  dados: respostas,
+                  protocolo,
+                  status: 'Confirmada',
+                  created_at: new Date().toISOString()
+                };
+
+                try {
+                  await supabase.from('secretaria_respostas_formulario').insert([novaResp]);
+                } catch (e) {
+                  console.warn('Salvando localmente resposta do religioso:', e);
+                }
+
+                const saved = localStorage.getItem('brm_secretaria_respostas_v1');
+                const list = saved ? JSON.parse(saved) : [];
+                list.unshift(novaResp);
+                localStorage.setItem('brm_secretaria_respostas_v1', JSON.stringify(list));
+
+                setRespostasInscricoes(prev => [novaResp, ...prev]);
+                setEventoInscricaoModal(null);
+                setFormularioInscricaoAtivo(null);
+              } finally {
+                setSalvandoInscricao(false);
+              }
+            }}
+            onVoltar={() => {
+              setEventoInscricaoModal(null);
+              setFormularioInscricaoAtivo(null);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f5f5f7] dark:bg-[#000000] text-[#1d1d1f] dark:text-[#f5f5f7] flex flex-col font-sans transition-colors duration-300">
       
@@ -2245,92 +2349,6 @@ export const PortalReligioso: React.FC = () => {
 
         </main>
       </div>
-
-      {/* Modal Ficha Timbrada de Inscrição Oficial para o Religioso */}
-      {eventoInscricaoModal && formularioInscricaoAtivo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#0d1117] w-full max-w-4xl max-h-[94vh] rounded-[16px] border border-slate-300 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/90">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono uppercase font-bold text-[#0071e3]">
-                  Inscrição Oficial Canônica • {eventoInscricaoModal.titulo}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setEventoInscricaoModal(null);
-                  setFormularioInscricaoAtivo(null);
-                }}
-                className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-4 sm:p-6 overflow-y-auto flex-1 bg-slate-100/70 dark:bg-[#090d16]">
-              <FormularioTimbrado
-                titulo={formularioInscricaoAtivo.titulo}
-                subtitulo={formularioInscricaoAtivo.codigo}
-                descricao={formularioInscricaoAtivo.descricao}
-                nomeEvento={eventoInscricaoModal.titulo}
-                dataEvento={formatPeriodo(eventoInscricaoModal.data_inicio, eventoInscricaoModal.data_fim)}
-                localEvento={eventoInscricaoModal.local}
-                campos={formularioInscricaoAtivo.campos}
-                valoresIniciais={{
-                  nome_completo: religiosoData?.nome_civil || religiosoData?.nome_religioso || '',
-                  nome_religioso: religiosoData?.nome_religioso || '',
-                  grau_ordem: religiosoData?.grau || 'Presbítero',
-                  comunidade_atual: religiosoData?.comunidade_atual_nome || '',
-                  cargo_funcao: religiosoData?.cargo_funcao || '',
-                  email: religiosoData?.email_institucional || user?.email || '',
-                  telefone_whatsapp: religiosoData?.telefone_whatsapp || religiosoData?.telefone_celular || '',
-                  cpf: religiosoData?.cpf || '',
-                  data_nascimento: religiosoData?.data_nascimento || '',
-                  necessita_hospedagem: 'Sim'
-                }}
-                carregando={salvandoInscricao}
-                onSubmit={async (respostas) => {
-                  setSalvandoInscricao(true);
-                  try {
-                    const protocolo = `FORM-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-                    const novaResp: RespostaFormulario = {
-                      id: 'resp-' + Date.now().toString(36),
-                      formulario_id: formularioInscricaoAtivo.id,
-                      evento_id: eventoInscricaoModal.id,
-                      dados: respostas,
-                      protocolo,
-                      status: 'Confirmada',
-                      created_at: new Date().toISOString()
-                    };
-
-                    try {
-                      await supabase.from('secretaria_respostas_formulario').insert([novaResp]);
-                    } catch (e) {
-                      console.warn('Salvando localmente resposta do religioso:', e);
-                    }
-
-                    const saved = localStorage.getItem('brm_secretaria_respostas_v1');
-                    const list = saved ? JSON.parse(saved) : [];
-                    list.unshift(novaResp);
-                    localStorage.setItem('brm_secretaria_respostas_v1', JSON.stringify(list));
-
-                    setRespostasInscricoes(prev => [novaResp, ...prev]);
-                    setEventoInscricaoModal(null);
-                    setFormularioInscricaoAtivo(null);
-                  } finally {
-                    setSalvandoInscricao(false);
-                  }
-                }}
-                onVoltar={() => {
-                  setEventoInscricaoModal(null);
-                  setFormularioInscricaoAtivo(null);
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );
