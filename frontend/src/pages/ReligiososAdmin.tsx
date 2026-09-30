@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Edit, FileText, Loader2, Plus, Search, Trash2, UserRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { confirmAction, showToast } from '../hooks/useFeedback';
 
 interface ReligiosoResumo {
   id: string;
@@ -47,25 +48,37 @@ export const ReligiososAdmin: React.FC = () => {
   }, [items, query]);
 
   const remove = async (item: ReligiosoResumo) => {
-    if (!window.confirm(`Excluir o cadastro de ${item.nome_civil}? Todos os dados detalhados vinculados também serão excluídos.`)) return;
+    const confirmed = await confirmAction({
+      title: 'Excluir Cadastro de Religioso',
+      badge: 'Cúria Provincial • Exclusão',
+      message: `Excluir o cadastro de ${item.nome_civil}?`,
+      detail: 'Todos os dados detalhados vinculados e anexos no storage também serão excluídos permanentemente.',
+      confirmLabel: 'Excluir Cadastro',
+      cancelLabel: 'Cancelar',
+      tone: 'danger',
+      icon: 'trash'
+    });
+    if (!confirmed) return;
+
     const { data: documentos, error: documentosError } = await supabase.from('religiosos_documentos').select('caminho_storage').eq('religioso_id', item.id);
     if (documentosError) {
-      window.alert(`Não foi possível localizar os anexos: ${documentosError.message}`);
+      showToast.error(`Não foi possível localizar os anexos: ${documentosError.message}`);
       return;
     }
     const caminhos = (documentos || []).map(documento => documento.caminho_storage).filter(Boolean);
     if (caminhos.length) {
       const { error: storageError } = await supabase.storage.from('religiosos-documentos').remove(caminhos);
       if (storageError) {
-        window.alert(`Não foi possível remover os anexos: ${storageError.message}`);
+        showToast.error(`Não foi possível remover os anexos: ${storageError.message}`);
         return;
       }
     }
     const { error } = await supabase.from('religiosos').delete().eq('id', item.id);
     if (error) {
-      window.alert(`Não foi possível excluir: ${error.message}`);
+      showToast.error(`Não foi possível excluir: ${error.message}`);
       return;
     }
+    showToast.success(`Cadastro de ${item.nome_civil} excluído com sucesso.`);
     load();
   };
 

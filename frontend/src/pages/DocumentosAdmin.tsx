@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { staggerStyle } from '../hooks/useMotion';
+import { confirmAction, showToast } from '../hooks/useFeedback';
 
 export type CategoriaDocumento = 
   | 'Transferências'
@@ -338,7 +339,17 @@ export const DocumentosAdmin: React.FC = () => {
 
   // Excluir Documento
   const handleDelete = async (doc: DocumentoProvincial) => {
-    if (!window.confirm(`Deseja realmente remover o documento "${doc.titulo}"?`)) return;
+    const confirmed = await confirmAction({
+      title: 'Remover Documento Oficial',
+      badge: 'Chancelaria Provincial • Exclusão',
+      message: `Deseja realmente remover o documento "${doc.titulo}"?`,
+      detail: doc.arquivo_nome ? `O arquivo associado (${doc.arquivo_nome}) também será removido.` : undefined,
+      confirmLabel: 'Remover Documento',
+      cancelLabel: 'Cancelar',
+      tone: 'danger',
+      icon: 'trash'
+    });
+    if (!confirmed) return;
 
     try {
       await supabase.from('documentos_provinciais').delete().eq('id', doc.id);
@@ -351,6 +362,7 @@ export const DocumentosAdmin: React.FC = () => {
 
     const atualizados = documentos.filter(d => d.id !== doc.id);
     persistirDocumentosLocais(atualizados);
+    showToast.success(`Documento "${doc.titulo}" removido com sucesso.`);
   };
 
   // Filtros

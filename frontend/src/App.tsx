@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { FeedbackProvider } from './contexts/FeedbackContext';
 import Layout from './components/Layout';
 import AppleErrorBoundary from './components/AppleErrorBoundary';
 
@@ -91,8 +92,9 @@ export const App: React.FC = () => {
     <AppleErrorBoundary>
       <ThemeProvider>
         <AuthProvider>
-          <BrowserRouter>
-            <Suspense fallback={<AppleLoadingFallback />}>
+          <FeedbackProvider>
+            <BrowserRouter>
+              <Suspense fallback={<AppleLoadingFallback />}>
               <Routes>
                 {/* Standalone Religious Member Area (Portal do Confrade) */}
                 <Route path="/portal-religioso" element={<PortalReligioso />} />
@@ -150,9 +152,10 @@ export const App: React.FC = () => {
               </Routes>
             </Suspense>
           </BrowserRouter>
-        </AuthProvider>
-      </ThemeProvider>
-    </AppleErrorBoundary>
+        </FeedbackProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  </AppleErrorBoundary>
   );
 };
 

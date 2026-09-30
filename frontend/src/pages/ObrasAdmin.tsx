@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
+import { confirmAction, showToast } from '../hooks/useFeedback';
 import { 
   FileSpreadsheet, 
   Loader2, 
@@ -219,7 +220,7 @@ export const ObrasAdmin: React.FC = () => {
     const contacts = extractContacts(obra);
     const rawNumber = contacts.whatsapp || contacts.telefone;
     if (!rawNumber) {
-      alert('Esta paróquia ou obra não possui telefone ou WhatsApp cadastrado.');
+      showToast.warning('Esta paróquia ou obra não possui telefone ou WhatsApp cadastrado.');
       return;
     }
 
@@ -520,10 +521,26 @@ export const ObrasAdmin: React.FC = () => {
 
 
   const remove = async (item: Obra) => { 
-    if (!window.confirm(`Excluir permanentemente "${item.nome}"?`)) return; 
+    const confirmed = await confirmAction({
+      title: 'Excluir Obra ou Paróquia',
+      badge: 'Patrimônio Provincial • Exclusão',
+      message: `Excluir permanentemente "${item.nome}"?`,
+      detail: 'O registro da obra/paróquia e seus vínculos referenciais serão removidos.',
+      confirmLabel: 'Excluir Obra',
+      cancelLabel: 'Cancelar',
+      tone: 'danger',
+      icon: 'trash'
+    });
+    if (!confirmed) return;
+
     const { error } = await supabase.from('religiosos_obras_referencia').delete().eq('id', item.id); 
-    if (error) setMessage(error.message); 
-    else load(); 
+    if (error) {
+      setMessage(error.message);
+      showToast.error(`Erro ao excluir: ${error.message}`);
+    } else {
+      showToast.success(`"${item.nome}" excluída com sucesso.`);
+      load(); 
+    }
   };
 
   const getTipoIcon = (tipo: string) => {

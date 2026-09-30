@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Check, Loader2, Save, Settings2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import { showToast } from '../hooks/useFeedback';
 
 interface ReligiososConfig {
   id: string;
@@ -53,9 +54,10 @@ export const ReligiososConfiguracoes: React.FC = () => {
     setSaved(false);
     const { error } = await supabase.from('religiosos_configuracoes').upsert({ ...config, id: defaults.id, updated_by: null }, { onConflict: 'id' });
     if (error) {
-      window.alert(`Não foi possível salvar: ${error.message}`);
+      showToast.error(`Não foi possível salvar: ${error.message}`);
     } else {
       setSaved(true);
+      showToast.success('Configurações do cadastro de religiosos salvas com sucesso.');
       setTimeout(() => setSaved(false), 4000);
     }
     setSaving(false);

@@ -11,6 +11,7 @@ import type { VariavelCampo } from '../components/FormularioTimbrado';
 import { RelatorioInscricoesPrint } from '../components/RelatorioInscricoesPrint';
 import { FichaInscricaoIndividualPrint } from '../components/FichaInscricaoIndividualPrint';
 import { staggerStyle } from '../hooks/useMotion';
+import { confirmAction, showAlertModal, showToast } from '../hooks/useFeedback';
 
 // Definições de Tipos
 export interface FormularioSecretaria {
@@ -378,6 +379,11 @@ export const SecretariaConfiguracoes: React.FC = () => {
 
   const mostrarAlerta = (tipo: 'sucesso' | 'erro', texto: string) => {
     setFeedbackMsg({ tipo, texto });
+    if (tipo === 'sucesso') {
+      showToast.success(texto);
+    } else {
+      showToast.error(texto);
+    }
     setTimeout(() => setFeedbackMsg(null), 4000);
   };
 
@@ -617,7 +623,17 @@ export const SecretariaConfiguracoes: React.FC = () => {
 
   // Excluir Formulário
   const handleDeleteForm = async (f: FormularioSecretaria) => {
-    if (!window.confirm(`Deseja realmente excluir o formulário "${f.titulo}"? Esta ação removerá a estrutura do formulário.`)) return;
+    const confirmed = await confirmAction({
+      title: 'Excluir Formulário Oficial',
+      badge: 'Secretaria Provincial • Exclusão',
+      message: `Deseja realmente excluir o formulário "${f.titulo}"?`,
+      detail: 'Esta ação removerá a estrutura e as definições deste formulário da Secretaria Provincial.',
+      confirmLabel: 'Excluir Formulário',
+      cancelLabel: 'Cancelar',
+      tone: 'danger',
+      icon: 'trash'
+    });
+    if (!confirmed) return;
 
     try {
       await supabase.from('secretaria_formularios').delete().eq('id', f.id);
@@ -663,7 +679,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
           : respostas.filter(r => r.formulario_id === filtroInscricaoFormId));
     
     if (lista.length === 0) {
-      alert('Não há inscrições registradas para exportar.');
+      showToast.info('Não há inscrições registradas para exportar.');
       return;
     }
 
@@ -858,8 +874,8 @@ export const SecretariaConfiguracoes: React.FC = () => {
         <div 
           className={`p-3.5 rounded-[6px] text-xs font-mono flex items-center justify-between border ${
             feedbackMsg.tipo === 'sucesso' 
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300' 
-              : 'bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-300'
+              ? 'bg-[#113240]/10 border-[#113240]/30 text-[#113240] dark:text-[#A3C3C7]' 
+              : 'bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-200'
           }`}
         >
           <div className="flex items-center gap-2">
@@ -905,8 +921,8 @@ export const SecretariaConfiguracoes: React.FC = () => {
           <span>Inscrições & Protocolos</span>
           <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-[4px] font-bold ${
             tabAtiva === 'inscricoes'
-              ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
-              : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+              ? 'bg-[#226380]/15 text-[#226380] dark:text-[#A3C3C7]'
+              : 'bg-black/5 dark:bg-white/10 text-slate-500'
           }`}>
             {respostas.length}
           </span>
@@ -1008,7 +1024,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
                         )}
                         <span className={`text-[10px] font-mono uppercase font-bold px-2 py-0.5 rounded-[4px] border ${
                           form.ativo 
-                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' 
+                            ? 'bg-[#113240]/10 text-[#113240] dark:text-[#A3C3C7] border-[#113240]/20' 
                             : 'bg-slate-200/80 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-300 dark:border-slate-700'
                         }`}>
                           {form.ativo ? 'Ativo • Recebendo Inscrições' : 'Inativo / Encerrado'}
@@ -1414,10 +1430,8 @@ export const SecretariaConfiguracoes: React.FC = () => {
                             <td className="p-3">
                               <span className={`inline-block font-mono text-[9px] uppercase font-bold px-2 py-0.5 rounded border ${
                                 r.status === 'Confirmada'
-                                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-                                  : r.status === 'Cancelada'
-                                  ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30'
-                                  : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                                  ? 'bg-[#113240]/10 text-[#113240] dark:text-[#A3C3C7] border-[#113240]/20'
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
                               }`}>
                                 {r.status}
                               </span>

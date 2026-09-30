@@ -1,14 +1,17 @@
 services:
   - type: web
-    name: sistema-conventinho
+    name: sistema-brm
     env: docker
     plan: free
     region: oregon
     branch: main
+    dockerfilePath: Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
     envVars:
       - key: VITE_SUPABASE_URL
         sync: false
-        description: "URL do projeto Supabase para conexao do frontend React"
+        description: "URL do projeto Supabase para conexão do frontend React (ex: https://xyz.supabase.co)"
       - key: VITE_SUPABASE_ANON_KEY
         sync: false
-        description: "Chave anonima do projeto Supabase para conexao do frontend React"
+        description: "Chave anônima (anon public key) do projeto Supabase"

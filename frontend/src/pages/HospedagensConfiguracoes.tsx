@@ -4,6 +4,7 @@ import {
   Save, Plus, Trash2, Edit, Copy, Loader2, 
   Settings2, BookOpen, Layers, Hotel, HelpCircle, ShieldAlert, Waves
 } from 'lucide-react';
+import { confirmAction, showToast } from '../hooks/useFeedback';
 
 interface ConfigGeral {
   chos_acolhida: string;
@@ -270,13 +271,14 @@ export const HospedagensConfiguracoes: React.FC = () => {
         });
 
       if (!error) {
-        alert("Configurações gerais salvas com sucesso!");
+        showToast.success("Configurações gerais salvas com sucesso!");
         loadConfigData();
       } else {
-        alert("Erro ao salvar configurações: " + error.message);
+        showToast.error("Erro ao salvar configurações: " + error.message);
       }
     } catch (err) {
       console.error(err);
+      showToast.error("Erro ao salvar configurações gerais.");
     } finally {
       setSaving(false);
     }
@@ -307,22 +309,37 @@ export const HospedagensConfiguracoes: React.FC = () => {
       }
 
       if (!error) {
+        showToast.success('Dados da estadia/curso salvos com sucesso.');
         setEditingEstadia(null);
         loadConfigData();
       } else {
-        alert("Erro ao salvar estadia: " + error.message);
+        showToast.error("Erro ao salvar estadia: " + error.message);
       }
     } catch (err) {
       console.error(err);
+      showToast.error("Erro ao salvar estadia.");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDuplicateEstadia = async (id: string) => {
-    if (!window.confirm("Deseja criar uma cópia deste curso/estadia?")) return;
+    const source = estadias.find(e => e.idmainhospedagem === id);
+    const confirmed = await confirmAction({
+      title: 'Duplicar Curso/Estadia',
+      badge: 'Hospedagens • Duplicação',
+      message: source?.main_motivo 
+        ? `Deseja criar uma cópia de "${source.main_motivo}"?` 
+        : 'Deseja criar uma cópia deste curso/estadia?',
+      detail: 'Uma nova entrada será gerada com os mesmos parâmetros de configuração.',
+      confirmLabel: 'Criar Cópia',
+      cancelLabel: 'Cancelar',
+      tone: 'primary',
+      icon: 'help'
+    });
+    if (!confirmed) return;
+
     try {
-      const source = estadias.find(e => e.idmainhospedagem === id);
       if (!source) return;
 
       const payload = {
@@ -347,17 +364,33 @@ export const HospedagensConfiguracoes: React.FC = () => {
         .insert([payload]);
 
       if (!error) {
+        showToast.success('Cópia da estadia criada com sucesso.');
         loadConfigData();
       } else {
-        alert("Erro ao duplicar estadia: " + error.message);
+        showToast.error("Erro ao duplicar estadia: " + error.message);
       }
     } catch (err) {
       console.error(err);
+      showToast.error("Erro ao duplicar estadia.");
     }
   };
 
   const handleDeleteEstadia = async (id: string) => {
-    if (!window.confirm("Deseja realmente excluir este curso/estadia?")) return;
+    const target = estadias.find(e => e.idmainhospedagem === id);
+    const confirmed = await confirmAction({
+      title: 'Excluir Curso/Estadia',
+      badge: 'Hospedagens • Exclusão',
+      message: target?.main_motivo 
+        ? `Deseja realmente excluir "${target.main_motivo}"?` 
+        : 'Deseja realmente excluir este curso/estadia?',
+      detail: 'Esta ação não poderá ser desfeita e removerá este curso das opções de hospedagem.',
+      confirmLabel: 'Excluir Estadia',
+      cancelLabel: 'Cancelar',
+      tone: 'danger',
+      icon: 'trash'
+    });
+    if (!confirmed) return;
+
     try {
       const { error } = await supabase
         .from('mainhospedagem')
@@ -365,12 +398,14 @@ export const HospedagensConfiguracoes: React.FC = () => {
         .eq('idmainhospedagem', id);
 
       if (!error) {
+        showToast.success('Estadia/curso excluído com sucesso.');
         loadConfigData();
       } else {
-        alert("Erro ao excluir estadia: " + error.message);
+        showToast.error("Erro ao excluir estadia: " + error.message);
       }
     } catch (err) {
       console.error(err);
+      showToast.error("Erro ao excluir estadia.");
     }
   };
 
@@ -393,18 +428,31 @@ export const HospedagensConfiguracoes: React.FC = () => {
       }
 
       if (!error) {
+        showToast.success('Módulo salvo com sucesso.');
         setNewModulo({ idmodulos: '', mod_nome: '', mod_status: 'Ativo' });
         loadConfigData();
       } else {
-        alert("Erro ao criar módulo: " + error.message);
+        showToast.error("Erro ao salvar módulo: " + error.message);
       }
     } catch (err) {
       console.error(err);
+      showToast.error("Erro ao salvar módulo.");
     }
   };
 
   const handleDeleteModulo = async (id: string) => {
-    if (!window.confirm("Deseja excluir este módulo?")) return;
+    const target = modulos.find(m => m.idmodulos === id);
+    const confirmed = await confirmAction({
+      title: 'Excluir Módulo',
+      badge: 'Hospedagens • Configuração',
+      message: target?.mod_nome ? `Deseja excluir o módulo "${target.mod_nome}"?` : 'Deseja excluir este módulo?',
+      confirmLabel: 'Excluir Módulo',
+      cancelLabel: 'Cancelar',
+      tone: 'danger',
+      icon: 'trash'
+    });
+    if (!confirmed) return;
+
     try {
       const { error } = await supabase
         .from('modulos')
@@ -412,12 +460,14 @@ export const HospedagensConfiguracoes: React.FC = () => {
         .eq('idmodulos', id);
 
       if (!error) {
+        showToast.success('Módulo excluído com sucesso.');
         loadConfigData();
       } else {
-        alert("Erro ao excluir módulo: " + error.message);
+        showToast.error("Erro ao excluir módulo: " + error.message);
       }
     } catch (err) {
       console.error(err);
+      showToast.error("Erro ao excluir módulo.");
     }
   };
 
@@ -440,18 +490,31 @@ export const HospedagensConfiguracoes: React.FC = () => {
       }
 
       if (!error) {
+        showToast.success('Quarto salvo com sucesso.');
         setNewQuarto({ idhos_quartos: '', hos_qua_nome: '', hos_qua_status: 'Ativo' });
         loadConfigData();
       } else {
-        alert("Erro ao criar quarto: " + error.message);
+        showToast.error("Erro ao salvar quarto: " + error.message);
       }
     } catch (err) {
       console.error(err);
+      showToast.error("Erro ao salvar quarto.");
     }
   };
 
   const handleDeleteQuarto = async (id: string) => {
-    if (!window.confirm("Deseja excluir este quarto?")) return;
+    const target = quartos.find(q => q.idhos_quartos === id);
+    const confirmed = await confirmAction({
+      title: 'Excluir Quarto',
+      badge: 'Hospedagens • Configuração',
+      message: target?.hos_qua_nome ? `Deseja excluir o quarto "${target.hos_qua_nome}"?` : 'Deseja excluir este quarto?',
+      confirmLabel: 'Excluir Quarto',
+      cancelLabel: 'Cancelar',
+      tone: 'danger',
+      icon: 'trash'
+    });
+    if (!confirmed) return;
+
     try {
       const { error } = await supabase
         .from('hos_quartos')
@@ -459,12 +522,14 @@ export const HospedagensConfiguracoes: React.FC = () => {
         .eq('idhos_quartos', id);
 
       if (!error) {
+        showToast.success('Quarto excluído com sucesso.');
         loadConfigData();
       } else {
-        alert("Erro ao excluir quarto: " + error.message);
+        showToast.error("Erro ao excluir quarto: " + error.message);
       }
     } catch (err) {
       console.error(err);
+      showToast.error("Erro ao excluir quarto.");
     }
   };
 
@@ -487,18 +552,31 @@ export const HospedagensConfiguracoes: React.FC = () => {
       }
 
       if (!error) {
+        showToast.success('Status salvo com sucesso.');
         setNewStatus({ idstatushospedagem: '', sta_nome: '', sta_status: 'Ativo' });
         loadConfigData();
       } else {
-        alert("Erro ao criar status: " + error.message);
+        showToast.error("Erro ao salvar status: " + error.message);
       }
     } catch (err) {
       console.error(err);
+      showToast.error("Erro ao salvar status.");
     }
   };
 
   const handleDeleteStatus = async (id: string) => {
-    if (!window.confirm("Deseja excluir este status?")) return;
+    const target = statuses.find(s => s.idstatushospedagem === id);
+    const confirmed = await confirmAction({
+      title: 'Excluir Status',
+      badge: 'Hospedagens • Configuração',
+      message: target?.sta_nome ? `Deseja excluir o status "${target.sta_nome}"?` : 'Deseja excluir este status?',
+      confirmLabel: 'Excluir Status',
+      cancelLabel: 'Cancelar',
+      tone: 'danger',
+      icon: 'trash'
+    });
+    if (!confirmed) return;
+
     try {
       const { error } = await supabase
         .from('statushospedagem')
@@ -506,12 +584,14 @@ export const HospedagensConfiguracoes: React.FC = () => {
         .eq('idstatushospedagem', id);
 
       if (!error) {
+        showToast.success('Status excluído com sucesso.');
         loadConfigData();
       } else {
-        alert("Erro ao excluir status: " + error.message);
+        showToast.error("Erro ao excluir status: " + error.message);
       }
     } catch (err) {
       console.error(err);
+      showToast.error("Erro ao excluir status.");
     }
   };
 
@@ -534,18 +614,31 @@ export const HospedagensConfiguracoes: React.FC = () => {
       }
 
       if (!error) {
+        showToast.success('Serviço de lavanderia salvo com sucesso.');
         setNewLavanderia({ idlavanderia: '', lav_servico: '' });
         loadConfigData();
       } else {
-        alert("Erro ao criar lavanderia: " + error.message);
+        showToast.error("Erro ao salvar lavanderia: " + error.message);
       }
     } catch (err) {
       console.error(err);
+      showToast.error("Erro ao salvar lavanderia.");
     }
   };
 
   const handleDeleteLavanderia = async (id: string) => {
-    if (!window.confirm("Deseja excluir este serviço de lavanderia?")) return;
+    const target = lavanderias.find(l => l.idlavanderia === id);
+    const confirmed = await confirmAction({
+      title: 'Excluir Serviço de Lavanderia',
+      badge: 'Hospedagens • Configuração',
+      message: target?.lav_servico ? `Deseja excluir o serviço "${target.lav_servico}"?` : 'Deseja excluir este serviço de lavanderia?',
+      confirmLabel: 'Excluir Serviço',
+      cancelLabel: 'Cancelar',
+      tone: 'danger',
+      icon: 'trash'
+    });
+    if (!confirmed) return;
+
     try {
       const { error } = await supabase
         .from('lavanderia')
@@ -553,12 +646,14 @@ export const HospedagensConfiguracoes: React.FC = () => {
         .eq('idlavanderia', id);
 
       if (!error) {
+        showToast.success('Serviço de lavanderia excluído com sucesso.');
         loadConfigData();
       } else {
-        alert("Erro ao excluir lavanderia: " + error.message);
+        showToast.error("Erro ao excluir lavanderia: " + error.message);
       }
     } catch (err) {
       console.error(err);
+      showToast.error("Erro ao excluir lavanderia.");
     }
   };
 

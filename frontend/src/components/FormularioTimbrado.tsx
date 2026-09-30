@@ -110,8 +110,8 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
 
   if (enviadoSucesso) {
     return (
-      <div className="max-w-2xl mx-auto my-8 p-8 md:p-10 rounded-[6px] bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-800 shadow-md text-center space-y-5 animate-fade-in border-t-4 border-t-emerald-600">
-        <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+      <div className="max-w-2xl mx-auto my-8 p-8 md:p-10 rounded-[6px] bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-800 shadow-md text-center space-y-5 animate-fade-in border-t-4 border-t-[#113240]">
+        <div className="w-16 h-16 rounded-full bg-[#113240]/10 text-[#113240] dark:text-[#A3C3C7] flex items-center justify-center mx-auto">
           <CheckCircle2 className="w-8 h-8" />
         </div>
         <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#226380] font-semibold block">
@@ -135,7 +135,7 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Status:</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Confirmado</span>
+            <span className="text-[#226380] dark:text-[#A3C3C7] font-semibold">Confirmado</span>
           </div>
         </div>
 
@@ -204,7 +204,7 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
       )}
 
       {/* CABEÇALHO TIMBRADO OFICIAL BRM (PAPEL DE CÚRIA PROVINCIAL) */}
-      <header className="p-7 md:p-9 border-b-2 border-b-[#226380] relative bg-gradient-to-b from-slate-50/60 to-white dark:from-slate-900/40 dark:to-[#161b22]">
+      <header className="p-7 md:p-9 border-b-2 border-b-[#226380] relative bg-white dark:bg-[#161b22]">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
           {/* Brasão Oficial BRM */}
           <div className="shrink-0 flex items-center justify-center p-2 rounded-[6px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -231,7 +231,7 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
           </div>
 
           {/* Selo de Protocolo */}
-          <div className="shrink-0 text-center sm:text-right font-mono text-[10px] text-slate-500 bg-slate-100/80 dark:bg-slate-800/80 p-2.5 rounded-[6px] border border-slate-200 dark:border-slate-700">
+          <div className="shrink-0 text-center sm:text-right font-mono text-[10px] text-slate-500 bg-slate-50 dark:bg-slate-900 p-2.5 rounded-[6px] border border-slate-200 dark:border-slate-800">
             <span className="block text-slate-400 uppercase tracking-wider text-[9px]">Ref. Protocolo</span>
             <strong className="block text-xs text-[#113240] dark:text-white mt-0.5">{protocoloGerado}</strong>
             <span className="block text-[9px] text-slate-400 mt-0.5">{new Date().getFullYear()}</span>
@@ -249,7 +249,7 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
 
           {/* Cartão de Resumo do Evento (se vinculado) */}
           {nomeEvento && (
-            <div className="mt-3.5 p-3 rounded-[6px] bg-[#113240]/5 dark:bg-[#226380]/15 border border-[#A3C3C7]/40 dark:border-[#226380]/30 flex flex-wrap items-center gap-4 text-xs font-mono">
+            <div className="mt-3.5 p-3 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-4 text-xs font-mono">
               <div className="flex items-center gap-1.5 text-[#113240] dark:text-white font-semibold">
                 <FileText className="w-3.5 h-3.5 text-[#226380]" />
                 <span>Evento: {nomeEvento}</span>

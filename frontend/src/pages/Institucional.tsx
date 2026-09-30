@@ -13,6 +13,7 @@ import {
   UsersRound,
   X,
 } from 'lucide-react';
+import { confirmAction, showToast } from '../hooks/useFeedback';
 
 type Status = 'Ativa' | 'Inativa';
 type CadastroStatus = 'Em revisão' | 'Aprovado' | 'Arquivado';
@@ -185,9 +186,10 @@ export const Institucional: React.FC = () => {
 
     setSaving(false);
     if (error) {
-      alert(`Erro ao salvar religioso: ${error.message}`);
+      showToast.error(`Erro ao salvar religioso: ${error.message}`);
       return;
     }
+    showToast.success('Religioso salvo com sucesso.');
     setEditingReligioso(null);
     loadData();
   };
@@ -213,9 +215,10 @@ export const Institucional: React.FC = () => {
 
     setSaving(false);
     if (error) {
-      alert(`Erro ao salvar comunidade: ${error.message}`);
+      showToast.error(`Erro ao salvar comunidade: ${error.message}`);
       return;
     }
+    showToast.success('Comunidade salva com sucesso.');
     setEditingComunidade(null);
     loadData();
   };
@@ -243,20 +246,38 @@ export const Institucional: React.FC = () => {
 
     setSaving(false);
     if (error) {
-      alert(`Erro ao salvar obra: ${error.message}`);
+      showToast.error(`Erro ao salvar obra: ${error.message}`);
       return;
     }
+    showToast.success('Obra/Paróquia salva com sucesso.');
     setEditingObra(null);
     loadData();
   };
 
   const handleDelete = async (table: 'religiosos' | 'comunidades' | 'obras', id: string) => {
-    if (!window.confirm('Deseja realmente excluir este registro?')) return;
+    const rotulos = {
+      religiosos: 'religioso',
+      comunidades: 'comunidade',
+      obras: 'obra/paróquia'
+    };
+    const confirmed = await confirmAction({
+      title: 'Excluir Registro Institucional',
+      badge: 'Governo Provincial • Exclusão',
+      message: `Deseja realmente excluir este(a) ${rotulos[table]}?`,
+      detail: 'O registro será desvinculado dos cadastros institucionais.',
+      confirmLabel: 'Excluir Registro',
+      cancelLabel: 'Cancelar',
+      tone: 'danger',
+      icon: 'trash'
+    });
+    if (!confirmed) return;
+
     const { error } = await supabase.from(table).delete().eq('id', id);
     if (error) {
-      alert(`Erro ao excluir registro: ${error.message}`);
+      showToast.error(`Erro ao excluir registro: ${error.message}`);
       return;
     }
+    showToast.success('Registro excluído com sucesso.');
     loadData();
   };
 

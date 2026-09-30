@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
+import { showToast } from '../../hooks/useFeedback';
 
 interface FichaCanonicaPDFProps {
   religiosoId?: string;
@@ -165,9 +166,10 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
     try {
       await navigator.clipboard.writeText(`${textoCompartilhar}\nLink: ${window.location.href}`);
       setCopiado(true);
+      showToast.success('Link copiado para a área de transferência.');
       setTimeout(() => setCopiado(false), 3000);
     } catch (e) {
-      alert('Link copiado para a área de transferência.');
+      showToast.info('Link copiado para a área de transferência.');
     }
   };
 

@@ -19,6 +19,7 @@ import { staggerStyle } from '../../hooks/useMotion';
 import { FormularioTimbrado } from '../../components/FormularioTimbrado';
 import { SEED_FORMULARIOS } from '../SecretariaConfiguracoes';
 import type { FormularioSecretaria, RespostaFormulario } from '../SecretariaConfiguracoes';
+import { showToast } from '../../hooks/useFeedback';
 
 interface CasaAcolhida {
   id: string;
@@ -493,42 +494,12 @@ export const PortalReligioso: React.FC = () => {
     'Outros'
   ];
 
-  const getCategoriaCor = (cat: CategoriaDocumento) => {
-    switch (cat) {
-      case 'Transferências':
-        return 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20';
-      case 'Diretórios':
-        return 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20';
-      case 'Comunicados':
-        return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20';
-      case 'Protocolos':
-        return 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20';
-      case 'Decretos':
-        return 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20';
-      case 'Formação & Subsídios':
-        return 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20';
-      default:
-        return 'bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20';
-    }
+  const getCategoriaCor = (_cat: CategoriaDocumento) => {
+    return 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
   };
 
-  const getTipoCor = (tipo: string) => {
-    switch (tipo) {
-      case 'Assembleia':
-        return 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20';
-      case 'Retiro':
-        return 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20';
-      case 'Reunião':
-        return 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20';
-      case 'Encontro':
-        return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20';
-      case 'Celebração / Solenidade':
-        return 'bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/20';
-      case 'Visita Canônica':
-        return 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20';
-      default:
-        return 'bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20';
-    }
+  const getTipoCor = (_tipo: string) => {
+    return 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
   };
 
   const formatFileSize = (bytes?: number) => {
@@ -1940,17 +1911,15 @@ export const PortalReligioso: React.FC = () => {
                               </span>
                             )}
                             {evt.exige_inscricao && (
-                              <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-[#0071e3]/10 text-[#0071e3] border border-[#0071e3]/20 flex items-center gap-1">
+                              <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-[4px] bg-[#113240]/10 text-[#113240] dark:text-[#A3C3C7] border border-[#113240]/20 flex items-center gap-1">
                                 <FileText className="w-2.5 h-2.5" />
                                 Inscrição Aberta
                               </span>
                             )}
-                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-[4px] ${
                               evt.status === 'Confirmado'
-                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                                : evt.status === 'Cancelado'
-                                ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
                             }`}>
                               {evt.status}
                             </span>
@@ -1968,7 +1937,7 @@ export const PortalReligioso: React.FC = () => {
 
                           <div className="flex flex-wrap items-center gap-3 text-xs text-[#707070] dark:text-[#86868b] pt-1">
                             <span className="flex items-center gap-1">
-                              <MapPin className="w-3.5 h-3.5 text-[#0071e3]" />
+                              <MapPin className="w-3.5 h-3.5 text-[#226380]" />
                               <span>{evt.local}{evt.cidade ? ` • ${evt.cidade}/${evt.uf}` : ''}</span>
                             </span>
                             {evt.horario && (
@@ -1981,8 +1950,8 @@ export const PortalReligioso: React.FC = () => {
                         </div>
 
                         <div className="self-start md:self-auto shrink-0 flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                          <span className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold bg-[#f5f5f7] dark:bg-[#1d1d1f] text-[#1d1d1f] dark:text-[#f5f5f7] border border-[#d6d6d6]/60 dark:border-white/10 whitespace-nowrap shadow-sm">
-                            <Calendar className="w-3.5 h-3.5 text-[#0071e3]" />
+                          <span className="inline-flex items-center gap-1.5 rounded-[6px] px-3.5 py-1.5 text-xs font-semibold bg-[#f5f5f7] dark:bg-[#1d1d1f] text-[#1d1d1f] dark:text-[#f5f5f7] border border-[#d6d6d6]/60 dark:border-white/10 whitespace-nowrap shadow-sm">
+                            <Calendar className="w-3.5 h-3.5 text-[#226380]" />
                             {formatPeriodo(evt.data_inicio, evt.data_fim)}
                           </span>
 
@@ -2006,9 +1975,9 @@ export const PortalReligioso: React.FC = () => {
                                       setFormularioInscricaoAtivo(formVinculado);
                                     }
                                   }}
-                                  className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 whitespace-nowrap cursor-pointer hover:bg-emerald-500/20 transition-colors"
+                                  className="inline-flex items-center gap-1.5 rounded-[6px] px-4 py-2 text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-[#113240] dark:text-white border border-slate-300 dark:border-slate-700 whitespace-nowrap cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                                 >
-                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-[#226380]" />
                                   <span>Inscrição ({jaInscrito.protocolo})</span>
                                 </button>
                               );
@@ -2022,10 +1991,10 @@ export const PortalReligioso: React.FC = () => {
                                     setEventoInscricaoModal(evt);
                                     setFormularioInscricaoAtivo(formVinculado);
                                   } else {
-                                    alert('O formulário para este evento está em fase de homologação pela Secretaria.');
+                                    showToast.info('O formulário para este evento está em fase de homologação pela Secretaria.');
                                   }
                                 }}
-                                className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold bg-[#0071e3] text-white hover:bg-[#0077ed] whitespace-nowrap shadow-sm cursor-pointer transition-all active:scale-95"
+                                className="inline-flex items-center gap-1.5 rounded-[6px] px-4 py-2 text-xs font-semibold bg-[#113240] text-white hover:bg-[#226380] whitespace-nowrap shadow-sm cursor-pointer transition-all active:scale-95"
                               >
                                 <FileText className="w-3.5 h-3.5" />
                                 <span>Inscrever-se no Evento</span>

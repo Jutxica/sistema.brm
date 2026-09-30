@@ -8,11 +8,10 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost/sistema conventinho',
+        target: 'http://localhost/sistema-brm',
         changeOrigin: true,
         secure: false
       }
     }
   }
 })
-

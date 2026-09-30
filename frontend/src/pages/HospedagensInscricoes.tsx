@@ -4,6 +4,7 @@ import {
   Search, Filter, Edit, Trash2, Mail, Plus, X, 
   Loader2, ArrowLeft, Save, ClipboardList,
 } from 'lucide-react';
+import { confirmAction, showToast } from '../hooks/useFeedback';
 
 interface Hospedagem {
   idhospedagens: string;
@@ -192,7 +193,20 @@ export const HospedagensInscricoes: React.FC = () => {
 
   // Handle deletion
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Deseja realmente excluir esse cadastro de hospedagem?")) return;
+    const itemToDelete = inscricoes.find(item => item.idhospedagens === id);
+    const confirmed = await confirmAction({
+      title: 'Excluir Cadastro de Hospedagem',
+      badge: 'Hospedagens • Exclusão',
+      message: itemToDelete?.hos_nome 
+        ? `Deseja realmente excluir a hospedagem de "${itemToDelete.hos_nome}"?`
+        : 'Deseja realmente excluir esse cadastro de hospedagem?',
+      detail: 'Esta ação removerá o registro de hospedagem e a alocação de quarto associada.',
+      confirmLabel: 'Excluir Hospedagem',
+      cancelLabel: 'Cancelar',
+      tone: 'danger',
+      icon: 'trash'
+    });
+    if (!confirmed) return;
     
     try {
       const { error } = await supabase
@@ -202,11 +216,13 @@ export const HospedagensInscricoes: React.FC = () => {
         
       if (!error) {
         setInscricoes(prev => prev.filter(item => item.idhospedagens !== id));
+        showToast.success('Cadastro de hospedagem excluído com sucesso.');
       } else {
-        alert("Erro ao excluir hospedagem: " + error.message);
+        showToast.error("Erro ao excluir hospedagem: " + error.message);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      showToast.error("Erro inesperado ao excluir hospedagem.");
     }
   };
 
@@ -231,11 +247,13 @@ export const HospedagensInscricoes: React.FC = () => {
           colunasInvisiveis: invisiveis
         });
         setColModalOpen(false);
+        showToast.success('Preferências de colunas salvas com sucesso.');
       } else {
-        alert("Erro ao salvar colunas: " + error.message);
+        showToast.error("Erro ao salvar colunas: " + error.message);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao salvar colunas:", err);
+      showToast.error("Erro ao salvar colunas.");
     }
   };
 
@@ -251,11 +269,13 @@ export const HospedagensInscricoes: React.FC = () => {
 
       if (!error) {
         setInscricoes(prev => prev.map(item => item.idhospedagens === id ? { ...item, hos_status: newStatus } : item));
+        showToast.success('Status da hospedagem atualizado.');
       } else {
-        alert("Erro ao salvar status: " + error.message);
+        showToast.error("Erro ao salvar status: " + error.message);
       }
     } catch (err) {
       console.error(err);
+      showToast.error("Erro ao salvar status.");
     } finally {
       setInlineLoadingId(null);
     }
@@ -272,11 +292,13 @@ export const HospedagensInscricoes: React.FC = () => {
 
       if (!error) {
         setInscricoes(prev => prev.map(item => item.idhospedagens === id ? { ...item, hos_quarto: newQuarto } : item));
+        showToast.success('Quarto atualizado com sucesso.');
       } else {
-        alert("Erro ao salvar quarto: " + error.message);
+        showToast.error("Erro ao salvar quarto: " + error.message);
       }
     } catch (err) {
       console.error(err);
+      showToast.error("Erro ao salvar quarto.");
     } finally {
       setInlineLoadingId(null);
     }
@@ -293,11 +315,13 @@ export const HospedagensInscricoes: React.FC = () => {
 
       if (!error) {
         setInscricoes(prev => prev.map(item => item.idhospedagens === id ? { ...item, hos_checkin: newDateTime || '' } : item));
+        showToast.success(newDateTime ? 'Check-in registrado com sucesso.' : 'Check-in desfeito.');
       } else {
-        alert("Erro ao registrar check-in: " + error.message);
+        showToast.error("Erro ao registrar check-in: " + error.message);
       }
     } catch (err) {
       console.error(err);
+      showToast.error("Erro ao registrar check-in.");
     } finally {
       setInlineLoadingId(null);
     }
@@ -314,11 +338,13 @@ export const HospedagensInscricoes: React.FC = () => {
 
       if (!error) {
         setInscricoes(prev => prev.map(item => item.idhospedagens === id ? { ...item, hos_checkout: newDateTime || '' } : item));
+        showToast.success(newDateTime ? 'Check-out registrado com sucesso.' : 'Check-out desfeito.');
       } else {
-        alert("Erro ao registrar check-out: " + error.message);
+        showToast.error("Erro ao registrar check-out: " + error.message);
       }
     } catch (err) {
       console.error(err);
+      showToast.error("Erro ao registrar check-out.");
     } finally {
       setInlineLoadingId(null);
     }
@@ -353,21 +379,37 @@ export const HospedagensInscricoes: React.FC = () => {
       }
 
       if (!error) {
+        showToast.success('Dados de hospedagem salvos com sucesso.');
         setEditMode(false);
         setEditItem(null);
         handleBuscar(); // Recarregar
       } else {
-        alert("Erro ao salvar dados de hospedagem: " + error.message);
+        showToast.error("Erro ao salvar dados de hospedagem: " + error.message);
       }
     } catch (err) {
       console.error(err);
+      showToast.error("Erro ao salvar dados de hospedagem.");
     } finally {
       setSubmitting(false);
     }
   };
 
   const triggerEmailReceipt = async (id: string) => {
-    if (!window.confirm("Deseja enviar o recibo por e-mail para o inscrito (via Supabase Edge Function)?")) return;
+    const item = inscricoes.find(i => i.idhospedagens === id);
+    const confirmed = await confirmAction({
+      title: 'Enviar Recibo de Hospedagem',
+      badge: 'Comprovante • E-mail',
+      message: item?.hos_email 
+        ? `Deseja enviar o recibo de hospedagem por e-mail para "${item.hos_email}"?` 
+        : 'Deseja enviar o recibo por e-mail para o inscrito?',
+      detail: 'O recibo oficial será disparado via Supabase Edge Function.',
+      confirmLabel: 'Enviar Recibo',
+      cancelLabel: 'Cancelar',
+      tone: 'primary',
+      icon: 'help'
+    });
+    if (!confirmed) return;
+
     try {
       const { error } = await supabase.functions.invoke('send-receipt', {
         body: { id }
@@ -375,10 +417,10 @@ export const HospedagensInscricoes: React.FC = () => {
       
       if (error) throw error;
       
-      alert("E-mail com recibo enviado com sucesso!");
+      showToast.success("E-mail com recibo enviado com sucesso!");
     } catch (err: any) {
       console.error(err);
-      alert("Falha ao enviar e-mail: " + (err.message || err));
+      showToast.error("Falha ao enviar e-mail: " + (err.message || err));
     }
   };
 

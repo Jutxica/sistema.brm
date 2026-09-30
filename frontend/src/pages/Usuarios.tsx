@@ -4,6 +4,7 @@ import {
   Plus, Trash2, Edit, Save, Check, Loader2, UserCheck, UserX, Shield, User, KeyRound, CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { confirmAction, showAlertModal, showToast } from '../hooks/useFeedback';
 
 interface SystemUser {
   idusuarios: string;
@@ -76,10 +77,27 @@ export const Usuarios: React.FC = () => {
 
   const handleDeleteClick = async (id: string, name: string, email: string) => {
     if (currentUser?.email && currentUser.email.toLowerCase() === email.toLowerCase()) {
-      alert("Operação bloqueada: você não pode excluir sua própria conta de administrador enquanto estiver conectado.");
+      await showAlertModal({
+        title: 'Operação Bloqueada',
+        badge: 'Segurança • Sessão Ativa',
+        message: 'Você não pode excluir sua própria conta de administrador enquanto estiver conectado ao sistema.',
+        tone: 'warning'
+      });
       return;
     }
-    if (!window.confirm(`Deseja realmente remover o acesso de "${name}"?`)) return;
+
+    const confirmed = await confirmAction({
+      title: 'Remover Acesso de Usuário',
+      badge: 'Controle de Acesso • Exclusão',
+      message: `Deseja realmente remover o acesso de "${name}"?`,
+      detail: `O usuário com e-mail "${email}" não poderá mais acessar o sistema administrativo.`,
+      confirmLabel: 'Remover Usuário',
+      cancelLabel: 'Cancelar',
+      tone: 'danger',
+      icon: 'trash'
+    });
+    if (!confirmed) return;
+
     try {
       const { error } = await supabase
         .from('usuarios')
@@ -88,17 +106,19 @@ export const Usuarios: React.FC = () => {
         
       if (!error) {
         setUsers(prev => prev.filter(u => u.idusuarios !== id));
+        showToast.success(`Acesso de "${name}" removido com sucesso.`);
       } else {
-        alert("Erro ao excluir usuário: " + error.message);
+        showToast.error("Erro ao excluir usuário: " + error.message);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      showToast.error("Erro inesperado ao excluir usuário.");
     }
   };
 
   const handleSendResetPassword = async (email: string) => {
     if (!email) {
-      alert("Usuário não possui e-mail cadastrado.");
+      showToast.warning("Usuário não possui e-mail cadastrado.");
       return;
     }
     setSendingResetFor(email);
@@ -107,13 +127,14 @@ export const Usuarios: React.FC = () => {
         redirectTo: `${window.location.origin}/login`,
       });
       if (error) {
-        alert("Erro ao enviar e-mail de acesso/redefinição: " + error.message);
+        showToast.error("Erro ao enviar e-mail de acesso/redefinição: " + error.message);
       } else {
         setResetSuccessEmail(email);
+        showToast.success(`E-mail de acesso/redefinição enviado para ${email}`);
         setTimeout(() => setResetSuccessEmail(null), 4000);
       }
     } catch (err: any) {
-      alert("Falha de conexão: " + (err.message || err));
+      showToast.error("Falha de conexão: " + (err.message || err));
     } finally {
       setSendingResetFor(null);
     }
@@ -149,13 +170,15 @@ export const Usuarios: React.FC = () => {
       }
       
       if (!error) {
+        showToast.success("Usuário salvo com sucesso!");
         setEditingUser(null);
         loadUsers();
       } else {
-        alert("Erro ao salvar usuário: " + error.message);
+        showToast.error("Erro ao salvar usuário: " + error.message);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      showToast.error("Falha ao salvar usuário.");
     } finally {
       setSaving(false);
     }

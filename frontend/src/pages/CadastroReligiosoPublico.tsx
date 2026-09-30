@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileUp, Loader2, Plus, Trash2, Printer } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import { confirmAction, showToast } from '../hooks/useFeedback';
 
 interface ObraReferencia { id: string; nome: string; localidade: string | null; cidade?: string | null; uf: string | null; diocese?: string | null }
 interface Familiar extends Record<string, string> { tipo: 'Pai' | 'Mãe' | 'Irmão'; nome: string; data_nascimento: string; local_nascimento: string; estado_civil: string; data_evento: string }
@@ -222,8 +223,19 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
     return () => clearTimeout(timer);
   }, [base, familiares, sacramentos, rows, step, adminMode, religiosoId, loading]);
 
-  const handleClearDraft = () => {
-    if (!window.confirm('Deseja realmente limpar o rascunho salvo e reiniciar o preenchimento?')) return;
+  const handleClearDraft = async () => {
+    const confirmed = await confirmAction({
+      title: 'Limpar Rascunho',
+      badge: 'Ficha Cadastral • Formulário',
+      message: 'Deseja realmente limpar o rascunho salvo e reiniciar o preenchimento?',
+      detail: 'Todas as informações digitadas e ainda não enviadas serão perdidas.',
+      confirmLabel: 'Limpar Formulário',
+      cancelLabel: 'Cancelar',
+      tone: 'warning',
+      icon: 'alert'
+    });
+    if (!confirmed) return;
+
     try {
       localStorage.removeItem(DRAFT_KEY);
     } catch (e) {
@@ -239,6 +251,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
     setFamiliares([emptyFamiliar('Pai'), emptyFamiliar('Mãe')]);
     setSacramentos([emptySacrament('Batismo'), emptySacrament('Primeira Eucaristia'), emptySacrament('Crisma')]);
     setRows([]);
+    showToast.info('Rascunho reiniciado.');
   };
 
   const updateBase = (field: string, value: string) => {
@@ -256,12 +269,32 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   const updateFamiliar = (index: number, field: keyof Familiar, value: string) => setFamiliares(previous => previous.map((row, rowIndex) => rowIndex === index ? { ...row, [field]: value } : row));
   const updateSacrament = (index: number, field: keyof Sacrament, value: string) => setSacramentos(previous => previous.map((row, rowIndex) => rowIndex === index ? { ...row, [field]: value } : row));
   const removeExistingDocument = async (documento: DocumentoExistente) => {
-    if (!window.confirm(`Excluir o documento ${documento.nome_arquivo}?`)) return;
+    const confirmed = await confirmAction({
+      title: 'Excluir Anexo Oficial',
+      badge: 'Documentação • Anexos',
+      message: `Deseja realmente excluir o documento "${documento.nome_arquivo}"?`,
+      detail: 'O arquivo será apagado do armazenamento seguro.',
+      confirmLabel: 'Excluir Arquivo',
+      cancelLabel: 'Cancelar',
+      tone: 'danger',
+      icon: 'trash'
+    });
+    if (!confirmed) return;
+
     const storageResult = await supabase.storage.from('religiosos-documentos').remove([documento.caminho_storage]);
-    if (storageResult.error) { setErrorMessage(storageResult.error.message); return; }
+    if (storageResult.error) { 
+      setErrorMessage(storageResult.error.message); 
+      showToast.error(`Erro ao remover arquivo: ${storageResult.error.message}`);
+      return; 
+    }
     const { error } = await supabase.from('religiosos_documentos').delete().eq('id', documento.id);
-    if (error) { setErrorMessage(error.message); return; }
+    if (error) { 
+      setErrorMessage(error.message); 
+      showToast.error(`Erro ao excluir registro: ${error.message}`);
+      return; 
+    }
     setDocumentosExistentes(previous => previous.filter(item => item.id !== documento.id));
+    showToast.success(`Documento "${documento.nome_arquivo}" excluído.`);
   };
 
   const validateStep = () => {

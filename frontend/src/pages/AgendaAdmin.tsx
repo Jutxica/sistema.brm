@@ -12,6 +12,7 @@ import { FormularioTimbrado } from '../components/FormularioTimbrado';
 import { RelatorioInscricoesPrint } from '../components/RelatorioInscricoesPrint';
 import { FichaInscricaoIndividualPrint } from '../components/FichaInscricaoIndividualPrint';
 import type { FormularioSecretaria, RespostaFormulario } from './SecretariaConfiguracoes';
+import { confirmAction, showToast } from '../hooks/useFeedback';
 
 export type TipoEvento = 
   | 'Assembleia'
@@ -453,7 +454,17 @@ export const AgendaAdmin: React.FC = () => {
 
   // Excluir Evento
   const handleDelete = async (evt: EventoProvincial) => {
-    if (!window.confirm(`Deseja realmente remover o evento "${evt.titulo}" da agenda provincial?`)) return;
+    const confirmed = await confirmAction({
+      title: 'Remover Evento da Agenda',
+      badge: 'Agenda Provincial • Exclusão',
+      message: `Deseja realmente remover o evento "${evt.titulo}" da agenda provincial?`,
+      detail: 'O evento e os acessos vinculados serão excluídos.',
+      confirmLabel: 'Remover Evento',
+      cancelLabel: 'Cancelar',
+      tone: 'danger',
+      icon: 'trash'
+    });
+    if (!confirmed) return;
 
     try {
       await supabase.from('eventos_provinciais').delete().eq('id', evt.id);
@@ -463,6 +474,7 @@ export const AgendaAdmin: React.FC = () => {
 
     const lista = eventos.filter(ev => ev.id !== evt.id);
     persistirEventos(lista);
+    showToast.success(`Evento "${evt.titulo}" removido com sucesso.`);
   };
 
   // Filtros
@@ -1281,7 +1293,7 @@ export const AgendaAdmin: React.FC = () => {
                   onClick={() => {
                     const inscritos = respostas.filter(r => r.evento_id === inscritosModalEvento.id || (inscritosModalEvento.formulario_id && r.formulario_id === inscritosModalEvento.formulario_id));
                     if (inscritos.length === 0) {
-                      alert('Não há inscrições para exportar.');
+                      showToast.info('Não há inscrições para exportar.');
                       return;
                     }
                     const cabecalhos = ['Protocolo', 'Data Submissão', 'Nome Confrade', 'Grau/Vínculo', 'Comunidade', 'Telefone', 'Hospedagem', 'Status'];

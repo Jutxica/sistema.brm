@@ -23,6 +23,7 @@ import {
   Send,
   Building
 } from 'lucide-react';
+import { confirmAction, showToast } from '../hooks/useFeedback';
 import { supabase } from '../lib/supabaseClient';
 
 // Ícone oficial WhatsApp
@@ -325,12 +326,12 @@ export const AtualizarObraPublico: React.FC = () => {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Por favor, selecione um arquivo de imagem válido (JPG, PNG ou WEBP).');
+      showToast.error('Por favor, selecione um arquivo de imagem válido (JPG, PNG ou WEBP).');
       return;
     }
 
     if (file.size > 12 * 1024 * 1024) {
-      alert('A imagem selecionada é muito grande. O limite máximo é de 12 MB.');
+      showToast.warning('A imagem selecionada é muito grande. O limite máximo é de 12 MB.');
       return;
     }
 
@@ -383,20 +384,33 @@ export const AtualizarObraPublico: React.FC = () => {
         return f;
       }));
 
+      showToast.success('Foto carregada com sucesso.');
+
       // Salva no banco de dados imediatamente
       setTimeout(() => salvarDados(false), 300);
 
     } catch (err: any) {
       console.error('Erro no upload da foto:', err);
-      alert('Erro ao carregar a imagem. Tente novamente.');
+      showToast.error('Erro ao carregar a imagem. Tente novamente.');
       setFotos(prev => prev.map((f, i) => i === index ? { ...f, carregando: false } : f));
     }
   };
 
   // Remover foto de um slot
-  const handleRemoverFoto = (index: number) => {
-    if (!confirm('Deseja remover esta foto do formulário?')) return;
+  const handleRemoverFoto = async (index: number) => {
+    const confirmed = await confirmAction({
+      title: 'Remover Imagem',
+      badge: 'Galeria • Registro',
+      message: 'Deseja remover esta foto do formulário da obra?',
+      confirmLabel: 'Remover Imagem',
+      cancelLabel: 'Cancelar',
+      tone: 'warning',
+      icon: 'alert'
+    });
+    if (!confirmed) return;
+
     setFotos(prev => prev.map((f, i) => i === index ? { ...f, url: '', nomeArquivo: '', legenda: '' } : f));
+    showToast.info('Foto removida.');
     setTimeout(() => salvarDados(false), 200);
   };
 
