@@ -1,0 +1,1793 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { 
+  Building2, Car, Package, ShieldCheck, Wrench, AlertTriangle, 
+  Search, Plus, Trash2, Edit3, 
+  CheckCircle2, X, Calendar, MapPin, FileText, Check, 
+  Eye, RefreshCw, Printer, LayoutGrid, ListFilter,
+  ChevronRight, HardDrive, Clock, Layers, Landmark, Shield,
+  ArrowUpRight, FileCheck
+} from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
+import { useAnimatedNumber } from '../hooks/useMotion';
+import { confirmAction, showToast } from '../hooks/useFeedback';
+import type {
+  AbaPatrimonio,
+  TipoPatrimonio,
+  ImovelPatrimonio,
+  VeiculoPatrimonio,
+  BemPatrimonio,
+  ContratoPatrimonio,
+  ManutencaoPatrimonio,
+} from '../types/patrimonio';
+import {
+  getPatrimonioLocal,
+  savePatrimonioLocal,
+  SEED_IMOVEIS,
+  SEED_VEICULOS,
+  SEED_BENS,
+  SEED_CONTRATOS,
+  SEED_MANUTENCOES
+} from '../types/patrimonio';
+
+const AnimatedStat: React.FC<{ value: number }> = ({ value }) => {
+  const animated = useAnimatedNumber(value);
+  return <>{animated}</>;
+};
+
+export const PatrimonioAdmin: React.FC = () => {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Abas
+  const activeTab = (searchParams.get('tab') as AbaPatrimonio) || 'visao-geral';
+  const handleTabChange = (tab: AbaPatrimonio) => {
+    setSearchParams({ tab });
+  };
+
+  // Estados dos Ativos
+  const [imoveis, setImoveis] = useState<ImovelPatrimonio[]>([]);
+  const [veiculos, setVeiculos] = useState<VeiculoPatrimonio[]>([]);
+  const [bens, setBens] = useState<BemPatrimonio[]>([]);
+  const [contratos, setContratos] = useState<ContratoPatrimonio[]>([]);
+  const [manutencoes, setManutencoes] = useState<ManutencaoPatrimonio[]>([]);
+
+  // Estados de UI e Filtros
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [search, setSearch] = useState('');
+  const [copiedSql, setCopiedSql] = useState(false);
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [filtroComunidade, setFiltroComunidade] = useState<string>('Todas');
+  const [filtroConformidade, setFiltroConformidade] = useState<'todos' | 'seguros' | 'bombeiros' | 'veiculos' | 'contratos'>('todos');
+
+  // Carregar dados (Supabase com fallback LocalStorage resiliente)
+  useEffect(() => {
+    carregarDados();
+  }, []);
+
+  const carregarDados = async () => {
+    setSyncing(true);
+    try {
+      const [resImoveis, resVeiculos, resBens, resContratos, resManut] = await Promise.all([
+        supabase.from('patrimonio_imoveis').select('*').order('nome'),
+        supabase.from('patrimonio_veiculos').select('*').order('marca_modelo'),
+        supabase.from('patrimonio_bens').select('*').order('codigo_tombamento'),
+        supabase.from('patrimonio_contratos').select('*').order('data_fim'),
+        supabase.from('patrimonio_manutencoes').select('*').order('data_solicitacao', { ascending: false })
+      ]);
+
+      let imovData = (resImoveis.data && resImoveis.data.length > 0) ? (resImoveis.data as ImovelPatrimonio[]) : [];
+      let veicData = (resVeiculos.data && resVeiculos.data.length > 0) ? (resVeiculos.data as VeiculoPatrimonio[]) : [];
+      let bensData = (resBens.data && resBens.data.length > 0) ? (resBens.data as BemPatrimonio[]) : [];
+      let contData = (resContratos.data && resContratos.data.length > 0) ? (resContratos.data as ContratoPatrimonio[]) : [];
+      let manuData = (resManut.data && resManut.data.length > 0) ? (resManut.data as ManutencaoPatrimonio[]) : [];
+
+      const local = getPatrimonioLocal();
+      if (imovData.length === 0) imovData = local.imoveis || SEED_IMOVEIS;
+      if (veicData.length === 0) veicData = local.veiculos || SEED_VEICULOS;
+      if (bensData.length === 0) bensData = local.bens || SEED_BENS;
+      if (contData.length === 0) contData = local.contratos || SEED_CONTRATOS;
+      if (manuData.length === 0) manuData = local.manutencoes || SEED_MANUTENCOES;
+
+      setImoveis(imovData);
+      setVeiculos(veicData);
+      setBens(bensData);
+      setContratos(contData);
+      setManutencoes(manuData);
+
+      savePatrimonioLocal({
+        imoveis: imovData,
+        veiculos: veicData,
+        bens: bensData,
+        contratos: contData,
+        manutencoes: manuData
+      });
+    } catch (err) {
+      console.warn('Erro ao carregar dados do Supabase; usando armazenamento resiliente:', err);
+      const local = getPatrimonioLocal();
+      setImoveis(local.imoveis);
+      setVeiculos(local.veiculos);
+      setBens(local.bens);
+      setContratos(local.contratos);
+      setManutencoes(local.manutencoes);
+    } finally {
+      setSyncing(false);
+      setLoading(false);
+    }
+  };
+
+  const copySqlMigration = () => {
+    const sql = `-- Script de Criação do Módulo de Patrimônio Provincial BRM
+-- Acesse Supabase -> SQL Editor -> Cole e Execute
+${document.location.origin}/supabase/migration-patrimonio.sql`;
+
+    navigator.clipboard.writeText(sql);
+    setCopiedSql(true);
+    showToast.success('Script SQL copiado com sucesso!', 'SQL Copiado');
+    setTimeout(() => setCopiedSql(false), 3000);
+  };
+
+  const handleExcluirImovel = async (id: string, nome: string) => {
+    const confirmou = await confirmAction({
+      title: 'Excluir Imóvel do Patrimônio',
+      message: `Tem certeza que deseja remover o imóvel "${nome}"? Esta operação é definitiva.`,
+      confirmLabel: 'Remover Imóvel',
+      tone: 'danger'
+    });
+    if (!confirmou) return;
+
+    try {
+      await supabase.from('patrimonio_imoveis').delete().eq('id', id);
+    } catch (_) {}
+
+    const filtrados = imoveis.filter(i => i.id !== id);
+    setImoveis(filtrados);
+    savePatrimonioLocal({ imoveis: filtrados, veiculos, bens, contratos, manutencoes });
+    showToast.success(`Imóvel "${nome}" removido do cadastro provincial.`, 'Imóvel Removido');
+  };
+
+  const handleExcluirVeiculo = async (id: string, modelo: string, placa: string) => {
+    const confirmou = await confirmAction({
+      title: 'Remover Veículo da Frota',
+      message: `Deseja realmente remover o veículo ${modelo} (${placa}) do livro de frota?`,
+      confirmLabel: 'Remover Veículo',
+      tone: 'danger'
+    });
+    if (!confirmou) return;
+
+    try {
+      await supabase.from('patrimonio_veiculos').delete().eq('id', id);
+    } catch (_) {}
+
+    const filtrados = veiculos.filter(v => v.id !== id);
+    setVeiculos(filtrados);
+    savePatrimonioLocal({ imoveis, veiculos: filtrados, bens, contratos, manutencoes });
+    showToast.success(`Veículo ${placa} removido da frota provincial.`, 'Veículo Removido');
+  };
+
+  const handleExcluirBem = async (id: string, titulo: string, tombo: string) => {
+    const confirmou = await confirmAction({
+      title: 'Desincorporar Bem do Inventário',
+      message: `Deseja remover o bem tombo ${tombo} ("${titulo}") do acervo provincial?`,
+      confirmLabel: 'Desincorporar Bem',
+      tone: 'danger'
+    });
+    if (!confirmou) return;
+
+    try {
+      await supabase.from('patrimonio_bens').delete().eq('id', id);
+    } catch (_) {}
+
+    const filtrados = bens.filter(b => b.id !== id);
+    setBens(filtrados);
+    savePatrimonioLocal({ imoveis, veiculos, bens: filtrados, contratos, manutencoes });
+    showToast.success(`Item tombo ${tombo} desincorporado.`, 'Bem Removido');
+  };
+
+  const handleExcluirContrato = async (id: string, titulo: string) => {
+    const confirmou = await confirmAction({
+      title: 'Excluir Contrato / Apólice',
+      message: `Deseja remover o registro de contrato "${titulo}"?`,
+      confirmLabel: 'Excluir Contrato',
+      tone: 'danger'
+    });
+    if (!confirmou) return;
+
+    try {
+      await supabase.from('patrimonio_contratos').delete().eq('id', id);
+    } catch (_) {}
+
+    const filtrados = contratos.filter(c => c.id !== id);
+    setContratos(filtrados);
+    savePatrimonioLocal({ imoveis, veiculos, bens, contratos: filtrados, manutencoes });
+    showToast.success(`Contrato removido.`, 'Contrato Excluído');
+  };
+
+  const handleExcluirManutencao = async (id: string, titulo: string) => {
+    const confirmou = await confirmAction({
+      title: 'Excluir Vistoria / Ordem de Serviço',
+      message: `Deseja remover o registro de manutenção "${titulo}"?`,
+      confirmLabel: 'Excluir Registro',
+      tone: 'danger'
+    });
+    if (!confirmou) return;
+
+    try {
+      await supabase.from('patrimonio_manutencoes').delete().eq('id', id);
+    } catch (_) {}
+
+    const filtrados = manutencoes.filter(m => m.id !== id);
+    setManutencoes(filtrados);
+    savePatrimonioLocal({ imoveis, veiculos, bens, contratos, manutencoes: filtrados });
+    showToast.success(`Registro de vistoria excluído.`, 'Ordem Removida');
+  };
+
+  // Agregações
+  const valorTotalImoveis = useMemo(() => {
+    return imoveis.reduce((acc, i) => acc + (Number(i.valor_venal) || 0), 0);
+  }, [imoveis]);
+
+  const valorTotalBens = useMemo(() => {
+    return bens.reduce((acc, b) => acc + (Number(b.valor_estimado) || 0), 0);
+  }, [bens]);
+
+  const valorTotalEstimado = valorTotalImoveis + valorTotalBens;
+
+  const areaTotalConstruida = useMemo(() => {
+    return imoveis.reduce((acc, i) => acc + (Number(i.area_construida_m2) || 0), 0);
+  }, [imoveis]);
+
+  const imoveisEscriturados = useMemo(() => {
+    return imoveis.filter(i => i.tem_escritura).length;
+  }, [imoveis]);
+
+  const veiculosSegurados = useMemo(() => {
+    return veiculos.filter(v => v.seguro_vencimento).length;
+  }, [veiculos]);
+
+  const contratosVigentes = useMemo(() => {
+    return contratos.filter(c => c.status === 'Vigente').length;
+  }, [contratos]);
+
+  // Alertas de Conformidade & Prazos
+  const alertasVencimento = useMemo(() => {
+    const hoje = new Date();
+    const alertas: Array<{
+      id: string;
+      itemId: string;
+      tipo: TipoPatrimonio;
+      categoriaTipo: 'seguros' | 'bombeiros' | 'veiculos' | 'contratos';
+      titulo: string;
+      descricao: string;
+      diasRestantes: number;
+      severidade: 'urgente' | 'atencao' | 'info';
+    }> = [];
+
+    // Veículos
+    veiculos.forEach(v => {
+      if (v.seguro_vencimento) {
+        const dataVenc = new Date(v.seguro_vencimento);
+        const diff = Math.ceil((dataVenc.getTime() - hoje.getTime()) / (1000 * 3600 * 24));
+        if (diff <= 35) {
+          alertas.push({
+            id: `seguro-veic-${v.id}`,
+            itemId: v.id,
+            tipo: 'veiculo',
+            categoriaTipo: 'seguros',
+            titulo: `Seguro Auto: ${v.marca_modelo} (${v.placa})`,
+            descricao: diff < 0 ? `Venceu há ${Math.abs(diff)} dias` : `Vence em ${diff} dias (${v.seguro_seguradora || 'Seguradora'})`,
+            diasRestantes: diff,
+            severidade: diff <= 7 ? 'urgente' : 'atencao'
+          });
+        }
+      }
+
+      if (v.proxima_revisao_km && v.quilometragem_atual >= v.proxima_revisao_km - 1500) {
+        alertas.push({
+          id: `rev-veic-${v.id}`,
+          itemId: v.id,
+          tipo: 'veiculo',
+          categoriaTipo: 'veiculos',
+          titulo: `Revisão Preventiva: ${v.marca_modelo} (${v.placa})`,
+          descricao: `Odômetro: ${v.quilometragem_atual.toLocaleString('pt-BR')} km. Revisão aos ${v.proxima_revisao_km.toLocaleString('pt-BR')} km.`,
+          diasRestantes: 5,
+          severidade: v.quilometragem_atual >= v.proxima_revisao_km ? 'urgente' : 'atencao'
+        });
+      }
+    });
+
+    // Imóveis
+    imoveis.forEach(im => {
+      if (im.avcb_vencimento) {
+        const dataVenc = new Date(im.avcb_vencimento);
+        const diff = Math.ceil((dataVenc.getTime() - hoje.getTime()) / (1000 * 3600 * 24));
+        if (diff <= 60) {
+          alertas.push({
+            id: `avcb-${im.id}`,
+            itemId: im.id,
+            tipo: 'imovel',
+            categoriaTipo: 'bombeiros',
+            titulo: `Renovação de AVCB Bombeiros: ${im.nome}`,
+            descricao: diff < 0 ? `AVCB Vencido! Regularizar junto aos Bombeiros.` : `Expira em ${diff} dias (${im.cidade}/${im.uf})`,
+            diasRestantes: diff,
+            severidade: diff <= 15 ? 'urgente' : 'atencao'
+          });
+        }
+      }
+
+      if (im.seguro_predial_vencimento) {
+        const dataVenc = new Date(im.seguro_predial_vencimento);
+        const diff = Math.ceil((dataVenc.getTime() - hoje.getTime()) / (1000 * 3600 * 24));
+        if (diff <= 45) {
+          alertas.push({
+            id: `seguro-predial-${im.id}`,
+            itemId: im.id,
+            tipo: 'imovel',
+            categoriaTipo: 'seguros',
+            titulo: `Seguro Predial: ${im.nome}`,
+            descricao: diff < 0 ? `Apólice vencida` : `Expira em ${diff} dias (${im.seguro_predial_seguradora || 'Seguro Predial'})`,
+            diasRestantes: diff,
+            severidade: diff <= 10 ? 'urgente' : 'atencao'
+          });
+        }
+      }
+    });
+
+    // Contratos
+    contratos.forEach(c => {
+      if (c.data_fim) {
+        const dataVenc = new Date(c.data_fim);
+        const diff = Math.ceil((dataVenc.getTime() - hoje.getTime()) / (1000 * 3600 * 24));
+        if (diff <= 60) {
+          alertas.push({
+            id: `contrato-${c.id}`,
+            itemId: c.id,
+            tipo: 'contrato',
+            categoriaTipo: 'contratos',
+            titulo: `Vigência de Contrato: ${c.titulo}`,
+            descricao: diff < 0 ? `Contrato vencido` : `Expira em ${diff} dias (${c.fornecedor_prestador})`,
+            diasRestantes: diff,
+            severidade: diff <= 15 ? 'urgente' : 'atencao'
+          });
+        }
+      }
+    });
+
+    return alertas.sort((a, b) => a.diasRestantes - b.diasRestantes);
+  }, [veiculos, imoveis, contratos]);
+
+  const alertasFiltrados = useMemo(() => {
+    if (filtroConformidade === 'todos') return alertasVencimento;
+    return alertasVencimento.filter(a => a.categoriaTipo === filtroConformidade);
+  }, [alertasVencimento, filtroConformidade]);
+
+  // Distribuição por Comunidades e Presenças
+  const distribuicaoPolos = useMemo(() => {
+    const contagem: Record<string, { imoveis: number; veiculos: number; bens: number; total: number }> = {};
+
+    const registrar = (chaveRaw: string | undefined, tipoAtivo: 'imoveis' | 'veiculos' | 'bens') => {
+      let chave = (chaveRaw || 'Outros').trim();
+      if (chave.toLowerCase().includes('brusque')) chave = 'Polo Vale do Itajaí · Brusque / SC';
+      else if (chave.toLowerCase().includes('taubaté') || chave.toLowerCase().includes('taubate')) chave = 'Polo Vale do Paraíba · Taubaté / SP';
+      else if (chave.toLowerCase().includes('rio negrinho')) chave = 'Polo Norte Catarinense · Rio Negrinho / SC';
+      else if (chave.toLowerCase().includes('corupá') || chave.toLowerCase().includes('corupa')) chave = 'Polo Planalto Norte · Corupá / SC';
+      else if (chave.toLowerCase().includes('curitiba')) chave = 'Presença Metropolitana · Curitiba / PR';
+      else if (chave.toLowerCase().includes('joinville')) chave = 'Polo Litoral Norte · Joinville / SC';
+      else chave = 'Outras Presenças Dehonianas';
+
+      if (!contagem[chave]) {
+        contagem[chave] = { imoveis: 0, veiculos: 0, bens: 0, total: 0 };
+      }
+      contagem[chave][tipoAtivo]++;
+      contagem[chave].total++;
+    };
+
+    imoveis.forEach(i => registrar(i.cidade || i.comunidade_obra, 'imoveis'));
+    veiculos.forEach(v => registrar(v.comunidade_obra, 'veiculos'));
+    bens.forEach(b => registrar(b.comunidade_obra, 'bens'));
+
+    return Object.entries(contagem).sort((a, b) => b[1].total - a[1].total);
+  }, [imoveis, veiculos, bens]);
+
+  const imoveisFiltrados = useMemo(() => {
+    return imoveis.filter(i => 
+      i.nome.toLowerCase().includes(search.toLowerCase()) || 
+      i.cidade.toLowerCase().includes(search.toLowerCase()) || 
+      (i.comunidade_obra && i.comunidade_obra.toLowerCase().includes(search.toLowerCase()))
+    );
+  }, [imoveis, search]);
+
+  const veiculosFiltrados = useMemo(() => {
+    return veiculos.filter(v => 
+      v.marca_modelo.toLowerCase().includes(search.toLowerCase()) || 
+      v.placa.toLowerCase().includes(search.toLowerCase()) || 
+      (v.comunidade_obra && v.comunidade_obra.toLowerCase().includes(search.toLowerCase()))
+    );
+  }, [veiculos, search]);
+
+  const bensFiltrados = useMemo(() => {
+    return bens.filter(b => 
+      b.titulo.toLowerCase().includes(search.toLowerCase()) || 
+      b.codigo_tombamento.toLowerCase().includes(search.toLowerCase()) || 
+      (b.comunidade_obra && b.comunidade_obra.toLowerCase().includes(search.toLowerCase()))
+    );
+  }, [bens, search]);
+
+  const contratosFiltrados = useMemo(() => {
+    return contratos.filter(c => 
+      c.titulo.toLowerCase().includes(search.toLowerCase()) || 
+      c.fornecedor_prestador.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [contratos, search]);
+
+  const manutencoesFiltrados = useMemo(() => {
+    return manutencoes.filter(m => 
+      m.titulo.toLowerCase().includes(search.toLowerCase()) || 
+      (m.comunidade_obra && m.comunidade_obra.toLowerCase().includes(search.toLowerCase()))
+    );
+  }, [manutencoes, search]);
+
+  return (
+    <div className="space-y-6 animate-fade-in print:space-y-4 font-sans pb-12">
+      {/* 1. Header Oficial do Economato Provincial */}
+      <header className="rounded-[10px] bg-white dark:bg-[#161b22] p-6 md:p-8 border border-slate-200/90 dark:border-slate-800 border-t-2 border-t-[#226380] shadow-xs transition-all">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="flex items-start gap-4">
+            <div className="flex items-center shrink-0">
+              <img src="/logo-sistema.png" alt="Brasão SCJ BRM" className="h-14 w-auto object-contain dark:hidden" />
+              <img src="/logo-branco.png" alt="Brasão SCJ BRM" className="h-14 w-auto object-contain hidden dark:block" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-cinzel text-xs font-bold tracking-[0.16em] text-[#226380] dark:text-[#A3C3C7] uppercase">
+                  Província BRM
+                </span>
+                <span className="text-slate-300 dark:text-slate-700">·</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  Congregação dos Padres do Sagrado Coração de Jesus
+                </span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[4px] text-[10px] font-semibold tracking-wide uppercase bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 ml-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  Livro de Tombo Oficial
+                </span>
+              </div>
+              <h1 className="font-cinzel text-2xl md:text-3xl font-bold tracking-tight text-[#113240] dark:text-white mt-1">
+                Patrimônio & Imobilizado Provincial
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                Governança imobiliária e fundiária, frota veicular, inventário histórico-artístico, apólices securitárias e vistorias prediais.
+              </p>
+            </div>
+          </div>
+
+          {/* Botões de Ação do Topo (Diretoria Executiva) */}
+          <div className="flex flex-wrap items-center gap-2.5 print:hidden shrink-0">
+            <button
+              type="button"
+              onClick={carregarDados}
+              disabled={syncing}
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer rounded-[6px] shadow-xs motion-press"
+              title="Sincronizar com banco de dados provincial"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-[#226380]' : ''}`} />
+              <span>{syncing ? 'Sincronizando' : 'Sincronizar'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer rounded-[6px] shadow-xs motion-press"
+              title="Emitir relatório geral do patrimônio"
+            >
+              <Printer className="w-3.5 h-3.5 text-[#226380]" />
+              <span>Imprimir Relatório</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate('/patrimonio/novo')}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold bg-[#113240] text-white hover:bg-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
+              title="Abre a ficha para lançamento de novo ativo"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Lançar Patrimônio</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* 2. Abas de Navegação Editorial */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar text-xs print:hidden border-b border-slate-200/80 dark:border-slate-800">
+        {[
+          { id: 'visao-geral', label: 'Visão Geral & Indicadores', icon: Layers, badge: alertasVencimento.length || null },
+          { id: 'imoveis', label: 'Imóveis & Terrenos', icon: Building2, count: imoveis.length },
+          { id: 'veiculos', label: 'Frota Veicular', icon: Car, count: veiculos.length },
+          { id: 'inventario', label: 'Inventário Sacro & Arte', icon: Package, count: bens.length },
+          { id: 'contratos', label: 'Contratos & Seguros', icon: ShieldCheck, count: contratos.length },
+          { id: 'manutencoes', label: 'Vistorias & Obras', icon: Wrench, count: manutencoes.length },
+        ].map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => handleTabChange(tab.id as AbaPatrimonio)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-t-[6px] text-xs font-medium transition-all cursor-pointer shrink-0 border-b-2 -mb-[2px] ${
+                isActive
+                  ? 'border-[#226380] text-[#113240] dark:text-white font-semibold bg-white dark:bg-[#161b22] border-t border-l border-r border-t-slate-200/90 dark:border-t-slate-800 border-l-slate-200/90 dark:border-l-slate-800 border-r-slate-200/90 dark:border-r-slate-800 shadow-xs'
+                  : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
+            >
+              <Icon className="w-4 h-4 text-[#226380]" />
+              <span>{tab.label}</span>
+              {tab.badge && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                  {tab.badge}
+                </span>
+              )}
+              {tab.count !== undefined && (
+                <span className="text-[11px] text-slate-400 font-mono">
+                  ({tab.count})
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* ABA 1: VISÃO GERAL — ASYMMETRIC EXECUTIVE PORTFOLIO BENTO                 */}
+      {/* ========================================================================= */}
+      {activeTab === 'visao-geral' && (
+        <div className="space-y-6">
+          {/* Asymmetric Bento Portfolio Grid */}
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-5">
+            {/* Anchor Card: Avaliação Consolidada do Imobilizado & Acervo (Spans 7 cols, 2 rows) */}
+            <div className="lg:col-span-7 lg:row-span-2 rounded-[10px] bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden shadow-xs hover:border-[#226380]/40 transition-all group">
+              {/* Brasão d'água sutil no fundo */}
+              <div className="absolute -right-6 -bottom-6 w-52 h-52 pointer-events-none opacity-[0.035] dark:opacity-[0.045] select-none transition-transform group-hover:scale-105 duration-700">
+                <img src="/logo-sistema.png" alt="" className="w-full h-full object-contain dark:hidden" />
+                <img src="/logo-branco.png" alt="" className="w-full h-full object-contain hidden dark:block" />
+              </div>
+
+              <div className="space-y-4 relative z-10">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#226380] dark:text-[#A3C3C7]">
+                      Livro de Tombo Consolidado
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-[4px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/60">
+                    Exercício Vigente · Província BRM
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-xs text-slate-400 font-medium block mb-1">
+                    Avaliação Global Estimada do Ativo
+                  </span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl sm:text-5xl font-light text-[#113240] dark:text-white tabular-nums tracking-tight">
+                      R$ {(valorTotalEstimado / 1000000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-md leading-relaxed">
+                    Patrimônio imobiliário venal registrado em cartório e acervos litúrgicos tombados sob custódia canônica da Província BRM.
+                  </p>
+                </div>
+
+                {/* Subdivisão Editorial dos Ativos */}
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+                  <div>
+                    <span className="text-[11px] text-slate-400 block">Imóveis & Sedes</span>
+                    <span className="text-lg font-semibold text-slate-900 dark:text-white tabular-nums">
+                      R$ {(valorTotalImoveis / 1000000).toFixed(1)}M
+                    </span>
+                    <span className="block text-[11px] text-slate-500 mt-0.5">
+                      {imoveis.length} sedes registradas
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-slate-400 block">Inventário Sacro</span>
+                    <span className="text-lg font-semibold text-slate-900 dark:text-white tabular-nums">
+                      R$ {(valorTotalBens / 1000).toFixed(0)}k
+                    </span>
+                    <span className="block text-[11px] text-slate-500 mt-0.5">
+                      {bens.length} itens tombados
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-400 relative z-10">
+                <span className="truncate">
+                  Cartórios de Registro de Imóveis (RGI) e Arquivo Canônico
+                </span>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-1.5 text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold hover:underline cursor-pointer"
+                >
+                  <span>Emitir Balanço</span>
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Card 2: Sedes Canônicas & Edificações (lg:col-span-5) */}
+            <div 
+              onClick={() => handleTabChange('imoveis')}
+              className="lg:col-span-5 rounded-[10px] bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 p-6 flex flex-col justify-between shadow-xs hover:border-[#226380]/60 transition-all cursor-pointer group"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="w-9 h-9 rounded-[8px] bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center text-[#226380]">
+                    <Building2 className="w-4.5 h-4.5" />
+                  </div>
+                  <span className="text-xs font-semibold text-[#226380] dark:text-[#A3C3C7] flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                    <span>Ver imóveis</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Sedes Canônicas & Obras
+                  </span>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <span className="text-3xl font-light text-slate-900 dark:text-white tabular-nums">
+                      <AnimatedStat value={imoveis.length} />
+                    </span>
+                    <span className="text-xs text-slate-400">propriedades</span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300 pt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Área Edificada Total</span>
+                    <span className="font-medium text-slate-800 dark:text-slate-200">
+                      {areaTotalConstruida.toLocaleString('pt-BR')} m²
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Escrituradas em RGI</span>
+                    <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                      {imoveisEscriturados} de {imoveis.length} regulares
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 3: Frota Veicular Provincial (lg:col-span-5) */}
+            <div 
+              onClick={() => handleTabChange('veiculos')}
+              className="lg:col-span-5 rounded-[10px] bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 p-6 flex flex-col justify-between shadow-xs hover:border-[#226380]/60 transition-all cursor-pointer group"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="w-9 h-9 rounded-[8px] bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center text-[#226380]">
+                    <Car className="w-4.5 h-4.5" />
+                  </div>
+                  <span className="text-xs font-semibold text-[#226380] dark:text-[#A3C3C7] flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                    <span>Ver frota</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Frota Veicular Ativa
+                  </span>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <span className="text-3xl font-light text-slate-900 dark:text-white tabular-nums">
+                      <AnimatedStat value={veiculos.length} />
+                    </span>
+                    <span className="text-xs text-slate-400">veículos alocados</span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300 pt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Cobertura de Seguros</span>
+                    <span className="font-medium text-slate-800 dark:text-slate-200">
+                      {veiculosSegurados} de {veiculos.length} apólices vigentes
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Regularidade Fiscal</span>
+                    <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                      100% IPVA quitado
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 4: Inventário Sacro & Histórico (lg:col-span-4) */}
+            <div 
+              onClick={() => handleTabChange('inventario')}
+              className="lg:col-span-4 rounded-[10px] bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 p-5 flex flex-col justify-between shadow-xs hover:border-[#226380]/60 transition-all cursor-pointer group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="w-8 h-8 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center text-[#226380]">
+                  <Package className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-semibold text-slate-400 group-hover:text-[#226380] transition-colors">
+                  Inventário
+                </span>
+              </div>
+              <div className="mt-4">
+                <span className="text-2xl font-light text-slate-900 dark:text-white tabular-nums">
+                  <AnimatedStat value={bens.length} />
+                </span>
+                <span className="block text-xs font-medium text-slate-800 dark:text-slate-200 mt-0.5">
+                  Bens Sacros & Relíquias
+                </span>
+                <span className="block text-[11px] text-slate-400 mt-0.5">
+                  Curadoria histórica canônica
+                </span>
+              </div>
+            </div>
+
+            {/* Card 5: Contratos & Apólices (lg:col-span-4) */}
+            <div 
+              onClick={() => handleTabChange('contratos')}
+              className="lg:col-span-4 rounded-[10px] bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 p-5 flex flex-col justify-between shadow-xs hover:border-[#226380]/60 transition-all cursor-pointer group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="w-8 h-8 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center text-[#226380]">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-semibold text-slate-400 group-hover:text-[#226380] transition-colors">
+                  Seguros
+                </span>
+              </div>
+              <div className="mt-4">
+                <span className="text-2xl font-light text-slate-900 dark:text-white tabular-nums">
+                  <AnimatedStat value={contratos.length} />
+                </span>
+                <span className="block text-xs font-medium text-slate-800 dark:text-slate-200 mt-0.5">
+                  Contratos & Apólices
+                </span>
+                <span className="block text-[11px] text-slate-400 mt-0.5">
+                  {contratosVigentes} apólices ativas
+                </span>
+              </div>
+            </div>
+
+            {/* Card 6: Vistorias & Manutenções (lg:col-span-4) */}
+            <div 
+              onClick={() => handleTabChange('manutencoes')}
+              className="lg:col-span-4 rounded-[10px] bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 p-5 flex flex-col justify-between shadow-xs hover:border-[#226380]/60 transition-all cursor-pointer group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="w-8 h-8 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center text-[#226380]">
+                  <Wrench className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-semibold text-slate-400 group-hover:text-[#226380] transition-colors">
+                  Engenharia
+                </span>
+              </div>
+              <div className="mt-4">
+                <span className="text-2xl font-light text-slate-900 dark:text-white tabular-nums">
+                  <AnimatedStat value={manutencoes.length} />
+                </span>
+                <span className="block text-xs font-medium text-slate-800 dark:text-slate-200 mt-0.5">
+                  Vistorias & Manutenções
+                </span>
+                <span className="block text-[11px] text-slate-400 mt-0.5">
+                  Acompanhamento predial
+                </span>
+              </div>
+            </div>
+          </section>
+
+          {/* Grid: Presenças Territoriais e Ações de Lançamento */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            {/* Diretório Editorial de Presenças */}
+            <div className="lg:col-span-7 bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 rounded-[10px] p-6 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 gap-2">
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-[#226380]" />
+                    <span>Presenças Territoriais & Polos da Província BRM</span>
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Alocação do patrimônio entre as sedes conventuais, paróquias e seminários.
+                  </p>
+                </div>
+                {filtroComunidade !== 'Todas' && (
+                  <button
+                    type="button"
+                    onClick={() => setFiltroComunidade('Todas')}
+                    className="text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold underline cursor-pointer"
+                  >
+                    Limpar filtro ({filtroComunidade})
+                  </button>
+                )}
+              </div>
+
+              {/* Editorial Hub List — Typographic and Crisp without toy progress bars */}
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                {distribuicaoPolos.map(([polo, cont]) => {
+                  const isFiltered = filtroComunidade === polo;
+                  return (
+                    <div
+                      key={polo}
+                      onClick={() => setFiltroComunidade(isFiltered ? 'Todas' : polo)}
+                      className={`py-3 px-3.5 -mx-1 rounded-[6px] transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                        isFiltered
+                          ? 'bg-[#226380]/10 border border-[#226380]/40 dark:bg-[#226380]/20'
+                          : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                      }`}
+                    >
+                      <div>
+                        <span className="text-xs font-semibold text-slate-900 dark:text-white block">
+                          {polo}
+                        </span>
+                        <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          <span>{cont.imoveis} {cont.imoveis === 1 ? 'imóvel' : 'imóveis'}</span>
+                          <span>·</span>
+                          <span>{cont.veiculos} {cont.veiculos === 1 ? 'veículo' : 'veículos'}</span>
+                          <span>·</span>
+                          <span>{cont.bens} {cont.bens === 1 ? 'peça sacra' : 'peças sacras'}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-start sm:self-auto">
+                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300 font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-[4px]">
+                          {cont.total} {cont.total === 1 ? 'ativo' : 'ativos'}
+                        </span>
+                        <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-[3px] ${
+                          isFiltered ? 'bg-[#226380] text-white' : 'text-slate-400'
+                        }`}>
+                          {isFiltered ? 'Filtrado' : 'Filtrar'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Ações de Gestão & Lançamento (Command Hub) */}
+            <div className="lg:col-span-5 bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 rounded-[10px] p-6 shadow-xs space-y-4 flex flex-col justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white pb-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <span>Ações do Economato Provincial</span>
+                  <span className="text-[11px] font-normal text-slate-400">Lançamentos</span>
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4 leading-relaxed">
+                  Abertura de novas fichas patrimoniais, tombamento de acervo e ordens técnicas:
+                </p>
+
+                <div className="space-y-2">
+                  {[
+                    { label: 'Cadastrar Imóvel ou Terreno', sub: 'Conventos, sedes e colégios', tipo: 'imovel', icon: Building2 },
+                    { label: 'Incorporar Veículo à Frota', sub: 'Carros, vans e apólices auto', tipo: 'veiculo', icon: Car },
+                    { label: 'Tombar Bem no Inventário Sacro', sub: 'Arte sacra, relíquias e alfaias', tipo: 'bem', icon: Package },
+                    { label: 'Firmar Contrato ou Apólice', sub: 'Seguros prediais e comodatos', tipo: 'contrato', icon: ShieldCheck },
+                    { label: 'Agendar Vistoria Predial / Obra', sub: 'Laudos técnicos, AVCB e obras', tipo: 'vistoria', icon: Wrench },
+                  ].map(action => {
+                    const Icon = action.icon;
+                    return (
+                      <button
+                        key={action.tipo}
+                        type="button"
+                        onClick={() => navigate(`/patrimonio/novo?tipo=${action.tipo}`)}
+                        className="w-full flex items-center justify-between p-3 rounded-[6px] border border-slate-200/80 dark:border-slate-800 hover:border-[#226380]/60 hover:bg-slate-50/70 dark:hover:bg-slate-800/60 transition-all text-xs font-medium text-slate-800 dark:text-slate-200 cursor-pointer group text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 flex items-center justify-center text-[#226380] group-hover:bg-[#113240] group-hover:text-white transition-colors shrink-0">
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <span className="font-semibold block">{action.label}</span>
+                            <span className="text-[11px] text-slate-400 block">{action.sub}</span>
+                          </div>
+                        </div>
+                        <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-[#226380] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                <span>Curia Provincial BRM</span>
+                <span className="font-medium text-slate-600 dark:text-slate-300">Dehonianos</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Livro de Vencimentos & Prazos Legais (Conformidade) */}
+          <div className="bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 rounded-[10px] p-6 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-[8px] bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center text-[#226380] shrink-0">
+                  <Clock className="w-4.5 h-4.5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Livro de Vencimentos & Prazos Legais
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Vigilância contínua de seguros prediais, licenças do Corpo de Bombeiros (AVCB) e revisões mecânicas.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
+                {[
+                  { id: 'todos', label: `Todos (${alertasVencimento.length})` },
+                  { id: 'seguros', label: `Seguros` },
+                  { id: 'bombeiros', label: `AVCB` },
+                  { id: 'veiculos', label: `Revisões` },
+                  { id: 'contratos', label: `Contratos` }
+                ].map(sub => (
+                  <button
+                    key={sub.id}
+                    type="button"
+                    onClick={() => setFiltroConformidade(sub.id as any)}
+                    className={`px-3 py-1.5 rounded-[4px] border text-xs font-medium transition-all cursor-pointer ${
+                      filtroConformidade === sub.id
+                        ? 'border-[#113240] bg-[#113240] text-white dark:border-[#226380] dark:bg-[#226380] font-semibold shadow-xs'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                    }`}
+                  >
+                    {sub.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {alertasFiltrados.length === 0 ? (
+              <div className="py-10 text-center space-y-2">
+                <CheckCircle2 className="w-7 h-7 text-emerald-600 dark:text-emerald-400 mx-auto opacity-90" />
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                  Situação Regular · Nenhuma pendência legal ou vencimento iminente nesta categoria.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {alertasFiltrados.map(al => (
+                  <div
+                    key={al.id}
+                    className={`p-4 rounded-[6px] border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
+                      al.severidade === 'urgente'
+                        ? 'border-rose-300/80 dark:border-rose-900/60 bg-rose-50/20 dark:bg-rose-950/15'
+                        : 'border-amber-300/80 dark:border-amber-900/60 bg-amber-50/20 dark:bg-amber-950/15'
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded-[3px] text-[10px] font-semibold uppercase tracking-wider ${
+                          al.severidade === 'urgente'
+                            ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-200'
+                            : 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200'
+                        }`}>
+                          {al.severidade === 'urgente' ? 'Urgente' : 'Atenção'}
+                        </span>
+                        <span className="text-xs font-semibold text-slate-900 dark:text-white">
+                          {al.titulo}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                        {al.descricao}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/patrimonio/detalhes/${al.tipo}/${al.itemId}`)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 transition-all cursor-pointer motion-press"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-[#226380]" />
+                        <span>Ver Ficha</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/patrimonio/editar/${al.tipo}/${al.itemId}`)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] bg-[#113240] text-white hover:bg-[#226380] text-xs font-medium transition-all cursor-pointer motion-press"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Regularizar</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* ABA 2: IMÓVEIS & TERRENOS                                                 */}
+      {/* ========================================================================= */}
+      {activeTab === 'imoveis' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por nome, cidade ou matrícula..."
+                className="w-full pl-9 pr-4 py-2 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs outline-none focus:border-[#226380] text-slate-900 dark:text-white placeholder:text-slate-400"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex items-center border border-slate-200 dark:border-slate-800 rounded-[6px] p-0.5 bg-slate-50 dark:bg-slate-900 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('cards')}
+                  className={`p-1.5 rounded-[4px] transition-all cursor-pointer ${
+                    viewMode === 'cards' ? 'bg-white dark:bg-slate-800 shadow-xs text-slate-900 dark:text-white' : 'text-slate-400'
+                  }`}
+                  title="Fichas Cadastrais"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  className={`p-1.5 rounded-[4px] transition-all cursor-pointer ${
+                    viewMode === 'table' ? 'bg-white dark:bg-slate-800 shadow-xs text-slate-900 dark:text-white' : 'text-slate-400'
+                  }`}
+                  title="Tabela Estruturada"
+                >
+                  <ListFilter className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => navigate('/patrimonio/novo?tipo=imovel')}
+                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold bg-[#113240] text-white hover:bg-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Novo Imóvel</span>
+              </button>
+            </div>
+          </div>
+
+          {viewMode === 'table' ? (
+            /* Tabela Estruturada */
+            <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-800 rounded-[6px] overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-semibold text-[11px] uppercase tracking-wider">
+                    <tr>
+                      <th className="px-4 py-3">Imóvel & Finalidade</th>
+                      <th className="px-4 py-3">Localização</th>
+                      <th className="px-4 py-3">Área (Const./Terr.)</th>
+                      <th className="px-4 py-3">RGI / Matrícula</th>
+                      <th className="px-4 py-3">AVCB Bombeiros</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {imoveisFiltrados.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                          <Building2 className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                          <p className="font-semibold text-slate-700 dark:text-slate-300 text-xs">Nenhum imóvel localizado</p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Nenhum registro corresponde aos critérios pesquisados.</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      imoveisFiltrados.map(im => (
+                        <tr key={im.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                          <td className="px-4 py-3.5">
+                            <span className="font-semibold text-slate-900 dark:text-white block">{im.nome}</span>
+                            <span className="text-[11px] text-slate-400">{im.tipo}</span>
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <span>{im.cidade}, {im.uf}</span>
+                            <span className="block text-[11px] text-slate-400 truncate max-w-[200px]">{im.endereco || im.comunidade_obra}</span>
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <span className="font-medium text-slate-800 dark:text-slate-200 font-mono">{im.area_construida_m2 ? `${im.area_construida_m2.toLocaleString('pt-BR')} m²` : 'N/I'}</span>
+                            <span className="block text-[11px] text-slate-400 font-mono">Terr: {im.area_terreno_m2 ? `${im.area_terreno_m2.toLocaleString('pt-BR')} m²` : 'N/I'}</span>
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <span className="font-mono text-[11px] text-slate-800 dark:text-slate-200">{im.numero_matricula || 'Sem matrícula'}</span>
+                            <span className="block text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">{im.tem_escritura ? 'Escriturado' : 'Pendente'}</span>
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <span className="font-mono text-[11px]">{im.avcb_vencimento || 'N/A'}</span>
+                            <span className="block text-[10px] text-slate-400 truncate max-w-[120px] font-mono">{im.avcb_numero || 'Não informado'}</span>
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <span className="px-2.5 py-0.5 rounded-[4px] text-[11px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                              {im.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5 text-right space-x-1">
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/patrimonio/detalhes/imovel/${im.id}`)}
+                              className="p-1.5 rounded-[4px] text-slate-400 hover:text-[#226380] hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                              title="Visualizar Ficha Completa & Documentos"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/patrimonio/editar/imovel/${im.id}`)}
+                              className="p-1.5 rounded-[4px] text-slate-400 hover:text-[#226380] hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                              title="Editar"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleExcluirImovel(im.id, im.nome)}
+                              className="p-1.5 rounded-[4px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer"
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            /* Fichas Cadastrais (Cards Arquitetônicos e Editoriais) */
+            imoveisFiltrados.length === 0 ? (
+              <div className="bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 rounded-[10px] p-12 text-center space-y-3 shadow-xs">
+                <Building2 className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
+                <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 font-cinzel">Nenhum Imóvel Localizado</h4>
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  Não foram encontradas sedes provinciais ou terrenos cadastrados para os critérios pesquisados.
+                </p>
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch('')}
+                    className="text-xs font-semibold text-[#226380] hover:underline cursor-pointer"
+                  >
+                    Limpar filtro de busca
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {imoveisFiltrados.map(im => (
+                  <div
+                    key={im.id}
+                    className="bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 rounded-[10px] p-5 sm:p-6 flex flex-col justify-between shadow-xs hover:border-[#226380]/60 transition-all group"
+                  >
+                    <div className="space-y-3.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-[#226380] dark:text-[#A3C3C7]">
+                          {im.tipo}
+                        </span>
+                        <span className="px-2.5 py-0.5 rounded-[4px] text-[11px] font-medium bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800">
+                          {im.status}
+                        </span>
+                      </div>
+
+                      <div>
+                        <h3 className="text-base font-semibold text-slate-900 dark:text-white leading-snug">
+                          {im.nome}
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-1">
+                          <MapPin className="w-3.5 h-3.5 text-[#226380] shrink-0" />
+                          <span>{im.cidade}, {im.uf} {im.endereco ? `· ${im.endereco}` : ''}</span>
+                        </p>
+                      </div>
+
+                      {/* Dados Técnicos Notariais & Físicos */}
+                      <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-2 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Área Construída</span>
+                          <span className="font-medium text-slate-800 dark:text-slate-200 font-mono">
+                            {im.area_construida_m2 ? `${im.area_construida_m2.toLocaleString('pt-BR')} m²` : 'Não informada'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Matrícula (RGI)</span>
+                          <span className="font-mono text-[11px] font-medium text-slate-800 dark:text-slate-200 truncate max-w-[160px]">
+                            {im.numero_matricula || 'Sem matrícula'}
+                          </span>
+                        </div>
+                        {im.avcb_vencimento && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400">Vigência AVCB</span>
+                            <span className="text-[11px] font-medium text-amber-700 dark:text-amber-400 flex items-center gap-1 font-mono">
+                              <Clock className="w-3 h-3" />
+                              {im.avcb_vencimento}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/patrimonio/detalhes/imovel/${im.id}`)}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#113240] dark:text-[#A3C3C7] hover:text-[#226380] transition-colors cursor-pointer group/link"
+                      >
+                        <span>Ficha & Documentos</span>
+                        <ArrowUpRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
+                      </button>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/patrimonio/editar/imovel/${im.id}`)}
+                          className="p-1.5 rounded-[4px] text-slate-400 hover:text-[#226380] hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                          title="Editar imóvel"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleExcluirImovel(im.id, im.nome)}
+                          className="p-1.5 rounded-[4px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer"
+                          title="Excluir imóvel"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* ABA 3: FROTA VEICULAR                                                     */}
+      {/* ========================================================================= */}
+      {activeTab === 'veiculos' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar veículo por modelo, placa ou comunidade..."
+                className="w-full pl-9 pr-4 py-2 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs outline-none focus:border-[#226380] text-slate-900 dark:text-white placeholder:text-slate-400"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/patrimonio/novo?tipo=veiculo')}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold bg-[#113240] text-white hover:bg-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Cadastrar Veículo</span>
+            </button>
+          </div>
+
+          {veiculosFiltrados.length === 0 ? (
+            <div className="bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 rounded-[10px] p-12 text-center space-y-3 shadow-xs">
+              <Car className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
+              <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 font-cinzel">Nenhum Veículo Localizado</h4>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Não foram encontrados veículos cadastrados na frota provincial para os termos pesquisados.
+              </p>
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="text-xs font-semibold text-[#226380] hover:underline cursor-pointer"
+                >
+                  Limpar filtro de busca
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {veiculosFiltrados.map(v => (
+                <div
+                  key={v.id}
+                  className="bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 rounded-[10px] p-5 sm:p-6 flex flex-col justify-between shadow-xs hover:border-[#226380]/60 transition-all group"
+                >
+                  <div className="space-y-3.5">
+                    <div className="flex items-start justify-between gap-3">
+                      {/* Placa Mercosul Estilizada */}
+                      <div className="inline-flex flex-col border border-slate-300 dark:border-slate-700 rounded-[4px] overflow-hidden bg-white dark:bg-slate-900 shadow-xs">
+                        <div className="bg-[#003399] px-2.5 py-0.5 flex items-center justify-between gap-1.5 text-[7px] text-white font-bold tracking-wider">
+                          <span>BRASIL</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                        </div>
+                        <div className="px-2.5 py-0.5 text-center font-mono font-black text-xs tracking-widest text-slate-900 dark:text-white">
+                          {v.placa}
+                        </div>
+                      </div>
+
+                      <span className="px-2.5 py-0.5 rounded-[4px] text-[11px] font-medium bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800">
+                        {v.status}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h3 className="text-base font-semibold text-slate-900 dark:text-white leading-snug">
+                        {v.marca_modelo}
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Alocação: <span className="text-slate-800 dark:text-slate-200 font-medium">{v.comunidade_obra}</span>
+                      </p>
+                      {v.responsavel_nome && (
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Condutor: {v.responsavel_nome}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400">Odômetro Atual</span>
+                        <span className="font-medium text-slate-800 dark:text-slate-200 font-mono">
+                          {v.quilometragem_atual.toLocaleString('pt-BR')} km
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400">Seguro Vigência</span>
+                        <span className="font-medium text-slate-800 dark:text-slate-200 font-mono">
+                          {v.seguro_vencimento || 'Não informado'}
+                        </span>
+                      </div>
+                      {v.seguro_seguradora && (
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-slate-400 truncate max-w-[140px]">{v.seguro_seguradora}</span>
+                          {v.seguro_contato_emergencia && (
+                            <span className="text-[#226380] dark:text-[#A3C3C7] font-medium">{v.seguro_contato_emergencia}</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/patrimonio/detalhes/veiculo/${v.id}`)}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#113240] dark:text-[#A3C3C7] hover:text-[#226380] transition-colors cursor-pointer group/link"
+                    >
+                      <span>Ficha & Documentos</span>
+                      <ArrowUpRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/patrimonio/editar/veiculo/${v.id}`)}
+                        className="p-1.5 rounded-[4px] text-slate-400 hover:text-[#226380] hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                        title="Editar veículo"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleExcluirVeiculo(v.id, v.marca_modelo, v.placa)}
+                        className="p-1.5 rounded-[4px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer"
+                        title="Excluir veículo"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* ABA 4: INVENTÁRIO SACRO & BENS HISTÓRICOS                                 */}
+      {/* ========================================================================= */}
+      {activeTab === 'inventario' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por código de tombamento, denominação ou comunidade..."
+                className="w-full pl-9 pr-4 py-2 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs outline-none focus:border-[#226380] text-slate-900 dark:text-white placeholder:text-slate-400"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/patrimonio/novo?tipo=bem')}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold bg-[#113240] text-white hover:bg-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Tombar Novo Item</span>
+            </button>
+          </div>
+
+          <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-800 rounded-[6px] overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-semibold text-[11px] uppercase tracking-wider">
+                  <tr>
+                    <th className="px-4 py-3">Código Tombo</th>
+                    <th className="px-4 py-3">Denominação / Objeto</th>
+                    <th className="px-4 py-3">Classificação</th>
+                    <th className="px-4 py-3">Comunidade / Local</th>
+                    <th className="px-4 py-3">Estado</th>
+                    <th className="px-4 py-3 text-right">Avaliação Est.</th>
+                    <th className="px-4 py-3 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {bensFiltrados.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                        <Package className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                        <p className="font-semibold text-slate-700 dark:text-slate-300 text-xs">Nenhum item do acervo sacro localizado</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">Não foram encontrados bens históricos ou alfaias sagradas para os critérios pesquisados.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    bensFiltrados.map(b => (
+                      <tr key={b.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                        <td className="px-4 py-3.5">
+                          <span className="px-2 py-1 rounded-[4px] font-mono text-[11px] font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-[#113240] dark:text-[#A3C3C7] shadow-2xs tracking-wider inline-block">
+                            {b.codigo_tombamento}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className="font-semibold text-slate-900 dark:text-white block">{b.titulo}</span>
+                          <span className="text-[11px] text-slate-400">
+                            {b.autor_escola ? `${b.autor_escola} · ` : ''}{b.origem_procedencia || 'Procedência documentada'}{b.ano_aquisicao ? ` (${b.ano_aquisicao})` : ''}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">{b.categoria}</span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className="text-slate-800 dark:text-slate-200 font-medium">{b.comunidade_obra}</span>
+                          <span className="block text-[11px] text-slate-400">{b.localizacao_especifica || 'Local designado'}</span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className={`px-2 py-0.5 rounded-[4px] text-[11px] border font-medium ${
+                            b.estado_conservacao === 'Excelente' ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800' :
+                            b.estado_conservacao === 'Bom' ? 'bg-teal-50 text-teal-800 dark:bg-teal-950/40 dark:text-teal-300 border-teal-200/80 dark:border-teal-800' :
+                            b.estado_conservacao === 'Regular' ? 'bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/80 dark:border-amber-800' :
+                            'bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200/80 dark:border-rose-800'
+                          }`}>
+                            {b.estado_conservacao}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 text-right font-medium font-mono text-slate-900 dark:text-white">
+                          {b.valor_estimado ? `R$ ${b.valor_estimado.toLocaleString('pt-BR')}` : 'Sob avaliação'}
+                        </td>
+                        <td className="px-4 py-3.5 text-right space-x-1">
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/patrimonio/detalhes/bem/${b.id}`)}
+                            className="p-1.5 rounded-[4px] text-slate-400 hover:text-[#226380] hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                            title="Visualizar Ficha Completa & Documentos"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/patrimonio/editar/bem/${b.id}`)}
+                            className="p-1.5 rounded-[4px] text-slate-400 hover:text-[#226380] hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                            title="Editar"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleExcluirBem(b.id, b.titulo, b.codigo_tombamento)}
+                            className="p-1.5 rounded-[4px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer"
+                            title="Excluir"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* ABA 5: CONTRATOS & SEGUROS                                                */}
+      {/* ========================================================================= */}
+      {activeTab === 'contratos' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar contrato ou prestador de serviço..."
+                className="w-full pl-9 pr-4 py-2 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs outline-none focus:border-[#226380] text-slate-900 dark:text-white placeholder:text-slate-400"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/patrimonio/novo?tipo=contrato')}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold bg-[#113240] text-white hover:bg-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Novo Contrato</span>
+            </button>
+          </div>
+
+          {contratosFiltrados.length === 0 ? (
+            <div className="bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 rounded-[10px] p-12 text-center space-y-3 shadow-xs">
+              <ShieldCheck className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
+              <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 font-cinzel">Nenhum Contrato Localizado</h4>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Não foram encontrados contratos ou apólices vigentes para os critérios de busca informados.
+              </p>
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="text-xs font-semibold text-[#226380] hover:underline cursor-pointer"
+                >
+                  Limpar filtro de busca
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {contratosFiltrados.map(c => (
+                <div
+                  key={c.id}
+                  className="bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 rounded-[10px] p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs hover:border-[#226380]/60 transition-all group"
+                >
+                  <div className="space-y-1.5 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-[4px] text-[11px] font-medium bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800">
+                        {c.status}
+                      </span>
+                      <span className="text-xs text-[#226380] dark:text-[#A3C3C7] font-medium">{c.tipo}</span>
+                    </div>
+
+                    <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+                      {c.titulo}
+                    </h3>
+
+                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                      Fornecedor / Prestador: <span className="font-medium text-slate-900 dark:text-white">{c.fornecedor_prestador}</span>
+                      {c.contato_telefone && ` · Tel: ${c.contato_telefone}`}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-6 text-xs shrink-0">
+                    <div>
+                      <span className="text-[11px] text-slate-400 block">Vigência Legal</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-300 font-mono">
+                        {c.data_inicio} até {c.data_fim}
+                      </span>
+                    </div>
+
+                    {c.valor_anual && (
+                      <div className="text-right">
+                        <span className="text-[11px] text-slate-400 block">Valor Anual</span>
+                        <span className="font-semibold text-slate-900 dark:text-white text-sm font-mono">
+                          R$ {c.valor_anual.toLocaleString('pt-BR')}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/patrimonio/detalhes/contrato/${c.id}`)}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#113240] dark:text-[#A3C3C7] hover:text-[#226380] transition-colors cursor-pointer group/link px-2 py-1"
+                      >
+                        <span>Ficha & Documentos</span>
+                        <ArrowUpRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/patrimonio/editar/contrato/${c.id}`)}
+                        className="p-1.5 rounded-[4px] text-slate-400 hover:text-[#226380] hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                        title="Editar"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleExcluirContrato(c.id, c.titulo)}
+                        className="p-1.5 rounded-[4px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer"
+                        title="Excluir"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* ABA 6: VISTORIAS & MANUTENÇÕES                                            */}
+      {/* ========================================================================= */}
+      {activeTab === 'manutencoes' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar chamados ou vistorias..."
+                className="w-full pl-9 pr-4 py-2 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs outline-none focus:border-[#226380] text-slate-900 dark:text-white placeholder:text-slate-400"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/patrimonio/novo?tipo=vistoria')}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold bg-[#113240] text-white hover:bg-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Registrar Vistoria</span>
+            </button>
+          </div>
+
+          {manutencoesFiltrados.length === 0 ? (
+            <div className="bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 rounded-[10px] p-12 text-center space-y-3 shadow-xs">
+              <Wrench className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
+              <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 font-cinzel">Nenhuma Vistoria Localizada</h4>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Não foram registradas vistorias prediais ou chamados técnicos com os critérios selecionados.
+              </p>
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="text-xs font-semibold text-[#226380] hover:underline cursor-pointer"
+                >
+                  Limpar filtro de busca
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {manutencoesFiltrados.map(m => (
+                <div
+                  key={m.id}
+                  className="bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 rounded-[10px] p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs hover:border-[#226380]/60 transition-all group"
+                >
+                  <div className="space-y-1.5 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-[4px] text-[11px] font-medium bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800">
+                        {m.status}
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-[4px] text-[11px] font-medium bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800">
+                        Prioridade {m.prioridade}
+                      </span>
+                      <span className="text-xs text-slate-400">{m.tipo}</span>
+                    </div>
+
+                    <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+                      {m.titulo}
+                    </h3>
+
+                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                      {m.descricao}
+                    </p>
+
+                    <p className="text-xs text-slate-500 pt-0.5">
+                      Comunidade: <span className="text-slate-800 dark:text-slate-200 font-medium">{m.comunidade_obra}</span> · Responsável: {m.responsavel_vistoria || 'Setor de Patrimônio'}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-6 text-xs shrink-0">
+                    {m.custo_estimado && (
+                      <div className="text-right">
+                        <span className="text-[11px] text-slate-400 block">Custo Estimado</span>
+                        <span className="font-semibold text-slate-900 dark:text-white text-sm font-mono">
+                          R$ {m.custo_estimado.toLocaleString('pt-BR')}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/patrimonio/detalhes/vistoria/${m.id}`)}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#113240] dark:text-[#A3C3C7] hover:text-[#226380] transition-colors cursor-pointer group/link px-2 py-1"
+                      >
+                        <span>Ficha & Documentos</span>
+                        <ArrowUpRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/patrimonio/editar/vistoria/${m.id}`)}
+                        className="p-1.5 rounded-[4px] text-slate-400 hover:text-[#226380] hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                        title="Editar"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleExcluirManutencao(m.id, m.titulo)}
+                        className="p-1.5 rounded-[4px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer"
+                        title="Excluir"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 4. Rodapé Institucional do Economato Provincial */}
+      <footer className="mt-12 pt-6 border-t border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400 print:hidden">
+        <div className="flex items-center gap-3">
+          <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[#226380] font-cinzel font-bold text-[10px] shrink-0">
+            SCJ
+          </div>
+          <div>
+            <span className="font-semibold text-slate-700 dark:text-slate-300">
+              Província Brasil Meridional · Congregação dos Padres do Sagrado Coração de Jesus
+            </span>
+            <span className="block text-[11px] text-slate-400">
+              Economato Provincial · Curia de Brusque / SC · Livro de Tombo e Gestão de Patrimônio
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={copySqlMigration}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-slate-400 hover:text-[#226380] dark:hover:text-[#A3C3C7] transition-colors cursor-pointer"
+            title="Copiar estrutura SQL para migração no Supabase"
+          >
+            {copiedSql ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <HardDrive className="w-3.5 h-3.5" />}
+            <span>{copiedSql ? 'SQL Copiado' : 'Script Supabase'}</span>
+          </button>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default PatrimonioAdmin;

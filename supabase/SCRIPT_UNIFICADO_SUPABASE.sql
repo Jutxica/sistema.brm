@@ -671,13 +671,48 @@ BEGIN
   END IF;
 END $$;
 
--- Storage Bucket para Fotos das Obras
+-- =============================================================
+-- STORAGE BUCKETS OFICIAIS: DOCUMENTOS, FOTOS E ANEXOS
+-- =============================================================
+
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('obras-fotos', 'obras-fotos', true)
+VALUES 
+  ('documentos-provincia', 'documentos-provincia', true),
+  ('religiosos-documentos', 'religiosos-documentos', true),
+  ('obras-fotos', 'obras-fotos', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
 DO $$
 BEGIN
+  -- Políticas para 'documentos-provincia' (Acervo da Província BRM)
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'documentos_provincia_public_read') THEN
+    CREATE POLICY documentos_provincia_public_read ON storage.objects FOR SELECT TO public USING (bucket_id = 'documentos-provincia');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'documentos_provincia_anon_insert') THEN
+    CREATE POLICY documentos_provincia_anon_insert ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'documentos-provincia');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'documentos_provincia_anon_update') THEN
+    CREATE POLICY documentos_provincia_anon_update ON storage.objects FOR UPDATE TO anon, authenticated USING (bucket_id = 'documentos-provincia') WITH CHECK (bucket_id = 'documentos-provincia');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'documentos_provincia_anon_delete') THEN
+    CREATE POLICY documentos_provincia_anon_delete ON storage.objects FOR DELETE TO anon, authenticated USING (bucket_id = 'documentos-provincia');
+  END IF;
+
+  -- Políticas para 'religiosos-documentos' (Documentos Pessoais e Anexos dos Confrades)
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'religiosos_docs_public_read') THEN
+    CREATE POLICY religiosos_docs_public_read ON storage.objects FOR SELECT TO public USING (bucket_id = 'religiosos-documentos');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'religiosos_docs_anon_insert') THEN
+    CREATE POLICY religiosos_docs_anon_insert ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'religiosos-documentos');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'religiosos_docs_anon_update') THEN
+    CREATE POLICY religiosos_docs_anon_update ON storage.objects FOR UPDATE TO anon, authenticated USING (bucket_id = 'religiosos-documentos') WITH CHECK (bucket_id = 'religiosos-documentos');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'religiosos_docs_anon_delete') THEN
+    CREATE POLICY religiosos_docs_anon_delete ON storage.objects FOR DELETE TO anon, authenticated USING (bucket_id = 'religiosos-documentos');
+  END IF;
+
+  -- Políticas para 'obras-fotos' (Fotos das Comunidades e Obras)
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'obras_fotos_public_read') THEN
     CREATE POLICY obras_fotos_public_read ON storage.objects FOR SELECT TO public USING (bucket_id = 'obras-fotos');
   END IF;
@@ -686,6 +721,9 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'obras_fotos_anon_update') THEN
     CREATE POLICY obras_fotos_anon_update ON storage.objects FOR UPDATE TO anon, authenticated USING (bucket_id = 'obras-fotos') WITH CHECK (bucket_id = 'obras-fotos');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'obras_fotos_anon_delete') THEN
+    CREATE POLICY obras_fotos_anon_delete ON storage.objects FOR DELETE TO anon, authenticated USING (bucket_id = 'obras-fotos');
   END IF;
 END $$;
 

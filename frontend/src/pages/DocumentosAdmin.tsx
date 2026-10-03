@@ -2,11 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   FileText, Upload, Plus, Search, Filter, Download, Trash2, Edit3, 
   ExternalLink, CheckCircle2, AlertCircle, X, FileCheck, Calendar, 
-  Eye, Archive, RotateCcw, Copy, Check, HardDrive
+  Eye, Archive, RotateCcw, Copy, Check, HardDrive, BookOpen
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { staggerStyle } from '../hooks/useMotion';
 import { confirmAction, showToast } from '../hooks/useFeedback';
+import { LeitorDocumentoModal } from '../components/LeitorDocumentoModal';
+import { downloadArquivo } from '../lib/downloadHelper';
 
 export type CategoriaDocumento = 
   | 'Transferências'
@@ -133,6 +135,9 @@ export const DocumentosAdmin: React.FC = () => {
   const [selectedCategoria, setSelectedCategoria] = useState<string>('Todas');
   const [selectedStatus, setSelectedStatus] = useState<'Todos' | 'Ativo' | 'Arquivado'>('Ativo');
   
+  // Modal de Leitura Integrada
+  const [documentoVisualizando, setDocumentoVisualizando] = useState<DocumentoProvincial | null>(null);
+
   // Modal de Publicação
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -191,6 +196,59 @@ export const DocumentosAdmin: React.FC = () => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(novosDocs));
   };
 
+  // Copiar Script SQL do Storage para criação do bucket no Supabase
+  const copyBucketSql = () => {
+    const sql = `-- Script Oficial para Criar Buckets e Permissões no Supabase Storage
+INSERT INTO storage.buckets (id, name, public)
+VALUES 
+  ('documentos-provincia', 'documentos-provincia', true),
+  ('religiosos-documentos', 'religiosos-documentos', true),
+  ('obras-fotos', 'obras-fotos', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- Políticas para documentos-provincia
+DROP POLICY IF EXISTS "documentos_provincia_public_read" ON storage.objects;
+CREATE POLICY "documentos_provincia_public_read" ON storage.objects FOR SELECT TO public USING (bucket_id = 'documentos-provincia');
+
+DROP POLICY IF EXISTS "documentos_provincia_anon_insert" ON storage.objects;
+CREATE POLICY "documentos_provincia_anon_insert" ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'documentos-provincia');
+
+DROP POLICY IF EXISTS "documentos_provincia_anon_update" ON storage.objects;
+CREATE POLICY "documentos_provincia_anon_update" ON storage.objects FOR UPDATE TO anon, authenticated USING (bucket_id = 'documentos-provincia') WITH CHECK (bucket_id = 'documentos-provincia');
+
+DROP POLICY IF EXISTS "documentos_provincia_anon_delete" ON storage.objects;
+CREATE POLICY "documentos_provincia_anon_delete" ON storage.objects FOR DELETE TO anon, authenticated USING (bucket_id = 'documentos-provincia');
+
+-- Políticas para religiosos-documentos
+DROP POLICY IF EXISTS "religiosos_docs_public_read" ON storage.objects;
+CREATE POLICY "religiosos_docs_public_read" ON storage.objects FOR SELECT TO public USING (bucket_id = 'religiosos-documentos');
+
+DROP POLICY IF EXISTS "religiosos_docs_anon_insert" ON storage.objects;
+CREATE POLICY "religiosos_docs_anon_insert" ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'religiosos-documentos');
+
+-- Políticas para obras-fotos
+DROP POLICY IF EXISTS "obras_fotos_public_read" ON storage.objects;
+CREATE POLICY "obras_fotos_public_read" ON storage.objects FOR SELECT TO public USING (bucket_id = 'obras-fotos');
+
+DROP POLICY IF EXISTS "obras_fotos_anon_insert" ON storage.objects;
+CREATE POLICY "obras_fotos_anon_insert" ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'obras-fotos');`;
+
+    navigator.clipboard.writeText(sql);
+    setCopiedSql(true);
+    showToast.success('Cole no SQL Editor do Supabase para criar e liberar os buckets de armazenamento.', 'Script SQL Copiado!');
+    setTimeout(() => setCopiedSql(false), 3000);
+  };
+
+  // Converter arquivo para Data URL (base64) para garantir leitura imediata e offline
+  const fileToDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   // Manipulação de Arquivo
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -239,14 +297,15 @@ export const DocumentosAdmin: React.FC = () => {
 
       let fileUrl = '';
       let storagePathSalvo = storagePath;
+      let storageUploaded = false;
 
-      // 1. Tentar upload no Supabase Storage
+      // 1. Tentar upload no Supabase Storage (bucket oficial: documentos-provincia)
       try {
         const { error: uploadError } = await supabase.storage
           .from('documentos-provincia')
           .upload(storagePath, formArquivo, {
             cacheControl: '3600',
-            upsert: true
+            upsert: false
           });
 
         if (!uploadError) {
@@ -254,25 +313,38 @@ export const DocumentosAdmin: React.FC = () => {
             .from('documentos-provincia')
             .getPublicUrl(storagePath);
           fileUrl = publicData.publicUrl;
+          storageUploaded = true;
         } else {
-          // Tentativa no bucket alternativo religiosos-documentos
+          // Tentativa secundária no bucket religiosos-documentos
           const { error: altError } = await supabase.storage
             .from('religiosos-documentos')
-            .upload(storagePath, formArquivo, { upsert: true });
+            .upload(storagePath, formArquivo, {
+              cacheControl: '3600',
+              upsert: false
+            });
 
           if (!altError) {
             const { data: publicData } = supabase.storage
               .from('religiosos-documentos')
               .getPublicUrl(storagePath);
             fileUrl = publicData.publicUrl;
-          } else {
-            // Fallback: criar ObjectURL local / data URL para não impedir o fluxo
-            fileUrl = URL.createObjectURL(formArquivo);
+            storageUploaded = true;
           }
         }
       } catch (uploadCatch) {
-        console.warn('Fallback para visualização local de arquivo:', uploadCatch);
-        fileUrl = URL.createObjectURL(formArquivo);
+        console.warn('Falha na tentativa de envio para o Supabase Storage:', uploadCatch);
+      }
+
+      // Se o upload no Storage falhou (ex: bucket não criado no Supabase)
+      if (!storageUploaded) {
+        if (formArquivo.size <= 5 * 1024 * 1024) {
+          fileUrl = await fileToDataUrl(formArquivo);
+          storagePathSalvo = 'local_embedded';
+        } else {
+          throw new Error(
+            `O arquivo tem ${(formArquivo.size / (1024 * 1024)).toFixed(1)}MB e requer armazenamento em nuvem, mas o bucket "documentos-provincia" não foi encontrado no Supabase. Copie o script no botão "Script Storage" para criar o bucket.`
+          );
+        }
       }
 
       const novoDocumento: DocumentoProvincial = {
@@ -308,6 +380,12 @@ export const DocumentosAdmin: React.FC = () => {
       // 3. Atualizar estado local
       const atualizados = [novoDocumento, ...documentos];
       persistirDocumentosLocais(atualizados);
+
+      if (!storageUploaded) {
+        showToast.warning('O arquivo foi embutido para leitura e download imediatos. Execute o Script Storage no Supabase para salvar diretamente na nuvem.', 'Documento Salvo em Modo Local');
+      } else {
+        showToast.success('O arquivo oficial foi gravado no Storage e está disponível no Portal do Religioso.', 'Documento Publicado no Supabase');
+      }
 
       // Limpar formulário e fechar modal
       setFormTitulo('');
@@ -430,7 +508,17 @@ export const DocumentosAdmin: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0 self-start md:self-auto">
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-start md:self-auto">
+            <button
+              type="button"
+              onClick={copyBucketSql}
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-mono uppercase tracking-wider font-medium border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer rounded-[6px] shadow-xs motion-press"
+              title="Copiar script SQL para criar o bucket documentos-provincia no Supabase Storage"
+            >
+              {copiedSql ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <HardDrive className="w-3.5 h-3.5 text-[#226380]" />}
+              <span>{copiedSql ? 'SQL Copiado!' : 'Script Storage'}</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
@@ -575,7 +663,11 @@ export const DocumentosAdmin: React.FC = () => {
                       )}
                     </div>
 
-                    <h4 className="text-sm font-semibold text-[#113240] dark:text-white leading-snug">
+                    <h4 
+                      onClick={() => setDocumentoVisualizando(doc)}
+                      className="text-sm font-semibold text-[#113240] dark:text-white leading-snug cursor-pointer hover:text-[#226380] dark:hover:text-[#64b5f6] transition-colors"
+                      title="Clique para ler o documento diretamente no sistema"
+                    >
                       {doc.titulo}
                     </h4>
 
@@ -602,15 +694,23 @@ export const DocumentosAdmin: React.FC = () => {
 
                 {/* Ações Lapidadas */}
                 <div className="flex items-center gap-1.5 self-start md:self-center shrink-0">
-                  <a
-                    href={doc.arquivo_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[#226380] hover:bg-[#226380]/10 hover:border-[#226380] transition-colors"
-                    title="Baixar ou abrir documento"
+                  <button
+                    type="button"
+                    onClick={() => setDocumentoVisualizando(doc)}
+                    className="p-2 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[#226380] hover:bg-[#226380]/10 hover:border-[#226380] transition-colors cursor-pointer"
+                    title="Ler documento diretamente no sistema"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => downloadArquivo(doc.arquivo_url, doc.arquivo_nome)}
+                    className="p-2 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[#226380] hover:bg-[#226380]/10 hover:border-[#226380] transition-colors cursor-pointer"
+                    title="Baixar documento diretamente"
                   >
                     <Download className="w-4 h-4" />
-                  </a>
+                  </button>
 
                   <button
                     type="button"
@@ -823,6 +923,14 @@ export const DocumentosAdmin: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Leitor Oficial de Documentos Provinciais */}
+      {documentoVisualizando && (
+        <LeitorDocumentoModal
+          documento={documentoVisualizando}
+          onClose={() => setDocumentoVisualizando(null)}
+        />
       )}
     </div>
   );

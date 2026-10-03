@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { 
   Home, ClipboardList, Settings, Users, LogOut, ChevronLeft, ChevronRight, 
   Building, UserRound, ChevronDown, Plus, Church, Landmark, Layers, BarChart3,
-  FileText, Calendar
+  FileText, Calendar, Car, ShieldCheck, Wrench
 } from 'lucide-react';
 import { useAuth as useAuthHook } from '../contexts/AuthContext';
 
@@ -22,6 +22,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     location.pathname.startsWith('/religiosos') || location.pathname.startsWith('/estatisticas-brm')
   );
   const [obrasOpen, setObrasOpen] = React.useState(location.pathname.startsWith('/obras'));
+  const [patrimonioOpen, setPatrimonioOpen] = React.useState(location.pathname.startsWith('/patrimonio'));
   const [hospedariaOpen, setHospedariaOpen] = React.useState(location.pathname.startsWith('/hospedagens'));
 
   React.useEffect(() => {
@@ -30,6 +31,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     }
     if (location.pathname.startsWith('/religiosos') || location.pathname.startsWith('/estatisticas-brm')) {
       setReligiososOpen(true);
+    }
+    if (location.pathname.startsWith('/patrimonio')) {
+      setPatrimonioOpen(true);
     }
   }, [location.pathname]);
 
@@ -109,7 +113,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
             <SidebarSubLink to="/obras/nova" label="Nova Obra" icon={Plus} collapsed={collapsed} />
           </SidebarGroup>
 
-          {/* 4. Hospedaria */}
+          {/* 5. Patrimônio Provincial */}
+          <SidebarGroup label="Patrimônio" icon={Landmark} open={patrimonioOpen} onToggle={() => setPatrimonioOpen(previous => !previous)} collapsed={collapsed}>
+            <SidebarSubLink to="/patrimonio" label="Visão Geral & Alertas" icon={Layers} collapsed={collapsed} />
+            <SidebarSubLink to="/patrimonio?tab=imoveis" label="Imóveis & Terrenos" icon={Building} collapsed={collapsed} />
+            <SidebarSubLink to="/patrimonio?tab=veiculos" label="Frota de Veículos" icon={Car} collapsed={collapsed} />
+            <SidebarSubLink to="/patrimonio?tab=inventario" label="Inventário & Arte Sacra" icon={Church} collapsed={collapsed} />
+            <SidebarSubLink to="/patrimonio?tab=contratos" label="Contratos & Seguros" icon={ShieldCheck} collapsed={collapsed} />
+            <SidebarSubLink to="/patrimonio?tab=manutencoes" label="Vistorias & Obras" icon={Wrench} collapsed={collapsed} />
+          </SidebarGroup>
+
+          {/* 6. Hospedaria */}
           <SidebarGroup label="Hospedaria" icon={Building} open={hospedariaOpen} onToggle={() => setHospedariaOpen(previous => !previous)} collapsed={collapsed}>
             <SidebarSubLink to="/hospedagens-inscricoes" label="Inscrições" icon={ClipboardList} collapsed={collapsed} />
             <SidebarSubLink to="/hospedagens-configuracoes" label="Configurações" icon={Settings} collapsed={collapsed} />

@@ -17,6 +17,8 @@ import type { DocumentoProvincial, CategoriaDocumento } from '../DocumentosAdmin
 import type { EventoProvincial } from '../AgendaAdmin';
 import { staggerStyle } from '../../hooks/useMotion';
 import { FormularioTimbrado } from '../../components/FormularioTimbrado';
+import { LeitorDocumentoModal } from '../../components/LeitorDocumentoModal';
+import { downloadArquivo } from '../../lib/downloadHelper';
 import { SEED_FORMULARIOS } from '../SecretariaConfiguracoes';
 import type { FormularioSecretaria, RespostaFormulario } from '../SecretariaConfiguracoes';
 import { showToast } from '../../hooks/useFeedback';
@@ -59,6 +61,7 @@ export const PortalReligioso: React.FC = () => {
   const [loadingDocumentos, setLoadingDocumentos] = useState(false);
   const [docSearch, setDocSearch] = useState('');
   const [docCategoria, setDocCategoria] = useState<string>('Todas');
+  const [documentoLeitura, setDocumentoLeitura] = useState<DocumentoProvincial | null>(null);
 
   // Agenda & Eventos da Província BRM
   const [eventos, setEventos] = useState<EventoProvincial[]>([]);
@@ -1653,7 +1656,7 @@ export const PortalReligioso: React.FC = () => {
                     <div className="divide-y divide-[#d6d6d6]/40 dark:divide-white/5 text-[13px]">
                       {documentos.slice(0, 3).map((doc, idx) => (
                         <div key={doc.id} style={staggerStyle(idx)} className="py-3 flex items-start justify-between gap-3 motion-stagger-item">
-                          <div className="space-y-0.5">
+                          <div className="space-y-0.5 min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold border ${getCategoriaCor(doc.categoria)}`}>
                                 {doc.categoria}
@@ -1664,19 +1667,38 @@ export const PortalReligioso: React.FC = () => {
                                 </span>
                               )}
                             </div>
-                            <span className="font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block line-clamp-1">
-                              {doc.titulo}
-                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setDocumentoLeitura(doc)}
+                              className="text-left w-full group/title cursor-pointer"
+                              title="Clique para ler este documento"
+                            >
+                              <span className="font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block line-clamp-1 group-hover/title:text-[#226380] dark:group-hover/title:text-[#64b5f6] transition-colors">
+                                {doc.titulo}
+                              </span>
+                            </button>
                           </div>
-                          <a
-                            href={doc.arquivo_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-[#0071e3] transition-colors shrink-0 motion-press"
-                            title="Baixar"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                          </a>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setDocumentoLeitura(doc)}
+                              className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-[#226380] dark:text-[#64b5f6] transition-colors motion-press cursor-pointer"
+                              title="Ler documento na tela"
+                            >
+                              <BookOpen className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                downloadArquivo(doc.arquivo_url, doc.arquivo_nome);
+                              }}
+                              className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-[#707070] hover:text-[#113240] dark:hover:text-white transition-colors motion-press cursor-pointer"
+                              title="Baixar arquivo"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -2144,13 +2166,16 @@ export const PortalReligioso: React.FC = () => {
                           </span>
                         </div>
 
-                        <div>
+                        <div 
+                          className="cursor-pointer group/title"
+                          onClick={() => setDocumentoLeitura(doc)}
+                        >
                           {doc.numero_referencia && (
-                            <span className="text-[11px] font-mono text-[#0071e3] dark:text-[#2997ff] block mb-1">
+                            <span className="text-[11px] font-mono text-[#226380] dark:text-[#64b5f6] block mb-1">
                               {doc.numero_referencia}
                             </span>
                           )}
-                          <h3 className="text-[16px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] leading-snug">
+                          <h3 className="text-[16px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] group-hover/title:text-[#226380] dark:group-hover/title:text-[#64b5f6] transition-colors leading-snug font-cinzel">
                             {doc.titulo}
                           </h3>
                         </div>
@@ -2170,21 +2195,31 @@ export const PortalReligioso: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="pt-5 mt-4 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between gap-3">
-                        <span className="text-[11px] text-[#707070] dark:text-[#86868b]">
+                      <div className="pt-5 mt-4 border-t border-[#d6d6d6]/40 dark:border-white/5 flex flex-wrap items-center justify-between gap-3">
+                        <span className="text-[11px] text-[#707070] dark:text-[#86868b] font-mono">
                           {doc.publicado_por || 'Secretaria Provincial'}
                         </span>
 
-                        <a
-                          href={doc.arquivo_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          download={doc.arquivo_nome}
-                          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-medium transition-all shadow-sm active:scale-[0.99] cursor-pointer"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                          <span>Baixar Documento</span>
-                        </a>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setDocumentoLeitura(doc)}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#113240] hover:bg-[#1a4a5e] dark:bg-[#226380] dark:hover:bg-[#1b526b] text-white text-xs font-medium transition-all shadow-sm active:scale-[0.99] cursor-pointer motion-press"
+                          >
+                            <BookOpen className="w-3.5 h-3.5" />
+                            <span>Ler Documento</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => downloadArquivo(doc.arquivo_url, doc.arquivo_nome)}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#161617] hover:bg-slate-50 dark:hover:bg-[#262628] text-slate-700 dark:text-slate-300 text-xs font-medium transition-all shadow-xs cursor-pointer motion-press"
+                            title="Baixar arquivo original"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Baixar</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -2315,9 +2350,16 @@ export const PortalReligioso: React.FC = () => {
               </div>
             </div>
           )}
-
         </main>
       </div>
+
+      {/* Leitor Oficial de Documentos Provinciais */}
+      {documentoLeitura && (
+        <LeitorDocumentoModal
+          documento={documentoLeitura}
+          onClose={() => setDocumentoLeitura(null)}
+        />
+      )}
 
     </div>
   );

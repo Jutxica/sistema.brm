@@ -29,6 +29,9 @@ const DocumentosAdmin = lazy(() => import('./pages/DocumentosAdmin'));
 const AgendaAdmin = lazy(() => import('./pages/AgendaAdmin'));
 const SecretariaConfiguracoes = lazy(() => import('./pages/SecretariaConfiguracoes'));
 const FormularioPublicoInscricao = lazy(() => import('./pages/FormularioPublicoInscricao'));
+const PatrimonioAdmin = lazy(() => import('./pages/PatrimonioAdmin'));
+const PatrimonioForm = lazy(() => import('./pages/PatrimonioForm'));
+const PatrimonioDetalhes = lazy(() => import('./pages/PatrimonioDetalhes'));
 
 // Apple Loading Spinner Fallback
 const AppleLoadingFallback: React.FC = () => (
@@ -135,6 +138,10 @@ export const App: React.FC = () => {
                   <Route path="obras/nova" element={<ObraForm />} />
                   <Route path="obras/editar/:id" element={<ObraForm />} />
                   <Route path="institucional" element={<Institucional />} />
+                  <Route path="patrimonio" element={<PatrimonioAdmin />} />
+                  <Route path="patrimonio/novo" element={<PatrimonioForm />} />
+                  <Route path="patrimonio/editar/:tipo/:id" element={<PatrimonioForm />} />
+                  <Route path="patrimonio/detalhes/:tipo/:id" element={<PatrimonioDetalhes />} />
                   <Route path="hospedagens-inscricoes" element={<HospedagensInscricoes />} />
                   <Route path="hospedagens-configuracoes" element={<HospedagensConfiguracoes />} />
                   <Route
