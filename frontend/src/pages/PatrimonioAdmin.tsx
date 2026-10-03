@@ -6,9 +6,19 @@ import {
   CheckCircle2, X, Calendar, MapPin, FileText, Check, 
   Eye, RefreshCw, Printer, LayoutGrid, ListFilter,
   ChevronRight, HardDrive, Clock, Layers, Landmark, Shield,
-  ArrowUpRight, FileCheck
+  ArrowUpRight, FileCheck, FileSpreadsheet, Wifi, WifiOff, Download
 } from 'lucide-react';
-import { supabase } from '../lib/supabaseClient';
+import { 
+  imoveisService, 
+  veiculosService, 
+  bensService, 
+  contratosService, 
+  manutencoesService, 
+  dashboardService, 
+  relatoriosService 
+} from '../services/patrimonioService';
+import { useAuth } from '../contexts/AuthContext';
+import { usePatrimonioSync } from '../hooks/usePatrimonioSync';
 import { useAnimatedNumber } from '../hooks/useMotion';
 import { confirmAction, showToast } from '../hooks/useFeedback';
 import type {
@@ -19,6 +29,7 @@ import type {
   BemPatrimonio,
   ContratoPatrimonio,
   ManutencaoPatrimonio,
+  ConformidadeItem
 } from '../types/patrimonio';
 import {
   getPatrimonioLocal,
@@ -52,6 +63,11 @@ export const PatrimonioAdmin: React.FC = () => {
   const [contratos, setContratos] = useState<ContratoPatrimonio[]>([]);
   const [manutencoes, setManutencoes] = useState<ManutencaoPatrimonio[]>([]);
 
+  const { user } = useAuth();
+  const { isOnline, pendingCount, hasConflicts, conflicts, syncNow, resolveConflict } = usePatrimonioSync();
+  const [conformidades, setConformidades] = useState<ConformidadeItem[]>([]);
+  const [modalConflito, setModalConflito] = useState<any>(null);
+
   // Estados de UI e Filtros
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -60,8 +76,24 @@ export const PatrimonioAdmin: React.FC = () => {
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [filtroComunidade, setFiltroComunidade] = useState<string>('Todas');
   const [filtroConformidade, setFiltroConformidade] = useState<'todos' | 'seguros' | 'bombeiros' | 'veiculos' | 'contratos'>('todos');
+  const [filtroNivelConformidade, setFiltroNivelConformidade] = useState<'todos' | 'critico' | 'urgente' | 'atencao' | 'regular'>('todos');
 
-  // Carregar dados (Supabase com fallback LocalStorage resiliente)
+  const handleResolverConflito = async (id: string, estrategia: 'servidor' | 'local' | 'mesclar') => {
+    try {
+      const ok = await resolveConflict(id, estrategia);
+      if (ok) {
+        showToast.success('Conflito mediado com sucesso.', 'Integridade Restaurada');
+        setModalConflito(null);
+        await carregarDados();
+      } else {
+        showToast.error('Não foi possível mediar o conflito.', 'Erro de Sincronização');
+      }
+    } catch (err: any) {
+      showToast.error(err.message || 'Erro ao resolver conflito.', 'Erro');
+    }
+  };
+
+  // Carregar dados através da API agregada do dashboard
   useEffect(() => {
     carregarDados();
   }, []);
@@ -69,48 +101,22 @@ export const PatrimonioAdmin: React.FC = () => {
   const carregarDados = async () => {
     setSyncing(true);
     try {
-      const [resImoveis, resVeiculos, resBens, resContratos, resManut] = await Promise.all([
-        supabase.from('patrimonio_imoveis').select('*').order('nome'),
-        supabase.from('patrimonio_veiculos').select('*').order('marca_modelo'),
-        supabase.from('patrimonio_bens').select('*').order('codigo_tombamento'),
-        supabase.from('patrimonio_contratos').select('*').order('data_fim'),
-        supabase.from('patrimonio_manutencoes').select('*').order('data_solicitacao', { ascending: false })
-      ]);
-
-      let imovData = (resImoveis.data && resImoveis.data.length > 0) ? (resImoveis.data as ImovelPatrimonio[]) : [];
-      let veicData = (resVeiculos.data && resVeiculos.data.length > 0) ? (resVeiculos.data as VeiculoPatrimonio[]) : [];
-      let bensData = (resBens.data && resBens.data.length > 0) ? (resBens.data as BemPatrimonio[]) : [];
-      let contData = (resContratos.data && resContratos.data.length > 0) ? (resContratos.data as ContratoPatrimonio[]) : [];
-      let manuData = (resManut.data && resManut.data.length > 0) ? (resManut.data as ManutencaoPatrimonio[]) : [];
-
-      const local = getPatrimonioLocal();
-      if (imovData.length === 0) imovData = local.imoveis || SEED_IMOVEIS;
-      if (veicData.length === 0) veicData = local.veiculos || SEED_VEICULOS;
-      if (bensData.length === 0) bensData = local.bens || SEED_BENS;
-      if (contData.length === 0) contData = local.contratos || SEED_CONTRATOS;
-      if (manuData.length === 0) manuData = local.manutencoes || SEED_MANUTENCOES;
-
-      setImoveis(imovData);
-      setVeiculos(veicData);
-      setBens(bensData);
-      setContratos(contData);
-      setManutencoes(manuData);
-
-      savePatrimonioLocal({
-        imoveis: imovData,
-        veiculos: veicData,
-        bens: bensData,
-        contratos: contData,
-        manutencoes: manuData
-      });
+      const data = await dashboardService.getPatrimonioDashboard();
+      setImoveis(data.imoveis);
+      setVeiculos(data.veiculos);
+      setBens(data.bens);
+      setContratos(data.contratos);
+      setManutencoes(data.manutencoes);
+      setConformidades(data.conformidades);
     } catch (err) {
-      console.warn('Erro ao carregar dados do Supabase; usando armazenamento resiliente:', err);
+      console.warn('Falha ao consultar dashboard agregado; utilizando dados locais:', err);
       const local = getPatrimonioLocal();
       setImoveis(local.imoveis);
       setVeiculos(local.veiculos);
       setBens(local.bens);
       setContratos(local.contratos);
       setManutencoes(local.manutencoes);
+      setConformidades(dashboardService.calcularConformidades(local.imoveis, local.veiculos, local.contratos));
     } finally {
       setSyncing(false);
       setLoading(false);
@@ -120,7 +126,7 @@ export const PatrimonioAdmin: React.FC = () => {
   const copySqlMigration = () => {
     const sql = `-- Script de Criação do Módulo de Patrimônio Provincial BRM
 -- Acesse Supabase -> SQL Editor -> Cole e Execute
-${document.location.origin}/supabase/migration-patrimonio.sql`;
+${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
 
     navigator.clipboard.writeText(sql);
     setCopiedSql(true);
@@ -128,22 +134,19 @@ ${document.location.origin}/supabase/migration-patrimonio.sql`;
     setTimeout(() => setCopiedSql(false), 3000);
   };
 
+  const usuarioLogado = user ? { id: user.id, email: user.email, nome: user.nome } : undefined;
+
   const handleExcluirImovel = async (id: string, nome: string) => {
     const confirmou = await confirmAction({
       title: 'Excluir Imóvel do Patrimônio',
-      message: `Tem certeza que deseja remover o imóvel "${nome}"? Esta operação é definitiva.`,
+      message: `Tem certeza que deseja remover o imóvel "${nome}"? Esta operação é definitiva e auditada.`,
       confirmLabel: 'Remover Imóvel',
       tone: 'danger'
     });
     if (!confirmou) return;
 
-    try {
-      await supabase.from('patrimonio_imoveis').delete().eq('id', id);
-    } catch (_) {}
-
-    const filtrados = imoveis.filter(i => i.id !== id);
-    setImoveis(filtrados);
-    savePatrimonioLocal({ imoveis: filtrados, veiculos, bens, contratos, manutencoes });
+    await imoveisService.excluir(id, usuarioLogado);
+    setImoveis(prev => prev.filter(i => i.id !== id));
     showToast.success(`Imóvel "${nome}" removido do cadastro provincial.`, 'Imóvel Removido');
   };
 
@@ -156,13 +159,8 @@ ${document.location.origin}/supabase/migration-patrimonio.sql`;
     });
     if (!confirmou) return;
 
-    try {
-      await supabase.from('patrimonio_veiculos').delete().eq('id', id);
-    } catch (_) {}
-
-    const filtrados = veiculos.filter(v => v.id !== id);
-    setVeiculos(filtrados);
-    savePatrimonioLocal({ imoveis, veiculos: filtrados, bens, contratos, manutencoes });
+    await veiculosService.excluir(id, usuarioLogado);
+    setVeiculos(prev => prev.filter(v => v.id !== id));
     showToast.success(`Veículo ${placa} removido da frota provincial.`, 'Veículo Removido');
   };
 
@@ -175,13 +173,8 @@ ${document.location.origin}/supabase/migration-patrimonio.sql`;
     });
     if (!confirmou) return;
 
-    try {
-      await supabase.from('patrimonio_bens').delete().eq('id', id);
-    } catch (_) {}
-
-    const filtrados = bens.filter(b => b.id !== id);
-    setBens(filtrados);
-    savePatrimonioLocal({ imoveis, veiculos, bens: filtrados, contratos, manutencoes });
+    await bensService.excluir(id, usuarioLogado);
+    setBens(prev => prev.filter(b => b.id !== id));
     showToast.success(`Item tombo ${tombo} desincorporado.`, 'Bem Removido');
   };
 
@@ -194,13 +187,8 @@ ${document.location.origin}/supabase/migration-patrimonio.sql`;
     });
     if (!confirmou) return;
 
-    try {
-      await supabase.from('patrimonio_contratos').delete().eq('id', id);
-    } catch (_) {}
-
-    const filtrados = contratos.filter(c => c.id !== id);
-    setContratos(filtrados);
-    savePatrimonioLocal({ imoveis, veiculos, bens, contratos: filtrados, manutencoes });
+    await contratosService.excluir(id, usuarioLogado);
+    setContratos(prev => prev.filter(c => c.id !== id));
     showToast.success(`Contrato removido.`, 'Contrato Excluído');
   };
 
@@ -213,13 +201,8 @@ ${document.location.origin}/supabase/migration-patrimonio.sql`;
     });
     if (!confirmou) return;
 
-    try {
-      await supabase.from('patrimonio_manutencoes').delete().eq('id', id);
-    } catch (_) {}
-
-    const filtrados = manutencoes.filter(m => m.id !== id);
-    setManutencoes(filtrados);
-    savePatrimonioLocal({ imoveis, veiculos, bens, contratos, manutencoes: filtrados });
+    await manutencoesService.excluir(id, usuarioLogado);
+    setManutencoes(prev => prev.filter(m => m.id !== id));
     showToast.success(`Registro de vistoria excluído.`, 'Ordem Removida');
   };
 
@@ -362,6 +345,30 @@ ${document.location.origin}/supabase/migration-patrimonio.sql`;
     return alertasVencimento.filter(a => a.categoriaTipo === filtroConformidade);
   }, [alertasVencimento, filtroConformidade]);
 
+  // Contadores e Filtros do Semáforo Canônico de Conformidade
+  const contadoresSemaforo = useMemo(() => {
+    return {
+      critico: conformidades.filter(c => c.nivel === 'critico').length,
+      urgente: conformidades.filter(c => c.nivel === 'urgente').length,
+      atencao: conformidades.filter(c => c.nivel === 'atencao').length,
+      regular: conformidades.filter(c => c.nivel === 'regular').length,
+      total: conformidades.length
+    };
+  }, [conformidades]);
+
+  const conformidadesFiltradas = useMemo(() => {
+    return conformidades.filter(c => {
+      if (filtroNivelConformidade !== 'todos' && c.nivel !== filtroNivelConformidade) return false;
+      if (filtroConformidade !== 'todos') {
+        if (filtroConformidade === 'seguros' && c.categoria !== 'seguro') return false;
+        if (filtroConformidade === 'bombeiros' && c.categoria !== 'avcb') return false;
+        if (filtroConformidade === 'veiculos' && c.categoria !== 'revisao') return false;
+        if (filtroConformidade === 'contratos' && c.categoria !== 'contrato') return false;
+      }
+      return true;
+    });
+  }, [conformidades, filtroNivelConformidade, filtroConformidade]);
+
   // Distribuição por Comunidades e Presenças
   const distribuicaoPolos = useMemo(() => {
     const contagem: Record<string, { imoveis: number; veiculos: number; bens: number; total: number }> = {};
@@ -463,25 +470,70 @@ ${document.location.origin}/supabase/migration-patrimonio.sql`;
 
           {/* Botões de Ação do Topo (Diretoria Executiva) */}
           <div className="flex flex-wrap items-center gap-2.5 print:hidden shrink-0">
+            {/* Indicador de Sincronização / Conectividade / Conflito */}
+            {hasConflicts ? (
+              <button
+                type="button"
+                onClick={() => setModalConflito(conflicts[0])}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 rounded-[6px] shadow-xs hover:bg-rose-100 transition-all cursor-pointer animate-pulse"
+                title="Divergência entre dados locais e banco de dados central provincial. Clique para mediar."
+              >
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                <span>{conflicts.length} Conflito{conflicts.length > 1 ? 's' : ''}</span>
+              </button>
+            ) : pendingCount > 0 ? (
+              <button
+                type="button"
+                onClick={syncNow}
+                disabled={!isOnline}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-[6px] shadow-xs hover:bg-amber-100 transition-all cursor-pointer"
+                title={isOnline ? "Fila offline com alterações pendentes. Clique para descarregar agora." : "Modo offline ativo. As alterações serão salvas ao reconectar."}
+              >
+                {isOnline ? <Wifi className="w-3.5 h-3.5 text-amber-600" /> : <WifiOff className="w-3.5 h-3.5 text-slate-400" />}
+                <span>{pendingCount} Pendente{pendingCount > 1 ? 's' : ''} {isOnline ? '· Sincronizar' : ''}</span>
+              </button>
+            ) : (
+              <div 
+                className="inline-flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-slate-800 rounded-[6px]"
+                title="Conexão operacional com o banco de dados provincial"
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span className="text-[11px] font-mono">Sincronizado</span>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={carregarDados}
               disabled={syncing}
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer rounded-[6px] shadow-xs motion-press"
-              title="Sincronizar com banco de dados provincial"
+              className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer rounded-[6px] shadow-xs motion-press"
+              title="Recarregar dados do banco de dados provincial"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-[#226380]' : ''}`} />
-              <span>{syncing ? 'Sincronizando' : 'Sincronizar'}</span>
+              <span className="hidden sm:inline">{syncing ? 'Atualizando...' : 'Atualizar'}</span>
             </button>
 
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={() => {
+                relatoriosService.exportarLivroDeTomboExcel(imoveis, bens);
+                showToast.success('Livro de Tombo exportado com sucesso em Excel (.xlsx)', 'Relatório Gerado');
+              }}
               className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer rounded-[6px] shadow-xs motion-press"
-              title="Emitir relatório geral do patrimônio"
+              title="Exportar Livro de Tombo completo em planilha Excel (.xlsx)"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Exportar Excel</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => relatoriosService.imprimirLivroDeTomboCanonica(imoveis, bens)}
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer rounded-[6px] shadow-xs motion-press"
+              title="Emitir termo canônico timbrado oficial para assinatura provincial"
             >
               <Printer className="w-3.5 h-3.5 text-[#226380]" />
-              <span>Imprimir Relatório</span>
+              <span>Livro Canônico</span>
             </button>
 
             <button
@@ -904,30 +956,34 @@ ${document.location.origin}/supabase/migration-patrimonio.sql`;
             </div>
           </div>
 
-          {/* Livro de Vencimentos & Prazos Legais (Conformidade) */}
-          <div className="bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 rounded-[10px] p-6 shadow-xs space-y-4">
+          {/* Central Canônica de Prazos & Conformidades (Semáforo Institucional) */}
+          <div className="bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 rounded-[10px] p-6 shadow-xs space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-[8px] bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center text-[#226380] shrink-0">
-                  <Clock className="w-4.5 h-4.5" />
+                  <ShieldCheck className="w-5 h-5 text-[#226380]" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Livro de Vencimentos & Prazos Legais
+                  <h2 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>Central Canônica de Prazos & Conformidades</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                      {conformidades.length} obrigações monitoradas
+                    </span>
                   </h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Vigilância contínua de seguros prediais, licenças do Corpo de Bombeiros (AVCB) e revisões mecânicas.
+                    Vigilância contínua de seguros prediais e auto, laudos do Corpo de Bombeiros (AVCB), certidões e manutenções preventivas.
                   </p>
                 </div>
               </div>
 
+              {/* Filtro por Categoria */}
               <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
                 {[
-                  { id: 'todos', label: `Todos (${alertasVencimento.length})` },
-                  { id: 'seguros', label: `Seguros` },
-                  { id: 'bombeiros', label: `AVCB` },
-                  { id: 'veiculos', label: `Revisões` },
-                  { id: 'contratos', label: `Contratos` }
+                  { id: 'todos', label: 'Todas Obrigações' },
+                  { id: 'seguros', label: 'Seguros' },
+                  { id: 'bombeiros', label: 'AVCB Bombeiros' },
+                  { id: 'veiculos', label: 'Revisões Frota' },
+                  { id: 'contratos', label: 'Contratos' }
                 ].map(sub => (
                   <button
                     key={sub.id}
@@ -945,62 +1001,269 @@ ${document.location.origin}/supabase/migration-patrimonio.sql`;
               </div>
             </div>
 
-            {alertasFiltrados.length === 0 ? (
+            {/* Painel Semáforo Canônico em 4 Quadrantes Interativos */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {/* 1. Crítico / Vencido */}
+              <button
+                type="button"
+                onClick={() => setFiltroNivelConformidade(filtroNivelConformidade === 'critico' ? 'todos' : 'critico')}
+                className={`p-3.5 rounded-[8px] border text-left transition-all cursor-pointer group ${
+                  filtroNivelConformidade === 'critico'
+                    ? 'border-rose-500 bg-rose-500/10 ring-1 ring-rose-500'
+                    : 'border-rose-200 dark:border-rose-950/60 bg-rose-50/20 dark:bg-rose-950/20 hover:border-rose-300'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-ping" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">
+                      Crítico
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-rose-600 dark:text-rose-400 font-medium">
+                    Vencido
+                  </span>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl font-light text-rose-900 dark:text-rose-200 tabular-nums">
+                    {contadoresSemaforo.critico}
+                  </span>
+                  <span className="text-[11px] text-rose-700 dark:text-rose-400">
+                    {contadoresSemaforo.critico === 1 ? 'pendência' : 'pendências'}
+                  </span>
+                </div>
+                <span className="text-[10px] text-rose-600/80 dark:text-rose-400/80 block mt-0.5">
+                  Exige regularização imediata
+                </span>
+              </button>
+
+              {/* 2. Urgente */}
+              <button
+                type="button"
+                onClick={() => setFiltroNivelConformidade(filtroNivelConformidade === 'urgente' ? 'todos' : 'urgente')}
+                className={`p-3.5 rounded-[8px] border text-left transition-all cursor-pointer group ${
+                  filtroNivelConformidade === 'urgente'
+                    ? 'border-amber-500 bg-amber-500/10 ring-1 ring-amber-500'
+                    : 'border-amber-200 dark:border-amber-950/60 bg-amber-50/20 dark:bg-amber-950/20 hover:border-amber-300'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400">
+                      Urgente
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-amber-700 dark:text-amber-400 font-medium">
+                    Até 30 dias
+                  </span>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl font-light text-amber-900 dark:text-amber-200 tabular-nums">
+                    {contadoresSemaforo.urgente}
+                  </span>
+                  <span className="text-[11px] text-amber-700 dark:text-amber-400">
+                    {contadoresSemaforo.urgente === 1 ? 'prazo' : 'prazos'}
+                  </span>
+                </div>
+                <span className="text-[10px] text-amber-700/80 dark:text-amber-400/80 block mt-0.5">
+                  Renovação prioritária
+                </span>
+              </button>
+
+              {/* 3. Atenção */}
+              <button
+                type="button"
+                onClick={() => setFiltroNivelConformidade(filtroNivelConformidade === 'atencao' ? 'todos' : 'atencao')}
+                className={`p-3.5 rounded-[8px] border text-left transition-all cursor-pointer group ${
+                  filtroNivelConformidade === 'atencao'
+                    ? 'border-yellow-500 bg-yellow-500/10 ring-1 ring-yellow-500'
+                    : 'border-yellow-200 dark:border-yellow-950/60 bg-yellow-50/20 dark:bg-yellow-950/20 hover:border-yellow-300'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-yellow-800 dark:text-yellow-400">
+                      Atenção
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-yellow-700 dark:text-yellow-400 font-medium">
+                    31 a 60 dias
+                  </span>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl font-light text-yellow-900 dark:text-yellow-200 tabular-nums">
+                    {contadoresSemaforo.atencao}
+                  </span>
+                  <span className="text-[11px] text-yellow-700 dark:text-yellow-400">
+                    {contadoresSemaforo.atencao === 1 ? 'alerta' : 'alertas'}
+                  </span>
+                </div>
+                <span className="text-[10px] text-yellow-700/80 dark:text-yellow-400/80 block mt-0.5">
+                  Cotação e agendamento
+                </span>
+              </button>
+
+              {/* 4. Regular */}
+              <button
+                type="button"
+                onClick={() => setFiltroNivelConformidade(filtroNivelConformidade === 'regular' ? 'todos' : 'regular')}
+                className={`p-3.5 rounded-[8px] border text-left transition-all cursor-pointer group ${
+                  filtroNivelConformidade === 'regular'
+                    ? 'border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500'
+                    : 'border-emerald-200 dark:border-emerald-950/60 bg-emerald-50/20 dark:bg-emerald-950/20 hover:border-emerald-300'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
+                      Em Dia
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">
+                    &gt; 60 dias
+                  </span>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl font-light text-emerald-900 dark:text-emerald-200 tabular-nums">
+                    {contadoresSemaforo.regular}
+                  </span>
+                  <span className="text-[11px] text-emerald-700 dark:text-emerald-400">
+                    {contadoresSemaforo.regular === 1 ? 'regular' : 'regulares'}
+                  </span>
+                </div>
+                <span className="text-[10px] text-emerald-700/80 dark:text-emerald-400/80 block mt-0.5">
+                  Situação canônica regular
+                </span>
+              </button>
+            </div>
+
+            {/* Limpador de Filtro Ativo */}
+            {(filtroNivelConformidade !== 'todos' || filtroConformidade !== 'todos') && (
+              <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
+                <span className="text-slate-500 dark:text-slate-400">
+                  Exibindo: <strong className="text-slate-800 dark:text-slate-200">{filtroNivelConformidade !== 'todos' ? `Semáforo ${filtroNivelConformidade.toUpperCase()}` : 'Todos os Níveis'}</strong> {filtroConformidade !== 'todos' ? `· Categoria: ${filtroConformidade}` : ''}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFiltroNivelConformidade('todos');
+                    setFiltroConformidade('todos');
+                  }}
+                  className="text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold underline cursor-pointer"
+                >
+                  Limpar Filtros de Conformidade
+                </button>
+              </div>
+            )}
+
+            {/* Lista Detalhada de Conformidades */}
+            {conformidadesFiltradas.length === 0 ? (
               <div className="py-10 text-center space-y-2">
                 <CheckCircle2 className="w-7 h-7 text-emerald-600 dark:text-emerald-400 mx-auto opacity-90" />
-                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
-                  Situação Regular · Nenhuma pendência legal ou vencimento iminente nesta categoria.
+                <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">
+                  Nenhuma pendência localizada com os filtros selecionados.
+                </p>
+                <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
+                  Todos os ativos desta categoria encontram-se dentro do padrão de governança do Economato Provincial.
                 </p>
               </div>
             ) : (
               <div className="space-y-2.5">
-                {alertasFiltrados.map(al => (
-                  <div
-                    key={al.id}
-                    className={`p-4 rounded-[6px] border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
-                      al.severidade === 'urgente'
-                        ? 'border-rose-300/80 dark:border-rose-900/60 bg-rose-50/20 dark:bg-rose-950/15'
-                        : 'border-amber-300/80 dark:border-amber-900/60 bg-amber-50/20 dark:bg-amber-950/15'
-                    }`}
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded-[3px] text-[10px] font-semibold uppercase tracking-wider ${
-                          al.severidade === 'urgente'
-                            ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-200'
-                            : 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200'
-                        }`}>
-                          {al.severidade === 'urgente' ? 'Urgente' : 'Atenção'}
-                        </span>
-                        <span className="text-xs font-semibold text-slate-900 dark:text-white">
-                          {al.titulo}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-300">
-                        {al.descricao}
-                      </p>
-                    </div>
+                {conformidadesFiltradas.map(conf => {
+                  const isCritico = conf.nivel === 'critico';
+                  const isUrgente = conf.nivel === 'urgente';
+                  const isAtencao = conf.nivel === 'atencao';
+                  const targetId = conf.item_id || conf.entidade_id || conf.id;
+                  const targetTipo = conf.entidade_tipo || conf.tipo || 'imovel';
+                  const dataRef = conf.data_limite || conf.data_vencimento;
+                  const tituloRef = conf.titulo_pendencia || conf.titulo;
+                  const descRef = conf.descricao_detalhada || conf.descricao;
+                  const catRef = (conf.categoria || conf.tipo || 'geral').toUpperCase();
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/patrimonio/detalhes/${al.tipo}/${al.itemId}`)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 transition-all cursor-pointer motion-press"
-                      >
-                        <Eye className="w-3.5 h-3.5 text-[#226380]" />
-                        <span>Ver Ficha</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/patrimonio/editar/${al.tipo}/${al.itemId}`)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] bg-[#113240] text-white hover:bg-[#226380] text-xs font-medium transition-all cursor-pointer motion-press"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        <span>Regularizar</span>
-                      </button>
+                  return (
+                    <div
+                      key={conf.id}
+                      className={`p-4 rounded-[6px] border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
+                        isCritico
+                          ? 'border-rose-300/80 dark:border-rose-900/60 bg-rose-50/20 dark:bg-rose-950/15'
+                          : isUrgente
+                          ? 'border-amber-300/80 dark:border-amber-900/60 bg-amber-50/20 dark:bg-amber-950/15'
+                          : isAtencao
+                          ? 'border-yellow-200 dark:border-yellow-900/40 bg-yellow-50/15 dark:bg-yellow-950/10'
+                          : 'border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/15 dark:bg-emerald-950/10'
+                      }`}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`px-2 py-0.5 rounded-[3px] text-[10px] font-semibold uppercase tracking-wider ${
+                            isCritico
+                              ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-200'
+                              : isUrgente
+                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200'
+                              : isAtencao
+                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/60 dark:text-yellow-200'
+                              : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200'
+                          }`}>
+                            {isCritico ? 'Crítico · Vencido' : isUrgente ? 'Urgente' : isAtencao ? 'Atenção' : 'Regular'}
+                          </span>
+                          <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500 font-mono">
+                            {catRef}
+                          </span>
+                          <span className="text-slate-300 dark:text-slate-700">·</span>
+                          <span className="text-xs font-semibold text-slate-900 dark:text-white">
+                            {tituloRef}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-300">
+                          {descRef}
+                        </p>
+                        <div className="flex items-center gap-3 text-[11px] text-slate-400 font-medium">
+                          {conf.comunidade_obra && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-[#226380]" />
+                              {conf.comunidade_obra}
+                            </span>
+                          )}
+                          {dataRef && (
+                            <span className="flex items-center gap-1 font-mono">
+                              <Calendar className="w-3 h-3 text-slate-400" />
+                              Limite: {new Date(dataRef).toLocaleDateString('pt-BR')}
+                            </span>
+                          )}
+                          {conf.dias_restantes !== undefined && (
+                            <span className={`font-mono font-semibold ${
+                              conf.dias_restantes < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500'
+                            }`}>
+                              {conf.dias_restantes < 0 ? `(${Math.abs(conf.dias_restantes)} dias de atraso)` : `(${conf.dias_restantes} dias restantes)`}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/patrimonio/detalhes/${targetTipo}/${targetId}`)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 transition-all cursor-pointer motion-press"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-[#226380]" />
+                          <span>Ver Ficha</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/patrimonio/editar/${targetTipo}/${targetId}`)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] bg-[#113240] text-white hover:bg-[#226380] text-xs font-medium transition-all cursor-pointer motion-press"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>Regularizar</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1786,6 +2049,86 @@ ${document.location.origin}/supabase/migration-patrimonio.sql`;
           </button>
         </div>
       </footer>
+
+      {/* 5. Modal de Mediação Humana de Conflitos */}
+      {modalConflito && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-800 rounded-[10px] shadow-2xl max-w-2xl w-full p-6 space-y-5 animate-fade-in">
+            <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-[8px] bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 flex items-center justify-center text-rose-600">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-cinzel text-base font-bold text-slate-900 dark:text-white">
+                    Mediação de Conflito de Integridade
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Tabela: <span className="font-mono font-medium text-slate-700 dark:text-slate-300">{modalConflito.tabela}</span> · Operação: {modalConflito.operacao}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalConflito(null)}
+                className="p-1 rounded-[4px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              O registro foi alterado simultaneamente no servidor central da Província e na sessão de contingência local. Selecione a política de reconciliação canônica:
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div className="p-3.5 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 space-y-2">
+                <span className="font-semibold text-slate-700 dark:text-slate-300 block border-b border-slate-200 dark:border-slate-800 pb-1">
+                  Versão do Servidor (Supabase)
+                </span>
+                <pre className="text-[11px] font-mono text-slate-600 dark:text-slate-400 max-h-40 overflow-y-auto whitespace-pre-wrap">
+                  {JSON.stringify(modalConflito.dados_conflito?.servidor || modalConflito.payload, null, 2)}
+                </pre>
+              </div>
+
+              <div className="p-3.5 rounded-[6px] border border-amber-200 dark:border-amber-900/50 bg-amber-50/30 dark:bg-amber-950/20 space-y-2">
+                <span className="font-semibold text-amber-900 dark:text-amber-300 block border-b border-amber-200 dark:border-amber-900 pb-1">
+                  Versão Local (Contingência)
+                </span>
+                <pre className="text-[11px] font-mono text-slate-600 dark:text-slate-400 max-h-40 overflow-y-auto whitespace-pre-wrap">
+                  {JSON.stringify(modalConflito.dados_conflito?.local || modalConflito.payload, null, 2)}
+                </pre>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => handleResolverConflito(modalConflito.id, 'servidor')}
+                className="w-full sm:w-auto px-4 py-2 text-xs font-medium border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-[6px] cursor-pointer"
+              >
+                Manter Versão do Servidor
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleResolverConflito(modalConflito.id, 'mesclar')}
+                className="w-full sm:w-auto px-4 py-2 text-xs font-medium border border-[#226380] text-[#226380] dark:text-[#A3C3C7] bg-[#226380]/10 hover:bg-[#226380]/20 rounded-[6px] cursor-pointer"
+              >
+                Mesclar Registros
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleResolverConflito(modalConflito.id, 'local')}
+                className="w-full sm:w-auto px-4 py-2 text-xs font-semibold bg-[#113240] text-white hover:bg-[#226380] rounded-[6px] cursor-pointer shadow-sm"
+              >
+                Sobrescrever com Local
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

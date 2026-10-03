@@ -12,9 +12,23 @@ import {
   FileText,
   Calendar,
   Landmark,
-  ChevronRight
+  ChevronRight,
+  Sparkles,
+  Search,
+  Loader2,
+  Navigation
 } from 'lucide-react';
-import { supabase } from '../lib/supabaseClient';
+import { 
+  imoveisService, 
+  veiculosService, 
+  bensService, 
+  contratosService, 
+  manutencoesService,
+  cepService,
+  cnpjService,
+  ocrService
+} from '../services/patrimonioService';
+import { useAuth } from '../contexts/AuthContext';
 import { showToast } from '../hooks/useFeedback';
 import { PatrimonioAnexosManager } from '../components/PatrimonioAnexosManager';
 import type {
@@ -71,8 +85,13 @@ export const PatrimonioForm: React.FC = () => {
   });
 
   const isEditing = Boolean(paramId);
+  const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   const [anexosAtuais, setAnexosAtuais] = useState<PatrimonioAnexo[]>([]);
+  const [buscandoCep, setBuscandoCep] = useState(false);
+  const [buscandoCnpj, setBuscandoCnpj] = useState(false);
+  const [processandoOcr, setProcessandoOcr] = useState(false);
+  const [ocrResultado, setOcrResultado] = useState<any>(null);
 
   // Estados dos Formulários
   const [imovelData, setImovelData] = useState<Partial<ImovelPatrimonio>>({
@@ -84,6 +103,8 @@ export const PatrimonioForm: React.FC = () => {
     endereco: '',
     bairro: '',
     cep: '',
+    latitude: undefined,
+    longitude: undefined,
     destinacao: '',
     area_terreno_m2: undefined,
     area_construida_m2: undefined,
@@ -221,18 +242,118 @@ export const PatrimonioForm: React.FC = () => {
     carregarItemEdicao();
   }, [isEditing, paramId, tipoAtivo]);
 
+  // Integração Assistida ViaCEP
+  const handleBuscarCep = async () => {
+    if (!imovelData.cep) return;
+    const limpo = cepService.sanitizarCep(imovelData.cep);
+    if (limpo.length !== 8) {
+      showToast.error('Informe um CEP válido com 8 dígitos.', 'CEP Inválido');
+      return;
+    }
+    setBuscandoCep(true);
+    try {
+      const res = await cepService.consultarCep(limpo);
+      if (res) {
+        setImovelData(prev => ({
+          ...prev,
+          cep: res.cep,
+          endereco: prev.endereco ? prev.endereco : (res.logradouro || ''),
+          bairro: res.bairro || prev.bairro,
+          cidade: res.localidade || prev.cidade,
+          uf: res.uf || prev.uf
+        }));
+        showToast.success(`Endereço localizado: ${res.localidade}/${res.uf}`, 'CEP Localizado');
+      } else {
+        showToast.error('CEP não localizado. Preencha os campos manualmente.', 'CEP Não Encontrado');
+      }
+    } catch (_) {
+      showToast.error('Falha ao consultar CEP. Preenchimento manual liberado.', 'Aviso');
+    } finally {
+      setBuscandoCep(false);
+    }
+  };
+
+  // Integração Assistida CNPJ (BrasilAPI / ReceitaWS)
+  const handleBuscarCnpj = async () => {
+    if (!contratoData.cnpj_cpf) return;
+    const limpo = cnpjService.sanitizarCnpj(contratoData.cnpj_cpf);
+    if (limpo.length !== 14) {
+      showToast.error('Informe um CNPJ válido com 14 dígitos.', 'CNPJ Inválido');
+      return;
+    }
+    setBuscandoCnpj(true);
+    try {
+      const res = await cnpjService.consultarCnpj(limpo);
+      if (res) {
+        setContratoData(prev => ({
+          ...prev,
+          cnpj_cpf: res.cnpj,
+          fornecedor_prestador: res.razaoSocial || res.nomeFantasia || prev.fornecedor_prestador,
+          contato_telefone: res.telefone || prev.contato_telefone,
+          contato_email: res.email || prev.contato_email
+        }));
+        showToast.success(`Empresa localizada: ${res.razaoSocial}`, 'CNPJ Localizado');
+      } else {
+        showToast.error('CNPJ não encontrado na base pública. Preencha os campos manualmente.', 'CNPJ Não Encontrado');
+      }
+    } catch (_) {
+      showToast.error('Falha ao consultar CNPJ. Preenchimento manual liberado.', 'Aviso');
+    } finally {
+      setBuscandoCnpj(false);
+    }
+  };
+
+  // Inteligência Documental Assistida por OCR
+  const handleProcessarOcrArquivo = async (file: File) => {
+    setProcessandoOcr(true);
+    try {
+      const resultado = await ocrService.processarDocumento(file, tipoAtivo);
+      setOcrResultado(resultado);
+      showToast.success(`Documento processado com ${resultado.confianca}% de precisão estimada.`, 'OCR Concluído');
+
+      if (tipoAtivo === 'imovel') {
+        setImovelData(prev => ({
+          ...prev,
+          numero_matricula: prev.numero_matricula || resultado.campos.matricula || '',
+          cartorio_registro: prev.cartorio_registro || resultado.campos.cartorio || '',
+          valor_venal: prev.valor_venal || resultado.campos.valorVenal
+        }));
+      } else if (tipoAtivo === 'veiculo') {
+        setVeiculoData(prev => ({
+          ...prev,
+          placa: prev.placa || resultado.campos.placa || '',
+          renavam: prev.renavam || resultado.campos.renavam || '',
+          chassi: prev.chassi || resultado.campos.chassi || '',
+          ipva_vencimento: prev.ipva_vencimento || resultado.campos.dataVencimento
+        }));
+      } else if (tipoAtivo === 'contrato') {
+        setContratoData(prev => ({
+          ...prev,
+          cnpj_cpf: prev.cnpj_cpf || resultado.campos.cnpj || '',
+          data_fim: prev.data_fim || resultado.campos.dataVencimento || prev.data_fim,
+          valor_mensal: prev.valor_mensal || resultado.campos.valorVenal
+        }));
+      }
+    } catch (err: any) {
+      showToast.error(`Erro ao analisar documento: ${err.message || 'Falha de leitura'}`, 'Erro OCR');
+    } finally {
+      setProcessandoOcr(false);
+    }
+  };
+
   // Submissão do Formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
 
     try {
-      const local = getPatrimonioLocal();
       const novoId = paramId || crypto.randomUUID();
       const tabDestino = tipoAtivo === 'imovel' ? 'imoveis' :
                          tipoAtivo === 'veiculo' ? 'veiculos' :
                          tipoAtivo === 'bem' ? 'inventario' :
                          tipoAtivo === 'contrato' ? 'contratos' : 'manutencoes';
+
+      const usuarioLogado = user ? { id: user.id, email: user.email, nome: user.nome } : undefined;
 
       if (tipoAtivo === 'imovel') {
         if (!imovelData.nome?.trim() || !imovelData.cidade?.trim()) {
@@ -255,19 +376,7 @@ export const PatrimonioForm: React.FC = () => {
           created_at: imovelData.created_at || new Date().toISOString()
         };
 
-        try {
-          if (isEditing) {
-            await supabase.from('patrimonio_imoveis').update(payload).eq('id', novoId);
-          } else {
-            await supabase.from('patrimonio_imoveis').insert([payload]);
-          }
-        } catch (_) {}
-
-        const novosImoveis = isEditing
-          ? local.imoveis.map((i: ImovelPatrimonio) => i.id === novoId ? payload : i)
-          : [payload, ...local.imoveis];
-
-        savePatrimonioLocal({ ...local, imoveis: novosImoveis });
+        await imoveisService.salvar(payload, usuarioLogado);
         showToast.success(`Imóvel "${payload.nome}" gravado com sucesso.`, 'Imóvel Salvo');
 
       } else if (tipoAtivo === 'veiculo') {
@@ -291,19 +400,7 @@ export const PatrimonioForm: React.FC = () => {
           created_at: veiculoData.created_at || new Date().toISOString()
         };
 
-        try {
-          if (isEditing) {
-            await supabase.from('patrimonio_veiculos').update(payload).eq('id', novoId);
-          } else {
-            await supabase.from('patrimonio_veiculos').insert([payload]);
-          }
-        } catch (_) {}
-
-        const novosVeiculos = isEditing
-          ? local.veiculos.map((v: VeiculoPatrimonio) => v.id === novoId ? payload : v)
-          : [payload, ...local.veiculos];
-
-        savePatrimonioLocal({ ...local, veiculos: novosVeiculos });
+        await veiculosService.salvar(payload, usuarioLogado);
         showToast.success(`Veículo ${payload.marca_modelo} (${payload.placa}) registrado.`, 'Veículo Salvo');
 
       } else if (tipoAtivo === 'bem') {
@@ -327,19 +424,7 @@ export const PatrimonioForm: React.FC = () => {
           created_at: bemData.created_at || new Date().toISOString()
         };
 
-        try {
-          if (isEditing) {
-            await supabase.from('patrimonio_bens').update(payload).eq('id', novoId);
-          } else {
-            await supabase.from('patrimonio_bens').insert([payload]);
-          }
-        } catch (_) {}
-
-        const novosBens = isEditing
-          ? local.bens.map((b: BemPatrimonio) => b.id === novoId ? payload : b)
-          : [payload, ...local.bens];
-
-        savePatrimonioLocal({ ...local, bens: novosBens });
+        await bensService.salvar(payload, usuarioLogado);
         showToast.success(`Item tombo ${payload.codigo_tombamento} registrado.`, 'Item Tombado');
 
       } else if (tipoAtivo === 'contrato') {
@@ -363,19 +448,7 @@ export const PatrimonioForm: React.FC = () => {
           created_at: contratoData.created_at || new Date().toISOString()
         };
 
-        try {
-          if (isEditing) {
-            await supabase.from('patrimonio_contratos').update(payload).eq('id', novoId);
-          } else {
-            await supabase.from('patrimonio_contratos').insert([payload]);
-          }
-        } catch (_) {}
-
-        const novosContratos = isEditing
-          ? local.contratos.map((c: ContratoPatrimonio) => c.id === novoId ? payload : c)
-          : [payload, ...local.contratos];
-
-        savePatrimonioLocal({ ...local, contratos: novosContratos });
+        await contratosService.salvar(payload, usuarioLogado);
         showToast.success(`Contrato "${payload.titulo}" registrado.`, 'Contrato Salvo');
 
       } else if (tipoAtivo === 'vistoria') {
@@ -399,19 +472,7 @@ export const PatrimonioForm: React.FC = () => {
           created_at: manutencaoData.created_at || new Date().toISOString()
         };
 
-        try {
-          if (isEditing) {
-            await supabase.from('patrimonio_manutencoes').update(payload).eq('id', novoId);
-          } else {
-            await supabase.from('patrimonio_manutencoes').insert([payload]);
-          }
-        } catch (_) {}
-
-        const novasManutencoes = isEditing
-          ? local.manutencoes.map((m: ManutencaoPatrimonio) => m.id === novoId ? payload : m)
-          : [payload, ...local.manutencoes];
-
-        savePatrimonioLocal({ ...local, manutencoes: novasManutencoes });
+        await manutencoesService.salvar(payload, usuarioLogado);
         showToast.success(`Ordem de vistoria/obra "${payload.titulo}" registrada.`, 'Ordem Registrada');
       }
 
@@ -628,13 +689,29 @@ export const PatrimonioForm: React.FC = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    CEP
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                      CEP
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleBuscarCep}
+                      disabled={buscandoCep}
+                      className="text-[11px] font-semibold text-[#226380] dark:text-[#A3C3C7] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      {buscandoCep ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+                      <span>{buscandoCep ? 'Buscando...' : 'Buscar CEP'}</span>
+                    </button>
+                  </div>
                   <input
                     type="text"
                     value={imovelData.cep || ''}
                     onChange={(e) => setImovelData({ ...imovelData, cep: e.target.value })}
+                    onBlur={() => {
+                      if (imovelData.cep && imovelData.cep.replace(/\D/g, '').length === 8) {
+                        handleBuscarCep();
+                      }
+                    }}
                     placeholder="00000-000"
                     className="w-full px-3.5 py-2.5 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs outline-none focus:border-[#226380] text-slate-900 dark:text-white font-mono"
                   />
@@ -663,6 +740,34 @@ export const PatrimonioForm: React.FC = () => {
                     onChange={(e) => setImovelData({ ...imovelData, bairro: e.target.value })}
                     placeholder="Ex: Santa Clara"
                     className="w-full px-3.5 py-2.5 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs outline-none focus:border-[#226380] text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    Latitude (GPS)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    value={imovelData.latitude ?? ''}
+                    onChange={(e) => setImovelData({ ...imovelData, latitude: e.target.value ? Number(e.target.value) : undefined })}
+                    placeholder="-23.023456"
+                    className="w-full px-3.5 py-2.5 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs outline-none focus:border-[#226380] text-slate-900 dark:text-white font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    Longitude (GPS)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    value={imovelData.longitude ?? ''}
+                    onChange={(e) => setImovelData({ ...imovelData, longitude: e.target.value ? Number(e.target.value) : undefined })}
+                    placeholder="-45.556789"
+                    className="w-full px-3.5 py-2.5 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs outline-none focus:border-[#226380] text-slate-900 dark:text-white font-mono"
                   />
                 </div>
               </div>
@@ -1434,13 +1539,29 @@ export const PatrimonioForm: React.FC = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    CNPJ / CPF
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                      CNPJ / CPF
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleBuscarCnpj}
+                      disabled={buscandoCnpj}
+                      className="text-[11px] font-semibold text-[#226380] dark:text-[#A3C3C7] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      {buscandoCnpj ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+                      <span>{buscandoCnpj ? 'Consultando...' : 'Consultar CNPJ'}</span>
+                    </button>
+                  </div>
                   <input
                     type="text"
                     value={contratoData.cnpj_cpf || ''}
                     onChange={(e) => setContratoData({ ...contratoData, cnpj_cpf: e.target.value })}
+                    onBlur={() => {
+                      if (contratoData.cnpj_cpf && contratoData.cnpj_cpf.replace(/\D/g, '').length === 14) {
+                        handleBuscarCnpj();
+                      }
+                    }}
                     placeholder="00.000.000/0001-00"
                     className="w-full px-3.5 py-2.5 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs outline-none focus:border-[#226380] text-slate-900 dark:text-white font-mono"
                   />
@@ -1626,14 +1747,54 @@ export const PatrimonioForm: React.FC = () => {
 
         {/* SEÇÃO COMUM: DOCUMENTOS, CERTIDÕES E FOTOS ANEXAS */}
         <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-800 rounded-[6px] p-6 shadow-xs space-y-4">
-          <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-              Anexos de Documentos, Certidões & Fotos
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Anexe documentos comprobatórios, certidões, escrituras, laudos ou fotos da fachada e do bem, indicando o tipo e nome descritivo.
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                Anexos de Documentos, Certidões & Fotos
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Anexe documentos comprobatórios, certidões, escrituras, laudos ou fotos da fachada e do bem, indicando o tipo e nome descritivo.
+              </p>
+            </div>
+
+            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-[#226380]/30 bg-[#226380]/5 text-[#113240] dark:text-[#A3C3C7] text-xs font-semibold hover:bg-[#226380]/10 transition-colors cursor-pointer shrink-0">
+              {processandoOcr ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#226380]" /> : <Sparkles className="w-3.5 h-3.5 text-[#226380]" />}
+              <span>{processandoOcr ? 'Analisando Documento...' : 'Leitura Automática (OCR)'}</span>
+              <input
+                type="file"
+                accept=".pdf,image/*"
+                className="hidden"
+                disabled={processandoOcr}
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    handleProcessarOcrArquivo(e.target.files[0]);
+                  }
+                }}
+              />
+            </label>
           </div>
+
+          {ocrResultado && (
+            <div className="p-3.5 rounded-[6px] border border-blue-200 dark:border-blue-900/50 bg-blue-50/70 dark:bg-blue-950/20 text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  Dados Extraídos pelo OCR ({ocrResultado.confianca}% de precisão estimada)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setOcrResultado(null)}
+                  className="text-[11px] text-blue-600 hover:underline cursor-pointer"
+                >
+                  Dispensar
+                </button>
+              </div>
+              <p className="text-slate-600 dark:text-slate-400 text-[11px]">
+                Os campos do formulário foram pré-preenchidos com base nos dados notariais/automotivos identificados no documento.
+              </p>
+            </div>
+          )}
+
           <PatrimonioAnexosManager
             anexos={anexosAtuais}
             onChange={setAnexosAtuais}

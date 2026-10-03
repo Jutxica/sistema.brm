@@ -65,7 +65,10 @@ export interface ImovelPatrimonio {
   foto_url?: string;
   fotos?: string[];
   anexos?: PatrimonioAnexo[];
+  latitude?: number;
+  longitude?: number;
   created_at?: string;
+  updated_at?: string;
 }
 
 export interface VeiculoPatrimonio {
@@ -97,6 +100,7 @@ export interface VeiculoPatrimonio {
   fotos?: string[];
   anexos?: PatrimonioAnexo[];
   created_at?: string;
+  updated_at?: string;
 }
 
 export interface BemPatrimonio {
@@ -118,6 +122,7 @@ export interface BemPatrimonio {
   anexos?: PatrimonioAnexo[];
   status: 'Ativo' | 'Em Restauração' | 'Emprestado' | 'Baixado';
   created_at?: string;
+  updated_at?: string;
 }
 
 export interface ContratoPatrimonio {
@@ -139,6 +144,7 @@ export interface ContratoPatrimonio {
   observacoes?: string;
   anexos?: PatrimonioAnexo[];
   created_at?: string;
+  updated_at?: string;
 }
 
 export interface ManutencaoPatrimonio {
@@ -160,6 +166,114 @@ export interface ManutencaoPatrimonio {
   fotos?: string[];
   anexos?: PatrimonioAnexo[];
   created_at?: string;
+  updated_at?: string;
+}
+
+// Modelagem Relacional para Documentos e Certidões Notariais
+export interface PatrimonioDocumento {
+  id: string;
+  entidade_tipo: 'imovel' | 'veiculo' | 'bem' | 'contrato' | 'manutencao';
+  entidade_id: string;
+  nome: string;
+  tipo_documento: TipoDocumentoPatrimonio;
+  arquivo_url: string;
+  storage_path?: string;
+  tamanho_bytes?: number;
+  formato?: string;
+  enviado_por?: string;
+  data_vencimento?: string;
+  metadata?: Record<string, any>;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Trilha de Auditoria Append-Only Institucional
+export interface AuditLogEntry {
+  id: string;
+  user_id?: string;
+  user_email?: string;
+  user_nome?: string;
+  action: 'INSERT' | 'UPDATE' | 'DELETE' | 'VIEW' | 'DOWNLOAD';
+  entity: 'imoveis' | 'veiculos' | 'bens' | 'contratos' | 'manutencoes' | 'documentos';
+  entity_id: string;
+  entity_nome?: string;
+  old_values?: any;
+  new_values?: any;
+  ip_address?: string;
+  created_at: string;
+}
+
+// Fila de Sincronização Offline-First
+export interface SyncQueueItem {
+  id: string;
+  timestamp: string;
+  acao: 'insert' | 'update' | 'delete';
+  entidade: 'imoveis' | 'veiculos' | 'bens' | 'contratos' | 'manutencoes' | 'documentos';
+  entidade_id: string;
+  payload: any;
+  tentativas: number;
+  status: 'pendente' | 'sincronizando' | 'concluido' | 'conflito';
+  erro?: string;
+}
+
+// Conformidade e Central de Prazos
+export type NivelConformidade = 'critico' | 'urgente' | 'atencao' | 'regular';
+
+export interface ConformidadeItem {
+  id: string;
+  tipo: 'seguro_predial' | 'avcb' | 'ipva' | 'seguro_veiculo' | 'revisao_veiculo' | 'contrato' | string;
+  titulo: string;
+  entidade_tipo: 'imovel' | 'veiculo' | 'contrato' | TipoPatrimonio;
+  entidade_id: string;
+  entidade_nome: string;
+  comunidade_obra?: string;
+  data_vencimento: string;
+  data_limite?: string;
+  dias_restantes: number;
+  nivel: NivelConformidade;
+  descricao: string;
+  categoria?: string;
+  item_id?: string;
+  item_nome?: string;
+  titulo_pendencia?: string;
+  descricao_detalhada?: string;
+}
+
+// Métricas Agregadas do Dashboard
+export interface PatrimonioDashboardMetrics {
+  totalImoveis: number;
+  valorTotalImoveis: number;
+  areaTotalConstruida: number;
+  totalVeiculos: number;
+  veiculosEmUso: number;
+  veiculosManutencao: number;
+  totalBens: number;
+  valorTotalBens: number;
+  bensRestauracao: number;
+  bensTombados: number;
+  totalContratos: number;
+  contratosVigentes: number;
+  contratosAVencer: number;
+  valorTotalMensalContratos: number;
+  totalManutencoes: number;
+  manutencoesPendentes: number;
+  manutencoesEmExecucao: number;
+  custoTotalManutencoes: number;
+  valorTotalPatrimonial: number;
+  alertasCriticos: number;
+  alertasAtencao: number;
+  distribuicaoComunidades: { comunidade: string; count: number; valor: number }[];
+}
+
+// Linha do Tempo e Memória Institucional
+export interface PatrimonioTimelineEvent {
+  id: string;
+  data: string;
+  tipo: 'aquisicao' | 'vistoria' | 'manutencao' | 'contrato' | 'documento' | 'auditoria';
+  titulo: string;
+  descricao: string;
+  autor?: string;
+  link?: string;
 }
 
 export const STORAGE_KEY_PATRIMONIO = 'brm_patrimonio_v1';

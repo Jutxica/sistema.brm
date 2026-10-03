@@ -6,10 +6,17 @@ import {
   AlertTriangle, FileText, Download, Eye, Plus, Shield,
   Share2, ExternalLink, HardDrive, Clock
 } from 'lucide-react';
-import { supabase } from '../lib/supabaseClient';
 import { showToast } from '../hooks/useFeedback';
 import { downloadArquivo } from '../lib/downloadHelper';
 import { PatrimonioAnexosManager } from '../components/PatrimonioAnexosManager';
+import { 
+  imoveisService, 
+  veiculosService, 
+  bensService, 
+  contratosService, 
+  manutencoesService, 
+  dashboardService 
+} from '../services/patrimonioService';
 import type { 
   TipoPatrimonio, 
   ImovelPatrimonio, 
@@ -17,11 +24,8 @@ import type {
   BemPatrimonio, 
   ContratoPatrimonio, 
   ManutencaoPatrimonio,
-  PatrimonioAnexo
-} from '../types/patrimonio';
-import { 
-  getPatrimonioLocal, 
-  savePatrimonioLocal 
+  PatrimonioAnexo,
+  PatrimonioTimelineEvent
 } from '../types/patrimonio';
 
 export const PatrimonioDetalhes: React.FC = () => {
@@ -38,41 +42,35 @@ export const PatrimonioDetalhes: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [item, setItem] = useState<any>(null);
   const [anexos, setAnexos] = useState<PatrimonioAnexo[]>([]);
+  const [timeline, setTimeline] = useState<PatrimonioTimelineEvent[]>([]);
 
-  // Carrega o registro do Supabase ou do armazenamento resiliente
+  // Carrega o registro através da camada de serviços
   useEffect(() => {
     const carregarItem = async () => {
+      if (!id) return;
       setLoading(true);
-      const local = getPatrimonioLocal();
 
       let encontrado: any = null;
 
       try {
-        const tabela = 
-          tipo === 'imovel' ? 'patrimonio_imoveis' :
-          tipo === 'veiculo' ? 'patrimonio_veiculos' :
-          tipo === 'bem' ? 'patrimonio_bens' :
-          tipo === 'contrato' ? 'patrimonio_contratos' : 'patrimonio_manutencoes';
-
-        const { data, error } = await supabase.from(tabela).select('*').eq('id', id).single();
-        if (!error && data) {
-          encontrado = data;
-        }
+        if (tipo === 'imovel') encontrado = await imoveisService.obterPorId(id);
+        else if (tipo === 'veiculo') encontrado = await veiculosService.obterPorId(id);
+        else if (tipo === 'bem') encontrado = await bensService.obterPorId(id);
+        else if (tipo === 'contrato') encontrado = await contratosService.obterPorId(id);
+        else if (tipo === 'vistoria') encontrado = await manutencoesService.obterPorId(id);
       } catch (err) {
-        console.warn('Falha ao consultar Supabase, utilizando dados locais:', err);
-      }
-
-      if (!encontrado) {
-        if (tipo === 'imovel') encontrado = local.imoveis.find(i => i.id === id);
-        else if (tipo === 'veiculo') encontrado = local.veiculos.find(v => v.id === id);
-        else if (tipo === 'bem') encontrado = local.bens.find(b => b.id === id);
-        else if (tipo === 'contrato') encontrado = local.contratos.find(c => c.id === id);
-        else if (tipo === 'vistoria') encontrado = local.manutencoes.find(m => m.id === id);
+        console.warn('Erro ao consultar serviço de patrimônio:', err);
       }
 
       if (encontrado) {
         setItem(encontrado);
         setAnexos(encontrado.anexos || []);
+
+        // Carrega histórico e timeline institucional
+        try {
+          const eventos = await dashboardService.obterTimelinePatrimonio(tipo as any, id);
+          setTimeline(eventos);
+        } catch (_) {}
       } else {
         showToast.error('Registro não encontrado no livro provincial.', 'Não Encontrado');
       }
@@ -82,7 +80,7 @@ export const PatrimonioDetalhes: React.FC = () => {
     carregarItem();
   }, [id, tipo]);
 
-  // Atualiza anexos tanto no estado quanto no banco / storage local
+  // Atualiza anexos tanto no estado quanto através do serviço especializado
   const handleAtualizarAnexos = async (novosAnexos: PatrimonioAnexo[]) => {
     setAnexos(novosAnexos);
     if (!item) return;
@@ -90,34 +88,14 @@ export const PatrimonioDetalhes: React.FC = () => {
     const itemAtualizado = { ...item, anexos: novosAnexos };
     setItem(itemAtualizado);
 
-    // 1. Salvar no Supabase
     try {
-      const tabela = 
-        tipo === 'imovel' ? 'patrimonio_imoveis' :
-        tipo === 'veiculo' ? 'patrimonio_veiculos' :
-        tipo === 'bem' ? 'patrimonio_bens' :
-        tipo === 'contrato' ? 'patrimonio_contratos' : 'patrimonio_manutencoes';
-
-      await supabase.from(tabela).update({ anexos: novosAnexos }).eq('id', item.id);
-    } catch (_) {}
-
-    // 2. Salvar no localStorage resiliente
-    const local = getPatrimonioLocal();
-    if (tipo === 'imovel') {
-      const novos = local.imoveis.map(i => i.id === item.id ? itemAtualizado : i);
-      savePatrimonioLocal({ ...local, imoveis: novos });
-    } else if (tipo === 'veiculo') {
-      const novos = local.veiculos.map(v => v.id === item.id ? itemAtualizado : v);
-      savePatrimonioLocal({ ...local, veiculos: novos });
-    } else if (tipo === 'bem') {
-      const novos = local.bens.map(b => b.id === item.id ? itemAtualizado : b);
-      savePatrimonioLocal({ ...local, bens: novos });
-    } else if (tipo === 'contrato') {
-      const novos = local.contratos.map(c => c.id === item.id ? itemAtualizado : c);
-      savePatrimonioLocal({ ...local, contratos: novos });
-    } else if (tipo === 'vistoria') {
-      const novos = local.manutencoes.map(m => m.id === item.id ? itemAtualizado : m);
-      savePatrimonioLocal({ ...local, manutencoes: novos });
+      if (tipo === 'imovel') await imoveisService.salvar(itemAtualizado);
+      else if (tipo === 'veiculo') await veiculosService.salvar(itemAtualizado);
+      else if (tipo === 'bem') await bensService.salvar(itemAtualizado);
+      else if (tipo === 'contrato') await contratosService.salvar(itemAtualizado);
+      else if (tipo === 'vistoria') await manutencoesService.salvar(itemAtualizado);
+    } catch (err) {
+      console.warn('Erro ao atualizar anexos via serviço:', err);
     }
   };
 
@@ -635,6 +613,55 @@ export const PatrimonioDetalhes: React.FC = () => {
               onChange={handleAtualizarAnexos}
               tipoPatrimonio={tipo}
             />
+          </div>
+
+          {/* =================================================================== */}
+          {/* MEMÓRIA & LINHA DO TEMPO INSTITUCIONAL DO ATIVO                    */}
+          {/* =================================================================== */}
+          <div className="pt-6 border-t border-slate-200 dark:border-slate-800 print:hidden space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#226380] dark:text-[#A3C3C7]" />
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-white">
+                  Memória & Linha do Tempo Institucional
+                </h3>
+              </div>
+              <span className="text-[11px] text-slate-400">
+                {timeline.length} {timeline.length === 1 ? 'evento registrado' : 'eventos registrados'}
+              </span>
+            </div>
+
+            {timeline.length === 0 ? (
+              <div className="p-4 rounded-[6px] border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 text-xs text-slate-500 italic">
+                Nenhuma alteração ou vistoria cronológica registrada na trilha até o momento.
+              </div>
+            ) : (
+              <div className="relative pl-6 space-y-4 before:content-[''] before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
+                {timeline.map((ev) => (
+                  <div key={ev.id} className="relative group">
+                    <div className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-[#161b22] bg-[#226380] group-hover:scale-125 transition-transform" />
+                    <div className="p-3 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 space-y-1">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="font-semibold text-xs text-slate-900 dark:text-white">
+                          {ev.titulo}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {ev.data ? new Date(ev.data).toLocaleDateString('pt-BR') : '-'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                        {ev.descricao}
+                      </p>
+                      {ev.autor && (
+                        <span className="text-[10px] text-slate-400 block pt-0.5">
+                          Registrado por: {ev.autor}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* TABELA DE DOCUMENTOS ARQUIVADOS PARA IMPRESSÃO (Visível apenas ao imprimir) */}

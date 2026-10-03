@@ -3,7 +3,7 @@ import {
   UploadCloud, FileText, Image as ImageIcon, Download, Eye, 
   Trash2, Plus, X, Check, AlertCircle, File, Loader2, Maximize2
 } from 'lucide-react';
-import { supabase } from '../lib/supabaseClient';
+import { storageService } from '../services/storageService';
 import { showToast } from '../hooks/useFeedback';
 import { downloadArquivo } from '../lib/downloadHelper';
 import type { 
@@ -140,56 +140,16 @@ export const PatrimonioAnexosManager: React.FC<PatrimonioAnexosManagerProps> = (
     setUploading(true);
 
     try {
-      const id = crypto.randomUUID();
+      const uploadRes = await storageService.uploadArquivo(novoArquivo, tipoPatrimonio);
       const extensao = novoArquivo.name.split('.').pop() || '';
-      const nomeSanitizado = novoArquivo.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const storagePath = `patrimonio/${id}_${nomeSanitizado}`;
-
-      let urlFinal = '';
-      let salvoNoStorage = false;
-
-      // 1. Tenta upload no Supabase Storage
-      try {
-        const { error: err1 } = await supabase.storage
-          .from('patrimonio-documentos')
-          .upload(storagePath, novoArquivo, { upsert: true });
-
-        if (!err1) {
-          const { data: pub } = supabase.storage
-            .from('patrimonio-documentos')
-            .getPublicUrl(storagePath);
-          urlFinal = pub.publicUrl;
-          salvoNoStorage = true;
-        } else {
-          // Tentativa secundária
-          const { error: err2 } = await supabase.storage
-            .from('documentos-provincia')
-            .upload(storagePath, novoArquivo, { upsert: true });
-
-          if (!err2) {
-            const { data: pub } = supabase.storage
-              .from('documentos-provincia')
-              .getPublicUrl(storagePath);
-            urlFinal = pub.publicUrl;
-            salvoNoStorage = true;
-          }
-        }
-      } catch (errStorage) {
-        console.warn('Supabase storage indisponível, recorrendo ao armazenamento resiliente:', errStorage);
-      }
-
-      // 2. Se falhar ou estiver offline, converte em Data URL
-      if (!salvoNoStorage) {
-        urlFinal = await fileToDataUrl(novoArquivo);
-      }
 
       const novoAnexo: PatrimonioAnexo = {
-        id,
+        id: crypto.randomUUID(),
         nome: novoNome.trim(),
         tipo: novoTipo,
-        arquivo_url: urlFinal,
-        arquivo_nome: novoArquivo.name,
-        tamanho_bytes: novoArquivo.size,
+        arquivo_url: uploadRes.url,
+        arquivo_nome: uploadRes.storagePath || novoArquivo.name,
+        tamanho_bytes: uploadRes.tamanhoBytes,
         formato: novoArquivo.type.startsWith('image/') ? 'image' : (extensao.toLowerCase() === 'pdf' ? 'pdf' : 'document'),
         created_at: new Date().toISOString(),
         enviado_por: 'Gestão de Patrimônio'
