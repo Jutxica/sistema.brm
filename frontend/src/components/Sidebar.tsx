@@ -152,7 +152,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
         <div className="space-y-1 border-t border-[#e5e5ea] dark:border-white/10 pt-3">
           <button
             onClick={logout}
-            className="flex items-center gap-3 w-full px-3 py-2 rounded-[6px] text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-all duration-200 text-[13px] font-medium cursor-pointer"
+            className="flex items-center gap-3 w-full px-3 py-2 rounded-[6px] text-[#80282E] hover:bg-[#80282E]/10 transition-all duration-200 text-[13px] font-medium cursor-pointer"
           >
             <LogOut className="w-4 h-4 shrink-0" />
             {!collapsed && <span>Sair do sistema</span>}
