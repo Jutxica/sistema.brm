@@ -124,8 +124,8 @@ export const PatrimonioDetalhes: React.FC = () => {
   if (!item) {
     return (
       <div className="max-w-2xl mx-auto py-12 text-center space-y-4">
-        <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto" />
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Registro não localizado</h2>
+        <AlertTriangle className="w-12 h-12 text-[#9E6B28] dark:text-[#F2C894] mx-auto" />
+        <h2 className="text-lg font-cinzel font-bold text-[#113240] dark:text-white">Registro não localizado</h2>
         <p className="text-xs text-slate-500">
           O bem solicitado não foi encontrado nos cadastros provinciais ou foi removido.
         </p>
@@ -244,12 +244,12 @@ export const PatrimonioDetalhes: React.FC = () => {
                    tipo === 'bem' ? 'Item de Inventário / Acervo' :
                    tipo === 'contrato' ? 'Contrato / Seguro' : 'Ordem de Vistoria'}
                 </span>
-                <span className="px-2 py-0.5 rounded-[4px] text-[11px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                <span className="px-2 py-0.5 rounded-[4px] text-[11px] font-medium bg-[#226380]/10 text-[#113240] dark:text-[#A3C3C7] border border-[#226380]/20">
                   {item.status || 'Ativo'}
                 </span>
               </div>
 
-              <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white leading-snug">
+              <h1 className="text-xl sm:text-2xl font-cinzel font-bold text-[#113240] dark:text-white leading-snug">
                 {tituloPagina}
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
@@ -687,7 +687,7 @@ export const PatrimonioDetalhes: React.FC = () => {
                       <td className="p-2 border-r border-slate-300 font-medium">{anexo.nome}</td>
                       <td className="p-2 border-r border-slate-300">{anexo.tipo}</td>
                       <td className="p-2 border-r border-slate-300">{anexo.created_at ? new Date(anexo.created_at).toLocaleDateString('pt-BR') : '-'}</td>
-                      <td className="p-2 text-emerald-700 font-semibold">✓ Arquivado Digitalmente</td>
+                      <td className="p-2 text-[#113240] font-semibold">✓ Arquivado Digitalmente</td>
                     </tr>
                   ))}
                 </tbody>

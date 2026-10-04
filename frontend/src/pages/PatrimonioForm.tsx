@@ -587,7 +587,7 @@ export const PatrimonioForm: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5 md:col-span-2">
                   <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Nome Oficial do Imóvel / Complexo <span className="text-rose-500">*</span>
+                    Nome Oficial do Imóvel / Complexo <span className="text-[#80282E]">*</span>
                   </label>
                   <input
                     type="text"
@@ -663,7 +663,7 @@ export const PatrimonioForm: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-1.5 sm:col-span-2">
                   <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Cidade <span className="text-rose-500">*</span>
+                    Cidade <span className="text-[#80282E]">*</span>
                   </label>
                   <input
                     type="text"
@@ -677,7 +677,7 @@ export const PatrimonioForm: React.FC = () => {
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    UF <span className="text-rose-500">*</span>
+                    UF <span className="text-[#80282E]">*</span>
                   </label>
                   <select
                     value={imovelData.uf || 'SC'}
@@ -1023,7 +1023,7 @@ export const PatrimonioForm: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-1.5 sm:col-span-2">
                   <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Marca & Modelo <span className="text-rose-500">*</span>
+                    Marca & Modelo <span className="text-[#80282E]">*</span>
                   </label>
                   <input
                     type="text"
@@ -1037,7 +1037,7 @@ export const PatrimonioForm: React.FC = () => {
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Placa (Mercosul) <span className="text-rose-500">*</span>
+                    Placa (Mercosul) <span className="text-[#80282E]">*</span>
                   </label>
                   <input
                     type="text"
@@ -1133,7 +1133,7 @@ export const PatrimonioForm: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Comunidade Alocada <span className="text-rose-500">*</span>
+                    Comunidade Alocada <span className="text-[#80282E]">*</span>
                   </label>
                   <input
                     type="text"
@@ -1318,7 +1318,7 @@ export const PatrimonioForm: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Código de Tombamento <span className="text-rose-500">*</span>
+                    Código de Tombamento <span className="text-[#80282E]">*</span>
                   </label>
                   <input
                     type="text"
@@ -1332,7 +1332,7 @@ export const PatrimonioForm: React.FC = () => {
 
                 <div className="space-y-1.5 sm:col-span-2">
                   <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Denominação do Objeto <span className="text-rose-500">*</span>
+                    Denominação do Objeto <span className="text-[#80282E]">*</span>
                   </label>
                   <input
                     type="text"
@@ -1493,7 +1493,7 @@ export const PatrimonioForm: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5 sm:col-span-2">
                   <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Título / Objeto do Contrato <span className="text-rose-500">*</span>
+                    Título / Objeto do Contrato <span className="text-[#80282E]">*</span>
                   </label>
                   <input
                     type="text"
@@ -1526,7 +1526,7 @@ export const PatrimonioForm: React.FC = () => {
 
                 <div className="space-y-1.5 sm:col-span-2">
                   <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Razão Social / Fornecedor <span className="text-rose-500">*</span>
+                    Razão Social / Fornecedor <span className="text-[#80282E]">*</span>
                   </label>
                   <input
                     type="text"
@@ -1592,7 +1592,7 @@ export const PatrimonioForm: React.FC = () => {
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Término de Vigência <span className="text-rose-500">*</span>
+                    Término de Vigência <span className="text-[#80282E]">*</span>
                   </label>
                   <input
                     type="date"
@@ -1651,7 +1651,7 @@ export const PatrimonioForm: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5 sm:col-span-2">
                   <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Título da Intervenção <span className="text-rose-500">*</span>
+                    Título da Intervenção <span className="text-[#80282E]">*</span>
                   </label>
                   <input
                     type="text"
@@ -1729,7 +1729,7 @@ export const PatrimonioForm: React.FC = () => {
 
                 <div className="space-y-1.5 md:col-span-3">
                   <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Descrição Detalhada do Laudo / Intervenção <span className="text-rose-500">*</span>
+                    Descrição Detalhada do Laudo / Intervenção <span className="text-[#80282E]">*</span>
                   </label>
                   <textarea
                     rows={4}
@@ -1758,8 +1758,8 @@ export const PatrimonioForm: React.FC = () => {
             </div>
 
             <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-[#226380]/30 bg-[#226380]/5 text-[#113240] dark:text-[#A3C3C7] text-xs font-semibold hover:bg-[#226380]/10 transition-colors cursor-pointer shrink-0">
-              {processandoOcr ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#226380]" /> : <Sparkles className="w-3.5 h-3.5 text-[#226380]" />}
-              <span>{processandoOcr ? 'Analisando Documento...' : 'Leitura Automática (OCR)'}</span>
+              {processandoOcr ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#226380]" /> : <FileText className="w-3.5 h-3.5 text-[#226380]" />}
+              <span>{processandoOcr ? 'Analisando Documento...' : 'Leitura Notarial Assistida (OCR)'}</span>
               <input
                 type="file"
                 accept=".pdf,image/*"
@@ -1775,22 +1775,22 @@ export const PatrimonioForm: React.FC = () => {
           </div>
 
           {ocrResultado && (
-            <div className="p-3.5 rounded-[6px] border border-blue-200 dark:border-blue-900/50 bg-blue-50/70 dark:bg-blue-950/20 text-xs space-y-2">
+            <div className="p-3.5 rounded-[6px] border border-[#226380]/30 bg-[#226380]/5 text-xs space-y-2">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                  Dados Extraídos pelo OCR ({ocrResultado.confianca}% de precisão estimada)
+                <span className="font-semibold text-[#113240] dark:text-[#A3C3C7] flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7]" />
+                  Protocolo Notarial / Leitura de Dados ({ocrResultado.confianca}% de precisão estimada)
                 </span>
                 <button
                   type="button"
                   onClick={() => setOcrResultado(null)}
-                  className="text-[11px] text-blue-600 hover:underline cursor-pointer"
+                  className="text-[11px] text-[#226380] dark:text-[#A3C3C7] hover:underline cursor-pointer"
                 >
                   Dispensar
                 </button>
               </div>
               <p className="text-slate-600 dark:text-slate-400 text-[11px]">
-                Os campos do formulário foram pré-preenchidos com base nos dados notariais/automotivos identificados no documento.
+                Os campos do formulário foram pré-preenchidos com base nos dados notariais e cadastrais identificados no documento oficial.
               </p>
             </div>
           )}

@@ -195,7 +195,7 @@ export const PatrimonioAnexosManager: React.FC<PatrimonioAnexosManagerProps> = (
         <div className="bg-slate-50/70 dark:bg-[#12161c] border border-slate-200/90 dark:border-slate-800 rounded-[10px] p-5 sm:p-6 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-3 border-b border-slate-200/70 dark:border-slate-800">
             <div>
-              <h4 className="text-xs font-bold text-[#113240] dark:text-[#A3C3C7] uppercase tracking-wider flex items-center gap-2">
+              <h4 className="text-xs font-cinzel font-bold text-[#113240] dark:text-[#A3C3C7] uppercase tracking-wider flex items-center gap-2">
                 <UploadCloud className="w-4 h-4 text-[#226380]" />
                 <span>Protocolo de Documento & Acervo Digital</span>
               </h4>
@@ -212,7 +212,7 @@ export const PatrimonioAnexosManager: React.FC<PatrimonioAnexosManagerProps> = (
             {/* Seletor de Arquivo com Área de Arraste / Botão Limpo */}
             <div className="md:col-span-5 space-y-1.5">
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Arquivo Digital <span className="text-rose-500">*</span>
+                Arquivo Digital <span className="text-[#80282E] font-bold">*</span>
               </label>
               <div className="relative">
                 <input
@@ -265,7 +265,7 @@ export const PatrimonioAnexosManager: React.FC<PatrimonioAnexosManagerProps> = (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Título / Designação <span className="text-rose-500">*</span>
+                    Título / Designação <span className="text-[#80282E] font-bold">*</span>
                   </label>
                   <input
                     type="text"
@@ -302,7 +302,7 @@ export const PatrimonioAnexosManager: React.FC<PatrimonioAnexosManagerProps> = (
                       setNovoNome('');
                       if (fileInputRef.current) fileInputRef.current.value = '';
                     }}
-                    className="px-3 py-2 text-xs text-slate-500 hover:text-rose-600 transition-colors cursor-pointer"
+                    className="px-3 py-2 text-xs text-slate-500 hover:text-[#80282E] transition-colors cursor-pointer"
                   >
                     Cancelar
                   </button>
@@ -427,7 +427,7 @@ export const PatrimonioAnexosManager: React.FC<PatrimonioAnexosManagerProps> = (
                         <button
                           type="button"
                           onClick={() => handleRemoverAnexo(anexo.id, anexo.nome)}
-                          className="p-1.5 rounded-[4px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors cursor-pointer"
+                          className="p-1.5 rounded-[4px] text-slate-400 hover:text-[#80282E] hover:bg-[#80282E]/10 transition-colors cursor-pointer"
                           title="Remover Documento"
                         >
                           <Trash2 className="w-3.5 h-3.5" />

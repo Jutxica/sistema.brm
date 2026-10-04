@@ -454,8 +454,8 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                 <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                   Congregação dos Padres do Sagrado Coração de Jesus
                 </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[4px] text-[10px] font-semibold tracking-wide uppercase bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 ml-1">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[4px] text-[10px] font-semibold tracking-wide uppercase bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7] border border-[#226380]/30 ml-1">
+                  <CheckCircle2 className="w-3 h-3 text-[#226380] dark:text-[#A3C3C7]" />
                   Livro de Tombo Oficial
                 </span>
               </div>
@@ -475,10 +475,10 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
               <button
                 type="button"
                 onClick={() => setModalConflito(conflicts[0])}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 rounded-[6px] shadow-xs hover:bg-rose-100 transition-all cursor-pointer animate-pulse"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-[#80282E]/10 text-[#80282E] dark:text-[#F2C894] border border-[#80282E]/30 rounded-[6px] shadow-xs hover:bg-[#80282E]/15 transition-all cursor-pointer"
                 title="Divergência entre dados locais e banco de dados central provincial. Clique para mediar."
               >
-                <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                <AlertTriangle className="w-3.5 h-3.5 text-[#80282E]" />
                 <span>{conflicts.length} Conflito{conflicts.length > 1 ? 's' : ''}</span>
               </button>
             ) : pendingCount > 0 ? (
@@ -486,18 +486,18 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                 type="button"
                 onClick={syncNow}
                 disabled={!isOnline}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-[6px] shadow-xs hover:bg-amber-100 transition-all cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-[#F2C894]/20 text-[#7A5016] dark:text-[#F2C894] border border-[#F2C894]/40 rounded-[6px] shadow-xs hover:bg-[#F2C894]/30 transition-all cursor-pointer"
                 title={isOnline ? "Fila offline com alterações pendentes. Clique para descarregar agora." : "Modo offline ativo. As alterações serão salvas ao reconectar."}
               >
-                {isOnline ? <Wifi className="w-3.5 h-3.5 text-amber-600" /> : <WifiOff className="w-3.5 h-3.5 text-slate-400" />}
+                {isOnline ? <Wifi className="w-3.5 h-3.5 text-[#9E6B28]" /> : <WifiOff className="w-3.5 h-3.5 text-slate-400" />}
                 <span>{pendingCount} Pendente{pendingCount > 1 ? 's' : ''} {isOnline ? '· Sincronizar' : ''}</span>
               </button>
             ) : (
               <div 
-                className="inline-flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-slate-800 rounded-[6px]"
+                className="inline-flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-[#A3C3C7] border border-slate-200/80 dark:border-slate-800 rounded-[6px]"
                 title="Conexão operacional com o banco de dados provincial"
               >
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span className="w-2 h-2 rounded-full bg-[#226380]"></span>
                 <span className="text-[11px] font-mono">Sincronizado</span>
               </div>
             )}
@@ -522,7 +522,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
               className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer rounded-[6px] shadow-xs motion-press"
               title="Exportar Livro de Tombo completo em planilha Excel (.xlsx)"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <FileSpreadsheet className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7]" />
               <span>Exportar Excel</span>
             </button>
 
@@ -573,9 +573,9 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
               }`}
             >
               <Icon className="w-4 h-4 text-[#226380]" />
-              <span>{tab.label}</span>
+              <span className="font-cinzel text-xs">{tab.label}</span>
               {tab.badge && (
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#F2C894]/25 text-[#7A5016] dark:text-[#F2C894] border border-[#F2C894]/40">
                   {tab.badge}
                 </span>
               )}
@@ -607,7 +607,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
               <div className="space-y-4 relative z-10">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="w-2 h-2 rounded-full bg-[#226380] dark:bg-[#A3C3C7]" />
                     <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#226380] dark:text-[#A3C3C7]">
                       Livro de Tombo Consolidado
                     </span>
@@ -622,7 +622,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                     Avaliação Global Estimada do Ativo
                   </span>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-4xl sm:text-5xl font-light text-[#113240] dark:text-white tabular-nums tracking-tight">
+                    <span className="text-4xl sm:text-5xl font-cinzel font-bold text-[#113240] dark:text-[#F2C894] tabular-nums tracking-tight">
                       R$ {(valorTotalEstimado / 1000000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M
                     </span>
                   </div>
@@ -635,7 +635,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800/80">
                   <div>
                     <span className="text-[11px] text-slate-400 block">Imóveis & Sedes</span>
-                    <span className="text-lg font-semibold text-slate-900 dark:text-white tabular-nums">
+                    <span className="text-lg font-cinzel font-bold text-[#113240] dark:text-white tabular-nums">
                       R$ {(valorTotalImoveis / 1000000).toFixed(1)}M
                     </span>
                     <span className="block text-[11px] text-slate-500 mt-0.5">
@@ -644,7 +644,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                   </div>
                   <div>
                     <span className="text-[11px] text-slate-400 block">Inventário Sacro</span>
-                    <span className="text-lg font-semibold text-slate-900 dark:text-white tabular-nums">
+                    <span className="text-lg font-cinzel font-bold text-[#113240] dark:text-white tabular-nums">
                       R$ {(valorTotalBens / 1000).toFixed(0)}k
                     </span>
                     <span className="block text-[11px] text-slate-500 mt-0.5">
@@ -690,7 +690,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                     Sedes Canônicas & Obras
                   </span>
                   <div className="flex items-baseline gap-2 mt-1">
-                    <span className="text-3xl font-light text-slate-900 dark:text-white tabular-nums">
+                    <span className="text-3xl font-cinzel font-bold text-[#113240] dark:text-white tabular-nums">
                       <AnimatedStat value={imoveis.length} />
                     </span>
                     <span className="text-xs text-slate-400">propriedades</span>
@@ -706,7 +706,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400">Escrituradas em RGI</span>
-                    <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                    <span className="font-medium text-[#226380] dark:text-[#A3C3C7]">
                       {imoveisEscriturados} de {imoveis.length} regulares
                     </span>
                   </div>
@@ -735,7 +735,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                     Frota Veicular Ativa
                   </span>
                   <div className="flex items-baseline gap-2 mt-1">
-                    <span className="text-3xl font-light text-slate-900 dark:text-white tabular-nums">
+                    <span className="text-3xl font-cinzel font-bold text-[#113240] dark:text-white tabular-nums">
                       <AnimatedStat value={veiculos.length} />
                     </span>
                     <span className="text-xs text-slate-400">veículos alocados</span>
@@ -751,7 +751,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400">Regularidade Fiscal</span>
-                    <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                    <span className="font-medium text-[#226380] dark:text-[#A3C3C7]">
                       100% IPVA quitado
                     </span>
                   </div>
@@ -773,7 +773,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                 </span>
               </div>
               <div className="mt-4">
-                <span className="text-2xl font-light text-slate-900 dark:text-white tabular-nums">
+                <span className="text-2xl font-cinzel font-bold text-[#113240] dark:text-white tabular-nums">
                   <AnimatedStat value={bens.length} />
                 </span>
                 <span className="block text-xs font-medium text-slate-800 dark:text-slate-200 mt-0.5">
@@ -799,7 +799,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                 </span>
               </div>
               <div className="mt-4">
-                <span className="text-2xl font-light text-slate-900 dark:text-white tabular-nums">
+                <span className="text-2xl font-cinzel font-bold text-[#113240] dark:text-white tabular-nums">
                   <AnimatedStat value={contratos.length} />
                 </span>
                 <span className="block text-xs font-medium text-slate-800 dark:text-slate-200 mt-0.5">
@@ -825,7 +825,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                 </span>
               </div>
               <div className="mt-4">
-                <span className="text-2xl font-light text-slate-900 dark:text-white tabular-nums">
+                <span className="text-2xl font-cinzel font-bold text-[#113240] dark:text-white tabular-nums">
                   <AnimatedStat value={manutencoes.length} />
                 </span>
                 <span className="block text-xs font-medium text-slate-800 dark:text-slate-200 mt-0.5">
@@ -1009,30 +1009,30 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                 onClick={() => setFiltroNivelConformidade(filtroNivelConformidade === 'critico' ? 'todos' : 'critico')}
                 className={`p-3.5 rounded-[8px] border text-left transition-all cursor-pointer group ${
                   filtroNivelConformidade === 'critico'
-                    ? 'border-rose-500 bg-rose-500/10 ring-1 ring-rose-500'
-                    : 'border-rose-200 dark:border-rose-950/60 bg-rose-50/20 dark:bg-rose-950/20 hover:border-rose-300'
+                    ? 'border-[#80282E] bg-[#80282E]/10 ring-1 ring-[#80282E]'
+                    : 'border-[#80282E]/25 dark:border-[#80282E]/40 bg-[#80282E]/5 hover:border-[#80282E]/50'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-ping" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#80282E]" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#80282E]">
                       Crítico
                     </span>
                   </div>
-                  <span className="text-[10px] text-rose-600 dark:text-rose-400 font-medium">
+                  <span className="text-[10px] text-[#80282E] font-medium">
                     Vencido
                   </span>
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl font-light text-rose-900 dark:text-rose-200 tabular-nums">
+                  <span className="text-2xl font-cinzel font-bold text-[#80282E] tabular-nums">
                     {contadoresSemaforo.critico}
                   </span>
-                  <span className="text-[11px] text-rose-700 dark:text-rose-400">
+                  <span className="text-[11px] text-[#80282E]">
                     {contadoresSemaforo.critico === 1 ? 'pendência' : 'pendências'}
                   </span>
                 </div>
-                <span className="text-[10px] text-rose-600/80 dark:text-rose-400/80 block mt-0.5">
+                <span className="text-[10px] text-[#80282E]/80 block mt-0.5">
                   Exige regularização imediata
                 </span>
               </button>
@@ -1043,30 +1043,30 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                 onClick={() => setFiltroNivelConformidade(filtroNivelConformidade === 'urgente' ? 'todos' : 'urgente')}
                 className={`p-3.5 rounded-[8px] border text-left transition-all cursor-pointer group ${
                   filtroNivelConformidade === 'urgente'
-                    ? 'border-amber-500 bg-amber-500/10 ring-1 ring-amber-500'
-                    : 'border-amber-200 dark:border-amber-950/60 bg-amber-50/20 dark:bg-amber-950/20 hover:border-amber-300'
+                    ? 'border-[#9E6B28] bg-[#9E6B28]/10 ring-1 ring-[#9E6B28]'
+                    : 'border-[#9E6B28]/25 dark:border-[#9E6B28]/40 bg-[#9E6B28]/5 hover:border-[#9E6B28]/50'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#9E6B28]" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#9E6B28] dark:text-[#F2C894]">
                       Urgente
                     </span>
                   </div>
-                  <span className="text-[10px] text-amber-700 dark:text-amber-400 font-medium">
+                  <span className="text-[10px] text-[#9E6B28] dark:text-[#F2C894] font-medium">
                     Até 30 dias
                   </span>
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl font-light text-amber-900 dark:text-amber-200 tabular-nums">
+                  <span className="text-2xl font-cinzel font-bold text-[#9E6B28] dark:text-[#F2C894] tabular-nums">
                     {contadoresSemaforo.urgente}
                   </span>
-                  <span className="text-[11px] text-amber-700 dark:text-amber-400">
+                  <span className="text-[11px] text-[#9E6B28] dark:text-[#F2C894]">
                     {contadoresSemaforo.urgente === 1 ? 'prazo' : 'prazos'}
                   </span>
                 </div>
-                <span className="text-[10px] text-amber-700/80 dark:text-amber-400/80 block mt-0.5">
+                <span className="text-[10px] text-[#9E6B28]/80 dark:text-[#F2C894]/80 block mt-0.5">
                   Renovação prioritária
                 </span>
               </button>
@@ -1077,30 +1077,30 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                 onClick={() => setFiltroNivelConformidade(filtroNivelConformidade === 'atencao' ? 'todos' : 'atencao')}
                 className={`p-3.5 rounded-[8px] border text-left transition-all cursor-pointer group ${
                   filtroNivelConformidade === 'atencao'
-                    ? 'border-yellow-500 bg-yellow-500/10 ring-1 ring-yellow-500'
-                    : 'border-yellow-200 dark:border-yellow-950/60 bg-yellow-50/20 dark:bg-yellow-950/20 hover:border-yellow-300'
+                    ? 'border-[#226380] bg-[#226380]/15 ring-1 ring-[#226380]'
+                    : 'border-[#226380]/25 dark:border-[#226380]/40 bg-[#226380]/5 hover:border-[#226380]/50'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-yellow-800 dark:text-yellow-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#226380]" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#226380] dark:text-[#A3C3C7]">
                       Atenção
                     </span>
                   </div>
-                  <span className="text-[10px] text-yellow-700 dark:text-yellow-400 font-medium">
+                  <span className="text-[10px] text-[#226380] dark:text-[#A3C3C7] font-medium">
                     31 a 60 dias
                   </span>
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl font-light text-yellow-900 dark:text-yellow-200 tabular-nums">
+                  <span className="text-2xl font-cinzel font-bold text-[#226380] dark:text-[#A3C3C7] tabular-nums">
                     {contadoresSemaforo.atencao}
                   </span>
-                  <span className="text-[11px] text-yellow-700 dark:text-yellow-400">
+                  <span className="text-[11px] text-[#226380] dark:text-[#A3C3C7]">
                     {contadoresSemaforo.atencao === 1 ? 'alerta' : 'alertas'}
                   </span>
                 </div>
-                <span className="text-[10px] text-yellow-700/80 dark:text-yellow-400/80 block mt-0.5">
+                <span className="text-[10px] text-[#226380]/80 dark:text-[#A3C3C7]/80 block mt-0.5">
                   Cotação e agendamento
                 </span>
               </button>
@@ -1111,30 +1111,30 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                 onClick={() => setFiltroNivelConformidade(filtroNivelConformidade === 'regular' ? 'todos' : 'regular')}
                 className={`p-3.5 rounded-[8px] border text-left transition-all cursor-pointer group ${
                   filtroNivelConformidade === 'regular'
-                    ? 'border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500'
-                    : 'border-emerald-200 dark:border-emerald-950/60 bg-emerald-50/20 dark:bg-emerald-950/20 hover:border-emerald-300'
+                    ? 'border-[#113240] bg-[#113240]/10 ring-1 ring-[#113240] dark:border-[#A3C3C7] dark:bg-[#A3C3C7]/10'
+                    : 'border-[#113240]/20 dark:border-slate-800 bg-[#113240]/5 hover:border-[#113240]/40'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#113240] dark:bg-[#A3C3C7]" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#113240] dark:text-[#A3C3C7]">
                       Em Dia
                     </span>
                   </div>
-                  <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">
+                  <span className="text-[10px] text-[#113240]/80 dark:text-[#A3C3C7]/80 font-medium">
                     &gt; 60 dias
                   </span>
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl font-light text-emerald-900 dark:text-emerald-200 tabular-nums">
+                  <span className="text-2xl font-cinzel font-bold text-[#113240] dark:text-white tabular-nums">
                     {contadoresSemaforo.regular}
                   </span>
-                  <span className="text-[11px] text-emerald-700 dark:text-emerald-400">
+                  <span className="text-[11px] text-[#113240] dark:text-[#A3C3C7]">
                     {contadoresSemaforo.regular === 1 ? 'regular' : 'regulares'}
                   </span>
                 </div>
-                <span className="text-[10px] text-emerald-700/80 dark:text-emerald-400/80 block mt-0.5">
+                <span className="text-[10px] text-[#113240]/70 dark:text-[#A3C3C7]/70 block mt-0.5">
                   Situação canônica regular
                 </span>
               </button>
@@ -1162,7 +1162,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
             {/* Lista Detalhada de Conformidades */}
             {conformidadesFiltradas.length === 0 ? (
               <div className="py-10 text-center space-y-2">
-                <CheckCircle2 className="w-7 h-7 text-emerald-600 dark:text-emerald-400 mx-auto opacity-90" />
+                <CheckCircle2 className="w-7 h-7 text-[#226380] dark:text-[#A3C3C7] mx-auto opacity-90" />
                 <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">
                   Nenhuma pendência localizada com os filtros selecionados.
                 </p>
@@ -1188,24 +1188,24 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                       key={conf.id}
                       className={`p-4 rounded-[6px] border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
                         isCritico
-                          ? 'border-rose-300/80 dark:border-rose-900/60 bg-rose-50/20 dark:bg-rose-950/15'
+                          ? 'border-[#80282E]/35 dark:border-[#80282E]/50 bg-[#80282E]/5'
                           : isUrgente
-                          ? 'border-amber-300/80 dark:border-amber-900/60 bg-amber-50/20 dark:bg-amber-950/15'
+                          ? 'border-[#9E6B28]/35 dark:border-[#9E6B28]/50 bg-[#9E6B28]/5'
                           : isAtencao
-                          ? 'border-yellow-200 dark:border-yellow-900/40 bg-yellow-50/15 dark:bg-yellow-950/10'
-                          : 'border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/15 dark:bg-emerald-950/10'
+                          ? 'border-[#226380]/25 dark:border-[#226380]/40 bg-[#226380]/5'
+                          : 'border-[#113240]/20 dark:border-slate-800 bg-[#113240]/5'
                       }`}
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className={`px-2 py-0.5 rounded-[3px] text-[10px] font-semibold uppercase tracking-wider ${
                             isCritico
-                              ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-200'
+                              ? 'bg-[#80282E]/15 text-[#80282E] border border-[#80282E]/30'
                               : isUrgente
-                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200'
+                              ? 'bg-[#9E6B28]/15 text-[#9E6B28] dark:text-[#F2C894] border border-[#9E6B28]/30'
                               : isAtencao
-                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/60 dark:text-yellow-200'
-                              : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200'
+                              ? 'bg-[#226380]/15 text-[#226380] dark:text-[#A3C3C7] border border-[#226380]/30'
+                              : 'bg-[#113240]/10 text-[#113240] dark:text-[#A3C3C7] border border-[#113240]/20'
                           }`}>
                             {isCritico ? 'Crítico · Vencido' : isUrgente ? 'Urgente' : isAtencao ? 'Atenção' : 'Regular'}
                           </span>
@@ -1235,7 +1235,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                           )}
                           {conf.dias_restantes !== undefined && (
                             <span className={`font-mono font-semibold ${
-                              conf.dias_restantes < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500'
+                              conf.dias_restantes < 0 ? 'text-[#80282E]' : 'text-slate-500'
                             }`}>
                               {conf.dias_restantes < 0 ? `(${Math.abs(conf.dias_restantes)} dias de atraso)` : `(${conf.dias_restantes} dias restantes)`}
                             </span>
@@ -1364,14 +1364,14 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                           </td>
                           <td className="px-4 py-3.5">
                             <span className="font-mono text-[11px] text-slate-800 dark:text-slate-200">{im.numero_matricula || 'Sem matrícula'}</span>
-                            <span className="block text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">{im.tem_escritura ? 'Escriturado' : 'Pendente'}</span>
+                            <span className={`block text-[10px] font-medium ${im.tem_escritura ? 'text-[#226380] dark:text-[#A3C3C7]' : 'text-[#80282E]'}`}>{im.tem_escritura ? 'Escriturado' : 'Pendente'}</span>
                           </td>
                           <td className="px-4 py-3.5">
                             <span className="font-mono text-[11px]">{im.avcb_vencimento || 'N/A'}</span>
                             <span className="block text-[10px] text-slate-400 truncate max-w-[120px] font-mono">{im.avcb_numero || 'Não informado'}</span>
                           </td>
                           <td className="px-4 py-3.5">
-                            <span className="px-2.5 py-0.5 rounded-[4px] text-[11px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                            <span className="px-2.5 py-0.5 rounded-[4px] text-[11px] font-medium bg-[#226380]/10 text-[#113240] dark:text-[#A3C3C7] border border-[#226380]/20">
                               {im.status}
                             </span>
                           </td>
@@ -1395,7 +1395,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                             <button
                               type="button"
                               onClick={() => handleExcluirImovel(im.id, im.nome)}
-                              className="p-1.5 rounded-[4px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer"
+                              className="p-1.5 rounded-[4px] text-slate-400 hover:text-[#80282E] hover:bg-[#80282E]/10 cursor-pointer"
                               title="Excluir"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1439,7 +1439,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                         <span className="text-[11px] font-semibold uppercase tracking-wider text-[#226380] dark:text-[#A3C3C7]">
                           {im.tipo}
                         </span>
-                        <span className="px-2.5 py-0.5 rounded-[4px] text-[11px] font-medium bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800">
+                        <span className="px-2.5 py-0.5 rounded-[4px] text-[11px] font-medium bg-[#226380]/10 text-[#113240] dark:text-[#A3C3C7] border border-[#226380]/20">
                           {im.status}
                         </span>
                       </div>
@@ -1471,7 +1471,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                         {im.avcb_vencimento && (
                           <div className="flex items-center justify-between">
                             <span className="text-slate-400">Vigência AVCB</span>
-                            <span className="text-[11px] font-medium text-amber-700 dark:text-amber-400 flex items-center gap-1 font-mono">
+                            <span className="text-[11px] font-medium text-[#9E6B28] dark:text-[#F2C894] flex items-center gap-1 font-mono">
                               <Clock className="w-3 h-3" />
                               {im.avcb_vencimento}
                             </span>
@@ -1502,7 +1502,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                         <button
                           type="button"
                           onClick={() => handleExcluirImovel(im.id, im.nome)}
-                          className="p-1.5 rounded-[4px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer"
+                          className="p-1.5 rounded-[4px] text-slate-400 hover:text-[#80282E] hover:bg-[#80282E]/10 cursor-pointer"
                           title="Excluir imóvel"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -1572,16 +1572,16 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                     <div className="flex items-start justify-between gap-3">
                       {/* Placa Mercosul Estilizada */}
                       <div className="inline-flex flex-col border border-slate-300 dark:border-slate-700 rounded-[4px] overflow-hidden bg-white dark:bg-slate-900 shadow-xs">
-                        <div className="bg-[#003399] px-2.5 py-0.5 flex items-center justify-between gap-1.5 text-[7px] text-white font-bold tracking-wider">
+                        <div className="bg-[#113240] px-2.5 py-0.5 flex items-center justify-between gap-1.5 text-[7px] text-white font-bold tracking-wider">
                           <span>BRASIL</span>
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#F2C894]" />
                         </div>
                         <div className="px-2.5 py-0.5 text-center font-mono font-black text-xs tracking-widest text-slate-900 dark:text-white">
                           {v.placa}
                         </div>
                       </div>
 
-                      <span className="px-2.5 py-0.5 rounded-[4px] text-[11px] font-medium bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800">
+                      <span className="px-2.5 py-0.5 rounded-[4px] text-[11px] font-medium bg-[#226380]/10 text-[#113240] dark:text-[#A3C3C7] border border-[#226380]/20">
                         {v.status}
                       </span>
                     </div>
@@ -1646,7 +1646,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                       <button
                         type="button"
                         onClick={() => handleExcluirVeiculo(v.id, v.marca_modelo, v.placa)}
-                        className="p-1.5 rounded-[4px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer"
+                        className="p-1.5 rounded-[4px] text-slate-400 hover:text-[#80282E] hover:bg-[#80282E]/10 cursor-pointer"
                         title="Excluir veículo"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1733,10 +1733,10 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                         </td>
                         <td className="px-4 py-3.5">
                           <span className={`px-2 py-0.5 rounded-[4px] text-[11px] border font-medium ${
-                            b.estado_conservacao === 'Excelente' ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800' :
-                            b.estado_conservacao === 'Bom' ? 'bg-teal-50 text-teal-800 dark:bg-teal-950/40 dark:text-teal-300 border-teal-200/80 dark:border-teal-800' :
-                            b.estado_conservacao === 'Regular' ? 'bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/80 dark:border-amber-800' :
-                            'bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200/80 dark:border-rose-800'
+                            b.estado_conservacao === 'Excelente' ? 'bg-[#113240]/10 text-[#113240] dark:text-[#A3C3C7] border-[#113240]/20' :
+                            b.estado_conservacao === 'Bom' ? 'bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7] border-[#226380]/20' :
+                            b.estado_conservacao === 'Regular' ? 'bg-[#9E6B28]/10 text-[#9E6B28] dark:text-[#F2C894] border-[#9E6B28]/20' :
+                            'bg-[#80282E]/10 text-[#80282E] border-[#80282E]/20'
                           }`}>
                             {b.estado_conservacao}
                           </span>
@@ -1764,7 +1764,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                           <button
                             type="button"
                             onClick={() => handleExcluirBem(b.id, b.titulo, b.codigo_tombamento)}
-                            className="p-1.5 rounded-[4px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer"
+                            className="p-1.5 rounded-[4px] text-slate-400 hover:text-[#80282E] hover:bg-[#80282E]/10 cursor-pointer"
                             title="Excluir"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1833,7 +1833,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                 >
                   <div className="space-y-1.5 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-[4px] text-[11px] font-medium bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800">
+                      <span className="px-2.5 py-0.5 rounded-[4px] text-[11px] font-medium bg-[#226380]/10 text-[#113240] dark:text-[#A3C3C7] border border-[#226380]/20">
                         {c.status}
                       </span>
                       <span className="text-xs text-[#226380] dark:text-[#A3C3C7] font-medium">{c.tipo}</span>
@@ -1887,7 +1887,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                       <button
                         type="button"
                         onClick={() => handleExcluirContrato(c.id, c.titulo)}
-                        className="p-1.5 rounded-[4px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer"
+                        className="p-1.5 rounded-[4px] text-slate-400 hover:text-[#80282E] hover:bg-[#80282E]/10 cursor-pointer"
                         title="Excluir"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1954,10 +1954,14 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                 >
                   <div className="space-y-1.5 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-[4px] text-[11px] font-medium bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800">
+                      <span className="px-2.5 py-0.5 rounded-[4px] text-[11px] font-medium bg-[#9E6B28]/10 text-[#9E6B28] dark:text-[#F2C894] border border-[#9E6B28]/20">
                         {m.status}
                       </span>
-                      <span className="px-2.5 py-0.5 rounded-[4px] text-[11px] font-medium bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800">
+                      <span className={`px-2.5 py-0.5 rounded-[4px] text-[11px] font-medium ${
+                        m.prioridade === 'Urgente'
+                          ? 'bg-[#80282E]/10 text-[#80282E] border border-[#80282E]/20'
+                          : 'bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7] border border-[#226380]/20'
+                      }`}>
                         Prioridade {m.prioridade}
                       </span>
                       <span className="text-xs text-slate-400">{m.tipo}</span>
@@ -2007,7 +2011,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                       <button
                         type="button"
                         onClick={() => handleExcluirManutencao(m.id, m.titulo)}
-                        className="p-1.5 rounded-[4px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer"
+                        className="p-1.5 rounded-[4px] text-slate-400 hover:text-[#80282E] hover:bg-[#80282E]/10 cursor-pointer"
                         title="Excluir"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -2044,7 +2048,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
             className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-slate-400 hover:text-[#226380] dark:hover:text-[#A3C3C7] transition-colors cursor-pointer"
             title="Copiar estrutura SQL para migração no Supabase"
           >
-            {copiedSql ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <HardDrive className="w-3.5 h-3.5" />}
+            {copiedSql ? <Check className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7]" /> : <HardDrive className="w-3.5 h-3.5" />}
             <span>{copiedSql ? 'SQL Copiado' : 'Script Supabase'}</span>
           </button>
         </div>
@@ -2056,7 +2060,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
           <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-800 rounded-[10px] shadow-2xl max-w-2xl w-full p-6 space-y-5 animate-fade-in">
             <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-[8px] bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 flex items-center justify-center text-rose-600">
+                <div className="w-9 h-9 rounded-[8px] bg-[#80282E]/10 border border-[#80282E]/30 flex items-center justify-center text-[#80282E]">
                   <AlertTriangle className="w-5 h-5" />
                 </div>
                 <div>
@@ -2091,8 +2095,8 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                 </pre>
               </div>
 
-              <div className="p-3.5 rounded-[6px] border border-amber-200 dark:border-amber-900/50 bg-amber-50/30 dark:bg-amber-950/20 space-y-2">
-                <span className="font-semibold text-amber-900 dark:text-amber-300 block border-b border-amber-200 dark:border-amber-900 pb-1">
+              <div className="p-3.5 rounded-[6px] border border-[#9E6B28]/30 bg-[#9E6B28]/5 space-y-2">
+                <span className="font-semibold text-[#9E6B28] dark:text-[#F2C894] block border-b border-[#9E6B28]/20 pb-1">
                   Versão Local (Contingência)
                 </span>
                 <pre className="text-[11px] font-mono text-slate-600 dark:text-slate-400 max-h-40 overflow-y-auto whitespace-pre-wrap">
