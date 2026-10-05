@@ -1002,7 +1002,7 @@ export const PatrimonioDetalhes: React.FC = () => {
           </div>
           <div>
             <div className="border-t border-black pt-1.5 font-bold uppercase text-black">
-              Superior Local / Ecônomo Guardião
+              Superior Local
             </div>
             <span className="text-[7.5pt] text-slate-600 block">{item.comunidade_obra || 'Comunidade Religiosa'}</span>
           </div>
