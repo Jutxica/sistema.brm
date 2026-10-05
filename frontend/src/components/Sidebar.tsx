@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { 
   Home, ClipboardList, Settings, Users, LogOut, ChevronLeft, ChevronRight, 
   Building, UserRound, ChevronDown, Plus, Church, Landmark, Layers, BarChart3,
-  FileText, Calendar, Car, ShieldCheck, Wrench
+  FileText, Calendar, Car, ShieldCheck, Wrench, History
 } from 'lucide-react';
 import { useAuth as useAuthHook } from '../contexts/AuthContext';
 
@@ -121,6 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
             <SidebarSubLink to="/patrimonio?tab=inventario" label="Inventário & Arte Sacra" icon={Church} collapsed={collapsed} />
             <SidebarSubLink to="/patrimonio?tab=contratos" label="Contratos & Seguros" icon={ShieldCheck} collapsed={collapsed} />
             <SidebarSubLink to="/patrimonio?tab=manutencoes" label="Vistorias & Obras" icon={Wrench} collapsed={collapsed} />
+            <SidebarSubLink to="/patrimonio?tab=auditoria" label="Logs de Auditoria" icon={History} collapsed={collapsed} />
           </SidebarGroup>
 
           {/* 6. Hospedaria */}

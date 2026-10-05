@@ -7,7 +7,7 @@ import {
   Eye, RefreshCw, Printer, LayoutGrid, ListFilter,
   ChevronRight, ChevronDown, HardDrive, Clock, Layers, Landmark, Shield,
   ArrowUpRight, FileCheck, FileSpreadsheet, Wifi, WifiOff, Download,
-  SlidersHorizontal
+  SlidersHorizontal, History, ScrollText, Filter, User, Tag
 } from 'lucide-react';
 import { 
   imoveisService, 
@@ -16,7 +16,8 @@ import {
   contratosService, 
   manutencoesService, 
   dashboardService, 
-  relatoriosService 
+  relatoriosService,
+  auditoriaService
 } from '../services/patrimonioService';
 import { useAuth } from '../contexts/AuthContext';
 import { usePatrimonioSync } from '../hooks/usePatrimonioSync';
@@ -30,7 +31,8 @@ import type {
   BemPatrimonio,
   ContratoPatrimonio,
   ManutencaoPatrimonio,
-  ConformidadeItem
+  ConformidadeItem,
+  AuditLogEntry
 } from '../types/patrimonio';
 import {
   getPatrimonioLocal,
@@ -80,6 +82,13 @@ export const PatrimonioAdmin: React.FC = () => {
   const [filtroNivelConformidade, setFiltroNivelConformidade] = useState<'todos' | 'critico' | 'urgente' | 'atencao' | 'regular'>('todos');
   const [menuAcoesAberto, setMenuAcoesAberto] = useState(false);
   const menuAcoesRef = useRef<HTMLDivElement>(null);
+
+  // Estados de Auditoria e Rastreabilidade
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [filtroAuditEntidade, setFiltroAuditEntidade] = useState<string>('todas');
+  const [filtroAuditAcao, setFiltroAuditAcao] = useState<string>('todas');
+  const [searchAudit, setSearchAudit] = useState<string>('');
+  const [logSelecionado, setLogSelecionado] = useState<AuditLogEntry | null>(null);
 
   // Fechar menu de ações ao clicar fora ou pressionar ESC
   useEffect(() => {
@@ -139,6 +148,10 @@ export const PatrimonioAdmin: React.FC = () => {
       setManutencoes(local.manutencoes);
       setConformidades(dashboardService.calcularConformidades(local.imoveis, local.veiculos, local.contratos));
     } finally {
+      try {
+        const logs = await auditoriaService.listarAuditoria({ limite: 250 });
+        setAuditLogs(logs);
+      } catch (_) {}
       setSyncing(false);
       setLoading(false);
     }
@@ -456,6 +469,21 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
     );
   }, [manutencoes, search]);
 
+  const logsFiltrados = useMemo(() => {
+    return auditLogs.filter(log => {
+      if (filtroAuditEntidade !== 'todas' && log.entity !== filtroAuditEntidade) return false;
+      if (filtroAuditAcao !== 'todas' && log.action !== filtroAuditAcao) return false;
+      if (searchAudit) {
+        const q = searchAudit.toLowerCase();
+        const matchNome = log.entity_nome?.toLowerCase().includes(q);
+        const matchUser = log.user_nome?.toLowerCase().includes(q) || log.user_email?.toLowerCase().includes(q);
+        const matchId = log.entity_id?.toLowerCase().includes(q);
+        if (!matchNome && !matchUser && !matchId) return false;
+      }
+      return true;
+    });
+  }, [auditLogs, filtroAuditEntidade, filtroAuditAcao, searchAudit]);
+
   return (
     <div className="space-y-6 animate-fade-in print:space-y-4 font-sans pb-12">
       {/* 1. Header Oficial do Economato Provincial */}
@@ -571,6 +599,21 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                     </div>
                   </button>
 
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuAcoesAberto(false);
+                      handleTabChange('auditoria');
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left cursor-pointer"
+                  >
+                    <History className="w-3.5 h-3.5 text-[#226380]" />
+                    <div>
+                      <span className="font-medium block">Trilha de Auditoria & Logs</span>
+                      <span className="text-[10px] text-slate-400 block">Rastreabilidade completa de atos e operadores</span>
+                    </div>
+                  </button>
+
                   <div className="my-1 border-t border-slate-100 dark:border-slate-800/80" />
 
                   <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 font-cinzel">
@@ -627,6 +670,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
           { id: 'inventario', label: 'Inventário Sacro & Arte', icon: Package, count: bens.length },
           { id: 'contratos', label: 'Contratos & Seguros', icon: ShieldCheck, count: contratos.length },
           { id: 'manutencoes', label: 'Vistorias & Obras', icon: Wrench, count: manutencoes.length },
+          { id: 'auditoria', label: 'Trilha de Auditoria', icon: History, count: auditLogs.length },
         ].map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -2107,6 +2151,383 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* ABA 7: TRILHA DE AUDITORIA & LOG DE REGISTROS                           */}
+      {/* ========================================================================= */}
+      {activeTab === 'auditoria' && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Header da Trilha de Auditoria */}
+          <div className="rounded-[10px] bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 p-6 shadow-xs">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#226380] dark:bg-[#A3C3C7]" />
+                  <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#226380] dark:text-[#A3C3C7]">
+                    Governança & Rastreabilidade Notarial
+                  </span>
+                </div>
+                <h2 className="font-cinzel text-xl md:text-2xl font-bold tracking-tight text-[#113240] dark:text-white mt-1">
+                  Trilha de Auditoria & Registro de Atos
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                  Registro contínuo e imutável de todas as inclusões, retificações e baixas realizadas no patrimônio provincial, identificando data, operador e valores modificados.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={carregarDados}
+                  disabled={syncing}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-[6px] shadow-xs cursor-pointer transition-all motion-press"
+                  title="Atualizar lista de logs"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-[#226380] ${syncing ? 'animate-spin' : ''}`} />
+                  <span>{syncing ? 'Atualizando...' : 'Recarregar'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Métricas da Auditoria */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-5">
+              <div className="p-3.5 rounded-[8px] bg-slate-50 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800">
+                <span className="text-[11px] text-slate-500 block">Total de Atos</span>
+                <span className="text-xl sm:text-2xl font-cinzel font-bold text-[#113240] dark:text-white tabular-nums">
+                  {auditLogs.length}
+                </span>
+                <span className="block text-[10px] text-slate-400 mt-0.5">Eventos auditados</span>
+              </div>
+
+              <div className="p-3.5 rounded-[8px] bg-[#226380]/5 border border-[#226380]/20">
+                <span className="text-[11px] text-[#226380] dark:text-[#A3C3C7] font-medium block">Incorporações</span>
+                <span className="text-xl sm:text-2xl font-cinzel font-bold text-[#226380] dark:text-[#A3C3C7] tabular-nums">
+                  {auditLogs.filter(l => l.action === 'INSERT').length}
+                </span>
+                <span className="block text-[10px] text-slate-400 mt-0.5">Novos registros (INSERT)</span>
+              </div>
+
+              <div className="p-3.5 rounded-[8px] bg-[#9E6B28]/5 border border-[#9E6B28]/20">
+                <span className="text-[11px] text-[#9E6B28] dark:text-[#F2C894] font-medium block">Retificações</span>
+                <span className="text-xl sm:text-2xl font-cinzel font-bold text-[#9E6B28] dark:text-[#F2C894] tabular-nums">
+                  {auditLogs.filter(l => l.action === 'UPDATE').length}
+                </span>
+                <span className="block text-[10px] text-slate-400 mt-0.5">Alterações cadastrais (UPDATE)</span>
+              </div>
+
+              <div className="p-3.5 rounded-[8px] bg-[#80282E]/5 border border-[#80282E]/20">
+                <span className="text-[11px] text-[#80282E] dark:text-[#F2C894] font-medium block">Baixas / Exclusões</span>
+                <span className="text-xl sm:text-2xl font-cinzel font-bold text-[#80282E] tabular-nums">
+                  {auditLogs.filter(l => l.action === 'DELETE').length}
+                </span>
+                <span className="block text-[10px] text-slate-400 mt-0.5">Desincorporações (DELETE)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Filtros e Busca */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={searchAudit}
+                onChange={(e) => setSearchAudit(e.target.value)}
+                placeholder="Filtrar por nome do ativo, operador ou e-mail..."
+                className="w-full pl-9 pr-4 py-2 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs outline-none focus:border-[#226380] text-slate-900 dark:text-white placeholder:text-slate-400 shadow-xs"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Filtro por Entidade */}
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="text-slate-500 text-[11px] hidden sm:inline">Entidade:</span>
+                <select
+                  value={filtroAuditEntidade}
+                  onChange={(e) => setFiltroAuditEntidade(e.target.value)}
+                  className="px-2.5 py-1.5 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 outline-none focus:border-[#226380] cursor-pointer"
+                >
+                  <option value="todas">Todas as Entidades</option>
+                  <option value="imoveis">Imóveis & Terrenos</option>
+                  <option value="veiculos">Frota de Veículos</option>
+                  <option value="bens">Inventário Sacro</option>
+                  <option value="contratos">Contratos & Seguros</option>
+                  <option value="manutencoes">Vistorias & Obras</option>
+                  <option value="documentos">Gestão Documental</option>
+                </select>
+              </div>
+
+              {/* Filtro por Ação */}
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="text-slate-500 text-[11px] hidden sm:inline">Ação:</span>
+                <select
+                  value={filtroAuditAcao}
+                  onChange={(e) => setFiltroAuditAcao(e.target.value)}
+                  className="px-2.5 py-1.5 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 outline-none focus:border-[#226380] cursor-pointer"
+                >
+                  <option value="todas">Todas as Ações</option>
+                  <option value="INSERT">Inclusões (INSERT)</option>
+                  <option value="UPDATE">Retificações (UPDATE)</option>
+                  <option value="DELETE">Exclusões (DELETE)</option>
+                  <option value="DOWNLOAD">Downloads de Documentos</option>
+                </select>
+              </div>
+
+              {(searchAudit || filtroAuditEntidade !== 'todas' || filtroAuditAcao !== 'todas') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchAudit('');
+                    setFiltroAuditEntidade('todas');
+                    setFiltroAuditAcao('todas');
+                  }}
+                  className="px-2.5 py-1.5 text-xs text-[#80282E] hover:underline cursor-pointer"
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Tabela Estruturada de Auditoria */}
+          {logsFiltrados.length === 0 ? (
+            <div className="p-12 text-center rounded-[10px] bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 space-y-3">
+              <History className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
+              <h3 className="font-cinzel text-sm font-semibold text-slate-800 dark:text-slate-200">
+                Nenhum registro de auditoria encontrado
+              </h3>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                Não foram localizados eventos correspondentes aos filtros aplicados.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-[10px] bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-semibold text-[11px] uppercase tracking-wider font-cinzel">
+                    <tr>
+                      <th className="px-4 py-3">Data / Hora</th>
+                      <th className="px-4 py-3">Ação</th>
+                      <th className="px-4 py-3">Entidade & Ativo</th>
+                      <th className="px-4 py-3">Operador Responsável</th>
+                      <th className="px-4 py-3 text-right">Inspecionar</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                    {logsFiltrados.map((log) => {
+                      const isInsert = log.action === 'INSERT';
+                      const isUpdate = log.action === 'UPDATE';
+                      const isDelete = log.action === 'DELETE';
+
+                      const EntidadeIcon = (
+                        log.entity === 'imoveis' ? Building2 :
+                        log.entity === 'veiculos' ? Car :
+                        log.entity === 'bens' ? Package :
+                        log.entity === 'contratos' ? ShieldCheck :
+                        log.entity === 'manutencoes' ? Wrench : FileText
+                      );
+
+                      return (
+                        <tr key={log.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <div>
+                                <span className="font-mono text-xs text-slate-900 dark:text-white font-medium block">
+                                  {new Date(log.created_at).toLocaleDateString('pt-BR')}
+                                </span>
+                                <span className="font-mono text-[10px] text-slate-400 block">
+                                  {new Date(log.created_at).toLocaleTimeString('pt-BR')}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[4px] text-[10px] font-bold uppercase tracking-wider ${
+                              isInsert
+                                ? 'bg-[#226380]/15 text-[#226380] dark:text-[#A3C3C7] border border-[#226380]/30'
+                                : isUpdate
+                                ? 'bg-[#9E6B28]/15 text-[#9E6B28] dark:text-[#F2C894] border border-[#9E6B28]/30'
+                                : isDelete
+                                ? 'bg-[#80282E]/15 text-[#80282E] border border-[#80282E]/30'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200'
+                            }`}>
+                              {isInsert ? 'Incorporação' : isUpdate ? 'Retificação' : isDelete ? 'Baixa' : log.action}
+                            </span>
+                          </td>
+
+                          <td className="px-4 py-3.5">
+                            <div className="flex items-start gap-2.5">
+                              <div className="w-7 h-7 rounded-[5px] bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[#226380] shrink-0 mt-0.5">
+                                <EntidadeIcon className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="min-w-0">
+                                <span className="font-semibold text-xs text-slate-900 dark:text-white block truncate">
+                                  {log.entity_nome || 'Registro não nomeado'}
+                                </span>
+                                <span className="text-[10px] font-mono text-slate-400 block truncate">
+                                  {log.entity.toUpperCase()} · ID: {log.entity_id}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            <div>
+                              <span className="font-medium text-xs text-slate-800 dark:text-slate-200 block">
+                                {log.user_nome || 'Operador BRM'}
+                              </span>
+                              <span className="text-[11px] text-slate-400 font-mono block">
+                                {log.user_email || 'sistema.interno'}
+                              </span>
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => setLogSelecionado(log)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 transition-all cursor-pointer shadow-xs motion-press"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-[#226380]" />
+                              <span>Ver Registro</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal de Detalhamento do Registro de Auditoria */}
+      {logSelecionado && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-800 rounded-[10px] shadow-2xl max-w-2xl w-full p-6 space-y-5 animate-fade-in max-h-[90vh] flex flex-col">
+            <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-800 pb-4 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-[8px] bg-[#226380]/10 border border-[#226380]/30 flex items-center justify-center text-[#226380]">
+                  <ScrollText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-cinzel text-base font-bold text-slate-900 dark:text-white">
+                    Certidão Notarial do Evento de Auditoria
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-mono">
+                    Protocolo: {logSelecionado.id}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLogSelecionado(null)}
+                className="p-1 rounded-[4px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 overflow-y-auto pr-1 flex-1 text-xs">
+              {/* Metadados */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3.5 rounded-[6px] bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800">
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Ação Executada</span>
+                  <span className="font-bold text-slate-800 dark:text-white text-xs">
+                    {logSelecionado.action === 'INSERT' ? 'Incorporação (INSERT)' :
+                     logSelecionado.action === 'UPDATE' ? 'Retificação (UPDATE)' :
+                     logSelecionado.action === 'DELETE' ? 'Baixa (DELETE)' : logSelecionado.action}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Entidade</span>
+                  <span className="font-medium text-slate-800 dark:text-white text-xs capitalize">
+                    {logSelecionado.entity}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Data & Hora</span>
+                  <span className="font-mono text-slate-800 dark:text-white text-xs">
+                    {new Date(logSelecionado.created_at).toLocaleString('pt-BR')}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">Operador</span>
+                  <span className="font-medium text-slate-800 dark:text-white text-xs">
+                    {logSelecionado.user_nome || 'Não identificado'}
+                  </span>
+                </div>
+                <div className="sm:col-span-2">
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">E-mail do Operador</span>
+                  <span className="font-mono text-slate-800 dark:text-white text-xs truncate block">
+                    {logSelecionado.user_email || 'sistema.interno'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Ativo Afetado */}
+              <div className="p-3.5 rounded-[6px] border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
+                <span className="text-[10px] text-slate-400 uppercase font-semibold block mb-1">Ativo Provincial</span>
+                <span className="text-sm font-semibold text-slate-900 dark:text-white block">
+                  {logSelecionado.entity_nome || 'Registro não nomeado'}
+                </span>
+                <span className="text-[11px] font-mono text-slate-400 block mt-0.5">
+                  ID do Registro: {logSelecionado.entity_id}
+                </span>
+              </div>
+
+              {/* Conteúdo Modificado / Payload */}
+              <div className="space-y-2">
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
+                  {logSelecionado.action === 'UPDATE' ? 'Dados Anteriores vs Novos Valores' : 'Payload Registrado'}
+                </span>
+
+                {logSelecionado.action === 'UPDATE' && logSelecionado.old_values && logSelecionado.new_values ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="p-3 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                      <span className="text-[11px] font-semibold text-slate-500 block mb-1.5 pb-1 border-b border-slate-200 dark:border-slate-800">
+                        Valores Anteriores
+                      </span>
+                      <pre className="text-[11px] font-mono text-slate-600 dark:text-slate-400 whitespace-pre-wrap max-h-48 overflow-y-auto">
+                        {JSON.stringify(logSelecionado.old_values, null, 2)}
+                      </pre>
+                    </div>
+
+                    <div className="p-3 rounded-[6px] border border-[#226380]/30 bg-[#226380]/5">
+                      <span className="text-[11px] font-semibold text-[#226380] dark:text-[#A3C3C7] block mb-1.5 pb-1 border-b border-[#226380]/20">
+                        Novos Valores Gravados
+                      </span>
+                      <pre className="text-[11px] font-mono text-slate-700 dark:text-slate-300 whitespace-pre-wrap max-h-48 overflow-y-auto">
+                        {JSON.stringify(logSelecionado.new_values, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                    <pre className="text-[11px] font-mono text-slate-700 dark:text-slate-300 whitespace-pre-wrap max-h-48 overflow-y-auto">
+                      {JSON.stringify(logSelecionado.new_values || logSelecionado.old_values || {}, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
+              <button
+                type="button"
+                onClick={() => setLogSelecionado(null)}
+                className="px-4 py-2 text-xs font-semibold bg-[#113240] text-white hover:bg-[#226380] rounded-[6px] cursor-pointer transition-colors shadow-xs"
+              >
+                Concluir Inspeção
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

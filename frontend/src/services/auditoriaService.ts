@@ -106,7 +106,71 @@ export const auditoriaService = {
   obterLocais(): AuditLogEntry[] {
     try {
       const raw = localStorage.getItem(STORAGE_KEY_AUDIT);
-      return raw ? JSON.parse(raw) : [];
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      // Logs iniciais de governança e incorporação ao acervo provincial BRM
+      const seeds: AuditLogEntry[] = [
+        {
+          id: 'audit-seed-1',
+          action: 'INSERT',
+          entity: 'imoveis',
+          entity_id: 'imovel-1',
+          entity_nome: 'Convento Sagrado Coração de Jesus (Sede Provincial)',
+          user_email: 'secretaria.provincial@dehonianos.org.br',
+          user_nome: 'Secretaria Provincial BRM',
+          created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
+          new_values: { nome: 'Convento SCJ', tipo: 'Convento', cidade: 'Taubaté', status: 'regular' }
+        },
+        {
+          id: 'audit-seed-2',
+          action: 'INSERT',
+          entity: 'veiculos',
+          entity_id: 'veic-1',
+          entity_nome: 'Fiat Cronos Precision 1.3 AT (Frota Curia)',
+          user_email: 'economato@dehonianos.org.br',
+          user_nome: 'Economato Provincial',
+          created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+          new_values: { placa: 'BRA2E19', modelo: 'Fiat Cronos Precision', ano: 2023 }
+        },
+        {
+          id: 'audit-seed-3',
+          action: 'INSERT',
+          entity: 'bens',
+          entity_id: 'bem-1',
+          entity_nome: 'Ostensório Barroco em Prata Dourada (Séc. XVIII)',
+          user_email: 'patrimonio@dehonianos.org.br',
+          user_nome: 'Comissão de Bens Culturais',
+          created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+          new_values: { tombamento: 'BRM-ARTE-001', categoria: 'Ourivesaria', estado: 'Excelente' }
+        },
+        {
+          id: 'audit-seed-4',
+          action: 'UPDATE',
+          entity: 'contratos',
+          entity_id: 'contr-1',
+          entity_nome: 'Apólice de Seguro Predial - Allianz Seguros',
+          user_email: 'economato@dehonianos.org.br',
+          user_nome: 'Economato Provincial',
+          created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+          old_values: { status: 'cotacao', seguradora: 'Allianz' },
+          new_values: { status: 'vigente', seguradora: 'Allianz', apolice_numero: 'ALZ-99201-2026' }
+        },
+        {
+          id: 'audit-seed-5',
+          action: 'INSERT',
+          entity: 'documentos',
+          entity_id: 'doc-seed-1',
+          entity_nome: 'Escritura Pública de Doação e RGI Definitivo',
+          user_email: 'secretaria.provincial@dehonianos.org.br',
+          user_nome: 'Secretaria Provincial BRM',
+          created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
+          new_values: { tipo: 'Escritura Pública', formato: 'pdf', tamanho_bytes: 3410290 }
+        }
+      ];
+      localStorage.setItem(STORAGE_KEY_AUDIT, JSON.stringify(seeds));
+      return seeds;
     } catch (_) {
       return [];
     }

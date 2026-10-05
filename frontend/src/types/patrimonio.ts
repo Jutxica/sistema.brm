@@ -1,6 +1,6 @@
 // Definições de Tipos e Modelo de Dados do Módulo de Patrimônio Provincial BRM
 
-export type AbaPatrimonio = 'visao-geral' | 'imoveis' | 'veiculos' | 'inventario' | 'contratos' | 'manutencoes';
+export type AbaPatrimonio = 'visao-geral' | 'imoveis' | 'veiculos' | 'inventario' | 'contratos' | 'manutencoes' | 'auditoria';
 export type TipoPatrimonio = 'imovel' | 'veiculo' | 'bem' | 'contrato' | 'vistoria';
 
 export type TipoDocumentoPatrimonio =
