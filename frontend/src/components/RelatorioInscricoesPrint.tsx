@@ -168,7 +168,6 @@ export const RelatorioInscricoesPrint: React.FC<RelatorioInscricoesPrintProps> =
           
           {/* CABEÇALHO OFICIAL DO PAPEL TIMBRADO BRM */}
           <CabecalhoTimbradoBRM
-            orgaoEmissor={orgao}
             subtituloDocumento={tituloDocumento}
             dataEmissao={new Date().toLocaleDateString("pt-BR")}
           />

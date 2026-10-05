@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { withTimeout } from '../lib/asyncUtils';
 import type { ContratoPatrimonio } from '../types/patrimonio';
 import { getPatrimonioLocal, savePatrimonioLocal, SEED_CONTRATOS } from '../types/patrimonio';
 import { auditoriaService } from './auditoriaService';
@@ -7,10 +8,14 @@ import { sincronizacaoService } from './sincronizacaoService';
 export const contratosService = {
   async listar(): Promise<ContratoPatrimonio[]> {
     try {
-      const { data, error } = await supabase
-        .from('patrimonio_contratos')
-        .select('*')
-        .order('data_fim');
+      const res = await withTimeout(
+        supabase
+          .from('patrimonio_contratos')
+          .select('*')
+          .order('data_fim'),
+        2000
+      );
+      const { data, error } = res;
 
       if (!error && data && data.length > 0) {
         const contratos = data as ContratoPatrimonio[];
@@ -19,7 +24,7 @@ export const contratosService = {
         return contratos;
       }
     } catch (err) {
-      console.warn('Falha ao listar contratos do Supabase; usando cache local:', err);
+      console.warn('Falha ou timeout ao listar contratos do Supabase; usando cache local:', err);
     }
 
     const local = getPatrimonioLocal();
@@ -28,11 +33,15 @@ export const contratosService = {
 
   async obterPorId(id: string): Promise<ContratoPatrimonio | null> {
     try {
-      const { data, error } = await supabase
-        .from('patrimonio_contratos')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
+      const res = await withTimeout(
+        supabase
+          .from('patrimonio_contratos')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle(),
+        2000
+      );
+      const { data, error } = res;
 
       if (!error && data) {
         return data as ContratoPatrimonio;

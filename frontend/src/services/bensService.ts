@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { withTimeout } from '../lib/asyncUtils';
 import type { BemPatrimonio } from '../types/patrimonio';
 import { getPatrimonioLocal, savePatrimonioLocal, SEED_BENS } from '../types/patrimonio';
 import { auditoriaService } from './auditoriaService';
@@ -7,10 +8,14 @@ import { sincronizacaoService } from './sincronizacaoService';
 export const bensService = {
   async listar(): Promise<BemPatrimonio[]> {
     try {
-      const { data, error } = await supabase
-        .from('patrimonio_bens')
-        .select('*')
-        .order('codigo_tombamento');
+      const res = await withTimeout(
+        supabase
+          .from('patrimonio_bens')
+          .select('*')
+          .order('codigo_tombamento'),
+        2000
+      );
+      const { data, error } = res;
 
       if (!error && data && data.length > 0) {
         const bens = data as BemPatrimonio[];
@@ -19,7 +24,7 @@ export const bensService = {
         return bens;
       }
     } catch (err) {
-      console.warn('Falha ao listar bens do Supabase; usando cache local:', err);
+      console.warn('Falha ou timeout ao listar bens do Supabase; usando cache local:', err);
     }
 
     const local = getPatrimonioLocal();
@@ -28,11 +33,15 @@ export const bensService = {
 
   async obterPorId(id: string): Promise<BemPatrimonio | null> {
     try {
-      const { data, error } = await supabase
-        .from('patrimonio_bens')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
+      const res = await withTimeout(
+        supabase
+          .from('patrimonio_bens')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle(),
+        2000
+      );
+      const { data, error } = res;
 
       if (!error && data) {
         return data as BemPatrimonio;

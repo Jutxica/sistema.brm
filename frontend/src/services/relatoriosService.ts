@@ -194,7 +194,6 @@ export const relatoriosService = {
     const html = gerarHtmlTimbradoBRM({
       titulo: 'Livro de Tombo & Patrimônio Provincial',
       subtitulo: 'Instrumento Oficial de Governança Patrimonial e Canônica',
-      orgao: 'Curadoria Provincial de Bens Culturais & Economato Provincial',
       orientacao,
       conteudoHtml,
       assinaturas: [

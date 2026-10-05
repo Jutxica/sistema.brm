@@ -15,7 +15,7 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarCollapsed, setSidebarColl
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-between h-16 px-6 border-b border-[#e5e5ea] dark:border-white/10 bg-[#fbfbfd]/75 dark:bg-[#161b22]/75 backdrop-blur-xl">
+    <header className="sticky top-0 z-20 flex items-center justify-between h-16 px-6 border-b border-[#e5e5ea] dark:border-white/10 bg-[#fbfbfd]/75 dark:bg-[#161b22]/75 backdrop-blur-xl print:hidden">
       {/* Left side */}
       <div className="flex items-center gap-4">
         <button

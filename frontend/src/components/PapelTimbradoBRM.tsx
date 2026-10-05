@@ -50,13 +50,6 @@ export const CabecalhoTimbradoBRM: React.FC<{
         Província Brasileira Meridional
       </h2>
 
-      {/* Órgão Emissor ou Subtítulo Provincial Opcional */}
-      {orgaoEmissor && (
-        <p className="font-timbrado text-[13px] sm:text-[14px] print:text-[10pt] font-medium tracking-[0.06em] uppercase text-slate-600 dark:text-slate-300 print:text-slate-700 mt-1.5">
-          {orgaoEmissor}
-        </p>
-      )}
-
       {/* Faixa de Protocolo / Data se fornecido */}
       {(protocolo || dataEmissao || subtituloDocumento) && (
         <div className="mt-3 pt-2.5 border-t border-slate-200/80 dark:border-slate-800 print:border-slate-300 flex flex-wrap items-center justify-between text-[11px] sm:text-[12px] print:text-[9pt] font-mono text-slate-500 dark:text-slate-400 print:text-slate-700 px-2">
@@ -480,7 +473,6 @@ export function gerarHtmlTimbradoBRM(options: {
     <img src="/logo-timbrado-brm.png" alt="Emblema Dehoniano" class="timbrado-logo" />
     <h1 class="timbrado-congregacao">CONGREGAÇÃO DOS SACERDOTES DO SAGRADO CORAÇÃO DE JESUS</h1>
     <h2 class="timbrado-provincia">Província Brasileira Meridional</h2>
-    ${options.orgao ? `<p class="timbrado-orgao">${options.orgao}</p>` : ''}
     
     ${(options.protocolo || options.subtitulo) ? `
       <div class="timbrado-meta">

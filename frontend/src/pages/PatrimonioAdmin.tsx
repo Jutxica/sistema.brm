@@ -59,20 +59,23 @@ export const PatrimonioAdmin: React.FC = () => {
     setSearchParams({ tab });
   };
 
-  // Estados dos Ativos
-  const [imoveis, setImoveis] = useState<ImovelPatrimonio[]>([]);
-  const [veiculos, setVeiculos] = useState<VeiculoPatrimonio[]>([]);
-  const [bens, setBens] = useState<BemPatrimonio[]>([]);
-  const [contratos, setContratos] = useState<ContratoPatrimonio[]>([]);
-  const [manutencoes, setManutencoes] = useState<ManutencaoPatrimonio[]>([]);
+  // Estados dos Ativos inicializados com cache local para carregamento instantâneo (0ms)
+  const initialLocal = useMemo(() => getPatrimonioLocal(), []);
+  const [imoveis, setImoveis] = useState<ImovelPatrimonio[]>(() => initialLocal.imoveis || []);
+  const [veiculos, setVeiculos] = useState<VeiculoPatrimonio[]>(() => initialLocal.veiculos || []);
+  const [bens, setBens] = useState<BemPatrimonio[]>(() => initialLocal.bens || []);
+  const [contratos, setContratos] = useState<ContratoPatrimonio[]>(() => initialLocal.contratos || []);
+  const [manutencoes, setManutencoes] = useState<ManutencaoPatrimonio[]>(() => initialLocal.manutencoes || []);
 
   const { user } = useAuth();
   const { isOnline, pendingCount, hasConflicts, conflicts, syncNow, resolveConflict } = usePatrimonioSync();
-  const [conformidades, setConformidades] = useState<ConformidadeItem[]>([]);
+  const [conformidades, setConformidades] = useState<ConformidadeItem[]>(() => 
+    dashboardService.calcularConformidades(initialLocal.imoveis || [], initialLocal.veiculos || [], initialLocal.contratos || [])
+  );
   const [modalConflito, setModalConflito] = useState<any>(null);
 
   // Estados de UI e Filtros
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [search, setSearch] = useState('');
   const [copiedSql, setCopiedSql] = useState(false);

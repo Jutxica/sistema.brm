@@ -282,7 +282,6 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         
         {/* CABEÇALHO OFICIAL DO PAPEL TIMBRADO BRM */}
         <CabecalhoTimbradoBRM
-          orgaoEmissor="Secretaria Provincial • Registro Canônico Individual de Religioso"
           protocolo={data?.id ? data.id.slice(0, 8).toUpperCase() : 'BRM-2026'}
           dataEmissao={new Date().toLocaleDateString('pt-BR')}
           subtituloDocumento="Ficha Cadastral Canônica Oficial"

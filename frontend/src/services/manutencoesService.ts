@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { withTimeout } from '../lib/asyncUtils';
 import type { ManutencaoPatrimonio } from '../types/patrimonio';
 import { getPatrimonioLocal, savePatrimonioLocal, SEED_MANUTENCOES } from '../types/patrimonio';
 import { auditoriaService } from './auditoriaService';
@@ -7,10 +8,14 @@ import { sincronizacaoService } from './sincronizacaoService';
 export const manutencoesService = {
   async listar(): Promise<ManutencaoPatrimonio[]> {
     try {
-      const { data, error } = await supabase
-        .from('patrimonio_manutencoes')
-        .select('*')
-        .order('data_solicitacao', { ascending: false });
+      const res = await withTimeout(
+        supabase
+          .from('patrimonio_manutencoes')
+          .select('*')
+          .order('data_solicitacao', { ascending: false }),
+        2000
+      );
+      const { data, error } = res;
 
       if (!error && data && data.length > 0) {
         const manutencoes = data as ManutencaoPatrimonio[];
@@ -19,7 +24,7 @@ export const manutencoesService = {
         return manutencoes;
       }
     } catch (err) {
-      console.warn('Falha ao listar manutenções do Supabase; usando cache local:', err);
+      console.warn('Falha ou timeout ao listar manutenções do Supabase; usando cache local:', err);
     }
 
     const local = getPatrimonioLocal();
@@ -28,11 +33,15 @@ export const manutencoesService = {
 
   async obterPorId(id: string): Promise<ManutencaoPatrimonio | null> {
     try {
-      const { data, error } = await supabase
-        .from('patrimonio_manutencoes')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
+      const res = await withTimeout(
+        supabase
+          .from('patrimonio_manutencoes')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle(),
+        2000
+      );
+      const { data, error } = res;
 
       if (!error && data) {
         return data as ManutencaoPatrimonio;

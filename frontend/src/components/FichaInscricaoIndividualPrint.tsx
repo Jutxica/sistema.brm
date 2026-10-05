@@ -144,7 +144,6 @@ export const FichaInscricaoIndividualPrint: React.FC<FichaInscricaoIndividualPri
           
           {/* CABEÇALHO OFICIAL DO PAPEL TIMBRADO BRM */}
           <CabecalhoTimbradoBRM
-            orgaoEmissor={orgao}
             protocolo={resposta.protocolo}
             dataEmissao={new Date(resposta.created_at).toLocaleDateString("pt-BR")}
             subtituloDocumento={formulario?.titulo || "Ficha Canônica de Inscrição"}

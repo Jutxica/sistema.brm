@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { withTimeout } from '../lib/asyncUtils';
 import type { ImovelPatrimonio } from '../types/patrimonio';
 import { getPatrimonioLocal, savePatrimonioLocal, SEED_IMOVEIS } from '../types/patrimonio';
 import { auditoriaService } from './auditoriaService';
@@ -7,10 +8,14 @@ import { sincronizacaoService } from './sincronizacaoService';
 export const imoveisService = {
   async listar(): Promise<ImovelPatrimonio[]> {
     try {
-      const { data, error } = await supabase
-        .from('patrimonio_imoveis')
-        .select('*')
-        .order('nome');
+      const res = await withTimeout(
+        supabase
+          .from('patrimonio_imoveis')
+          .select('*')
+          .order('nome'),
+        2000
+      );
+      const { data, error } = res;
 
       if (!error && data && data.length > 0) {
         const imoveis = data as ImovelPatrimonio[];
@@ -20,7 +25,7 @@ export const imoveisService = {
         return imoveis;
       }
     } catch (err) {
-      console.warn('Falha de rede ao consultar imóveis; utilizando cache local:', err);
+      console.warn('Falha de rede ou timeout ao consultar imóveis; utilizando cache local:', err);
     }
 
     const local = getPatrimonioLocal();
@@ -29,11 +34,15 @@ export const imoveisService = {
 
   async obterPorId(id: string): Promise<ImovelPatrimonio | null> {
     try {
-      const { data, error } = await supabase
-        .from('patrimonio_imoveis')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
+      const res = await withTimeout(
+        supabase
+          .from('patrimonio_imoveis')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle(),
+        2000
+      );
+      const { data, error } = res;
 
       if (!error && data) {
         return data as ImovelPatrimonio;

@@ -44,7 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     <aside
       className={`fixed top-0 left-0 z-30 h-screen transition-all duration-300 border-r border-[#e5e5ea] dark:border-white/10
         ${collapsed ? 'w-20' : 'w-64'} 
-        bg-[#fbfbfd]/80 dark:bg-[#161b22]/80 backdrop-blur-xl text-[#1d1d1f] dark:text-[#f5f5f7]`}
+        bg-[#fbfbfd]/80 dark:bg-[#161b22]/80 backdrop-blur-xl text-[#1d1d1f] dark:text-[#f5f5f7] print:hidden`}
     >
       {/* Brand Header */}
       <div className="flex items-center justify-between h-16 px-4 border-b border-[#e5e5ea] dark:border-white/10">

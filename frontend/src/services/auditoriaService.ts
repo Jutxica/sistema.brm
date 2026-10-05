@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { withTimeout } from '../lib/asyncUtils';
 import type { AuditLogEntry } from '../types/patrimonio';
 
 const STORAGE_KEY_AUDIT = 'brm_patrimonio_audit_logs';
@@ -87,7 +88,8 @@ export const auditoriaService = {
         query = query.limit(filtros.limite);
       }
 
-      const { data, error } = await query;
+      const res = await withTimeout(query, 1500);
+      const { data, error } = res;
       if (!error && data && data.length > 0) {
         return data as AuditLogEntry[];
       }
