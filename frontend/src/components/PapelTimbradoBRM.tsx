@@ -273,6 +273,10 @@ export function gerarHtmlTimbradoBRM(options: {
   protocolo?: string;
   assinaturas?: Array<{ cargo: string; nome?: string; detalhe?: string }>;
   notaCertidao?: string;
+  autenticidade?: {
+    codigo: string;
+    qrCodeDataUrl?: string;
+  };
 }): string {
   const isLandscape = options.orientacao === 'horizontal';
   const dataHoje = options.dataEmissao || new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -521,6 +525,23 @@ export function gerarHtmlTimbradoBRM(options: {
     <p class="timbrado-certidao-livre">
       ${options.notaCertidao}
     </p>
+  ` : ''}
+
+  ${options.autenticidade ? `
+    <div style="margin-top: 22px; padding: 6px 12px; border: 1px solid #94a3b8; border-radius: 4px; display: flex; align-items: center; gap: 12px; font-size: 8pt; background: #ffffff; page-break-inside: avoid;">
+      ${options.autenticidade.qrCodeDataUrl ? `<img src="${options.autenticidade.qrCodeDataUrl}" style="width: 56px; height: 56px; object-fit: contain; border: 1px solid #cbd5e1; padding: 2px;" alt="QR Code" />` : ''}
+      <div style="text-align: left;">
+        <div style="font-weight: 700; text-transform: uppercase; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 7.5pt; color: #0f172a;">
+          Chancela de Autenticidade & Fé Pública Digital
+        </div>
+        <div style="margin: 2px 0; font-family: monospace; font-size: 8.5pt; color: #113240;">
+          Código Verificador: <strong>${options.autenticidade.codigo}</strong>
+        </div>
+        <div style="font-size: 7pt; color: #64748b; line-height: 1.3;">
+          Documento expedido pela Sede Provincial BRM (Corupá/SC). A autenticidade deste instrumento pode ser conferida publicamente em <strong>sistema.brm.org.br/validar</strong> informando o código acima.
+        </div>
+      </div>
+    </div>
   ` : ''}
 
   <div class="timbrado-footer">

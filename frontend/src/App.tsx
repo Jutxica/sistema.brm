@@ -32,6 +32,7 @@ const FormularioPublicoInscricao = lazy(() => import('./pages/FormularioPublicoI
 const PatrimonioAdmin = lazy(() => import('./pages/PatrimonioAdmin'));
 const PatrimonioForm = lazy(() => import('./pages/PatrimonioForm'));
 const PatrimonioDetalhes = lazy(() => import('./pages/PatrimonioDetalhes'));
+const ValidarDocumento = lazy(() => import('./pages/ValidarDocumento'));
 
 // Apple Loading Spinner Fallback
 const AppleLoadingFallback: React.FC = () => (
@@ -112,6 +113,8 @@ export const App: React.FC = () => {
                 <Route path="/atualizar-obra/:token" element={<AtualizarObraPublico />} />
                 <Route path="/preview-obras" element={<ObrasAdmin />} />
                 <Route path="/formularios/:id" element={<FormularioPublicoInscricao />} />
+                <Route path="/validar" element={<ValidarDocumento />} />
+                <Route path="/validar/:codigo" element={<ValidarDocumento />} />
 
                 {/* Private Administrative Workspace */}
                 <Route

@@ -10,6 +10,7 @@ import { showToast } from '../hooks/useFeedback';
 import { downloadArquivo } from '../lib/downloadHelper';
 import { PatrimonioAnexosManager } from '../components/PatrimonioAnexosManager';
 import { CabecalhoTimbradoBRM, RodapeTimbradoBRM, type OrientacaoDocumento } from '../components/PapelTimbradoBRM';
+import { SeloAutenticidadeDocumento } from '../components/SeloAutenticidadeDocumento';
 import { 
   imoveisService, 
   veiculosService, 
@@ -1013,8 +1014,18 @@ export const PatrimonioDetalhes: React.FC = () => {
           Certifico para os devidos fins de direito canônico e civil que as informações constantes nesta ficha documental conferem integralmente com os assentos do Livro de Tombo e arquivos da Secretaria Provincial e Economato da Província Brasileira Meridional da Congregação dos Sacerdotes do Sagrado Coração de Jesus.
         </p>
 
+        {/* Selo Notarial de Autenticidade com QR Code e Código Verificador Anti-Fraude */}
+        <SeloAutenticidadeDocumento
+          tipo={tipo || 'imovel'}
+          id={item.id}
+          titulo={tituloPagina}
+          identificadorOficial={item.codigo_tombamento || item.numero_matricula || item.placa || String(item.id)}
+          comunidadeObra={item.comunidade_obra}
+          situacao={item.status || 'Ativo'}
+        />
+
         {/* Rodapé Oficial Timbrado BRM */}
-        <div className="mt-1">
+        <div className="mt-2">
           <RodapeTimbradoBRM />
         </div>
       </div>

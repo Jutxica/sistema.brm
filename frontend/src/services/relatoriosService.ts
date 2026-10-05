@@ -9,6 +9,7 @@ import type {
 } from '../types/patrimonio';
 
 import { gerarHtmlTimbradoBRM, type OrientacaoDocumento } from '../components/PapelTimbradoBRM';
+import { gerarCodigoVerificador, registrarDocumentoOficial, gerarQrCodeDataUrl } from '../lib/autenticacaoDocumental';
 
 export const relatoriosService = {
   /**
@@ -121,13 +122,26 @@ export const relatoriosService = {
    * Dispara a impressão oficial do Livro de Tombo com termo canônico
    * estritamente padronizado no Papel Timbrado BRM (horizontal ou vertical).
    */
-  imprimirLivroDeTomboCanonica(
+  async imprimirLivroDeTomboCanonica(
     imoveis: ImovelPatrimonio[], 
     bens: BemPatrimonio[], 
     orientacao: OrientacaoDocumento = 'horizontal'
   ) {
     const janela = window.open('', '_blank');
     if (!janela) return;
+
+    const codigoVerificador = gerarCodigoVerificador('livro_tombo', 'geral', 'Livro de Tombo Provincial BRM');
+    registrarDocumentoOficial({
+      tipo: 'Livro de Tombo e Patrimônio',
+      id: 'geral',
+      titulo: 'Livro de Tombo Geral da Província BRM',
+      identificador_oficial: 'Livro de Assentos Notariais BRM',
+      comunidade_obra: 'Sede Provincial BRM (Corupá/SC)',
+      situacao: 'Assento Notarial Oficial Válido'
+    });
+
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://sistema.brm.org.br';
+    const qrCodeDataUrl = await gerarQrCodeDataUrl(`${baseUrl}/validar?codigo=${codigoVerificador}`);
 
     const conteudoHtml = `
       <h3 style="font-family:'Cormorant Garamond', Georgia, serif; font-size: 13pt; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-top: 6px; text-transform: uppercase;">
@@ -193,6 +207,10 @@ export const relatoriosService = {
       orientacao,
       conteudoHtml,
       notaCertidao: 'Certifico para os devidos fins de direito canônico e civil que as informações constantes nesta ficha documental conferem integralmente com os assentos do Livro de Tombo e arquivos da Secretaria Provincial e Economato da Província Brasileira Meridional da Congregação dos Sacerdotes do Sagrado Coração de Jesus.',
+      autenticidade: {
+        codigo: codigoVerificador,
+        qrCodeDataUrl
+      },
       assinaturas: [
         {
           cargo: 'Pe. Superior Provincial, SCJ',
