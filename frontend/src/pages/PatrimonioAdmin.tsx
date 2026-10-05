@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Building2, Car, Package, ShieldCheck, Wrench, AlertTriangle, 
   Search, Plus, Trash2, Edit3, 
   CheckCircle2, X, Calendar, MapPin, FileText, Check, 
   Eye, RefreshCw, Printer, LayoutGrid, ListFilter,
-  ChevronRight, HardDrive, Clock, Layers, Landmark, Shield,
-  ArrowUpRight, FileCheck, FileSpreadsheet, Wifi, WifiOff, Download
+  ChevronRight, ChevronDown, HardDrive, Clock, Layers, Landmark, Shield,
+  ArrowUpRight, FileCheck, FileSpreadsheet, Wifi, WifiOff, Download,
+  SlidersHorizontal
 } from 'lucide-react';
 import { 
   imoveisService, 
@@ -77,6 +78,26 @@ export const PatrimonioAdmin: React.FC = () => {
   const [filtroComunidade, setFiltroComunidade] = useState<string>('Todas');
   const [filtroConformidade, setFiltroConformidade] = useState<'todos' | 'seguros' | 'bombeiros' | 'veiculos' | 'contratos'>('todos');
   const [filtroNivelConformidade, setFiltroNivelConformidade] = useState<'todos' | 'critico' | 'urgente' | 'atencao' | 'regular'>('todos');
+  const [menuAcoesAberto, setMenuAcoesAberto] = useState(false);
+  const menuAcoesRef = useRef<HTMLDivElement>(null);
+
+  // Fechar menu de ações ao clicar fora ou pressionar ESC
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuAcoesRef.current && !menuAcoesRef.current.contains(event.target as Node)) {
+        setMenuAcoesAberto(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuAcoesAberto(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   const handleResolverConflito = async (id: string, estrategia: 'servidor' | 'local' | 'mesclar') => {
     try {
@@ -462,21 +483,18 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
               <h1 className="font-cinzel text-2xl md:text-3xl font-bold tracking-tight text-[#113240] dark:text-white mt-1">
                 Patrimônio & Imobilizado Provincial
               </h1>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
-                Governança imobiliária e fundiária, frota veicular, inventário histórico-artístico, apólices securitárias e vistorias prediais.
-              </p>
             </div>
           </div>
 
-          {/* Botões de Ação do Topo (Diretoria Executiva) */}
-          <div className="flex flex-wrap items-center gap-2.5 print:hidden shrink-0">
-            {/* Indicador de Sincronização / Conectividade / Conflito */}
+          {/* Ações Institucionais Discretas */}
+          <div className="flex items-center gap-2 print:hidden shrink-0">
+            {/* Alertas Operacionais (apenas quando houver pendência ou conflito) */}
             {hasConflicts ? (
               <button
                 type="button"
                 onClick={() => setModalConflito(conflicts[0])}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-[#80282E]/10 text-[#80282E] dark:text-[#F2C894] border border-[#80282E]/30 rounded-[6px] shadow-xs hover:bg-[#80282E]/15 transition-all cursor-pointer"
-                title="Divergência entre dados locais e banco de dados central provincial. Clique para mediar."
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold bg-[#80282E]/10 text-[#80282E] dark:text-[#F2C894] border border-[#80282E]/30 rounded-[6px] hover:bg-[#80282E]/15 transition-all cursor-pointer"
+                title="Divergência entre dados locais e banco central. Clique para mediar."
               >
                 <AlertTriangle className="w-3.5 h-3.5 text-[#80282E]" />
                 <span>{conflicts.length} Conflito{conflicts.length > 1 ? 's' : ''}</span>
@@ -486,60 +504,111 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                 type="button"
                 onClick={syncNow}
                 disabled={!isOnline}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-[#F2C894]/20 text-[#7A5016] dark:text-[#F2C894] border border-[#F2C894]/40 rounded-[6px] shadow-xs hover:bg-[#F2C894]/30 transition-all cursor-pointer"
-                title={isOnline ? "Fila offline com alterações pendentes. Clique para descarregar agora." : "Modo offline ativo. As alterações serão salvas ao reconectar."}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium bg-[#F2C894]/20 text-[#7A5016] dark:text-[#F2C894] border border-[#F2C894]/40 rounded-[6px] hover:bg-[#F2C894]/30 transition-all cursor-pointer"
+                title={isOnline ? "Fila offline com alterações. Sincronizar agora." : "Modo offline ativo."}
               >
                 {isOnline ? <Wifi className="w-3.5 h-3.5 text-[#9E6B28]" /> : <WifiOff className="w-3.5 h-3.5 text-slate-400" />}
-                <span>{pendingCount} Pendente{pendingCount > 1 ? 's' : ''} {isOnline ? '· Sincronizar' : ''}</span>
+                <span>{pendingCount} Pendente{pendingCount > 1 ? 's' : ''}</span>
               </button>
             ) : (
               <div 
-                className="inline-flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-[#A3C3C7] border border-slate-200/80 dark:border-slate-800 rounded-[6px]"
-                title="Conexão operacional com o banco de dados provincial"
+                className="hidden md:inline-flex items-center gap-1.5 px-2 py-1 text-[11px] font-mono text-slate-500 dark:text-[#A3C3C7] bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-[5px]"
+                title="Conectado com o banco de dados provincial"
               >
-                <span className="w-2 h-2 rounded-full bg-[#226380]"></span>
-                <span className="text-[11px] font-mono">Sincronizado</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#226380]"></span>
+                <span>Sincronizado</span>
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={carregarDados}
-              disabled={syncing}
-              className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer rounded-[6px] shadow-xs motion-press"
-              title="Recarregar dados do banco de dados provincial"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-[#226380]' : ''}`} />
-              <span className="hidden sm:inline">{syncing ? 'Atualizando...' : 'Atualizar'}</span>
-            </button>
+            {/* Menu Discreto de Opções & Relatórios */}
+            <div className="relative" ref={menuAcoesRef}>
+              <button
+                type="button"
+                onClick={() => setMenuAcoesAberto(!menuAcoesAberto)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer rounded-[6px] shadow-xs"
+                title="Opções do Livro de Tombo, relatórios e sincronização"
+                aria-expanded={menuAcoesAberto}
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7]" />
+                <span>Opções</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-150 ${menuAcoesAberto ? 'rotate-180' : ''}`} />
+              </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                relatoriosService.exportarLivroDeTomboExcel(imoveis, bens);
-                showToast.success('Livro de Tombo exportado com sucesso em Excel (.xlsx)', 'Relatório Gerado');
-              }}
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer rounded-[6px] shadow-xs motion-press"
-              title="Exportar Livro de Tombo completo em planilha Excel (.xlsx)"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7]" />
-              <span>Exportar Excel</span>
-            </button>
+              {menuAcoesAberto && (
+                <div className="absolute right-0 mt-1.5 w-64 rounded-[8px] bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-800 shadow-xl py-1.5 z-50">
+                  <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 font-cinzel border-b border-slate-100 dark:border-slate-800/80">
+                    Relatórios Canônicos
+                  </div>
+                  
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuAcoesAberto(false);
+                      relatoriosService.imprimirLivroDeTomboCanonica(imoveis, bens);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left cursor-pointer"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-[#226380]" />
+                    <div>
+                      <span className="font-medium block">Livro Canônico Oficial</span>
+                      <span className="text-[10px] text-slate-400 block">Emitir termo timbrado para chancela</span>
+                    </div>
+                  </button>
 
-            <button
-              type="button"
-              onClick={() => relatoriosService.imprimirLivroDeTomboCanonica(imoveis, bens)}
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer rounded-[6px] shadow-xs motion-press"
-              title="Emitir termo canônico timbrado oficial para assinatura provincial"
-            >
-              <Printer className="w-3.5 h-3.5 text-[#226380]" />
-              <span>Livro Canônico</span>
-            </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuAcoesAberto(false);
+                      relatoriosService.exportarLivroDeTomboExcel(imoveis, bens);
+                      showToast.success('Livro de Tombo exportado com sucesso em Excel (.xlsx)', 'Relatório Gerado');
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left cursor-pointer"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7]" />
+                    <div>
+                      <span className="font-medium block">Exportar Planilha (Excel)</span>
+                      <span className="text-[10px] text-slate-400 block">Download de inventário e imóveis (.xlsx)</span>
+                    </div>
+                  </button>
 
+                  <div className="my-1 border-t border-slate-100 dark:border-slate-800/80" />
+
+                  <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 font-cinzel">
+                    Sincronização & Dados
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuAcoesAberto(false);
+                      carregarDados();
+                    }}
+                    disabled={syncing}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 text-[#226380] ${syncing ? 'animate-spin' : ''}`} />
+                    <div>
+                      <span className="font-medium block">{syncing ? 'Atualizando...' : 'Recarregar Dados'}</span>
+                      <span className="text-[10px] text-slate-400 block">Consultar banco de dados central</span>
+                    </div>
+                  </button>
+
+                  <div className="mt-1 px-3 py-2 bg-slate-50/80 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px]">
+                    <span className="text-slate-500 font-medium">Base Provincial:</span>
+                    <span className="inline-flex items-center gap-1.5 font-mono text-[10px] text-slate-700 dark:text-slate-300">
+                      <span className={`w-1.5 h-1.5 rounded-full ${hasConflicts ? 'bg-[#80282E]' : pendingCount > 0 ? 'bg-[#9E6B28]' : 'bg-[#226380]'}`} />
+                      {hasConflicts ? `${conflicts.length} Conflito(s)` : pendingCount > 0 ? `${pendingCount} Pendente(s)` : 'Sincronizado'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Ação Primária Limpa */}
             <button
               type="button"
               onClick={() => navigate('/patrimonio/novo')}
-              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold bg-[#113240] text-white hover:bg-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold bg-[#113240] text-white hover:bg-[#226380] transition-all cursor-pointer rounded-[6px] shadow-xs motion-press"
               title="Abre a ficha para lançamento de novo ativo"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -654,18 +723,34 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                 </div>
               </div>
 
-              <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-400 relative z-10">
+              <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400 relative z-10">
                 <span className="truncate">
                   Cartórios de Registro de Imóveis (RGI) e Arquivo Canônico
                 </span>
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="inline-flex items-center gap-1.5 text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold hover:underline cursor-pointer"
-                >
-                  <span>Emitir Balanço</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      relatoriosService.exportarLivroDeTomboExcel(imoveis, bens);
+                      showToast.success('Livro de Tombo exportado com sucesso em Excel (.xlsx)', 'Relatório Gerado');
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 hover:text-[#226380] dark:hover:text-[#A3C3C7] font-medium transition-colors cursor-pointer"
+                    title="Baixar planilha Excel (.xlsx)"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7]" />
+                    <span>Exportar Excel</span>
+                  </button>
+                  <span className="text-slate-300 dark:text-slate-700">·</span>
+                  <button
+                    type="button"
+                    onClick={() => relatoriosService.imprimirLivroDeTomboCanonica(imoveis, bens)}
+                    className="inline-flex items-center gap-1.5 text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold hover:underline cursor-pointer"
+                    title="Emitir termo canônico timbrado oficial"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Livro Canônico</span>
+                  </button>
+                </div>
               </div>
             </div>
 
