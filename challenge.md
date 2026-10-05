@@ -1,7 +1,7 @@
 # Challenge do Projeto BRM
 
 ## Contexto
-Este projeto reúne a evolução do sistema administrativo e público do Conventinho SCJ, com foco em gestão de religiosos, obras, paróquias, hospedagens e cadastro institucional.
+Este projeto reúne a evolução do sistema administrativo e público da Província Brasil Meridional (BRM) SCJ, com foco em gestão de religiosos, obras, paróquias, patrimônio provincial e cadastro institucional.
 
 ## Objetivo principal
 Unificar a gestão administrativa e o cadastro público em uma mesma estrutura de dados, com fluxo claro para:

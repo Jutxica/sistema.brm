@@ -1,6 +1,7 @@
-import React from "react";
-import { Printer, ArrowLeft, Download, Shield, Calendar, MapPin, Users, CheckCircle2 } from "lucide-react";
+import React, { useState } from "react";
+import { Printer, ArrowLeft, Download, Shield, Calendar, MapPin, Users, CheckCircle2, RotateCw } from "lucide-react";
 import type { RespostaFormulario, FormularioSecretaria } from "../pages/SecretariaConfiguracoes";
+import { CabecalhoTimbradoBRM, RodapeTimbradoBRM, type OrientacaoDocumento } from "./PapelTimbradoBRM";
 
 interface RelatorioInscricoesPrintProps {
   formulario?: FormularioSecretaria | null;
@@ -30,14 +31,17 @@ export const RelatorioInscricoesPrint: React.FC<RelatorioInscricoesPrintProps> =
   onVoltar,
   cabecalho
 }) => {
-  const congregacao = cabecalho?.congregacao || "CONGREGAÇÃO DOS PADRES DO SAGRADO CORAÇÃO DE JESUS";
-  const provincia = cabecalho?.provincia || "PROVÍNCIA BRASIL MERIDIONAL • DEHONIANOS";
+  const [orientacao, setOrientacao] = useState<OrientacaoDocumento>("horizontal");
   const orgao = cabecalho?.orgao || "CURIA PROVINCIAL • SECRETARIA & ATOS OFICIAIS";
   const lema = cabecalho?.lema || "ADVENIAT REGNUM TUUM";
 
   const totalInscritos = respostas.length;
   const totalHospedagem = respostas.filter(r => r.dados?.necessita_hospedagem === true || r.dados?.necessita_hospedagem === "Sim").length;
   const totalConfirmadas = respostas.filter(r => r.status === "Confirmada").length;
+
+  const alternarOrientacao = () => {
+    setOrientacao(prev => (prev === "horizontal" ? "vertical" : "horizontal"));
+  };
 
   const handlePrint = () => {
     window.print();
@@ -118,6 +122,16 @@ export const RelatorioInscricoesPrint: React.FC<RelatorioInscricoesPrintProps> =
         <div className="flex items-center gap-2">
           <button
             type="button"
+            onClick={alternarOrientacao}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-[6px] transition-colors cursor-pointer shadow-2xs"
+            title="Alternar orientação entre Paisagem (Horizontal) e Retrato (Vertical)"
+          >
+            <RotateCw className="w-3.5 h-3.5 text-[#226380]" />
+            <span>{orientacao === "horizontal" ? "Modo Vertical" : "Modo Horizontal"}</span>
+          </button>
+
+          <button
+            type="button"
             onClick={exportarCSV}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-[6px] transition-colors cursor-pointer shadow-2xs"
           >
@@ -136,44 +150,28 @@ export const RelatorioInscricoesPrint: React.FC<RelatorioInscricoesPrintProps> =
         </div>
       </div>
 
+      {/* Injeção de regras @page para orientação dinâmica */}
+      <style>
+        {`
+          @media print {
+            @page {
+              size: A4 ${orientacao === "horizontal" ? "landscape" : "portrait"};
+              margin: ${orientacao === "horizontal" ? "10mm 14mm 12mm 14mm" : "12mm 16mm 14mm 16mm"};
+            }
+          }
+        `}
+      </style>
+
       {/* ÁREA DE IMPRESSÃO / FOLHA OFICIAL */}
-      <main className="max-w-5xl mx-auto my-6 sm:my-8 px-4 sm:px-6 print:m-0 print:p-0 print:max-w-none">
+      <main className={`mx-auto my-6 sm:my-8 px-4 sm:px-6 print:m-0 print:p-0 print:max-w-none transition-all ${orientacao === "horizontal" ? "max-w-7xl" : "max-w-5xl"}`}>
         <div className="bg-white dark:bg-[#12161f] print:bg-white text-slate-900 print:text-black border border-slate-200 dark:border-slate-800 print:border-none shadow-sm print:shadow-none rounded-[8px] print:rounded-none overflow-hidden p-6 sm:p-10 space-y-6">
           
-          {/* CABEÇALHO OFICIAL COM BRASÃO COLORIDO */}
-          <header className="border-b-2 border-[#113240] pb-6 flex items-start justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <img
-                src="/logo-sistema.png"
-                alt="Brasão Província BRM"
-                className="w-16 h-20 object-contain shrink-0"
-              />
-              <div className="space-y-0.5">
-                <p className="font-cinzel text-xs sm:text-sm font-black tracking-wider text-[#113240] uppercase leading-tight">
-                  {congregacao}
-                </p>
-                <p className="font-cinzel text-[11px] sm:text-xs font-bold text-[#226380] uppercase tracking-wide">
-                  {provincia}
-                </p>
-                <p className="font-mono text-[10px] uppercase text-slate-500 font-semibold tracking-wider">
-                  {orgao}
-                </p>
-                <p className="font-cinzel text-[9px] uppercase tracking-[0.2em] font-semibold text-amber-700">
-                  {lema}
-                </p>
-              </div>
-            </div>
-
-            <div className="text-right font-mono text-[10px] text-slate-500 shrink-0 space-y-1">
-              {subtitulo && (
-                <div className="bg-slate-100 px-2 py-0.5 rounded font-bold text-slate-700 inline-block">
-                  {subtitulo}
-                </div>
-              )}
-              <div>Emissão: {new Date().toLocaleDateString("pt-BR")} às {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div>
-              <div className="text-[9px] text-slate-400">Documento Canônico Oficial</div>
-            </div>
-          </header>
+          {/* CABEÇALHO OFICIAL DO PAPEL TIMBRADO BRM */}
+          <CabecalhoTimbradoBRM
+            orgaoEmissor={orgao}
+            subtituloDocumento={tituloDocumento}
+            dataEmissao={new Date().toLocaleDateString("pt-BR")}
+          />
 
           {/* IDENTIFICAÇÃO DO EVENTO / FORMULÁRIO */}
           <div className="bg-slate-50 dark:bg-slate-900/40 print:bg-slate-50 p-4 rounded-[6px] border border-slate-200 dark:border-slate-800 print:border-slate-300">
@@ -360,7 +358,7 @@ export const RelatorioInscricoesPrint: React.FC<RelatorioInscricoesPrintProps> =
           </section>
 
           {/* CHANCELA E ASSINATURA DA SECRETARIA PROVINCIAL */}
-          <footer className="pt-8 border-t border-slate-300 dark:border-slate-700 print:border-black space-y-6 break-inside-avoid">
+          <div className="pt-6 border-t border-slate-300 dark:border-slate-700 print:border-slate-400 space-y-6 break-inside-avoid">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-6 text-center">
               <div className="w-64">
                 <div className="border-b border-slate-400 print:border-black pb-1 mb-1" />
@@ -382,11 +380,10 @@ export const RelatorioInscricoesPrint: React.FC<RelatorioInscricoesPrintProps> =
                 </p>
               </div>
             </div>
+          </div>
 
-            <div className="text-center font-mono text-[9px] text-slate-400 print:text-slate-600 pt-2 border-t border-dashed border-slate-200 print:border-black">
-              Sistema Administrativo Provincial BRM • Documento emitido para fins canônicos e administrativos • {lema}
-            </div>
-          </footer>
+          {/* RODAPÉ OFICIAL PAPEL TIMBRADO BRM */}
+          <RodapeTimbradoBRM />
 
         </div>
       </main>

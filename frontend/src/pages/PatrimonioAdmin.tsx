@@ -410,12 +410,12 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
     const registrar = (chaveRaw: string | undefined, tipoAtivo: 'imoveis' | 'veiculos' | 'bens') => {
       let chave = (chaveRaw || 'Outros').trim();
       if (chave.toLowerCase().includes('brusque')) chave = 'Polo Vale do Itajaí · Brusque / SC';
-      else if (chave.toLowerCase().includes('taubaté') || chave.toLowerCase().includes('taubate')) chave = 'Polo Vale do Paraíba · Taubaté / SP';
-      else if (chave.toLowerCase().includes('rio negrinho')) chave = 'Polo Norte Catarinense · Rio Negrinho / SC';
       else if (chave.toLowerCase().includes('corupá') || chave.toLowerCase().includes('corupa')) chave = 'Polo Planalto Norte · Corupá / SC';
+      else if (chave.toLowerCase().includes('rio negrinho')) chave = 'Polo Planalto Norte · Rio Negrinho / SC';
+      else if (chave.toLowerCase().includes('jaraguá') || chave.toLowerCase().includes('jaragua')) chave = 'Polo Vale do Itapocu · Jaraguá do Sul / SC';
       else if (chave.toLowerCase().includes('curitiba')) chave = 'Presença Metropolitana · Curitiba / PR';
       else if (chave.toLowerCase().includes('joinville')) chave = 'Polo Litoral Norte · Joinville / SC';
-      else chave = 'Outras Presenças Dehonianas';
+      else chave = 'Outras Presenças Dehonianas BRM';
 
       if (!contagem[chave]) {
         contagem[chave] = { imoveis: 0, veiculos: 0, bens: 0, total: 0 };

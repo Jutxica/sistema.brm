@@ -4,11 +4,12 @@ import {
   ArrowLeft, Printer, Edit3, Building2, Car, Package, 
   ShieldCheck, Wrench, MapPin, Calendar, CheckCircle2, 
   AlertTriangle, FileText, Download, Eye, Plus, Shield,
-  Share2, ExternalLink, HardDrive, Clock
+  Share2, ExternalLink, HardDrive, Clock, RotateCw
 } from 'lucide-react';
 import { showToast } from '../hooks/useFeedback';
 import { downloadArquivo } from '../lib/downloadHelper';
 import { PatrimonioAnexosManager } from '../components/PatrimonioAnexosManager';
+import { CabecalhoTimbradoBRM, RodapeTimbradoBRM, type OrientacaoDocumento } from '../components/PapelTimbradoBRM';
 import { 
   imoveisService, 
   veiculosService, 
@@ -43,6 +44,7 @@ export const PatrimonioDetalhes: React.FC = () => {
   const [item, setItem] = useState<any>(null);
   const [anexos, setAnexos] = useState<PatrimonioAnexo[]>([]);
   const [timeline, setTimeline] = useState<PatrimonioTimelineEvent[]>([]);
+  const [orientacao, setOrientacao] = useState<OrientacaoDocumento>('vertical');
 
   // Carrega o registro através da camada de serviços
   useEffect(() => {
@@ -163,6 +165,16 @@ export const PatrimonioDetalhes: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-16 animate-fade-in max-w-5xl mx-auto font-sans">
+      {/* Estilo Dinâmico de Impressão (Retrato / Paisagem) */}
+      <style>{`
+        @media print {
+          @page {
+            size: A4 ${orientacao};
+            margin: ${orientacao === 'horizontal' ? '12mm 15mm' : '15mm'};
+          }
+        }
+      `}</style>
+
       {/* ========================================================================= */}
       {/* BARRA SUPERIOR DE AÇÕES (Oculta na impressão)                             */}
       {/* ========================================================================= */}
@@ -183,6 +195,17 @@ export const PatrimonioDetalhes: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Seletor de Orientação para Impressão */}
+          <button
+            type="button"
+            onClick={() => setOrientacao(prev => prev === 'vertical' ? 'horizontal' : 'vertical')}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-xs cursor-pointer"
+            title="Alternar orientação do documento de impressão (Vertical / Horizontal)"
+          >
+            <RotateCw className="w-3.5 h-3.5 text-[#226380]" />
+            <span>{orientacao === 'vertical' ? 'Retrato (Vertical)' : 'Paisagem (Horizontal)'}</span>
+          </button>
+
           <button
             type="button"
             onClick={handleImprimir}
@@ -208,26 +231,13 @@ export const PatrimonioDetalhes: React.FC = () => {
       {/* ========================================================================= */}
       <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-800 rounded-[8px] p-6 shadow-xs print:border-none print:shadow-none print:p-0 space-y-6">
         
-        {/* Timbre Canônico Oficial (Para impressão) */}
-        <div className="hidden print:flex items-center justify-between pb-4 border-b-2 border-[#113240]">
-          <div className="flex items-center gap-4">
-            <img src="/logo-sistema.png" alt="Brasão SCJ BRM" className="w-16 h-20 object-contain" />
-            <div>
-              <p className="font-cinzel text-xs font-bold text-[#113240] tracking-wider uppercase">
-                CONGREGAÇÃO DOS PADRES DO SAGRADO CORAÇÃO DE JESUS
-              </p>
-              <p className="font-cinzel text-sm font-black text-[#226380] uppercase tracking-wide">
-                PROVÍNCIA BRASIL MERIDIONAL • DEHONIANOS
-              </p>
-              <p className="text-[11px] font-sans font-semibold text-slate-600 uppercase tracking-wider">
-                ECONOMATO PROVINCIAL • LIVRO DE TOMBO E PATRIMÔNIO
-              </p>
-            </div>
-          </div>
-          <div className="text-right text-[11px] font-sans text-slate-500">
-            <span className="block font-bold text-slate-900">FICHA CADASTRAL OFICIAL</span>
-            <span>Emitida em: {new Date().toLocaleDateString('pt-BR')}</span>
-          </div>
+        {/* Timbre Canônico Oficial (Para impressão - Papel Timbrado BRM) */}
+        <div className="hidden print:block mb-4">
+          <CabecalhoTimbradoBRM
+            orgaoEmissor="Economato Provincial • Livro de Tombo e Patrimônio"
+            subtituloDocumento={`Ficha Cadastral Oficial • ${item?.codigo_tombamento || item?.codigo || item?.placa || 'Patrimônio BRM'}`}
+            dataEmissao={new Date().toLocaleDateString('pt-BR')}
+          />
         </div>
 
         {/* Hero Card do Ativo */}
@@ -708,6 +718,11 @@ export const PatrimonioDetalhes: React.FC = () => {
                 </div>
                 <span className="text-[10px] text-slate-500">Comunidade Religiosa de Alocação</span>
               </div>
+            </div>
+
+            {/* Rodapé Oficial Timbrado BRM (Para impressão) */}
+            <div className="hidden print:block mt-8">
+              <RodapeTimbradoBRM />
             </div>
           </div>
 

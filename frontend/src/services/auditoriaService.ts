@@ -117,11 +117,11 @@ export const auditoriaService = {
           action: 'INSERT',
           entity: 'imoveis',
           entity_id: 'imovel-1',
-          entity_nome: 'Convento Sagrado Coração de Jesus (Sede Provincial)',
-          user_email: 'secretaria.provincial@dehonianos.org.br',
+          entity_nome: 'Curia Provincial BRM - Brusque',
+          user_email: 'secretaria@brm.org.br',
           user_nome: 'Secretaria Provincial BRM',
           created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
-          new_values: { nome: 'Convento SCJ', tipo: 'Convento', cidade: 'Taubaté', status: 'regular' }
+          new_values: { nome: 'Curia Provincial BRM', tipo: 'Curia / Sede', cidade: 'Brusque', status: 'regular' }
         },
         {
           id: 'audit-seed-2',

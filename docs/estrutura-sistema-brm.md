@@ -5,7 +5,7 @@
 
 ## 1. Visão Geral & Escopo
 
-O sistema deixa de ser uma aplicação monolítica restrita a uma casa ("Conventinho") e assume seu propósito integral: **Sistema de Gestão Institucional da Província BRM**.
+O sistema consolida seu propósito integral de governança canônica e administrativa: **Sistema de Gestão Institucional da Província BRM**.
 
 A hospedagem deixa de ser a raiz do sistema e passa a ser **um dos módulos operacionais**, vinculado às **Obras** administradas pela Província.
 

@@ -54,17 +54,17 @@ const UF_LIST = [
 const COMUNIDADES_PREDEFINIDAS = [
   'Curia Provincial BRM - Brusque',
   'Casa Padre Dehon - Brusque',
-  'Convento SCJ - Taubaté (Conventinho)',
+  'Convento Sagrado Coração de Jesus - Brusque',
+  'Seminário Sagrado Coração de Jesus - Corupá',
   'Seminário São José - Rio Negrinho',
-  'Seminário Coração de Jesus - Corupá',
-  'Seminário Dehonista - Lavras',
-  'Paróquia São Sebastião - Joinville',
-  'Paróquia Sagrado Coração de Jesus - Joinville',
-  'Paróquia Santa Teresinha - Brusque',
-  'Paróquia São Judas Tadeu - Brusque',
-  'Comunidade Dehoniana - Curitiba',
-  'Comunidade Dehoniana - São Paulo',
-  'Paróquia São José - Vargem Bonita',
+  'Noviciado Nossa Senhora de Fátima - Jaraguá do Sul',
+  'Santuário Sagrado Coração de Jesus - Joinville',
+  'Santuário São Judas Tadeu - Curitiba',
+  'Paróquia São Luiz Gonzaga - Brusque',
+  'Paróquia São Sebastião - Jaraguá do Sul',
+  'Paróquia São Pedro Apóstolo - Armazém',
+  'Paróquia São José - Botuverá',
+  'Paróquia Nossa Senhora do Rosário - Jaraguá do Sul',
   'Colégio São Luiz - Brusque'
 ];
 
@@ -153,7 +153,7 @@ export const PatrimonioForm: React.FC = () => {
     codigo_tombamento: 'PAT-BRM-004',
     titulo: '',
     categoria: 'Arte Sacra & Liturgia',
-    comunidade_obra: 'Convento SCJ - Taubaté (Conventinho)',
+    comunidade_obra: 'Seminário Sagrado Coração de Jesus - Corupá',
     localizacao_especifica: 'Capela Maior',
     estado_conservacao: 'Bom',
     ano_aquisicao: undefined,
@@ -416,7 +416,7 @@ export const PatrimonioForm: React.FC = () => {
           codigo_tombamento: bemData.codigo_tombamento!.trim().toUpperCase(),
           titulo: bemData.titulo!.trim(),
           categoria: bemData.categoria || 'Arte Sacra & Liturgia',
-          comunidade_obra: bemData.comunidade_obra || 'Convento SCJ - Taubaté (Conventinho)',
+          comunidade_obra: bemData.comunidade_obra || 'Seminário Sagrado Coração de Jesus - Corupá',
           estado_conservacao: bemData.estado_conservacao || 'Bom',
           tombamento_historico: bemData.tombamento_historico ?? true,
           status: bemData.status || 'Ativo',
@@ -594,7 +594,7 @@ export const PatrimonioForm: React.FC = () => {
                     required
                     value={imovelData.nome || ''}
                     onChange={(e) => setImovelData({ ...imovelData, nome: e.target.value })}
-                    placeholder="Ex: Convento Sagrado Coração de Jesus (Conventinho)"
+                    placeholder="Ex: Seminário Sagrado Coração de Jesus (Corupá)"
                     className="w-full px-3.5 py-2.5 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs outline-none focus:border-[#226380] text-slate-900 dark:text-white"
                   />
                 </div>
@@ -670,7 +670,7 @@ export const PatrimonioForm: React.FC = () => {
                     required
                     value={imovelData.cidade || ''}
                     onChange={(e) => setImovelData({ ...imovelData, cidade: e.target.value })}
-                    placeholder="Ex: Taubaté"
+                    placeholder="Ex: Corupá"
                     className="w-full px-3.5 py-2.5 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs outline-none focus:border-[#226380] text-slate-900 dark:text-white"
                   />
                 </div>
@@ -831,7 +831,7 @@ export const PatrimonioForm: React.FC = () => {
                     type="text"
                     value={imovelData.cartorio_registro || ''}
                     onChange={(e) => setImovelData({ ...imovelData, cartorio_registro: e.target.value })}
-                    placeholder="Ex: Cartório de Registro de Imóveis de Taubaté/SP"
+                    placeholder="Ex: Cartório de Registro de Imóveis de Corupá/SC"
                     className="w-full px-3.5 py-2.5 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs outline-none focus:border-[#226380] text-slate-900 dark:text-white"
                   />
                 </div>
@@ -1141,7 +1141,7 @@ export const PatrimonioForm: React.FC = () => {
                     list="comunidades-veic"
                     value={veiculoData.comunidade_obra || ''}
                     onChange={(e) => setVeiculoData({ ...veiculoData, comunidade_obra: e.target.value })}
-                    placeholder="Ex: Convento SCJ - Taubaté"
+                    placeholder="Ex: Seminário SCJ - Corupá"
                     className="w-full px-3.5 py-2.5 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs outline-none focus:border-[#226380] text-slate-900 dark:text-white"
                   />
                   <datalist id="comunidades-veic">
@@ -1371,7 +1371,7 @@ export const PatrimonioForm: React.FC = () => {
                     list="comunidades-bens"
                     value={bemData.comunidade_obra || ''}
                     onChange={(e) => setBemData({ ...bemData, comunidade_obra: e.target.value })}
-                    placeholder="Ex: Convento SCJ - Taubaté"
+                    placeholder="Ex: Seminário SCJ - Corupá"
                     className="w-full px-3.5 py-2.5 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs outline-none focus:border-[#226380] text-slate-900 dark:text-white"
                   />
                   <datalist id="comunidades-bens">

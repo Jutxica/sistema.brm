@@ -3,6 +3,7 @@ import {
   CheckCircle2, AlertCircle, FileText, Printer, ShieldCheck, 
   Send, Calendar, Clock, MapPin, Download, ArrowLeft, Building2, User 
 } from 'lucide-react';
+import { PapelTimbradoBRM, type OrientacaoDocumento } from './PapelTimbradoBRM';
 
 export interface VariavelCampo {
   id: string;
@@ -24,6 +25,7 @@ export interface FormularioTimbradoProps {
   valoresIniciais?: Record<string, any>;
   onSubmit?: (respostas: Record<string, any>) => Promise<void> | void;
   modo?: 'fill' | 'preview' | 'print';
+  orientacao?: OrientacaoDocumento;
   carregando?: boolean;
   onVoltar?: () => void;
   nomeEvento?: string;
@@ -47,6 +49,7 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
   valoresIniciais = {},
   onSubmit,
   modo = 'fill',
+  orientacao = 'vertical',
   carregando = false,
   onVoltar,
   nomeEvento,
@@ -169,116 +172,48 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
   const emailContato = cabecalhoPersonalizado?.emailContato || 'secretaria@brm.org.br';
 
   return (
-    <div className={`max-w-3xl mx-auto rounded-[6px] bg-white dark:bg-[#161b22] border border-slate-300 dark:border-slate-700 shadow-xl overflow-hidden print:border-none print:shadow-none ${modo === 'preview' ? 'ring-2 ring-[#226380]/20' : ''}`}>
-      {/* Barra de Ações Superiores no modo Preview / Fill */}
-      {modo !== 'print' && (
-        <div className="bg-[#113240] text-white px-6 py-2.5 flex items-center justify-between text-xs print:hidden">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-[#A3C3C7]" />
-            <span className="font-mono text-[11px] font-semibold tracking-wider uppercase">
-              {modo === 'preview' ? 'Modo de Pré-visualização do Formulário' : 'Documento Oficial de Inscrição'}
-            </span>
+    <PapelTimbradoBRM
+      orientacao={orientacao}
+      permitirTrocaOrientacao={true}
+      orgaoEmissor={orgao}
+      protocolo={protocoloGerado}
+      dataEmissao={new Date().toLocaleDateString('pt-BR')}
+      subtituloDocumento={subtitulo || 'Instrumento Canônico de Inscrição & Registro'}
+      tituloDocumento={titulo}
+      mostrarControles={modo !== 'print'}
+      onVoltar={onVoltar}
+      className={modo === 'preview' ? 'ring-2 ring-[#226380]/20' : ''}
+    >
+      {/* Cartão de Resumo do Evento (se vinculado) */}
+      {nomeEvento && (
+        <div className="mb-6 p-3 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-4 text-xs font-mono">
+          <div className="flex items-center gap-1.5 text-[#113240] dark:text-white font-semibold">
+            <FileText className="w-3.5 h-3.5 text-[#226380]" />
+            <span>Evento: {nomeEvento}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer text-[11px]"
-              title="Imprimir folha oficial"
-            >
-              <Printer className="w-3 h-3" />
-              <span>Imprimir</span>
-            </button>
-            {onVoltar && (
-              <button
-                type="button"
-                onClick={onVoltar}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-[4px] bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer text-[11px]"
-              >
-                <ArrowLeft className="w-3 h-3" />
-                <span>Voltar</span>
-              </button>
-            )}
-          </div>
+          {dataEvento && (
+            <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+              <Calendar className="w-3.5 h-3.5 text-[#226380]" />
+              <span>{dataEvento}</span>
+            </div>
+          )}
+          {localEvento && (
+            <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+              <MapPin className="w-3.5 h-3.5 text-[#226380]" />
+              <span>{localEvento}</span>
+            </div>
+          )}
         </div>
       )}
 
-      {/* CABEÇALHO TIMBRADO OFICIAL BRM (PAPEL DE CÚRIA PROVINCIAL) */}
-      <header className="p-7 md:p-9 border-b-2 border-b-[#226380] relative bg-white dark:bg-[#161b22]">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
-          {/* Brasão Oficial BRM */}
-          <div className="shrink-0 flex items-center justify-center p-2 rounded-[6px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <img src="/logo-sistema.png" alt="Brasão BRM" className="h-16 w-auto object-contain dark:hidden" />
-            <img src="/logo-branco.png" alt="Brasão BRM" className="h-16 w-auto object-contain hidden dark:block" />
-          </div>
-
-          <div className="space-y-1 flex-1">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.22em] text-[#226380] block font-cinzel">
-              {congregacao}
-            </span>
-            <h1 className="text-sm sm:text-base font-bold uppercase tracking-wider text-[#113240] dark:text-white font-cinzel">
-              {provincia}
-            </h1>
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-0.5">
-              <span className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-slate-300">
-                {orgao}
-              </span>
-              <span className="text-slate-300 dark:text-slate-700">·</span>
-              <span className="text-[10px] font-mono text-slate-400">
-                Cúria Provincial de Curitiba - PR
-              </span>
-            </div>
-          </div>
-
-          {/* Selo de Protocolo */}
-          <div className="shrink-0 text-center sm:text-right font-mono text-[10px] text-slate-500 bg-slate-50 dark:bg-slate-900 p-2.5 rounded-[6px] border border-slate-200 dark:border-slate-800">
-            <span className="block text-slate-400 uppercase tracking-wider text-[9px]">Ref. Protocolo</span>
-            <strong className="block text-xs text-[#113240] dark:text-white mt-0.5">{protocoloGerado}</strong>
-            <span className="block text-[9px] text-slate-400 mt-0.5">{new Date().getFullYear()}</span>
-          </div>
-        </div>
-
-        {/* Título do Formulário & Dados do Evento */}
-        <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800">
-          <span className="text-[10px] font-mono font-semibold uppercase tracking-[0.18em] text-[#226380] block mb-1">
-            {subtitulo || 'Instrumento Oficial de Inscrição & Registro'}
-          </span>
-          <h2 className="text-xl sm:text-2xl font-bold text-[#113240] dark:text-white tracking-tight font-cinzel">
-            {titulo}
-          </h2>
-
-          {/* Cartão de Resumo do Evento (se vinculado) */}
-          {nomeEvento && (
-            <div className="mt-3.5 p-3 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-4 text-xs font-mono">
-              <div className="flex items-center gap-1.5 text-[#113240] dark:text-white font-semibold">
-                <FileText className="w-3.5 h-3.5 text-[#226380]" />
-                <span>Evento: {nomeEvento}</span>
-              </div>
-              {dataEvento && (
-                <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                  <Calendar className="w-3.5 h-3.5 text-[#226380]" />
-                  <span>{dataEvento}</span>
-                </div>
-              )}
-              {localEvento && (
-                <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                  <MapPin className="w-3.5 h-3.5 text-[#226380]" />
-                  <span>{localEvento}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {descricao && (
-            <p className="mt-3 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-sans">
-              {descricao}
-            </p>
-          )}
-        </div>
-      </header>
+      {descricao && (
+        <p className="mb-6 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-sans">
+          {descricao}
+        </p>
+      )}
 
       {/* CORPO DO FORMULÁRIO COM AS VARIÁVEIS SELECIONADAS */}
-      <form onSubmit={handleSubmit} className="p-7 md:p-9 space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-8">
         {campos.length === 0 ? (
           <div className="py-12 text-center border border-dashed border-slate-300 dark:border-slate-700 rounded-[6px]">
             <FileText className="w-8 h-8 text-slate-400 mx-auto mb-2" />
@@ -495,24 +430,7 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
           </div>
         )}
       </form>
-
-      {/* RODAPÉ TIMBRADO OFICIAL DA PROVÍNCIA BRM */}
-      <footer className="p-6 md:p-8 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-800 text-center space-y-2">
-        <p className="font-cinzel text-xs font-bold tracking-[0.16em] text-[#113240] dark:text-white uppercase">
-          {lema}
-        </p>
-        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-sans max-w-xl mx-auto leading-relaxed">
-          Curia da Província Brasil Meridional dos Padres Dehonianos (SCJ) • Comunhão fraterna, serviço à Igreja e vida regular.
-        </p>
-        <div className="pt-2 flex flex-wrap items-center justify-center gap-3 text-[10px] font-mono text-slate-400">
-          <span>Contato: {emailContato}</span>
-          <span>•</span>
-          <span>Autenticidade Verificada</span>
-          <span>•</span>
-          <span>Ano {new Date().getFullYear()}</span>
-        </div>
-      </footer>
-    </div>
+    </PapelTimbradoBRM>
   );
 };
 

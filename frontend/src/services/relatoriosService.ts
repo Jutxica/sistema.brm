@@ -8,6 +8,8 @@ import type {
   ConformidadeItem
 } from '../types/patrimonio';
 
+import { gerarHtmlTimbradoBRM, type OrientacaoDocumento } from '../components/PapelTimbradoBRM';
+
 export const relatoriosService = {
   /**
    * Exporta conjunto de dados para arquivo Excel (.xlsx).
@@ -116,123 +118,102 @@ export const relatoriosService = {
   },
 
   /**
-   * Dispara a impressão oficial do Livro de Tombo com termo canônico.
+   * Dispara a impressão oficial do Livro de Tombo com termo canônico
+   * estritamente padronizado no Papel Timbrado BRM (horizontal ou vertical).
    */
-  imprimirLivroDeTomboCanonica(imoveis: ImovelPatrimonio[], bens: BemPatrimonio[]) {
+  imprimirLivroDeTomboCanonica(
+    imoveis: ImovelPatrimonio[], 
+    bens: BemPatrimonio[], 
+    orientacao: OrientacaoDocumento = 'horizontal'
+  ) {
     const janela = window.open('', '_blank');
     if (!janela) return;
 
-    const dataHoje = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+    const conteudoHtml = `
+      <div class="canonico-box">
+        <strong>Termo Canônico de Registro e Veracidade:</strong> Em observância às normas do Direito Canônico Universal (Cân. 1283 §2) e dos Estatutos Provinciais Dehonianos, certifica-se que os bens e edificações abaixo arrolados constituem patrimônio estável e jurídico da Província Brasil Meridional, sob a guarda e zelação de seus respectivos superiores e ecônomos locais.
+      </div>
 
-    const html = `
-      <!DOCTYPE html>
-      <html lang="pt-BR">
-      <head>
-        <meta charset="utf-8">
-        <title>Livro de Tombo Oficial - Província BRM</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-          @page { size: A4 portrait; margin: 15mm 15mm 20mm 15mm; }
-          body { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; color: #1c1917; margin: 0; padding: 20px; line-height: 1.4; }
-          .header { text-align: center; border-bottom: 2px solid #113240; padding-bottom: 12px; margin-bottom: 20px; }
-          .title { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 700; color: #113240; letter-spacing: 0.5px; text-transform: uppercase; }
-          .subtitle { font-size: 11px; color: #78716c; font-weight: 500; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
-          .canonico-box { background: #fbfbfa; border: 1px solid #e7e5e4; padding: 12px; border-radius: 4px; font-style: italic; margin-bottom: 20px; font-size: 10.5px; color: #44403c; }
-          h2 { font-family: 'Cinzel', serif; font-size: 13px; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-top: 24px; text-transform: uppercase; }
-          table { width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 20px; font-size: 10px; }
-          th { background: #f1f5f9; color: #0f172a; font-weight: 600; text-align: left; padding: 6px 8px; border: 1px solid #cbd5e1; font-size: 9.5px; text-transform: uppercase; }
-          td { padding: 5px 8px; border: 1px solid #e2e8f0; vertical-align: top; }
-          tr:nth-child(even) { background: #fafaf9; }
-          .footer-signatures { margin-top: 40px; display: flex; justify-content: space-around; text-align: center; page-break-inside: avoid; }
-          .sig-line { width: 220px; border-top: 1px solid #1c1917; padding-top: 4px; font-size: 10px; font-weight: 600; }
-          .sig-title { font-size: 9px; color: #78716c; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="title">Congregação dos Padres do Sagrado Coração de Jesus</div>
-          <div class="subtitle">Província Brasil Meridional · Livro de Tombo e Patrimônio Provincial</div>
-        </div>
-
-        <div class="canonico-box">
-          <strong>Termo Canônico de Registro e Veracidade:</strong> Em observância às normas do Direito Canônico Universal (Cân. 1283 §2) e dos Estatutos Provinciais Dehonianos, certifica-se que os bens e edificações abaixo arrolados constituem patrimônio estável e jurídico da Província Brasil Meridional, sob a guarda e zelação de seus respectivos superiores e ecônomos locais.
-        </div>
-
-        <h2>I. Registro de Imóveis, Casas de Formação e Terrenos</h2>
-        <table>
-          <thead>
+      <h3 style="font-family:'Cormorant Garamond', Georgia, serif; font-size: 13pt; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-top: 18px; text-transform: uppercase;">
+        I. Registro de Imóveis, Casas de Formação e Terrenos Provinciais
+      </h3>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 28%;">Denominação</th>
+            <th style="width: 25%;">Comunidade / Localidade</th>
+            <th style="width: 12%;">Área Const.</th>
+            <th style="width: 17%;">RGI / Matrícula</th>
+            <th style="width: 10%;">Valor Venal</th>
+            <th style="width: 8%;">Situação</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${imoveis.map(i => `
             <tr>
-              <th>Denominação</th>
-              <th>Comunidade / Localidade</th>
-              <th>Área Const.</th>
-              <th>RGI / Matrícula</th>
-              <th>Valor Venal</th>
-              <th>Situação</th>
+              <td><strong>${i.nome}</strong><br><span style="color:#78716c; font-size: 8.5pt;">${i.tipo}</span></td>
+              <td>${i.cidade}/${i.uf} · ${i.comunidade_obra || 'Curia Provincial'}</td>
+              <td>${i.area_construida_m2 ? i.area_construida_m2.toLocaleString('pt-BR') + ' m²' : 'N/D'}</td>
+              <td>${i.numero_matricula || 'Em regularização'}</td>
+              <td>R$ ${(i.valor_venal || 0).toLocaleString('pt-BR')}</td>
+              <td>${i.status}</td>
             </tr>
-          </thead>
-          <tbody>
-            ${imoveis.map(i => `
-              <tr>
-                <td><strong>${i.nome}</strong><br><span style="color:#78716c">${i.tipo}</span></td>
-                <td>${i.cidade}/${i.uf} · ${i.comunidade_obra || 'Curia'}</td>
-                <td>${i.area_construida_m2 ? i.area_construida_m2 + ' m²' : 'N/D'}</td>
-                <td>${i.numero_matricula || 'Em regularização'}</td>
-                <td>R$ ${(i.valor_venal || 0).toLocaleString('pt-BR')}</td>
-                <td>${i.status}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+          `).join('')}
+        </tbody>
+      </table>
 
-        <h2>II. Inventário de Bens Móveis, Arte Sacra e Tombamento</h2>
-        <table>
-          <thead>
+      <h3 style="font-family:'Cormorant Garamond', Georgia, serif; font-size: 13pt; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-top: 24px; text-transform: uppercase;">
+        II. Inventário Canônico de Bens Móveis, Arte Sacra e Acervo Histórico
+      </h3>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 12%;">Tombo</th>
+            <th style="width: 32%;">Denominação do Bem</th>
+            <th style="width: 18%;">Categoria</th>
+            <th style="width: 20%;">Comunidade Guardiã</th>
+            <th style="width: 10%;">Conservação</th>
+            <th style="width: 8%;">Tombamento</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${bens.map(b => `
             <tr>
-              <th>Tombo</th>
-              <th>Denominação do Bem</th>
-              <th>Categoria</th>
-              <th>Comunidade Guardiã</th>
-              <th>Conservação</th>
-              <th>Tombamento</th>
+              <td><strong>${b.codigo_tombamento}</strong></td>
+              <td><strong>${b.titulo}</strong><br><span style="color:#78716c; font-size: 8.5pt;">${b.descricao_detalhada ? b.descricao_detalhada.slice(0, 90) + '...' : ''}</span></td>
+              <td>${b.categoria}</td>
+              <td>${b.comunidade_obra}</td>
+              <td>${b.estado_conservacao}</td>
+              <td>${b.tombamento_historico ? 'Histórico Oficial' : 'Acervo Comum'}</td>
             </tr>
-          </thead>
-          <tbody>
-            ${bens.map(b => `
-              <tr>
-                <td><strong>${b.codigo_tombamento}</strong></td>
-                <td><strong>${b.titulo}</strong><br><span style="color:#78716c">${b.descricao_detalhada ? b.descricao_detalhada.slice(0, 70) + '...' : ''}</span></td>
-                <td>${b.categoria}</td>
-                <td>${b.comunidade_obra}</td>
-                <td>${b.estado_conservacao}</td>
-                <td>${b.tombamento_historico ? 'Histórico Oficial' : 'Acervo Comum'}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-
-        <div class="footer-signatures">
-          <div>
-            <div class="sig-line">Pe. Superior Provincial, SCJ</div>
-            <div class="sig-title">Província Brasil Meridional</div>
-          </div>
-          <div>
-            <div class="sig-line">Pe. Ecônomo Provincial, SCJ</div>
-            <div class="sig-title">Curadoria e Administração de Bens</div>
-          </div>
-        </div>
-
-        <div style="text-align: center; margin-top: 24px; font-size: 9px; color: #a8a29e;">
-          Emitido aos ${dataHoje} através do Sistema Integrado Conventinho BRM.
-        </div>
-      </body>
-      </html>
+          `).join('')}
+        </tbody>
+      </table>
     `;
+
+    const html = gerarHtmlTimbradoBRM({
+      titulo: 'Livro de Tombo & Patrimônio Provincial',
+      subtitulo: 'Instrumento Oficial de Governança Patrimonial e Canônica',
+      orgao: 'Curadoria Provincial de Bens Culturais & Economato Provincial',
+      orientacao,
+      conteudoHtml,
+      assinaturas: [
+        {
+          cargo: 'Pe. Superior Provincial, SCJ',
+          detalhe: 'Província Brasil Meridional'
+        },
+        {
+          cargo: 'Pe. Ecônomo Provincial, SCJ',
+          detalhe: 'Curadoria e Administração de Bens'
+        }
+      ]
+    });
 
     janela.document.write(html);
     janela.document.close();
     janela.focus();
     setTimeout(() => {
       janela.print();
-    }, 400);
+    }, 450);
   }
 };

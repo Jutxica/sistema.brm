@@ -2,7 +2,7 @@
 **Documento Mestre de Engenharia de Software, Produto e Governança**
 
 * **Organização Mantenedora:** Província Brasil Meridional dos Padres do Sagrado Coração de Jesus (Dehonianos)
-* **Sede Provincial:** Curitiba/PR | **Centro de Acolhida & Convento Histórico:** Taubaté/SP
+* **Sede Provincial:** Brusque/SC | **Seminário Histórico & Casa de Encontros:** Corupá/SC
 * **Status Atual do Projeto:** ~30% Concluído (Fase de Estabilização, Segurança e Expansão)
 * **Versão das Diretrizes:** 2.0.0
 * **Data:** 25/09/2026
@@ -25,8 +25,8 @@
 O **Sistema Integrado BRM** é a plataforma SaaS unificada da Província Brasil Meridional da Congregação dos Padres do Sagrado Coração de Jesus (Dehonianos). O sistema tem como missão:
 1. **Governança Canônica & Administrativa:** Centralizar o arquivo histórico, registros sacramentais, vida consagrada, etapas formativas, transferências e histórico ministerial de todos os confrades (bispos, padres, diáconos, irmãos e religiosos em formação).
 2. **Vida Comunitária & Confraternização:** Oferecer aos religiosos uma área de autoatendimento ("Portal do Religioso / Portal do Confrade") moderna, fluida e acessível para consulta de anuário, atualização de dados, agenda provincial e solicitações fraternas.
-3. **Gestão Operacional de Hospedagem & Casas de Retiro:** Administrar a ocupação de quartos, reservas para cursos/retiros e acolhida de hóspedes na sede do Conventinho de Taubaté e demais casas aptas à hospitalidade da Província.
-4. **Patrimônio & Presença Pastoral:** Gerenciar o catálogo geoespacial e institucional de todas as Paróquias, Casas de Formação, Colégios e Obras Sociais sob tutela dehoniana nos estados de atuação da Província (SC, PR, SP, RJ, etc.).
+3. **Gestão Operacional de Hospedagem & Casas de Retiro:** Administrar a ocupação de quartos, reservas para cursos/retiros e acolhida de hóspedes no Seminário Sagrado Coração de Jesus (Corupá/SC) e demais casas de espiritualidade da Província BRM.
+4. **Patrimônio & Presença Pastoral:** Gerenciar o catálogo geoespacial e institucional de todas as Paróquias, Casas de Formação, Colégios e Obras Sociais sob tutela dehoniana nos estados de atuação da Província (SC, PR, etc.).
 
 ---
 
@@ -72,7 +72,7 @@ O **Sistema Integrado BRM** é a plataforma SaaS unificada da Província Brasil 
 * **RF-B04 (Anuário Digital BRM):** Diretório pesquisável de todos os confrades vivos e ativos, aniversariantes do mês e lista de fraternidades por cidade/estado.
 * **RF-B05 (Rascunho Automático / Autosave):** Armazenamento em `localStorage` para que o religioso não perca seu preenchimento caso caia a conexão.
 
-#### Módulo C: Módulo de Hospedagem & Acolhida (Conventinho)
+#### Módulo C: Módulo de Hospedagem & Acolhida (Casas de Retiro & Seminários BRM)
 * **RF-C01 (Inscrição Pública Multi-obra):** Página pública responsiva acessível por link direto (`/inscricao` ou `/inscricao/:slugObra`) com esteira guiada em 6 etapas:
   1. Identificação do Evento / Motivo da Estadia
   2. Dados Pessoais & Documento
@@ -540,7 +540,7 @@ create policy "Confrades logados podem consultar anuario"
 * Implementar validação retroativa de datas (data de saída > data de chegada) e sanitização dos campos na página pública `/inscricao`.
 
 #### Sprint 2: Módulo Completo de Hospedagem & Acolhida
-* Desenvolver componente de mapa visual de leitos por ala/quarto no Conventinho.
+* Desenvolver componente de mapa visual de leitos por ala/quarto nas casas de acolhida da Província BRM.
 * Criar fluxo ágil de Check-in e Check-out com 1 clique no painel administrativo.
 * Implementar impressão e envio digital do comprovante de estadia.
 

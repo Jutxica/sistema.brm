@@ -5,11 +5,13 @@ import {
   ArrowLeft, 
   Check, 
   FileText,
-  ShieldCheck
+  ShieldCheck,
+  RotateCw
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { showToast } from '../../hooks/useFeedback';
+import { CabecalhoTimbradoBRM, RodapeTimbradoBRM, type OrientacaoDocumento } from '../../components/PapelTimbradoBRM';
 
 interface FichaCanonicaPDFProps {
   religiosoId?: string;
@@ -24,6 +26,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [copiado, setCopiado] = useState(false);
+  const [orientacao, setOrientacao] = useState<OrientacaoDocumento>('vertical');
   const isE2E = typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true';
 
   useEffect(() => {
@@ -243,6 +246,16 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
 
           <button
             type="button"
+            onClick={() => setOrientacao(prev => (prev === 'vertical' ? 'horizontal' : 'vertical'))}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#f5f5f7] dark:bg-[#262628] text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-[#e8e8ed] dark:hover:bg-[#323236] transition-all cursor-pointer"
+            title="Alternar orientação entre Vertical (Retrato) e Horizontal (Paisagem)"
+          >
+            <RotateCw className="w-3.5 h-3.5 text-[#0071e3]" />
+            <span>{orientacao === 'horizontal' ? 'Vertical' : 'Horizontal'}</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handlePrint}
             className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
           >
@@ -252,39 +265,28 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         </div>
       </div>
 
-      {/* DOCUMENTO ESTILO FOLHA OFICIAL A4 / PDF */}
-      <div className="max-w-[850px] mx-auto bg-white text-[#1d1d1f] p-8 sm:p-12 rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-[#d6d6d6]/60 print:shadow-none print:border-none print:p-0 print:m-0 print:max-w-none print:rounded-none">
-        
-        {/* CABEÇALHO DA SECRETARIA PROVINCIAL */}
-        <div className="flex items-start justify-between border-b-2 border-[#1d1d1f] pb-6 mb-6">
-          <div className="flex items-center gap-5">
-            <img 
-              src="/logo-impresso.png" 
-              alt="Província Brasil Meridional" 
-              className="h-16 w-auto object-contain shrink-0 select-none"
-            />
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#707070] block">
-                Congregação dos Padres do Sagrado Coração de Jesus
-              </span>
-              <h1 className="text-[18px] sm:text-[20px] font-bold tracking-tight text-[#1d1d1f] uppercase leading-tight mt-0.5">
-                Província Brasil Meridional
-              </h1>
-              <p className="text-[11px] font-medium text-[#707070] mt-0.5">
-                Secretaria Provincial • Registro Canônico Individual de Religioso
-              </p>
-            </div>
-          </div>
+      {/* Injeção de regras @page para orientação dinâmica */}
+      <style>
+        {`
+          @media print {
+            @page {
+              size: A4 ${orientacao === 'horizontal' ? 'landscape' : 'portrait'};
+              margin: ${orientacao === 'horizontal' ? '10mm 15mm 12mm 15mm' : '12mm 16mm 14mm 16mm'};
+            }
+          }
+        `}
+      </style>
 
-          <div className="text-right shrink-0">
-            <div className="inline-block px-3 py-1 rounded-full bg-[#f5f5f7] border border-[#d6d6d6] text-[10px] font-semibold text-[#1d1d1f] uppercase tracking-wider mb-1">
-              {data?.status_cadastro || 'Homologado'}
-            </div>
-            <span className="text-[10px] text-[#707070] block font-mono">
-              Tombo BRM: {data?.id ? data.id.slice(0, 8).toUpperCase() : 'BRM-2026'}
-            </span>
-          </div>
-        </div>
+      {/* DOCUMENTO ESTILO FOLHA OFICIAL A4 / PDF */}
+      <div className={`mx-auto bg-white text-[#1d1d1f] p-8 sm:p-12 rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-[#d6d6d6]/60 print:shadow-none print:border-none print:p-0 print:m-0 print:max-w-none print:rounded-none transition-all ${orientacao === 'horizontal' ? 'max-w-[1140px]' : 'max-w-[850px]'}`}>
+        
+        {/* CABEÇALHO OFICIAL DO PAPEL TIMBRADO BRM */}
+        <CabecalhoTimbradoBRM
+          orgaoEmissor="Secretaria Provincial • Registro Canônico Individual de Religioso"
+          protocolo={data?.id ? data.id.slice(0, 8).toUpperCase() : 'BRM-2026'}
+          dataEmissao={new Date().toLocaleDateString('pt-BR')}
+          subtituloDocumento="Ficha Cadastral Canônica Oficial"
+        />
 
         {/* IDENTIFICAÇÃO DO RELIGIOSO (FOTO + DADOS PRINCIPAIS) */}
         <div className="bg-[#fbfbfd] rounded-[16px] border border-[#d6d6d6]/60 p-5 mb-6 flex flex-col sm:flex-row items-center sm:items-start gap-6">
@@ -468,6 +470,8 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
           </div>
         </div>
 
+        {/* Rodapé Oficial Timbrado BRM */}
+        <RodapeTimbradoBRM />
       </div>
     </div>
   );

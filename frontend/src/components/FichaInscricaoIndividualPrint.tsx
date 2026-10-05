@@ -1,6 +1,7 @@
-import React from "react";
-import { Printer, ArrowLeft, CheckCircle2, Clock, XCircle, Shield, Calendar, MapPin, User, Mail, Phone, Home } from "lucide-react";
+import React, { useState } from "react";
+import { Printer, ArrowLeft, CheckCircle2, Clock, XCircle, Shield, Calendar, MapPin, User, Mail, Phone, Home, RotateCw } from "lucide-react";
 import type { RespostaFormulario, FormularioSecretaria } from "../pages/SecretariaConfiguracoes";
+import { CabecalhoTimbradoBRM, RodapeTimbradoBRM, type OrientacaoDocumento } from "./PapelTimbradoBRM";
 
 interface FichaInscricaoIndividualPrintProps {
   resposta: RespostaFormulario;
@@ -22,8 +23,7 @@ export const FichaInscricaoIndividualPrint: React.FC<FichaInscricaoIndividualPri
   onAtualizarStatus,
   cabecalho
 }) => {
-  const congregacao = cabecalho?.congregacao || "CONGREGAÇÃO DOS PADRES DO SAGRADO CORAÇÃO DE JESUS";
-  const provincia = cabecalho?.provincia || "PROVÍNCIA BRASIL MERIDIONAL • DEHONIANOS";
+  const [orientacao, setOrientacao] = useState<OrientacaoDocumento>("vertical");
   const orgao = cabecalho?.orgao || "SECRETARIA PROVINCIAL • PROTOCOLO GERAL";
   const lema = cabecalho?.lema || "ADVENIAT REGNUM TUUM";
 
@@ -31,6 +31,10 @@ export const FichaInscricaoIndividualPrint: React.FC<FichaInscricaoIndividualPri
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const alternarOrientacao = () => {
+    setOrientacao(prev => (prev === "vertical" ? "horizontal" : "vertical"));
   };
 
   // Montar lista de campos conhecidos e extras
@@ -103,6 +107,16 @@ export const FichaInscricaoIndividualPrint: React.FC<FichaInscricaoIndividualPri
 
           <button
             type="button"
+            onClick={alternarOrientacao}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-[6px] transition-colors cursor-pointer"
+            title="Alternar orientação entre Vertical (Retrato) e Horizontal (Paisagem)"
+          >
+            <RotateCw className="w-3.5 h-3.5 text-[#226380]" />
+            <span>{orientacao === "horizontal" ? "Modo Vertical" : "Modo Horizontal"}</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handlePrint}
             className="inline-flex items-center gap-2 px-4 py-1.5 text-xs font-mono uppercase font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] transition-colors cursor-pointer shadow-sm"
           >
@@ -112,44 +126,29 @@ export const FichaInscricaoIndividualPrint: React.FC<FichaInscricaoIndividualPri
         </div>
       </div>
 
-      {/* DOCUMENTO IMPRESSO */}
-      <main className="max-w-4xl mx-auto my-6 sm:my-8 px-4 sm:px-6 print:m-0 print:p-0 print:max-w-none">
+      {/* Injeção de regras @page para orientação dinâmica */}
+      <style>
+        {`
+          @media print {
+            @page {
+              size: A4 ${orientacao === "horizontal" ? "landscape" : "portrait"};
+              margin: ${orientacao === "horizontal" ? "10mm 15mm 12mm 15mm" : "12mm 16mm 14mm 16mm"};
+            }
+          }
+        `}
+      </style>
+
+      {/* DOCUMENTO IMPRESSO NO PADRÃO OFICIAL TIMBRADO BRM */}
+      <main className={`mx-auto my-6 sm:my-8 px-4 sm:px-6 print:m-0 print:p-0 print:max-w-none transition-all ${orientacao === "horizontal" ? "max-w-6xl" : "max-w-4xl"}`}>
         <div className="bg-white dark:bg-[#12161f] print:bg-white text-slate-900 print:text-black border border-slate-200 dark:border-slate-800 print:border-none shadow-sm print:shadow-none rounded-[8px] print:rounded-none overflow-hidden p-6 sm:p-10 space-y-6">
           
-          {/* CABEÇALHO OFICIAL COM BRASÃO */}
-          <header className="border-b-2 border-[#113240] pb-6 flex items-start justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <img
-                src="/logo-sistema.png"
-                alt="Brasão Província BRM"
-                className="w-16 h-20 object-contain shrink-0"
-              />
-              <div className="space-y-0.5">
-                <p className="font-cinzel text-xs sm:text-sm font-black tracking-wider text-[#113240] uppercase leading-tight">
-                  {congregacao}
-                </p>
-                <p className="font-cinzel text-[11px] sm:text-xs font-bold text-[#226380] uppercase tracking-wide">
-                  {provincia}
-                </p>
-                <p className="font-mono text-[10px] uppercase text-slate-500 font-semibold tracking-wider">
-                  {orgao}
-                </p>
-                <p className="font-cinzel text-[9px] uppercase tracking-[0.2em] font-semibold text-amber-700">
-                  {lema}
-                </p>
-              </div>
-            </div>
-
-            <div className="text-right font-mono text-[10px] text-slate-500 shrink-0 space-y-1">
-              <div className="bg-[#113240] text-white px-2.5 py-1 rounded font-bold text-xs inline-block">
-                {resposta.protocolo}
-              </div>
-              <div>Submissão: {new Date(resposta.created_at).toLocaleDateString("pt-BR")} às {new Date(resposta.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div>
-              <div>
-                Status: <strong className={resposta.status === "Confirmada" ? "text-emerald-600" : resposta.status === "Cancelada" ? "text-rose-600" : "text-amber-600"}>{resposta.status.toUpperCase()}</strong>
-              </div>
-            </div>
-          </header>
+          {/* CABEÇALHO OFICIAL DO PAPEL TIMBRADO BRM */}
+          <CabecalhoTimbradoBRM
+            orgaoEmissor={orgao}
+            protocolo={resposta.protocolo}
+            dataEmissao={new Date(resposta.created_at).toLocaleDateString("pt-BR")}
+            subtituloDocumento={formulario?.titulo || "Ficha Canônica de Inscrição"}
+          />
 
           {/* TÍTULO DO FORMULÁRIO / EVENTO */}
           <div className="bg-slate-50 dark:bg-slate-900/40 print:bg-slate-50 p-4 rounded-[6px] border border-slate-200 dark:border-slate-800">
@@ -340,8 +339,8 @@ export const FichaInscricaoIndividualPrint: React.FC<FichaInscricaoIndividualPri
           </div>
 
           {/* TERMO E ASSINATURA INDIVIDUAL */}
-          <footer className="pt-8 border-t border-slate-300 dark:border-slate-700 print:border-black space-y-8 break-inside-avoid">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-8 text-center">
+          <div className="pt-6 border-t border-slate-300 dark:border-slate-700 print:border-slate-400 space-y-6 break-inside-avoid">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-8 text-center pt-2">
               <div className="w-72">
                 <div className="border-b border-slate-400 print:border-black pb-1 mb-1" />
                 <p className="font-mono text-[10px] uppercase font-bold text-slate-700 print:text-black">
@@ -362,11 +361,10 @@ export const FichaInscricaoIndividualPrint: React.FC<FichaInscricaoIndividualPri
                 </p>
               </div>
             </div>
+          </div>
 
-            <div className="text-center font-mono text-[9px] text-slate-400 print:text-slate-600 pt-2 border-t border-dashed border-slate-200 print:border-black">
-              Ficha emitida pelo Sistema Integrado da Província BRM • {lema}
-            </div>
-          </footer>
+          {/* RODAPÉ OFICIAL PAPEL TIMBRADO BRM */}
+          <RodapeTimbradoBRM />
 
         </div>
       </main>

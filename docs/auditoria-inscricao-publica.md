@@ -155,7 +155,7 @@ Campo é `type="text"` com placeholder "Apenas números" (`InscricaoPublica.tsx:
 
 ### 9. `<title>` genérico na página pública
 
-`frontend/index.html:10` — "Conventinho SCJ - Sistema Administrativo". A aba de uma ficha de inscrição pública não deveria dizer "Sistema Administrativo". O título é global do SPA; ideal é ajustá-lo por rota.
+`frontend/index.html:10` — "Província BRM SCJ - Sistema de Gestão". A aba de uma ficha de inscrição pública não deveria dizer "Sistema Administrativo". O título é global do SPA; ideal é ajustá-lo por rota.
 
 ---
 
