@@ -1046,19 +1046,11 @@ export const PortalReligioso: React.FC = () => {
           </div>
         </div>
 
-        {/* Cathedral Footer */}
-        <footer className="w-full max-w-[980px] mx-auto py-6 border-t border-[#d6d6d6]/60 dark:border-white/10 flex flex-col sm:flex-row justify-between items-center text-xs text-[#707070] dark:text-[#86868b] gap-3">
-          <div>
-            Portal do Confrade &copy; {new Date().getFullYear()}. Província Brasil Meridional.
-          </div>
-          <div className="flex gap-5">
-            <a href="/login" className="hover:text-[#1d1d1f] dark:hover:text-white transition-colors">
-              Painel Geral Sede Provincial
-            </a>
-            <a href="mailto:secretaria@brm.org.br" className="hover:text-[#1d1d1f] dark:hover:text-white transition-colors">
-              Secretaria Provincial
-            </a>
-          </div>
+        {/* Centralized Footer */}
+        <footer className="w-full max-w-[980px] mx-auto py-6 border-t border-[#d6d6d6]/60 dark:border-white/10 text-center text-xs text-[#707070] dark:text-[#86868b] select-none print:hidden">
+          <p className="tracking-wide">
+            sistema.brm.org - todos os direitos reservados-2026
+          </p>
         </footer>
 
       </div>

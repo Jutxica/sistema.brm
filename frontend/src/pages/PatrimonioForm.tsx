@@ -52,7 +52,7 @@ const UF_LIST = [
 ];
 
 const COMUNIDADES_PREDEFINIDAS = [
-  'Curia Provincial BRM - Brusque',
+  'Sede Provincial BRM - Corupá',
   'Casa Padre Dehon - Brusque',
   'Convento Sagrado Coração de Jesus - Brusque',
   'Seminário Sagrado Coração de Jesus - Corupá',
@@ -97,8 +97,8 @@ export const PatrimonioForm: React.FC = () => {
   const [imovelData, setImovelData] = useState<Partial<ImovelPatrimonio>>({
     nome: '',
     tipo: 'Convento / Casa Religiosa',
-    comunidade_obra: 'Curia Provincial BRM - Brusque',
-    cidade: 'Brusque',
+    comunidade_obra: 'Sede Provincial BRM - Corupá',
+    cidade: 'Corupá',
     uf: 'SC',
     endereco: '',
     bairro: '',
@@ -133,7 +133,7 @@ export const PatrimonioForm: React.FC = () => {
     tipo: 'Carro',
     chassi: '',
     renavam: '',
-    comunidade_obra: 'Curia Provincial BRM - Brusque',
+    comunidade_obra: 'Sede Provincial BRM - Corupá',
     responsavel_nome: '',
     combustivel: 'Flex',
     quilometragem_atual: 0,
@@ -391,7 +391,7 @@ export const PatrimonioForm: React.FC = () => {
           id: novoId,
           marca_modelo: veiculoData.marca_modelo!.trim(),
           placa: veiculoData.placa!.trim().toUpperCase(),
-          comunidade_obra: veiculoData.comunidade_obra || 'Curia Provincial BRM - Brusque',
+          comunidade_obra: veiculoData.comunidade_obra || 'Sede Provincial BRM - Corupá',
           tipo: veiculoData.tipo || 'Carro',
           quilometragem_atual: Number(veiculoData.quilometragem_atual || 0),
           ipva_pago: veiculoData.ipva_pago ?? true,
@@ -1211,7 +1211,7 @@ export const PatrimonioForm: React.FC = () => {
                   >
                     <option value="Em Uso">Em Uso Ativo</option>
                     <option value="Em Manutenção">Em Manutenção</option>
-                    <option value="Reserva Provincial">Reserva da Cúria</option>
+                    <option value="Reserva Provincial">Reserva da Sede Provincial</option>
                     <option value="Disponível para Venda">Disponível para Venda</option>
                     <option value="Baixado">Baixado</option>
                   </select>

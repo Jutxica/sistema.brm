@@ -117,18 +117,18 @@ export const auditoriaService = {
           action: 'INSERT',
           entity: 'imoveis',
           entity_id: 'imovel-1',
-          entity_nome: 'Curia Provincial BRM - Brusque',
+          entity_nome: 'Sede Provincial BRM - Corupá',
           user_email: 'secretaria@brm.org.br',
           user_nome: 'Secretaria Provincial BRM',
           created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
-          new_values: { nome: 'Curia Provincial BRM', tipo: 'Curia / Sede', cidade: 'Brusque', status: 'regular' }
+          new_values: { nome: 'Sede Provincial BRM', tipo: 'Sede Provincial', cidade: 'Corupá', status: 'regular' }
         },
         {
           id: 'audit-seed-2',
           action: 'INSERT',
           entity: 'veiculos',
           entity_id: 'veic-1',
-          entity_nome: 'Fiat Cronos Precision 1.3 AT (Frota Curia)',
+          entity_nome: 'Fiat Cronos Precision 1.3 AT (Frota Sede)',
           user_email: 'economato@dehonianos.org.br',
           user_nome: 'Economato Provincial',
           created_at: new Date(Date.now() - 86400000 * 3).toISOString(),

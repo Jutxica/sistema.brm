@@ -276,25 +276,25 @@ export interface PatrimonioTimelineEvent {
   link?: string;
 }
 
-export const STORAGE_KEY_PATRIMONIO = 'brm_patrimonio_v1';
+export const STORAGE_KEY_PATRIMONIO = 'brm_patrimonio_v3';
 
 // Dados-semente Oficiais da Província BRM
 export const SEED_IMOVEIS: ImovelPatrimonio[] = [
   {
     id: 'imovel-1',
-    nome: 'Casa Padre Dehon (Sede Provincial)',
-    tipo: 'Convento / Casa Religiosa',
-    comunidade_obra: 'Curia Provincial BRM',
-    cidade: 'Brusque',
+    nome: 'Sede Provincial BRM (Corupá)',
+    tipo: 'Sede Provincial / Convento Central',
+    comunidade_obra: 'Sede Provincial BRM - Corupá',
+    cidade: 'Corupá',
     uf: 'SC',
-    endereco: 'Rua Padre Dehon, 120 - Centro',
+    endereco: 'Rua Padre Gabriel Lux, 900 - Centro',
     bairro: 'Centro',
-    cep: '88350-000',
-    destinacao: 'Administração provincial, residência dos padres e memorial histórico',
-    area_terreno_m2: 12500,
-    area_construida_m2: 3800,
+    cep: '89278-000',
+    destinacao: 'Administração da Sede Provincial, Secretaria Provincial, residência e arquivo histórico',
+    area_terreno_m2: 18500,
+    area_construida_m2: 4200,
     numero_matricula: '14.892 - 1º Ofício',
-    cartorio_registro: 'Cartório de Registro de Imóveis de Brusque/SC',
+    cartorio_registro: 'Cartório de Registro de Imóveis de Corupá/SC',
     tem_escritura: true,
     tem_habite_se: true,
     avcb_numero: 'AVCB-SC-2025-9981',
@@ -304,7 +304,7 @@ export const SEED_IMOVEIS: ImovelPatrimonio[] = [
     seguro_predial_vencimento: '2026-12-15',
     valor_venal: 14500000,
     status: 'Ativo',
-    observacoes: 'Sede jurídica da Província SCJ Brasil Meridional. Imóvel histórico preservado.',
+    observacoes: 'Sede jurídica e canônica da Província SCJ Brasil Meridional.',
     anexos: [
       {
         id: 'anexo-imov-1',
@@ -428,7 +428,7 @@ export const SEED_VEICULOS: VeiculoPatrimonio[] = [
     ano_modelo: 2024,
     cor: 'Prata Metálico',
     tipo: 'Carro',
-    comunidade_obra: 'Curia Provincial BRM - Brusque',
+    comunidade_obra: 'Sede Provincial BRM - Corupá',
     responsavel_nome: 'Governo Provincial / Superior Provincial',
     combustivel: 'Flex',
     quilometragem_atual: 38450,
@@ -585,7 +585,7 @@ export const SEED_BENS: BemPatrimonio[] = [
     origem_procedencia: 'Stemac Brasil',
     valor_estimado: 78000,
     tombamento_historico: false,
-    descricao_detalhada: 'Gerador automático com QTA para suporte da cúria e hospedaria em queda de energia.',
+    descricao_detalhada: 'Gerador automático com QTA para suporte da Sede Provincial e dependências em queda de energia.',
     status: 'Ativo',
     anexos: [
       {
@@ -606,7 +606,7 @@ export const SEED_BENS: BemPatrimonio[] = [
     codigo_tombamento: 'PAT-BRM-003',
     titulo: 'Conjunto de Cálices e Ostensório em Prata Dourada (Jubilar)',
     categoria: 'Arte Sacra & Liturgia',
-    comunidade_obra: 'Curia Provincial - Brusque',
+    comunidade_obra: 'Sede Provincial - Corupá',
     localizacao_especifica: 'Cofre Sacro da Secretaria Provincial',
     estado_conservacao: 'Bom',
     ano_aquisicao: 1950,
@@ -621,13 +621,13 @@ export const SEED_BENS: BemPatrimonio[] = [
 export const SEED_CONTRATOS: ContratoPatrimonio[] = [
   {
     id: 'cont-1',
-    titulo: 'Apólice Multirrisco Patrimonial Predial (Sede Brusque & Imóveis)',
+    titulo: 'Apólice Multirrisco Patrimonial Predial (Sede Provincial Corupá & Obras)',
     tipo: 'Seguro Predial Multirrisco',
     fornecedor_prestador: 'Porto Seguro Companhia de Seguros',
     cnpj_cpf: '61.198.164/0001-60',
-    contato_telefone: '(47) 3351-2000',
-    contato_email: 'sinistros.sc@portoseguro.com.br',
-    imovel_vinculado: 'Casa Padre Dehon (Sede Provincial)',
+    contato_telefone: '(47) 3375-1194',
+    contato_email: 'secretaria@brm.org.br',
+    imovel_vinculado: 'Sede Provincial BRM (Corupá)',
     data_inicio: '2025-12-15',
     data_fim: '2026-12-15',
     valor_mensal: 2850,
@@ -686,12 +686,12 @@ export const SEED_MANUTENCOES: ManutencaoPatrimonio[] = [
     id: 'manu-1',
     titulo: 'Recarga Anual de Extintores e Laudo de Pressurização de Hidrantes',
     tipo: 'Vistoria Técnica Periódica',
-    comunidade_obra: 'Casa Padre Dehon - Brusque',
-    imovel_nome: 'Casa Padre Dehon (Sede Provincial)',
+    comunidade_obra: 'Sede Provincial BRM - Corupá',
+    imovel_nome: 'Sede Provincial BRM (Corupá)',
     data_solicitacao: '2026-09-20',
     data_conclusao: '2026-10-15',
     responsavel_vistoria: 'Engenharia de Segurança Contratada',
-    prestador_executante: 'Extintores Vale do Itajaí Ltda',
+    prestador_executante: 'Extintores Vale do Itapocu Ltda',
     custo_estimado: 3200,
     prioridade: 'Alta',
     status: 'Pendente',
@@ -702,11 +702,11 @@ export const SEED_MANUTENCOES: ManutencaoPatrimonio[] = [
         nome: 'Orçamento Técnico e Cronograma de Manutenção',
         tipo: 'Laudo de Vistoria / Laudo Técnico',
         arquivo_url: '/logo-sistema.png',
-        arquivo_nome: 'Orcamento_Extintores_Vale_Itajai.pdf',
+        arquivo_nome: 'Orcamento_Extintores_Vale_Itapocu.pdf',
         tamanho_bytes: 890000,
         formato: 'pdf',
         created_at: '2026-09-20T11:00:00Z',
-        enviado_por: 'Administração Casa Dehon'
+        enviado_por: 'Secretaria Provincial'
       }
     ]
   },
@@ -735,15 +735,27 @@ export interface PatrimonioLocalData {
 }
 
 export function getPatrimonioLocal(): PatrimonioLocalData {
-  const saved = localStorage.getItem(STORAGE_KEY_PATRIMONIO);
-  if (!saved) {
-    return {
+  if (typeof window !== 'undefined') {
+    // Purga chaves legadas e caches com dados desatualizados
+    ['brm_patrimonio_v1', 'brm_patrimonio_v2'].forEach(k => {
+      try { localStorage.removeItem(k); } catch (_) {}
+    });
+  }
+  const saved = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY_PATRIMONIO) : null;
+  if (!saved || saved.toLowerCase().includes('conventinho') || saved.toLowerCase().includes('taubat') || saved.toLowerCase().includes('curia')) {
+    const freshData = {
       imoveis: SEED_IMOVEIS,
       veiculos: SEED_VEICULOS,
       bens: SEED_BENS,
       contratos: SEED_CONTRATOS,
       manutencoes: SEED_MANUTENCOES
     };
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(STORAGE_KEY_PATRIMONIO, JSON.stringify({ ...freshData, updated_at: new Date().toISOString() }));
+      } catch (_) {}
+    }
+    return freshData;
   }
   try {
     const parsed = JSON.parse(saved);

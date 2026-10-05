@@ -918,9 +918,8 @@ export const AtualizarObraPublico: React.FC = () => {
       </main>
 
       {/* FOOTER */}
-      <footer className="mt-12 text-center text-xs text-slate-400 border-t border-slate-200 dark:border-slate-800 py-6">
-        <p className="font-semibold text-slate-600 dark:text-slate-400">Província Brasileira Meridional dos Padres Dehonianos (BRM)</p>
-        <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Secretaria Provincial • Sistema Integrado de Gestão e Memória Canônica</p>
+      <footer className="mt-12 text-center text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800 py-6 select-none print:hidden">
+        <p className="tracking-wide">sistema.brm.org - todos os direitos reservados-2026</p>
       </footer>
     </div>
   );

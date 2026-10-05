@@ -313,7 +313,7 @@ export const PatrimonioDetalhes: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-3 text-xs">
                   <div>
                     <span className="text-slate-400 block">Comunidade Vinculada</span>
-                    <span className="font-medium text-slate-900 dark:text-white">{item.comunidade_obra || 'Curia Provincial BRM'}</span>
+                    <span className="font-medium text-slate-900 dark:text-white">{item.comunidade_obra || 'Sede Provincial BRM'}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block">Endereço Completo</span>
@@ -710,7 +710,7 @@ export const PatrimonioDetalhes: React.FC = () => {
                 <div className="border-t border-slate-800 pt-2 font-bold text-slate-900 uppercase">
                   Pe. Ecônomo Provincial SCJ
                 </div>
-                <span className="text-[10px] text-slate-500">Curia Provincial BRM • Visto do Economato</span>
+                <span className="text-[10px] text-slate-500">Sede Provincial BRM • Visto do Economato</span>
               </div>
               <div>
                 <div className="border-t border-slate-800 pt-2 font-bold text-slate-900 uppercase">

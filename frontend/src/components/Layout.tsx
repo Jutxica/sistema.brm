@@ -31,6 +31,13 @@ export const Layout: React.FC<LayoutProps> = ({ title = 'Sistema BRM' }) => {
         <main className="flex-1 px-5 py-6 md:px-8 md:py-8 lg:px-10 lg:py-10 max-w-[1400px] w-full mx-auto">
           <Outlet />
         </main>
+
+        {/* Rodapé Centralizado Oficial */}
+        <footer className="w-full py-6 mt-auto border-t border-slate-200/80 dark:border-slate-800 text-center select-none print:hidden">
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-sans tracking-wide">
+            sistema.brm.org - todos os direitos reservados-2026
+          </p>
+        </footer>
       </div>
     </div>
   );

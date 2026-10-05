@@ -162,17 +162,19 @@ export const PoliticaPrivacidade: React.FC = () => {
         </div>
 
         {/* Document Footer */}
-        <footer className="border-t border-[#e5e5ea] dark:border-white/10 pt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-[#707070] dark:text-[#86868b] print:hidden">
-          <p>
-            Província Brasil Meridional dos Padres do Sagrado Coração de Jesus
+        <footer className="border-t border-[#e5e5ea] dark:border-white/10 pt-8 text-center text-xs text-[#707070] dark:text-[#86868b] print:hidden space-y-3">
+          <p className="tracking-wide">
+            sistema.brm.org - todos os direitos reservados-2026
           </p>
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="text-xs font-semibold text-[#1d1d1f] dark:text-white hover:text-[#226380] dark:hover:text-[#A3C3C7] transition-colors cursor-pointer"
-          >
-            ← Voltar para o sistema
-          </button>
+          <div>
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="text-xs font-semibold text-[#1d1d1f] dark:text-white hover:text-[#226380] dark:hover:text-[#A3C3C7] transition-colors cursor-pointer"
+            >
+              ← Voltar para o sistema
+            </button>
+          </div>
         </footer>
 
       </main>

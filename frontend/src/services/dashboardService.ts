@@ -63,7 +63,7 @@ export const dashboardService = {
     // Distribuição por comunidade/obra
     const mapaComunidades: Record<string, { count: number; valor: number }> = {};
     imoveis.forEach(i => {
-      const com = i.comunidade_obra || 'Curia Provincial BRM';
+      const com = i.comunidade_obra || 'Sede Provincial BRM';
       if (!mapaComunidades[com]) mapaComunidades[com] = { count: 0, valor: 0 };
       mapaComunidades[com].count += 1;
       mapaComunidades[com].valor += Number(i.valor_venal) || 0;

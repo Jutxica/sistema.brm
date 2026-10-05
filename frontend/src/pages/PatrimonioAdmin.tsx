@@ -1079,49 +1079,58 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
               </div>
 
               <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-                <span>Curia Provincial BRM</span>
+                <span>Sede Provincial BRM (Corupá/SC)</span>
                 <span className="font-medium text-slate-600 dark:text-slate-300">Dehonianos</span>
               </div>
             </div>
           </div>
 
-          {/* Central Canônica de Prazos & Conformidades (Semáforo Institucional) */}
-          <div className="bg-white dark:bg-[#161b22] border border-slate-200/90 dark:border-slate-800 rounded-[10px] p-6 shadow-xs space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-[8px] bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center text-[#226380] shrink-0">
-                  <ShieldCheck className="w-5 h-5 text-[#226380]" />
+          {/* Central Canônica de Prazos & Conformidades — Design Editorial Unificado (Padrão Estatística BRM) */}
+          <div className="rounded-[6px] bg-white dark:bg-[#161b22] p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6 transition-all">
+            
+            {/* Header da Seção */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-100 dark:border-slate-800/80">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-[6px] bg-[#113240]/5 dark:bg-white/5 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-[#226380] shrink-0">
+                  <ShieldCheck className="w-6 h-6 text-[#226380]" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span>Central Canônica de Prazos & Conformidades</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                      {conformidades.length} obrigações monitoradas
+                  <div className="flex items-center gap-2">
+                    <span className="font-cinzel text-xs font-bold tracking-[0.2em] text-[#226380] uppercase">
+                      Província BRM
                     </span>
+                    <span className="text-slate-300 dark:text-slate-700">·</span>
+                    <span className="text-xs text-[#707070] dark:text-[#86868b] font-mono uppercase tracking-wider">
+                      Secretaria Provincial & Economato
+                    </span>
+                  </div>
+                  <h2 className="font-cinzel text-2xl md:text-3xl font-bold tracking-tight text-[#113240] dark:text-white mt-1">
+                    Central Canônica de Prazos & Conformidades
                   </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-[#707070] dark:text-[#86868b] mt-1 font-sans">
                     Vigilância contínua de seguros prediais e auto, laudos do Corpo de Bombeiros (AVCB), certidões e manutenções preventivas.
                   </p>
                 </div>
               </div>
 
-              {/* Filtro por Categoria */}
-              <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
+              {/* Filtros de Categoria (Padrão Estatística BRM) */}
+              <div className="flex flex-wrap items-center gap-1.5 print:hidden">
+                <span className="text-[11px] font-mono uppercase text-[#707070] dark:text-[#86868b] mr-2">Filtrar:</span>
                 {[
-                  { id: 'todos', label: 'Todas Obrigações' },
-                  { id: 'seguros', label: 'Seguros' },
-                  { id: 'bombeiros', label: 'AVCB Bombeiros' },
-                  { id: 'veiculos', label: 'Revisões Frota' },
-                  { id: 'contratos', label: 'Contratos' }
+                  { id: 'todos', label: `Todas (${conformidades.length})` },
+                  { id: 'seguros', label: `Seguros (${conformidades.filter(c => c.tipo?.includes('seguro')).length})` },
+                  { id: 'bombeiros', label: `AVCB Bombeiros (${conformidades.filter(c => c.tipo === 'avcb').length})` },
+                  { id: 'veiculos', label: `Revisões Frota (${conformidades.filter(c => c.tipo?.includes('veic') || c.tipo === 'ipva').length})` },
+                  { id: 'contratos', label: `Contratos (${conformidades.filter(c => c.tipo === 'contrato').length})` }
                 ].map(sub => (
                   <button
                     key={sub.id}
                     type="button"
                     onClick={() => setFiltroConformidade(sub.id as any)}
-                    className={`px-3 py-1.5 rounded-[4px] border text-xs font-medium transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 text-xs font-medium rounded-[6px] border transition-all cursor-pointer motion-press ${
                       filtroConformidade === sub.id
-                        ? 'border-[#113240] bg-[#113240] text-white dark:border-[#226380] dark:bg-[#226380] font-semibold shadow-xs'
-                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                        ? 'border-[#113240] bg-[#113240] text-white dark:border-white dark:bg-white dark:text-slate-900 font-semibold shadow-xs'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-[#226380]/40'
                     }`}
                   >
                     {sub.label}
@@ -1130,150 +1139,122 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
               </div>
             </div>
 
-            {/* Painel Semáforo Canônico em 4 Quadrantes Interativos */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {/* 1. Crítico / Vencido */}
+            {/* Architectural Ledger Strip (Semáforo Institucional Unificado) */}
+            <div className="rounded-[6px] overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 dark:divide-slate-800 shadow-sm">
+              {/* 1. Crítico */}
               <button
                 type="button"
                 onClick={() => setFiltroNivelConformidade(filtroNivelConformidade === 'critico' ? 'todos' : 'critico')}
-                className={`p-3.5 rounded-[8px] border text-left transition-all cursor-pointer group ${
+                className={`p-5 sm:p-6 text-left flex flex-col justify-between transition-colors cursor-pointer ${
                   filtroNivelConformidade === 'critico'
-                    ? 'border-[#80282E] bg-[#80282E]/10 ring-1 ring-[#80282E]'
-                    : 'border-[#80282E]/25 dark:border-[#80282E]/40 bg-[#80282E]/5 hover:border-[#80282E]/50'
+                    ? 'bg-[#80282E]/10 ring-1 ring-inset ring-[#80282E]'
+                    : 'hover:bg-slate-50/70 dark:hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#80282E]" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#80282E]">
-                      Crítico
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-[#80282E] font-medium">
-                    Vencido
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#80282E] font-sans flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#80282E]" />
+                    Crítico
                   </span>
+                  <span className="text-[10px] font-mono text-[#80282E] uppercase font-semibold">Vencido</span>
                 </div>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl font-cinzel font-bold text-[#80282E] tabular-nums">
+                <div className="mt-3">
+                  <span className="font-serif text-3xl sm:text-4xl font-light text-[#80282E] tabular-nums">
                     {contadoresSemaforo.critico}
                   </span>
-                  <span className="text-[11px] text-[#80282E]">
-                    {contadoresSemaforo.critico === 1 ? 'pendência' : 'pendências'}
+                  <span className="block text-[11px] text-slate-400 mt-1 font-sans">
+                    {contadoresSemaforo.critico === 1 ? 'pendência com ação imediata' : 'pendências com ação imediata'}
                   </span>
                 </div>
-                <span className="text-[10px] text-[#80282E]/80 block mt-0.5">
-                  Exige regularização imediata
-                </span>
               </button>
 
               {/* 2. Urgente */}
               <button
                 type="button"
                 onClick={() => setFiltroNivelConformidade(filtroNivelConformidade === 'urgente' ? 'todos' : 'urgente')}
-                className={`p-3.5 rounded-[8px] border text-left transition-all cursor-pointer group ${
+                className={`p-5 sm:p-6 text-left flex flex-col justify-between transition-colors cursor-pointer ${
                   filtroNivelConformidade === 'urgente'
-                    ? 'border-[#9E6B28] bg-[#9E6B28]/10 ring-1 ring-[#9E6B28]'
-                    : 'border-[#9E6B28]/25 dark:border-[#9E6B28]/40 bg-[#9E6B28]/5 hover:border-[#9E6B28]/50'
+                    ? 'bg-[#9E6B28]/10 ring-1 ring-inset ring-[#9E6B28]'
+                    : 'hover:bg-slate-50/70 dark:hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#9E6B28]" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#9E6B28] dark:text-[#F2C894]">
-                      Urgente
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-[#9E6B28] dark:text-[#F2C894] font-medium">
-                    Até 30 dias
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9E6B28] dark:text-[#F2C894] font-sans flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#9E6B28]" />
+                    Urgente
                   </span>
+                  <span className="text-[10px] font-mono text-[#9E6B28] dark:text-[#F2C894] uppercase font-semibold">Até 30 dias</span>
                 </div>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl font-cinzel font-bold text-[#9E6B28] dark:text-[#F2C894] tabular-nums">
+                <div className="mt-3">
+                  <span className="font-serif text-3xl sm:text-4xl font-light text-[#9E6B28] dark:text-[#F2C894] tabular-nums">
                     {contadoresSemaforo.urgente}
                   </span>
-                  <span className="text-[11px] text-[#9E6B28] dark:text-[#F2C894]">
-                    {contadoresSemaforo.urgente === 1 ? 'prazo' : 'prazos'}
+                  <span className="block text-[11px] text-slate-400 mt-1 font-sans">
+                    {contadoresSemaforo.urgente === 1 ? 'prazo prioritário para renovar' : 'prazos prioritários para renovar'}
                   </span>
                 </div>
-                <span className="text-[10px] text-[#9E6B28]/80 dark:text-[#F2C894]/80 block mt-0.5">
-                  Renovação prioritária
-                </span>
               </button>
 
               {/* 3. Atenção */}
               <button
                 type="button"
                 onClick={() => setFiltroNivelConformidade(filtroNivelConformidade === 'atencao' ? 'todos' : 'atencao')}
-                className={`p-3.5 rounded-[8px] border text-left transition-all cursor-pointer group ${
+                className={`p-5 sm:p-6 text-left flex flex-col justify-between transition-colors cursor-pointer ${
                   filtroNivelConformidade === 'atencao'
-                    ? 'border-[#226380] bg-[#226380]/15 ring-1 ring-[#226380]'
-                    : 'border-[#226380]/25 dark:border-[#226380]/40 bg-[#226380]/5 hover:border-[#226380]/50'
+                    ? 'bg-[#226380]/15 ring-1 ring-inset ring-[#226380]'
+                    : 'hover:bg-slate-50/70 dark:hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#226380]" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#226380] dark:text-[#A3C3C7]">
-                      Atenção
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-[#226380] dark:text-[#A3C3C7] font-medium">
-                    31 a 60 dias
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#226380] dark:text-[#A3C3C7] font-sans flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#226380]" />
+                    Atenção
                   </span>
+                  <span className="text-[10px] font-mono text-[#226380] dark:text-[#A3C3C7] uppercase font-semibold">31 a 60 dias</span>
                 </div>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl font-cinzel font-bold text-[#226380] dark:text-[#A3C3C7] tabular-nums">
+                <div className="mt-3">
+                  <span className="font-serif text-3xl sm:text-4xl font-light text-[#226380] dark:text-[#A3C3C7] tabular-nums">
                     {contadoresSemaforo.atencao}
                   </span>
-                  <span className="text-[11px] text-[#226380] dark:text-[#A3C3C7]">
-                    {contadoresSemaforo.atencao === 1 ? 'alerta' : 'alertas'}
+                  <span className="block text-[11px] text-slate-400 mt-1 font-sans">
+                    {contadoresSemaforo.atencao === 1 ? 'alerta para cotação e agenda' : 'alertas para cotação e agenda'}
                   </span>
                 </div>
-                <span className="text-[10px] text-[#226380]/80 dark:text-[#A3C3C7]/80 block mt-0.5">
-                  Cotação e agendamento
-                </span>
               </button>
 
-              {/* 4. Regular */}
+              {/* 4. Em Dia */}
               <button
                 type="button"
                 onClick={() => setFiltroNivelConformidade(filtroNivelConformidade === 'regular' ? 'todos' : 'regular')}
-                className={`p-3.5 rounded-[8px] border text-left transition-all cursor-pointer group ${
+                className={`p-5 sm:p-6 text-left flex flex-col justify-between transition-colors cursor-pointer ${
                   filtroNivelConformidade === 'regular'
-                    ? 'border-[#113240] bg-[#113240]/10 ring-1 ring-[#113240] dark:border-[#A3C3C7] dark:bg-[#A3C3C7]/10'
-                    : 'border-[#113240]/20 dark:border-slate-800 bg-[#113240]/5 hover:border-[#113240]/40'
+                    ? 'bg-slate-100 dark:bg-white/10 ring-1 ring-inset ring-slate-400'
+                    : 'hover:bg-slate-50/70 dark:hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#113240] dark:bg-[#A3C3C7]" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#113240] dark:text-[#A3C3C7]">
-                      Em Dia
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-[#113240]/80 dark:text-[#A3C3C7]/80 font-medium">
-                    &gt; 60 dias
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-slate-300 font-sans flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#113240] dark:bg-[#A3C3C7]" />
+                    Em Dia
                   </span>
+                  <span className="text-[10px] font-mono text-slate-500 uppercase font-semibold">&gt; 60 dias</span>
                 </div>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl font-cinzel font-bold text-[#113240] dark:text-white tabular-nums">
+                <div className="mt-3">
+                  <span className="font-serif text-3xl sm:text-4xl font-light text-slate-950 dark:text-white tabular-nums">
                     {contadoresSemaforo.regular}
                   </span>
-                  <span className="text-[11px] text-[#113240] dark:text-[#A3C3C7]">
-                    {contadoresSemaforo.regular === 1 ? 'regular' : 'regulares'}
+                  <span className="block text-[11px] text-slate-400 mt-1 font-sans">
+                    {contadoresSemaforo.regular === 1 ? 'registro canônico regular' : 'registros canônicos regulares'}
                   </span>
                 </div>
-                <span className="text-[10px] text-[#113240]/70 dark:text-[#A3C3C7]/70 block mt-0.5">
-                  Situação canônica regular
-                </span>
               </button>
             </div>
 
-            {/* Limpador de Filtro Ativo */}
+            {/* Indicador de Filtro Ativo */}
             {(filtroNivelConformidade !== 'todos' || filtroConformidade !== 'todos') && (
               <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500 dark:text-slate-400">
-                  Exibindo: <strong className="text-slate-800 dark:text-slate-200">{filtroNivelConformidade !== 'todos' ? `Semáforo ${filtroNivelConformidade.toUpperCase()}` : 'Todos os Níveis'}</strong> {filtroConformidade !== 'todos' ? `· Categoria: ${filtroConformidade}` : ''}
+                <span className="text-slate-500 dark:text-slate-400 font-mono">
+                  Filtrado por: <strong className="text-slate-800 dark:text-slate-200">{filtroNivelConformidade !== 'todos' ? `Nível ${filtroNivelConformidade.toUpperCase()}` : 'Todos os Níveis'}</strong> {filtroConformidade !== 'todos' ? `· Categoria: ${filtroConformidade}` : ''}
                 </span>
                 <button
                   type="button"
@@ -1281,26 +1262,26 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                     setFiltroNivelConformidade('todos');
                     setFiltroConformidade('todos');
                   }}
-                  className="text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold underline cursor-pointer"
+                  className="text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold hover:underline cursor-pointer"
                 >
-                  Limpar Filtros de Conformidade
+                  Limpar Filtros
                 </button>
               </div>
             )}
 
-            {/* Lista Detalhada de Conformidades */}
+            {/* Lista Ledger de Conformidades (Zero AI Card Clutter) */}
             {conformidadesFiltradas.length === 0 ? (
-              <div className="py-10 text-center space-y-2">
-                <CheckCircle2 className="w-7 h-7 text-[#226380] dark:text-[#A3C3C7] mx-auto opacity-90" />
-                <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">
+              <div className="py-12 text-center space-y-2 border border-dashed border-slate-200 dark:border-slate-800 rounded-[6px]">
+                <CheckCircle2 className="w-8 h-8 text-[#226380] dark:text-[#A3C3C7] mx-auto opacity-90" />
+                <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold font-cinzel">
                   Nenhuma pendência localizada com os filtros selecionados.
                 </p>
                 <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
-                  Todos os ativos desta categoria encontram-se dentro do padrão de governança do Economato Provincial.
+                  Todos os ativos desta categoria encontram-se dentro do padrão de governança da Sede Provincial.
                 </p>
               </div>
             ) : (
-              <div className="space-y-2.5">
+              <div className="rounded-[6px] overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] shadow-sm divide-y divide-slate-100 dark:border-slate-800/80">
                 {conformidadesFiltradas.map(conf => {
                   const isCritico = conf.nivel === 'critico';
                   const isUrgente = conf.nivel === 'urgente';
@@ -1315,56 +1296,48 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                   return (
                     <div
                       key={conf.id}
-                      className={`p-4 rounded-[6px] border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
-                        isCritico
-                          ? 'border-[#80282E]/35 dark:border-[#80282E]/50 bg-[#80282E]/5'
-                          : isUrgente
-                          ? 'border-[#9E6B28]/35 dark:border-[#9E6B28]/50 bg-[#9E6B28]/5'
-                          : isAtencao
-                          ? 'border-[#226380]/25 dark:border-[#226380]/40 bg-[#226380]/5'
-                          : 'border-[#113240]/20 dark:border-slate-800 bg-[#113240]/5'
-                      }`}
+                      className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/60 dark:hover:bg-white/5 transition-colors"
                     >
-                      <div className="space-y-1">
+                      <div className="space-y-1.5 flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`px-2 py-0.5 rounded-[3px] text-[10px] font-semibold uppercase tracking-wider ${
+                          <span className={`px-2 py-0.5 rounded-[4px] text-[10px] font-mono font-bold uppercase tracking-wider ${
                             isCritico
-                              ? 'bg-[#80282E]/15 text-[#80282E] border border-[#80282E]/30'
+                              ? 'bg-[#80282E]/10 text-[#80282E] border border-[#80282E]/30'
                               : isUrgente
-                              ? 'bg-[#9E6B28]/15 text-[#9E6B28] dark:text-[#F2C894] border border-[#9E6B28]/30'
+                              ? 'bg-[#9E6B28]/10 text-[#9E6B28] dark:text-[#F2C894] border border-[#9E6B28]/30'
                               : isAtencao
-                              ? 'bg-[#226380]/15 text-[#226380] dark:text-[#A3C3C7] border border-[#226380]/30'
-                              : 'bg-[#113240]/10 text-[#113240] dark:text-[#A3C3C7] border border-[#113240]/20'
+                              ? 'bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7] border border-[#226380]/30'
+                              : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                           }`}>
                             {isCritico ? 'Crítico · Vencido' : isUrgente ? 'Urgente' : isAtencao ? 'Atenção' : 'Regular'}
                           </span>
-                          <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500 font-mono">
+                          <span className="text-[11px] font-mono uppercase font-semibold text-slate-500">
                             {catRef}
                           </span>
                           <span className="text-slate-300 dark:text-slate-700">·</span>
-                          <span className="text-xs font-semibold text-slate-900 dark:text-white">
+                          <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                             {tituloRef}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-600 dark:text-slate-300">
+                        <p className="text-xs text-slate-600 dark:text-slate-300 font-sans">
                           {descRef}
                         </p>
-                        <div className="flex items-center gap-3 text-[11px] text-slate-400 font-medium">
+                        <div className="flex items-center gap-4 text-[11px] text-slate-400 font-mono flex-wrap">
                           {conf.comunidade_obra && (
-                            <span className="flex items-center gap-1">
+                            <span className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
                               <MapPin className="w-3 h-3 text-[#226380]" />
                               {conf.comunidade_obra}
                             </span>
                           )}
                           {dataRef && (
-                            <span className="flex items-center gap-1 font-mono">
+                            <span className="flex items-center gap-1">
                               <Calendar className="w-3 h-3 text-slate-400" />
                               Limite: {new Date(dataRef).toLocaleDateString('pt-BR')}
                             </span>
                           )}
                           {conf.dias_restantes !== undefined && (
-                            <span className={`font-mono font-semibold ${
-                              conf.dias_restantes < 0 ? 'text-[#80282E]' : 'text-slate-500'
+                            <span className={`font-semibold ${
+                              conf.dias_restantes < 0 ? 'text-[#80282E]' : conf.dias_restantes <= 30 ? 'text-[#9E6B28] dark:text-[#F2C894]' : 'text-slate-500'
                             }`}>
                               {conf.dias_restantes < 0 ? `(${Math.abs(conf.dias_restantes)} dias de atraso)` : `(${conf.dias_restantes} dias restantes)`}
                             </span>
@@ -1372,11 +1345,11 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
                         <button
                           type="button"
                           onClick={() => navigate(`/patrimonio/detalhes/${targetTipo}/${targetId}`)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 transition-all cursor-pointer motion-press"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all cursor-pointer motion-press"
                         >
                           <Eye className="w-3.5 h-3.5 text-[#226380]" />
                           <span>Ver Ficha</span>
@@ -1384,7 +1357,7 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                         <button
                           type="button"
                           onClick={() => navigate(`/patrimonio/editar/${targetTipo}/${targetId}`)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] bg-[#113240] text-white hover:bg-[#226380] text-xs font-medium transition-all cursor-pointer motion-press"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-[#113240] hover:bg-[#226380] text-white text-xs font-semibold transition-all cursor-pointer shadow-xs motion-press"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                           <span>Regularizar</span>
@@ -2532,32 +2505,13 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
       )}
 
       {/* 4. Rodapé Institucional do Economato Provincial */}
-      <footer className="mt-12 pt-6 border-t border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400 print:hidden">
-        <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[#226380] font-cinzel font-bold text-[10px] shrink-0">
-            SCJ
-          </div>
-          <div>
-            <span className="font-semibold text-slate-700 dark:text-slate-300">
-              Província Brasil Meridional · Congregação dos Padres do Sagrado Coração de Jesus
-            </span>
-            <span className="block text-[11px] text-slate-400">
-              Economato Provincial · Curia de Brusque / SC · Livro de Tombo e Gestão de Patrimônio
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={copySqlMigration}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-slate-400 hover:text-[#226380] dark:hover:text-[#A3C3C7] transition-colors cursor-pointer"
-            title="Copiar estrutura SQL para migração no Supabase"
-          >
-            {copiedSql ? <Check className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7]" /> : <HardDrive className="w-3.5 h-3.5" />}
-            <span>{copiedSql ? 'SQL Copiado' : 'Script Supabase'}</span>
-          </button>
-        </div>
+      <footer className="mt-12 pt-6 border-t border-slate-200/80 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400 print:hidden space-y-2 select-none">
+        <p className="tracking-wide font-medium">
+          sistema.brm.org - todos os direitos reservados-2026
+        </p>
+        <p className="text-[11px] text-slate-400 dark:text-slate-500 font-sans">
+          Secretaria Provincial · Economato Provincial · Sede Provincial (Corupá / SC) · Livro de Tombo e Gestão de Patrimônio
+        </p>
       </footer>
 
       {/* 5. Modal de Mediação Humana de Conflitos */}

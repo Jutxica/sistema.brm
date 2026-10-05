@@ -32,7 +32,7 @@ export const RelatorioInscricoesPrint: React.FC<RelatorioInscricoesPrintProps> =
   cabecalho
 }) => {
   const [orientacao, setOrientacao] = useState<OrientacaoDocumento>("horizontal");
-  const orgao = cabecalho?.orgao || "CURIA PROVINCIAL • SECRETARIA & ATOS OFICIAIS";
+  const orgao = cabecalho?.orgao || "SEDE PROVINCIAL • SECRETARIA PROVINCIAL & ATOS OFICIAIS";
   const lema = cabecalho?.lema || "ADVENIAT REGNUM TUUM";
 
   const totalInscritos = respostas.length;

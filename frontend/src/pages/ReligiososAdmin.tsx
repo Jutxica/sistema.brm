@@ -50,7 +50,7 @@ export const ReligiososAdmin: React.FC = () => {
   const remove = async (item: ReligiosoResumo) => {
     const confirmed = await confirmAction({
       title: 'Excluir Cadastro de Religioso',
-      badge: 'Cúria Provincial • Exclusão',
+      badge: 'Sede Provincial • Exclusão',
       message: `Excluir o cadastro de ${item.nome_civil}?`,
       detail: 'Todos os dados detalhados vinculados e anexos no storage também serão excluídos permanentemente.',
       confirmLabel: 'Excluir Cadastro',

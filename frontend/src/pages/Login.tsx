@@ -153,7 +153,7 @@ export const Login: React.FC = () => {
 
       {/* Footer */}
       <footer className="w-full py-6 text-center text-xs text-slate-400 dark:text-slate-600">
-        Província Brasil Meridional &copy; {new Date().getFullYear()}
+        sistema.brm.org - todos os direitos reservados-2026
       </footer>
     </div>
   );

@@ -152,7 +152,7 @@ export const relatoriosService = {
           ${imoveis.map(i => `
             <tr>
               <td><strong>${i.nome}</strong><br><span style="color:#78716c; font-size: 8.5pt;">${i.tipo}</span></td>
-              <td>${i.cidade}/${i.uf} · ${i.comunidade_obra || 'Curia Provincial'}</td>
+              <td>${i.cidade}/${i.uf} · ${i.comunidade_obra || 'Sede Provincial'}</td>
               <td>${i.area_construida_m2 ? i.area_construida_m2.toLocaleString('pt-BR') + ' m²' : 'N/D'}</td>
               <td>${i.numero_matricula || 'Em regularização'}</td>
               <td>R$ ${(i.valor_venal || 0).toLocaleString('pt-BR')}</td>

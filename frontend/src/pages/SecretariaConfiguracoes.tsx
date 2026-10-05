@@ -846,7 +846,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <span className="font-mono text-xs font-semibold uppercase tracking-wider text-[#226380] dark:text-[#A3C3C7]">
-              Curia Provincial BRM • Secretaria & Atos
+              Sede Provincial BRM • Secretaria Provincial & Atos
             </span>
           </div>
           <h1 className="text-2xl md:text-3xl font-cinzel font-bold text-[#113240] dark:text-white tracking-tight">
@@ -1762,7 +1762,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
 
             <div>
               <label className="block text-xs font-semibold font-mono text-[#113240] dark:text-slate-300 mb-1">
-                Telefone da Curia Provincial
+                Telefone da Secretaria / Sede Provincial
               </label>
               <input
                 type="text"
