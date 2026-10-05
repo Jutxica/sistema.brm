@@ -987,13 +987,8 @@ export const PatrimonioDetalhes: React.FC = () => {
           </tbody>
         </table>
 
-        {/* TERMO CANÔNICO DE ENCERRAMENTO E FÉ PÚBLICA */}
-        <div className="my-4 p-2.5 border border-slate-400 bg-slate-50 text-[8.5pt] leading-relaxed italic text-slate-800">
-          <strong>Certidão Canônica:</strong> Certifico para os devidos fins de direito canônico e civil que as informações constantes nesta ficha documental conferem integralmente com os assentos do Livro de Tombo e arquivos da Secretaria Provincial e Economato da Província Brasileira Meridional da Congregação dos Sacerdotes do Sagrado Coração de Jesus.
-        </div>
-
         {/* LOCAL E DATA POR EXTENSO */}
-        <div className="text-right text-[9pt] font-timbrado my-3">
+        <div className="text-right text-[9pt] font-timbrado my-4">
           Sede Provincial — Corupá / SC, {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date())}
         </div>
 
@@ -1013,8 +1008,13 @@ export const PatrimonioDetalhes: React.FC = () => {
           </div>
         </div>
 
+        {/* Certidão Canônica Livre junto ao rodapé */}
+        <p className="mt-8 mb-2 text-[7.5pt] text-slate-600 font-serif italic text-center leading-relaxed max-w-3xl mx-auto select-none">
+          Certifico para os devidos fins de direito canônico e civil que as informações constantes nesta ficha documental conferem integralmente com os assentos do Livro de Tombo e arquivos da Secretaria Provincial e Economato da Província Brasileira Meridional da Congregação dos Sacerdotes do Sagrado Coração de Jesus.
+        </p>
+
         {/* Rodapé Oficial Timbrado BRM */}
-        <div className="mt-6">
+        <div className="mt-1">
           <RodapeTimbradoBRM />
         </div>
       </div>

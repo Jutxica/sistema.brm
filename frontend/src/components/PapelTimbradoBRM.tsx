@@ -267,6 +267,7 @@ export function gerarHtmlTimbradoBRM(options: {
   dataEmissao?: string;
   protocolo?: string;
   assinaturas?: Array<{ cargo: string; nome?: string; detalhe?: string }>;
+  notaCertidao?: string;
 }): string {
   const isLandscape = options.orientacao === 'horizontal';
   const dataHoje = options.dataEmissao || new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -457,14 +458,28 @@ export function gerarHtmlTimbradoBRM(options: {
     }
 
     .canonico-box {
-      background: #fbfbfa;
-      border: 1px solid #e7e5e4;
-      padding: 10px 14px;
-      border-radius: 4px;
+      background: transparent;
+      border: none;
+      padding: 0;
       font-style: italic;
-      margin-bottom: 16px;
-      font-size: 9.5pt;
-      color: #44403c;
+      font-size: 8.5pt;
+      color: #555555;
+      text-align: center;
+      margin: 16px auto 6px auto;
+      max-width: 90%;
+      line-height: 1.45;
+    }
+
+    .timbrado-certidao-livre {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 8.5pt;
+      font-style: italic;
+      color: #555555;
+      text-align: center;
+      line-height: 1.45;
+      max-width: 85%;
+      margin: 24px auto 8px auto;
+      page-break-inside: avoid;
     }
   </style>
 </head>
@@ -493,6 +508,12 @@ export function gerarHtmlTimbradoBRM(options: {
   </div>
 
   ${assinaturasHtml}
+
+  ${options.notaCertidao ? `
+    <p class="timbrado-certidao-livre">
+      ${options.notaCertidao}
+    </p>
+  ` : ''}
 
   <div class="timbrado-footer">
     <div class="timbrado-divider"></div>

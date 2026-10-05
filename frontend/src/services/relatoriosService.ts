@@ -130,11 +130,7 @@ export const relatoriosService = {
     if (!janela) return;
 
     const conteudoHtml = `
-      <div class="canonico-box">
-        <strong>Termo Canônico de Registro e Veracidade:</strong> Em observância às normas do Direito Canônico Universal (Cân. 1283 §2) e dos Estatutos Provinciais Dehonianos, certifica-se que os bens e edificações abaixo arrolados constituem patrimônio estável e jurídico da Província Brasil Meridional, sob a guarda e zelação de seus respectivos superiores e ecônomos locais.
-      </div>
-
-      <h3 style="font-family:'Cormorant Garamond', Georgia, serif; font-size: 13pt; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-top: 18px; text-transform: uppercase;">
+      <h3 style="font-family:'Cormorant Garamond', Georgia, serif; font-size: 13pt; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-top: 6px; text-transform: uppercase;">
         I. Registro de Imóveis, Casas de Formação e Terrenos Provinciais
       </h3>
       <table>
@@ -196,6 +192,7 @@ export const relatoriosService = {
       subtitulo: 'Instrumento Oficial de Governança Patrimonial e Canônica',
       orientacao,
       conteudoHtml,
+      notaCertidao: 'Certifico para os devidos fins de direito canônico e civil que as informações constantes nesta ficha documental conferem integralmente com os assentos do Livro de Tombo e arquivos da Secretaria Provincial e Economato da Província Brasileira Meridional da Congregação dos Sacerdotes do Sagrado Coração de Jesus.',
       assinaturas: [
         {
           cargo: 'Pe. Superior Provincial, SCJ',
