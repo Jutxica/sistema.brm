@@ -31,6 +31,11 @@ export const CabecalhoTimbradoBRM: React.FC<{
 }> = ({ orgaoEmissor, protocolo, dataEmissao, subtituloDocumento }) => {
   return (
     <header className="relative w-full pt-4 pb-6 text-center select-none print:pt-0 print:pb-5">
+      {/* Identificador Institucional no Canto Superior Direito (Paleta Cinza Discreta) */}
+      <div className="absolute top-0 right-0 text-right text-[7pt] sm:text-[7.5pt] print:text-[6.5pt] font-mono text-slate-400 dark:text-slate-500 print:text-slate-400 opacity-60 tracking-wider pointer-events-none select-none">
+        Província BRM - Sistema de Gestão Institucional
+      </div>
+
       {/* Brasão / Emblema Dehoniano Oficial Centralizado */}
       <div className="flex justify-center items-center mb-3">
         <img
@@ -484,7 +489,10 @@ export function gerarHtmlTimbradoBRM(options: {
   </style>
 </head>
 <body>
-  <div class="timbrado-header">
+  <div class="timbrado-header" style="position: relative;">
+    <div style="position: absolute; top: -6px; right: 0; font-family: monospace; font-size: 6.5pt; color: #94a3b8; letter-spacing: 0.04em;">
+      Província BRM - Sistema de Gestão Institucional
+    </div>
     <img src="/logo-timbrado-brm.png" alt="Emblema Dehoniano" class="timbrado-logo" />
     <h1 class="timbrado-congregacao">CONGREGAÇÃO DOS SACERDOTES DO SAGRADO CORAÇÃO DE JESUS</h1>
     <h2 class="timbrado-provincia">Província Brasileira Meridional</h2>
