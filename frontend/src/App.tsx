@@ -64,26 +64,24 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
-const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, loading, isAuthenticated } = useAuth();
+const getDefaultPath = (user: ReturnType<typeof useAuth>['user']): string => {
+  const destinations = [
+    ['inicio', '/inicio'],
+    ['patrimonio', '/patrimonio'],
+    ['religiosos', '/religiosos'],
+    ['obras', '/obras'],
+    ['hospedagens', '/hospedagens-inscricoes'],
+    ['secretaria', '/documentos'],
+    ['configuracoes', '/religiosos-configuracoes'],
+    ['usuarios', '/usuarios'],
+    ['religioso', '/meu-perfil'],
+    ['portal', '/meu-perfil'],
+  ] as const;
 
-  if (loading) {
-    return <AppleLoadingFallback />;
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  const isAdmin = Boolean(user?.acessos?.includes('admin') || user?.acessos?.includes('usuarios'));
-  if (!isAdmin) {
-    return <Navigate to="/inicio" replace />;
-  }
-
-  return <>{children}</>;
+  return destinations.find(([accessKey]) => hasModuleAccess(user, accessKey))?.[1] || '/login';
 };
 
-const PatrimonioRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const ModuleRoute: React.FC<{ children: React.ReactNode; accessKey: string }> = ({ children, accessKey }) => {
   const { user, loading, isAuthenticated } = useAuth();
 
   if (loading) {
@@ -94,19 +92,19 @@ const PatrimonioRoute: React.FC<{ children: React.ReactNode }> = ({ children }) 
     return <Navigate to="/login" replace />;
   }
 
-  if (!hasModuleAccess(user, 'patrimonio')) {
-    return <Navigate to="/inicio" replace />;
+  if (!hasModuleAccess(user, accessKey)) {
+    return <Navigate to={getDefaultPath(user)} replace />;
   }
 
   return <>{children}</>;
 };
 
 const DefaultRedirect: React.FC = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   
   if (loading) return null;
   
-  return <Navigate to={isAuthenticated ? "/inicio" : "/login"} replace />;
+  return <Navigate to={isAuthenticated ? getDefaultPath(user) : "/login"} replace />;
 };
 
 export const App: React.FC = () => {
@@ -144,61 +142,61 @@ export const App: React.FC = () => {
                   }
                 >
                   <Route index element={<DefaultRedirect />} />
-                  <Route path="inicio" element={<Inicio />} />
-                  <Route path="meu-perfil" element={<MeuPerfilReligioso />} />
-                  <Route path="anuario" element={<AnuarioBRM />} />
-                  <Route path="religiosos" element={<ReligiososAdmin />} />
-                  <Route path="estatisticas-brm" element={<EstatisticaBRM />} />
-                  <Route path="documentos" element={<DocumentosAdmin />} />
-                  <Route path="agenda" element={<AgendaAdmin />} />
-                  <Route path="secretaria-configuracoes" element={<SecretariaConfiguracoes />} />
-                  <Route path="religiosos/novo" element={<CadastroReligiosoPublico adminMode />} />
-                  <Route path="religiosos/editar/:id" element={<CadastroReligiosoPublico adminMode />} />
-                  <Route path="religiosos-configuracoes" element={<ReligiososConfiguracoes />} />
-                  <Route path="obras" element={<ObrasAdmin />} />
-                  <Route path="obras/nova" element={<ObraForm />} />
-                  <Route path="obras/editar/:id" element={<ObraForm />} />
-                  <Route path="institucional" element={<Institucional />} />
+                  <Route path="inicio" element={<ModuleRoute accessKey="inicio"><Inicio /></ModuleRoute>} />
+                  <Route path="meu-perfil" element={<ModuleRoute accessKey="religioso"><MeuPerfilReligioso /></ModuleRoute>} />
+                  <Route path="anuario" element={<ModuleRoute accessKey="religiosos"><AnuarioBRM /></ModuleRoute>} />
+                  <Route path="religiosos" element={<ModuleRoute accessKey="religiosos"><ReligiososAdmin /></ModuleRoute>} />
+                  <Route path="estatisticas-brm" element={<ModuleRoute accessKey="religiosos"><EstatisticaBRM /></ModuleRoute>} />
+                  <Route path="documentos" element={<ModuleRoute accessKey="secretaria"><DocumentosAdmin /></ModuleRoute>} />
+                  <Route path="agenda" element={<ModuleRoute accessKey="secretaria"><AgendaAdmin /></ModuleRoute>} />
+                  <Route path="secretaria-configuracoes" element={<ModuleRoute accessKey="configuracoes"><SecretariaConfiguracoes /></ModuleRoute>} />
+                  <Route path="religiosos/novo" element={<ModuleRoute accessKey="religiosos"><CadastroReligiosoPublico adminMode /></ModuleRoute>} />
+                  <Route path="religiosos/editar/:id" element={<ModuleRoute accessKey="religiosos"><CadastroReligiosoPublico adminMode /></ModuleRoute>} />
+                  <Route path="religiosos-configuracoes" element={<ModuleRoute accessKey="configuracoes"><ReligiososConfiguracoes /></ModuleRoute>} />
+                  <Route path="obras" element={<ModuleRoute accessKey="obras"><ObrasAdmin /></ModuleRoute>} />
+                  <Route path="obras/nova" element={<ModuleRoute accessKey="obras"><ObraForm /></ModuleRoute>} />
+                  <Route path="obras/editar/:id" element={<ModuleRoute accessKey="obras"><ObraForm /></ModuleRoute>} />
+                  <Route path="institucional" element={<ModuleRoute accessKey="obras"><Institucional /></ModuleRoute>} />
                   <Route
                     path="patrimonio"
                     element={
-                      <PatrimonioRoute>
+                      <ModuleRoute accessKey="patrimonio">
                         <PatrimonioAdmin />
-                      </PatrimonioRoute>
+                      </ModuleRoute>
                     }
                   />
                   <Route
                     path="patrimonio/novo"
                     element={
-                      <PatrimonioRoute>
+                      <ModuleRoute accessKey="patrimonio">
                         <PatrimonioForm />
-                      </PatrimonioRoute>
+                      </ModuleRoute>
                     }
                   />
                   <Route
                     path="patrimonio/editar/:tipo/:id"
                     element={
-                      <PatrimonioRoute>
+                      <ModuleRoute accessKey="patrimonio">
                         <PatrimonioForm />
-                      </PatrimonioRoute>
+                      </ModuleRoute>
                     }
                   />
                   <Route
                     path="patrimonio/detalhes/:tipo/:id"
                     element={
-                      <PatrimonioRoute>
+                      <ModuleRoute accessKey="patrimonio">
                         <PatrimonioDetalhes />
-                      </PatrimonioRoute>
+                      </ModuleRoute>
                     }
                   />
-                  <Route path="hospedagens-inscricoes" element={<HospedagensInscricoes />} />
-                  <Route path="hospedagens-configuracoes" element={<HospedagensConfiguracoes />} />
+                  <Route path="hospedagens-inscricoes" element={<ModuleRoute accessKey="hospedagens"><HospedagensInscricoes /></ModuleRoute>} />
+                  <Route path="hospedagens-configuracoes" element={<ModuleRoute accessKey="configuracoes"><HospedagensConfiguracoes /></ModuleRoute>} />
                   <Route
                     path="usuarios"
                     element={
-                      <AdminRoute>
+                      <ModuleRoute accessKey="usuarios">
                         <Usuarios />
-                      </AdminRoute>
+                      </ModuleRoute>
                     }
                   />
                 </Route>

@@ -37,9 +37,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     }
   }, [location.pathname]);
 
-  // Exibir Usuários apenas para administradores autorizados
-  const isAdmin = Boolean(user?.acessos?.includes('admin') || user?.acessos?.includes('usuarios'));
+  const canAccessInicio = hasModuleAccess(user, 'inicio');
+  const canAccessReligiosos = hasModuleAccess(user, 'religiosos');
+  const canAccessSecretaria = hasModuleAccess(user, 'secretaria');
+  const canAccessObras = hasModuleAccess(user, 'obras');
   const canAccessPatrimonio = hasModuleAccess(user, 'patrimonio');
+  const canAccessHospedagens = hasModuleAccess(user, 'hospedagens');
+  const canAccessConfiguracoes = hasModuleAccess(user, 'configuracoes');
+  const canAccessUsuarios = hasModuleAccess(user, 'usuarios');
 
   return (
     <aside
@@ -75,7 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
       <nav className="flex flex-col justify-between h-[calc(100vh-4rem)] p-3">
         <ul className="space-y-1">
           {/* 1. Início */}
-          <li>
+          {canAccessInicio && <li>
             <NavLink
               to="/inicio"
               className={({ isActive }) =>
@@ -88,31 +93,37 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
               <Home className="w-4 h-4 shrink-0 transition-transform group-hover:scale-105" />
               {!collapsed && <span className="truncate">Início</span>}
             </NavLink>
-          </li>
+          </li>}
 
           {/* 2. Religiosos */}
-          <SidebarGroup label="Religiosos" icon={UserRound} open={religiososOpen} onToggle={() => setReligiososOpen(previous => !previous)} collapsed={collapsed}>
-            <SidebarSubLink to="/religiosos" label="Inscritos" icon={Users} collapsed={collapsed} />
-            <SidebarSubLink to="/estatisticas-brm" label="Estatística BRM" icon={BarChart3} collapsed={collapsed} />
-            <SidebarSubLink to="/religiosos/novo" label="Novo cadastro" icon={Plus} collapsed={collapsed} />
-            <SidebarSubLink to="/religiosos-configuracoes" label="Configurações" icon={Settings} collapsed={collapsed} />
-          </SidebarGroup>
+          {(canAccessReligiosos || canAccessConfiguracoes) && (
+            <SidebarGroup label="Religiosos" icon={UserRound} open={religiososOpen} onToggle={() => setReligiososOpen(previous => !previous)} collapsed={collapsed}>
+              {canAccessReligiosos && <SidebarSubLink to="/religiosos" label="Inscritos" icon={Users} collapsed={collapsed} />}
+              {canAccessReligiosos && <SidebarSubLink to="/estatisticas-brm" label="Estatística BRM" icon={BarChart3} collapsed={collapsed} />}
+              {canAccessReligiosos && <SidebarSubLink to="/religiosos/novo" label="Novo cadastro" icon={Plus} collapsed={collapsed} />}
+              {canAccessConfiguracoes && <SidebarSubLink to="/religiosos-configuracoes" label="Configurações" icon={Settings} collapsed={collapsed} />}
+            </SidebarGroup>
+          )}
 
           {/* 3. Secretaria & Atos */}
-          <SidebarGroup label="Secretaria & Atos" icon={FileText} open={secretariaOpen} onToggle={() => setSecretariaOpen(previous => !previous)} collapsed={collapsed}>
-            <SidebarSubLink to="/documentos" label="Documentos Oficiais" icon={FileText} collapsed={collapsed} />
-            <SidebarSubLink to="/agenda" label="Agenda & Eventos" icon={Calendar} collapsed={collapsed} />
-            <SidebarSubLink to="/secretaria-configuracoes" label="Configurações & Formulários" icon={Settings} collapsed={collapsed} />
-          </SidebarGroup>
+          {(canAccessSecretaria || canAccessConfiguracoes) && (
+            <SidebarGroup label="Secretaria & Atos" icon={FileText} open={secretariaOpen} onToggle={() => setSecretariaOpen(previous => !previous)} collapsed={collapsed}>
+              {canAccessSecretaria && <SidebarSubLink to="/documentos" label="Documentos Oficiais" icon={FileText} collapsed={collapsed} />}
+              {canAccessSecretaria && <SidebarSubLink to="/agenda" label="Agenda & Eventos" icon={Calendar} collapsed={collapsed} />}
+              {canAccessConfiguracoes && <SidebarSubLink to="/secretaria-configuracoes" label="Configurações & Formulários" icon={Settings} collapsed={collapsed} />}
+            </SidebarGroup>
+          )}
 
           {/* 4. Comunidades & Obras */}
-          <SidebarGroup label="Comunidades & Obras" icon={Building} open={obrasOpen} onToggle={() => setObrasOpen(previous => !previous)} collapsed={collapsed}>
-            <SidebarSubLink to="/obras" label="Todas as Obras" icon={Layers} collapsed={collapsed} />
-            <SidebarSubLink to="/obras?tipo=Paroquia" label="Paróquias" icon={Church} collapsed={collapsed} />
-            <SidebarSubLink to="/obras?tipo=Casa" label="Casas Religiosas" icon={Home} collapsed={collapsed} />
-            <SidebarSubLink to="/obras?tipo=Obra" label="Obras & Institutos" icon={Landmark} collapsed={collapsed} />
-            <SidebarSubLink to="/obras/nova" label="Nova Obra" icon={Plus} collapsed={collapsed} />
-          </SidebarGroup>
+          {canAccessObras && (
+            <SidebarGroup label="Comunidades & Obras" icon={Building} open={obrasOpen} onToggle={() => setObrasOpen(previous => !previous)} collapsed={collapsed}>
+              <SidebarSubLink to="/obras" label="Todas as Obras" icon={Layers} collapsed={collapsed} />
+              <SidebarSubLink to="/obras?tipo=Paroquia" label="Paróquias" icon={Church} collapsed={collapsed} />
+              <SidebarSubLink to="/obras?tipo=Casa" label="Casas Religiosas" icon={Home} collapsed={collapsed} />
+              <SidebarSubLink to="/obras?tipo=Obra" label="Obras & Institutos" icon={Landmark} collapsed={collapsed} />
+              <SidebarSubLink to="/obras/nova" label="Nova Obra" icon={Plus} collapsed={collapsed} />
+            </SidebarGroup>
+          )}
 
           {/* 5. Patrimônio Provincial */}
           {canAccessPatrimonio && (
@@ -128,13 +139,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
           )}
 
           {/* 6. Hospedaria */}
-          <SidebarGroup label="Hospedaria" icon={Building} open={hospedariaOpen} onToggle={() => setHospedariaOpen(previous => !previous)} collapsed={collapsed}>
-            <SidebarSubLink to="/hospedagens-inscricoes" label="Inscrições" icon={ClipboardList} collapsed={collapsed} />
-            <SidebarSubLink to="/hospedagens-configuracoes" label="Configurações" icon={Settings} collapsed={collapsed} />
-          </SidebarGroup>
+          {(canAccessHospedagens || canAccessConfiguracoes) && (
+            <SidebarGroup label="Hospedaria" icon={Building} open={hospedariaOpen} onToggle={() => setHospedariaOpen(previous => !previous)} collapsed={collapsed}>
+              {canAccessHospedagens && <SidebarSubLink to="/hospedagens-inscricoes" label="Inscrições" icon={ClipboardList} collapsed={collapsed} />}
+              {canAccessConfiguracoes && <SidebarSubLink to="/hospedagens-configuracoes" label="Configurações" icon={Settings} collapsed={collapsed} />}
+            </SidebarGroup>
+          )}
 
           {/* 5. Usuários */}
-          {isAdmin && (
+          {canAccessUsuarios && (
             <li>
               <NavLink
                 to="/usuarios"
