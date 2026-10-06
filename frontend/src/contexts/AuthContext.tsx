@@ -35,56 +35,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string, email: string) => {
     try {
-      // 1. Consultar perfil administrativo na tabela 'usuarios'
-      const { data: userData } = await supabase
+      const { data: userData, error: userError } = await supabase
         .from('usuarios')
-        .select('*')
+        .select('usu_nome, usu_email, usu_status, usu_acessos')
         .eq('auth_user_id', userId)
         .maybeSingle();
+      if (userError) throw userError;
 
-      // 2. Consultar perfil eclesiástico na tabela 'religiosos'
       let religiosoId: string | undefined;
       let religiosoNome: string | undefined;
       let religiosoGrau: string | undefined;
       let isReligioso = false;
 
-      try {
-        const { data: relData } = await supabase
-          .from('religiosos')
-          .select('id, nome_civil, nome_religioso, grau, auth_user_id')
-          .eq('auth_user_id', userId)
-          .maybeSingle();
-
-        if (relData) {
-          religiosoId = relData.id;
-          religiosoNome = relData.nome_religioso || relData.nome_civil;
-          religiosoGrau = relData.grau;
-          isReligioso = true;
-
-        }
-      } catch (relErr) {
-        console.warn("Aviso ao buscar vinculo com tabela de religiosos:", relErr);
+      const { data: relData, error: religiosoError } = await supabase
+        .from('religiosos')
+        .select('id, nome_civil, nome_religioso, grau, auth_user_id')
+        .eq('auth_user_id', userId)
+        .maybeSingle();
+      if (religiosoError) {
+        console.error('Falha ao consultar vínculo religioso:', religiosoError.message);
+      } else if (relData) {
+        religiosoId = relData.id;
+        religiosoNome = relData.nome_religioso || relData.nome_civil;
+        religiosoGrau = relData.grau;
+        isReligioso = true;
       }
 
       if (userData) {
         let acessos: string[] = [];
-        try {
-          acessos = typeof userData.usu_acessos === 'string'
-            ? JSON.parse(userData.usu_acessos)
-            : userData.usu_acessos || [];
-        } catch {
-          acessos = [];
+        const rawAcessos = typeof userData.usu_acessos === 'string'
+          ? JSON.parse(userData.usu_acessos)
+          : userData.usu_acessos;
+        if (Array.isArray(rawAcessos)) {
+          acessos = rawAcessos.filter((access): access is string => typeof access === 'string');
+        } else if (rawAcessos != null) {
+          console.error('Perfil de usuário contém permissões em formato inválido.');
         }
+
+        if (userData.usu_status !== 'Ativo') acessos = [];
 
         if (isReligioso && !acessos.includes('religioso')) {
           acessos.push('religioso');
         }
 
-        const isAdmin = Boolean(
-          acessos.includes('admin') || 
-          acessos.includes('usuarios') || 
-          acessos.includes('secretaria')
-        );
+        const isAdmin = acessos.includes('admin');
 
         setUser({
           id: userId,
@@ -99,7 +93,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAdmin,
         });
       } else if (isReligioso) {
-        // Usuário é um religioso cadastrado (acesso ao Portal do Confrade)
         setUser({
           id: userId,
           nome: religiosoNome || email.split('@')[0],
@@ -113,39 +106,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAdmin: false,
         });
       } else {
-        // Verificar se é o primeiro usuário do sistema (bootstrap inicial de admin)
-        const { count } = await supabase
-          .from('usuarios')
-          .select('*', { count: 'exact', head: true });
-
-        const isFirstUser = (count === 0 || count === null);
-
-        if (isFirstUser) {
-          setUser({
-            id: userId,
-            nome: email.split('@')[0],
-            email: email,
-            status: 'Ativo',
-            acessos: ['admin', 'inicio', 'religiosos', 'hospedagens', 'configuracoes', 'usuarios', 'obras', 'patrimonio', 'religioso'],
-            isReligioso: false,
-            isAdmin: true,
-          });
-        } else {
-          // Princípio do menor privilégio: sem perfil cadastrado
-          setUser({
-            id: userId,
-            nome: email.split('@')[0],
-            email: email,
-            status: 'Pendente',
-            acessos: [],
-            isReligioso: false,
-            isAdmin: false,
-          });
-        }
+        setUser({
+          id: userId,
+          nome: email.split('@')[0],
+          email,
+          status: 'Pendente',
+          acessos: [],
+          isReligioso: false,
+          isAdmin: false,
+        });
       }
     } catch (err) {
       console.error("Falha ao obter perfil do usuario:", err);
-      setUser(null);
+      setUser({
+        id: userId,
+        nome: email.split('@')[0],
+        email,
+        status: 'Pendente',
+        acessos: [],
+        isReligioso: false,
+        isAdmin: false,
+      });
     }
   };
 

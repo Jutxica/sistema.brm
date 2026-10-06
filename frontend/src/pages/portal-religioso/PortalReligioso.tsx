@@ -934,19 +934,25 @@ export const PortalReligioso: React.FC = () => {
             onSubmit={async (respostas) => {
               setSalvandoInscricao(true);
               try {
-                const protocolo = `FORM-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-                const novaResp: RespostaFormulario = {
-                  id: 'resp-' + Date.now().toString(36),
-                  formulario_id: formularioInscricaoAtivo.id,
-                  evento_id: eventoInscricaoModal.id,
-                  dados: respostas,
-                  protocolo,
-                  status: 'Confirmada',
-                  created_at: new Date().toISOString()
-                };
-
-                const { error } = await supabase.from('secretaria_respostas_formulario').insert([novaResp]);
+                const { data, error } = await supabase.rpc('secretaria_enviar_resposta', {
+                  p_formulario_id: formularioInscricaoAtivo.id,
+                  p_dados: respostas
+                });
                 if (error) throw error;
+                const savedResponse = Array.isArray(data) ? data[0] : null;
+                if (!savedResponse?.id || !savedResponse?.protocolo) {
+                  throw new Error('O servidor não confirmou o recebimento da inscrição.');
+                }
+
+                const novaResp: RespostaFormulario = {
+                  id: savedResponse.id,
+                  formulario_id: formularioInscricaoAtivo.id,
+                  evento_id: savedResponse.evento_id || null,
+                  dados: respostas,
+                  protocolo: savedResponse.protocolo,
+                  status: 'Confirmada',
+                  created_at: savedResponse.created_at
+                };
 
                 setRespostasInscricoes(prev => [novaResp, ...prev]);
                 setEventoInscricaoModal(null);

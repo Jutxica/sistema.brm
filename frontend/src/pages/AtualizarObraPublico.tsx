@@ -111,33 +111,15 @@ export const AtualizarObraPublico: React.FC = () => {
       setErrorMsg(null);
 
       try {
-        // Tenta buscar por token_edicao ou por id
-        let query = supabase.from('religiosos_obras_referencia').select('*');
-        
-        // Verifica se é UUID
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token);
-        if (!isUUID) {
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token)) {
           throw new Error('O código de acesso fornecido possui formato inválido.');
         }
 
-        // Tentar primeiro por token_edicao
-        let { data, error } = await query.eq('token_edicao', token).maybeSingle();
-
-        // Se der erro de coluna inexistente ou não encontrar, tenta por ID
-        if (!data || error) {
-          const fallback = await supabase
-            .from('religiosos_obras_referencia')
-            .select('*')
-            .eq('id', token)
-            .maybeSingle();
-
-          if (fallback.data) {
-            data = fallback.data;
-            error = null;
-          }
-        }
-
-        if (error || !data) {
+        const { data, error } = await supabase.rpc('obra_publica_por_token', {
+          p_token: token
+        });
+        if (error) throw error;
+        if (!data) {
           throw new Error('Instituição não encontrada ou link de acesso expirado. Por favor, solicite um novo link à Secretaria Provincial da Província BRM.');
         }
 
@@ -211,7 +193,7 @@ export const AtualizarObraPublico: React.FC = () => {
 
   // Função central de salvamento
   const salvarDados = useCallback(async (isFinal: boolean = false) => {
-    if (!obraId) return;
+    if (!obraId || !token) return;
 
     setSaving(true);
     setErrorMsg(null);
@@ -225,7 +207,7 @@ export const AtualizarObraPublico: React.FC = () => {
       nomeArquivo: f.nomeArquivo
     }));
 
-    const updatePayload: Record<string, any> = {
+    const updatePayload = {
       telefone: telefone.trim() || null,
       whatsapp: whatsapp.trim() || telefone.trim() || null,
       email: email.trim() || null,
@@ -242,41 +224,13 @@ export const AtualizarObraPublico: React.FC = () => {
       fotos: fotosPayload,
     };
 
-    if (isFinal) {
-      updatePayload.status_historia = 'Preenchido pela Paróquia';
-      updatePayload.data_envio_historia = new Date().toISOString();
-    }
-
     try {
-      const { error } = await supabase
-        .from('religiosos_obras_referencia')
-        .update(updatePayload)
-        .eq('id', obraId);
-
-      if (error) {
-        // Se a coluna ainda não existir no banco (antes de rodar a migração SQL),
-        // salva campos básicos e mantém no localStorage
-        console.warn('Aviso ao salvar no banco:', error);
-        if (error.message.includes('column') || error.code === '42703') {
-          // Salva apenas campos tradicionais
-          await supabase
-            .from('religiosos_obras_referencia')
-            .update({
-              telefone: updatePayload.telefone,
-              whatsapp: updatePayload.whatsapp,
-              email: updatePayload.email,
-              site: updatePayload.site,
-              instagram: updatePayload.instagram,
-              facebook: updatePayload.facebook,
-              youtube: updatePayload.youtube,
-              endereco: updatePayload.endereco,
-              diocese: updatePayload.diocese
-            })
-            .eq('id', obraId);
-        } else {
-          throw error;
-        }
-      }
+      const { error } = await supabase.rpc('obra_atualizar_por_token', {
+        p_token: token,
+        p_payload: updatePayload,
+        p_finalizar: isFinal
+      });
+      if (error) throw error;
 
       // Salva backup local
       try {
@@ -302,7 +256,7 @@ export const AtualizarObraPublico: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  }, [obraId, telefone, whatsapp, email, site, instagram, facebook, youtube, endereco, diocese, fundacao, assumida, historia, resumoHistorico, fotos]);
+  }, [obraId, token, telefone, whatsapp, email, site, instagram, facebook, youtube, endereco, diocese, fundacao, assumida, historia, resumoHistorico, fotos]);
 
   // Autosave suave a cada 4 segundos após digitação na história
   useEffect(() => {
@@ -324,8 +278,12 @@ export const AtualizarObraPublico: React.FC = () => {
   // Upload de arquivo para um slot específico
   const handleUploadFoto = async (index: number, file: File) => {
     if (!file) return;
+    if (!token) {
+      showToast.error('Link de edição inválido ou expirado.');
+      return;
+    }
 
-    if (!file.type.startsWith('image/')) {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
       showToast.error('Por favor, selecione um arquivo de imagem válido (JPG, PNG ou WEBP).');
       return;
     }
@@ -339,37 +297,28 @@ export const AtualizarObraPublico: React.FC = () => {
     setFotos(prev => prev.map((f, i) => i === index ? { ...f, carregando: true } : f));
 
     try {
-      const ext = file.name.split('.').pop() || 'jpg';
       const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const storagePath = `obras/${obraId}/slot-${index + 1}-${Date.now()}-${cleanName}`;
+      const tokenHashBuffer = await crypto.subtle.digest(
+        'SHA-256',
+        new TextEncoder().encode(token.toLowerCase())
+      );
+      const tokenHash = Array.from(new Uint8Array(tokenHashBuffer))
+        .map(byte => byte.toString(16).padStart(2, '0'))
+        .join('');
+      const storagePath = `obras/${tokenHash}/slot-${index + 1}-${Date.now()}-${cleanName}`;
 
       let fotoUrl = '';
 
       // Tenta upload no bucket obras-fotos
       const { data: upData, error: upError } = await supabase.storage
         .from('obras-fotos')
-        .upload(storagePath, file, { upsert: true });
+        .upload(storagePath, file, { upsert: false });
 
       if (!upError && upData) {
         const { data: urlData } = supabase.storage.from('obras-fotos').getPublicUrl(storagePath);
         fotoUrl = urlData.publicUrl;
       } else {
-        // Fallback: upload no bucket religiosos-documentos
-        const { data: fbData, error: fbError } = await supabase.storage
-          .from('religiosos-documentos')
-          .upload(storagePath, file);
-
-        if (!fbError && fbData) {
-          const { data: urlFb } = supabase.storage.from('religiosos-documentos').getPublicUrl(storagePath);
-          fotoUrl = urlFb.publicUrl;
-        } else {
-          // Fallback de alta fidelidade: converter para Base64 otimizado
-          fotoUrl = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target?.result as string || '');
-            reader.readAsDataURL(file);
-          });
-        }
+        throw upError || new Error('Não foi possível enviar a foto.');
       }
 
       setFotos(prev => prev.map((f, i) => {

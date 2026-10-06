@@ -3,6 +3,19 @@
 
 alter table public.religiosos alter column grau drop not null;
 
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'religiosos-documentos',
+  'religiosos-documentos',
+  false,
+  52428800,
+  array['application/pdf', 'image/jpeg', 'image/png', 'image/tiff']
+)
+on conflict (id) do update
+  set public = false,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
+
 create or replace function public.portal_cpf_valido(p_cpf text)
 returns boolean
 language plpgsql
@@ -183,7 +196,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = pg_catalog, public
+set search_path = pg_catalog
 as $$
   select coalesce(
     (
@@ -202,7 +215,7 @@ as $$
 $$;
 
 revoke all on function public.usuario_tem_papel(text) from public;
-grant execute on function public.usuario_tem_papel(text) to authenticated, service_role;
+grant execute on function public.usuario_tem_papel(text) to anon, authenticated, service_role;
 
 create or replace function public.religiosos_proteger_campos_de_aprovacao()
 returns trigger

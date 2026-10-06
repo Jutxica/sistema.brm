@@ -2,8 +2,11 @@
 -- SISTEMA BRM - PROVÍNCIA BRASIL MERIDIONAL (SCJ)
 -- MIGRAÇÃO AUTÔNOMA: SECRETARIA, FORMULÁRIOS & AGENDA PROVINCIAL
 -- =============================================================
--- Este script é 100% autônomo e idempotente. Pode ser executado
--- em qualquer banco Supabase (novo ou existente) sem gerar erros 42P01.
+-- Este script cria/atualiza o schema. Depois, aplique as migrações de hardening
+-- correspondentes antes de liberar a aplicação.
+
+-- Ao final, aplique migration-hardening-acessos-publicos.sql e
+-- migration-hardening-links-formularios.sql para instalar as políticas seguras.
 
 create extension if not exists pgcrypto;
 
@@ -43,15 +46,9 @@ create index if not exists idx_eventos_prov_inscricao on public.eventos_provinci
 
 alter table public.eventos_provinciais enable row level security;
 
-do $$
-begin
-  if not exists (select 1 from pg_policies where tablename = 'eventos_provinciais' and policyname = 'Permitir leitura de eventos para todos') then
-    create policy "Permitir leitura de eventos para todos" on public.eventos_provinciais for select using (true);
-  end if;
-  if not exists (select 1 from pg_policies where tablename = 'eventos_provinciais' and policyname = 'Permitir gerenciar eventos para todos') then
-    create policy "Permitir gerenciar eventos para todos" on public.eventos_provinciais for all using (true) with check (true);
-  end if;
-end $$;
+drop policy if exists "Permitir leitura de eventos para todos" on public.eventos_provinciais;
+drop policy if exists "Permitir gerenciar eventos para todos" on public.eventos_provinciais;
+drop policy if exists eventos_provinciais_all on public.eventos_provinciais;
 
 -- -------------------------------------------------------------
 -- 2. TABELA DE DOCUMENTOS PROVINCIAIS OFICIAIS
@@ -81,15 +78,9 @@ create index if not exists idx_doc_prov_data on public.documentos_provinciais(da
 
 alter table public.documentos_provinciais enable row level security;
 
-do $$
-begin
-  if not exists (select 1 from pg_policies where tablename = 'documentos_provinciais' and policyname = 'Permitir leitura de documentos para todos') then
-    create policy "Permitir leitura de documentos para todos" on public.documentos_provinciais for select using (true);
-  end if;
-  if not exists (select 1 from pg_policies where tablename = 'documentos_provinciais' and policyname = 'Permitir gerenciar documentos para todos') then
-    create policy "Permitir gerenciar documentos para todos" on public.documentos_provinciais for all using (true) with check (true);
-  end if;
-end $$;
+drop policy if exists "Permitir leitura de documentos para todos" on public.documentos_provinciais;
+drop policy if exists "Permitir gerenciar documentos para todos" on public.documentos_provinciais;
+drop policy if exists documentos_provinciais_all on public.documentos_provinciais;
 
 -- -------------------------------------------------------------
 -- 3. TABELA DE CONFIGURAÇÕES GERAIS DA SECRETARIA & ATOS
@@ -118,15 +109,9 @@ create table if not exists public.secretaria_configuracoes (
 
 alter table public.secretaria_configuracoes enable row level security;
 
-do $$
-begin
-  if not exists (select 1 from pg_policies where tablename = 'secretaria_configuracoes' and policyname = 'Permitir leitura de configurações para todos') then
-    create policy "Permitir leitura de configurações para todos" on public.secretaria_configuracoes for select using (true);
-  end if;
-  if not exists (select 1 from pg_policies where tablename = 'secretaria_configuracoes' and policyname = 'Permitir gerenciar configurações para todos') then
-    create policy "Permitir gerenciar configurações para todos" on public.secretaria_configuracoes for all using (true) with check (true);
-  end if;
-end $$;
+drop policy if exists "Permitir leitura de configurações para todos" on public.secretaria_configuracoes;
+drop policy if exists "Permitir gerenciar configurações para todos" on public.secretaria_configuracoes;
+drop policy if exists secretaria_configuracoes_all on public.secretaria_configuracoes;
 
 -- Inserir registro inicial de configuração
 insert into public.secretaria_configuracoes (
@@ -170,15 +155,9 @@ create index if not exists idx_sec_form_codigo on public.secretaria_formularios(
 
 alter table public.secretaria_formularios enable row level security;
 
-do $$
-begin
-  if not exists (select 1 from pg_policies where tablename = 'secretaria_formularios' and policyname = 'Permitir leitura de formulários para todos') then
-    create policy "Permitir leitura de formulários para todos" on public.secretaria_formularios for select using (true);
-  end if;
-  if not exists (select 1 from pg_policies where tablename = 'secretaria_formularios' and policyname = 'Permitir gerenciar formulários para todos') then
-    create policy "Permitir gerenciar formulários para todos" on public.secretaria_formularios for all using (true) with check (true);
-  end if;
-end $$;
+drop policy if exists "Permitir leitura de formulários para todos" on public.secretaria_formularios;
+drop policy if exists "Permitir gerenciar formulários para todos" on public.secretaria_formularios;
+drop policy if exists secretaria_formularios_all on public.secretaria_formularios;
 
 -- -------------------------------------------------------------
 -- 5. TABELA DE RESPOSTAS / INSCRIÇÕES DOS RELIGIOSOS
@@ -199,18 +178,10 @@ create index if not exists idx_sec_resp_prot on public.secretaria_respostas_form
 
 alter table public.secretaria_respostas_formulario enable row level security;
 
-do $$
-begin
-  if not exists (select 1 from pg_policies where tablename = 'secretaria_respostas_formulario' and policyname = 'Permitir leitura de respostas para todos') then
-    create policy "Permitir leitura de respostas para todos" on public.secretaria_respostas_formulario for select using (true);
-  end if;
-  if not exists (select 1 from pg_policies where tablename = 'secretaria_respostas_formulario' and policyname = 'Permitir inserir respostas para todos') then
-    create policy "Permitir inserir respostas para todos" on public.secretaria_respostas_formulario for insert with check (true);
-  end if;
-  if not exists (select 1 from pg_policies where tablename = 'secretaria_respostas_formulario' and policyname = 'Permitir gerenciar respostas para todos') then
-    create policy "Permitir gerenciar respostas para todos" on public.secretaria_respostas_formulario for all using (true) with check (true);
-  end if;
-end $$;
+drop policy if exists "Permitir leitura de respostas para todos" on public.secretaria_respostas_formulario;
+drop policy if exists "Permitir inserir respostas para todos" on public.secretaria_respostas_formulario;
+drop policy if exists "Permitir gerenciar respostas para todos" on public.secretaria_respostas_formulario;
+drop policy if exists secretaria_respostas_formulario_all on public.secretaria_respostas_formulario;
 
 -- -------------------------------------------------------------
 -- 6. CARGA INICIAL DE EVENTOS (COM INSCRIÇÃO HABILITADA)

@@ -10,7 +10,6 @@ export interface StorageUploadResult {
 
 export const storageService = {
   BUCKET_NAME: 'patrimonio-documentos',
-  FALLBACK_BUCKET: 'documentos-provincia',
 
   /**
    * Converte um arquivo em Data URL (base64) para contingência offline.
@@ -79,18 +78,7 @@ export const storageService = {
           urlFinal = pubData.publicUrl;
         }
       } else {
-        // Tentativa de contingência no bucket secundário
-        const { error: err2 } = await supabase.storage
-          .from(this.FALLBACK_BUCKET)
-          .upload(storagePath, arquivo, { upsert: true });
-
-        if (!err2) {
-          storageSalvo = true;
-          const { data: pubData } = supabase.storage
-            .from(this.FALLBACK_BUCKET)
-            .getPublicUrl(storagePath);
-          urlFinal = pubData.publicUrl;
-        }
+        console.error('Falha no bucket privado de patrimônio:', err1.message);
       }
     } catch (err) {
       console.warn('Supabase Storage indisponível, recorrendo ao buffer de contingência local:', err);
@@ -115,33 +103,28 @@ export const storageService = {
    */
   async obterUrlSegura(storagePath?: string, fallbackUrl?: string): Promise<string> {
     if (!storagePath) {
-      return fallbackUrl || '';
+      if (fallbackUrl?.startsWith('data:')) return fallbackUrl;
+      if (fallbackUrl) {
+        throw new Error('Este arquivo não está no armazenamento privado; reenvie-o antes de compartilhar.');
+      }
+      return '';
     }
 
-    try {
-      const { data, error } = await supabase.storage
-        .from(this.BUCKET_NAME)
-        .createSignedUrl(storagePath, 7200); // 2 horas
-
-      if (!error && data?.signedUrl) {
-        return data.signedUrl;
-      }
-    } catch (_) {}
-
-    return fallbackUrl || '';
+    const { data, error } = await supabase.storage
+      .from(this.BUCKET_NAME)
+      .createSignedUrl(storagePath, 7200);
+    if (error) throw new Error(`Não foi possível gerar o link seguro do arquivo: ${error.message}`);
+    if (!data?.signedUrl) throw new Error('O Storage não retornou um link seguro para o arquivo.');
+    return data.signedUrl;
   },
 
   /**
    * Remove arquivo do storage se existir caminho cadastrado.
    */
-  async excluirArquivo(storagePath: string): Promise<boolean> {
-    try {
-      const { error } = await supabase.storage
-        .from(this.BUCKET_NAME)
-        .remove([storagePath]);
-      return !error;
-    } catch (_) {
-      return false;
-    }
+  async excluirArquivo(storagePath: string): Promise<void> {
+    const { error } = await supabase.storage
+      .from(this.BUCKET_NAME)
+      .remove([storagePath]);
+    if (error) throw new Error(`Não foi possível excluir o arquivo: ${error.message}`);
   }
 };

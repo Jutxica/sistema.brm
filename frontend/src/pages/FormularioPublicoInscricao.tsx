@@ -67,24 +67,25 @@ export const FormularioPublicoInscricao: React.FC = () => {
     if (!form) return;
     setSaving(true);
     try {
-      const protocolo = `FORM-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-      const novaResposta: RespostaFormulario = {
-        id: 'resp-' + Date.now().toString(36),
-        formulario_id: form.id,
-        evento_id: form.evento_id || null,
-        dados: respostasValores,
-        protocolo,
-        status: 'Confirmada',
-        created_at: new Date().toISOString()
-      };
-
-      try {
-        await supabase
-          .from('secretaria_respostas_formulario')
-          .insert([novaResposta]);
-      } catch (e) {
-        console.warn('Salvando resposta localmente:', e);
+      const { data, error } = await supabase.rpc('secretaria_enviar_resposta', {
+        p_formulario_id: form.id,
+        p_dados: respostasValores
+      });
+      if (error) throw error;
+      const savedResponse = Array.isArray(data) ? data[0] : null;
+      if (!savedResponse?.id || !savedResponse?.protocolo) {
+        throw new Error('O servidor não confirmou o recebimento da inscrição.');
       }
+
+      const novaResposta: RespostaFormulario = {
+        id: savedResponse.id,
+        formulario_id: form.id,
+        evento_id: savedResponse.evento_id || null,
+        dados: respostasValores,
+        protocolo: savedResponse.protocolo,
+        status: 'Confirmada',
+        created_at: savedResponse.created_at
+      };
 
       // Persistir em localStorage
       const saved = localStorage.getItem(LOCAL_STORAGE_RESPOSTAS);

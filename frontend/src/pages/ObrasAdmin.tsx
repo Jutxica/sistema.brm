@@ -204,13 +204,18 @@ export const ObrasAdmin: React.FC = () => {
   const [copiedLink, setCopiedLink] = useState(false);
 
   const getMagicLink = (obra: Obra) => {
-    const token = obra.token_edicao || obra.id;
+    const token = obra.token_edicao;
+    if (!token) return null;
     const origin = window.location.origin;
     return `${origin}/atualizar-obra/${token}`;
   };
 
   const handleCopyMagicLink = (obra: Obra) => {
     const link = getMagicLink(obra);
+    if (!link) {
+      setMessage('Esta instituição ainda não tem token de link mágico. Atualize o registro após aplicar a migração de segurança.');
+      return;
+    }
     navigator.clipboard.writeText(link);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
@@ -225,6 +230,10 @@ export const ObrasAdmin: React.FC = () => {
     }
 
     const link = getMagicLink(obra);
+    if (!link) {
+      showToast.error('Esta instituição ainda não tem token de link mágico. Aplique a migração de segurança e atualize o registro.');
+      return;
+    }
     const msg = `Olá! Saudações fraternas da Província BRM dos Padres Dehonianos.\n\nEstamos reunindo o acervo histórico e fotográfico oficial das nossas paróquias e obras.\n\nPor gentileza, revisem os dados cadastrais, preencham a história da comunidade e anexem as 6 fotos da igreja através do nosso link seguro e exclusivo:\n${link}\n\nFraternalmente,\nSecretaria Provincial • Província BRM`;
 
     const digits = cleanDigits(rawNumber);
@@ -983,7 +992,7 @@ export const ObrasAdmin: React.FC = () => {
                 <input
                   type="text"
                   readOnly
-                  value={getMagicLink(magicModalObra)}
+                  value={getMagicLink(magicModalObra) || ''}
                   className="w-full px-3 py-2 text-xs font-mono bg-transparent outline-none text-slate-800 dark:text-slate-200"
                 />
                 <button
@@ -1016,7 +1025,7 @@ export const ObrasAdmin: React.FC = () => {
               </button>
 
               <a
-                href={getMagicLink(magicModalObra)}
+                href={getMagicLink(magicModalObra) || undefined}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="border border-slate-200 dark:border-slate-700 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 p-3 text-left transition-colors flex items-center gap-2.5 cursor-pointer"

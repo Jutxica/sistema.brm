@@ -488,12 +488,15 @@ create index if not exists idx_religiosos_nome on public.religiosos(nome_civil);
 -- 6) TRIGGERS PARA updated_at
 -- =============================================================
 create or replace function public.set_updated_at()
-returns trigger as $$
+returns trigger
+language plpgsql
+set search_path = pg_catalog
+as $$
 begin
   new.updated_at = now();
   return new;
 end;
-$$ language plpgsql;
+$$;
 
 create trigger trg_usuarios_updated_at
 before update on public.usuarios

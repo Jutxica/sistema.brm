@@ -743,9 +743,9 @@ export const ObraForm: React.FC = () => {
                 <option value="Aprovado">Status: Aprovado para o Portal</option>
               </select>
 
-              {isEditing && (
+              {isEditing && form.token_edicao && (
                 <a
-                  href={`/atualizar-obra/${form.token_edicao || id}`}
+                  href={`/atualizar-obra/${form.token_edicao}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-3 py-1.5 border border-slate-300 dark:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"

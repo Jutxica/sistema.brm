@@ -17,8 +17,21 @@ interface Estadia {
   main_motivo: string;
   main_termos: string;
   main_mensagemtela: string;
-  main_mensagememail: string;
 }
+
+interface PublicRegistrationResult {
+  idhospedagens: number;
+  recibo_token: string;
+}
+
+const isPublicRegistrationResult = (value: unknown): value is PublicRegistrationResult => (
+  typeof value === 'object'
+  && value !== null
+  && 'idhospedagens' in value
+  && typeof value.idhospedagens === 'number'
+  && 'recibo_token' in value
+  && typeof value.recibo_token === 'string'
+);
 
 interface Modulo {
   idmodulos: string;
@@ -106,7 +119,7 @@ export const InscricaoPublica: React.FC = () => {
           { data: obrasData }
         ] = await Promise.all([
           supabase.from('confighospedagens').select('idconfighospedagens, chos_acolhida, chos_ativar, chos_txtinativo').eq('idconfighospedagens', 1).maybeSingle(),
-          supabase.from('mainhospedagem').select('idmainhospedagem, main_motivo, main_termos, main_mensagemtela, main_mensagememail').eq('main_status', 'Ativo').order('idmainhospedagem', { ascending: false }),
+          supabase.from('mainhospedagem').select('idmainhospedagem, main_motivo, main_termos, main_mensagemtela, main_status').eq('main_status', 'Ativo').order('idmainhospedagem', { ascending: false }),
           supabase.from('modulos').select('idmodulos, mod_nome').eq('mod_status', 'Ativo').order('idmodulos', { ascending: false }),
           supabase.from('lavanderia').select('idlavanderia, lav_servico').order('idlavanderia', { ascending: false }),
           supabase.from('religiosos_obras_referencia').select('id, nome, tipo, localidade, cidade, uf').eq('status', 'Ativa').order('nome')
@@ -275,51 +288,38 @@ export const InscricaoPublica: React.FC = () => {
     setSubmitting(true);
     setErrorMsg(null);
 
-    const payload: any = { ...formData };
-    
-    // Format foreign keys
-    payload.hos_estadiamotivo = parseInt(formData.hos_estadiamotivo);
-    payload.hos_modulo = formData.hos_modulo ? parseInt(formData.hos_modulo) : null;
-    payload.hos_status = null; // defaults to pending
-    payload.hos_inscricao = new Date().toISOString(); // registration date/time
-    payload.hos_quarto = null; // admin assigns this later
+    const payload = {
+      ...formData,
+      hos_estadiamotivo: Number(formData.hos_estadiamotivo),
+      hos_modulo: formData.hos_modulo ? Number(formData.hos_modulo) : null,
+    };
 
     try {
-      let { data, error } = await supabase
-        .from('hospedagens')
-        .insert([payload])
-        .select('idhospedagens')
+      const { data, error } = await supabase
+        .rpc('hospedagem_inscricao_publica', { p_payload: payload })
         .single();
-
-      if (error && (error.message?.includes('hos_casa_acolhida') || (error as any).code === '42703')) {
-        delete payload.hos_casa_acolhida;
-        payload.hos_especifiquerestricao = formData.hos_casa_acolhida
-          ? `[Destino da Estadia: ${formData.hos_casa_acolhida}] ${formData.hos_especifiquerestricao || ''}`.trim()
-          : formData.hos_especifiquerestricao;
-        const retry = await supabase
-          .from('hospedagens')
-          .insert([payload])
-          .select('idhospedagens')
-          .single();
-        data = retry.data;
-        error = retry.error;
-      }
-
       if (error) throw error;
-
-      if (data) {
-        setRegistrationId(String(data.idhospedagens));
-        // Disparar e-mail de confirmação via Supabase Edge Function em segundo plano
-        supabase.functions.invoke('send-receipt', {
-          body: { id: data.idhospedagens }
-        }).catch((emailErr) => {
-          console.warn("Aviso: Envio do e-mail de confirmação pendente ou Edge Function ainda não implantada:", emailErr);
-        });
+      if (!isPublicRegistrationResult(data)) {
+        throw new Error('O servidor não retornou um protocolo válido para a inscrição.');
       }
+
+      setRegistrationId(String(data.idhospedagens));
+      void supabase.functions.invoke('send-receipt', {
+        body: { id: data.idhospedagens, token: data.recibo_token }
+      }).then(({ error: emailError }) => {
+        if (emailError) console.warn('Aviso: não foi possível iniciar o envio do e-mail de confirmação:', emailError.message);
+      }).catch((emailError: unknown) => {
+        console.warn('Aviso: falha ao iniciar o envio do e-mail de confirmação:', emailError);
+      });
       setSuccess(true);
-    } catch (err: any) {
-      console.error("Erro ao registrar inscrição:", err);
-      setErrorMsg(err.message || "Erro inesperado ao registrar inscrição. Verifique suas informações.");
+    } catch (err: unknown) {
+      console.error('Erro ao registrar inscrição:', err);
+      const message = err instanceof Error
+        ? err.message
+        : typeof err === 'object' && err !== null && 'message' in err && typeof err.message === 'string'
+          ? err.message
+          : 'Erro inesperado ao registrar inscrição. Verifique suas informações.';
+      setErrorMsg(message);
     } finally {
       setSubmitting(false);
     }

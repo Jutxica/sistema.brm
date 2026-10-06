@@ -29,11 +29,14 @@ create index if not exists idx_pat_audit_created on public.patrimonio_audit_logs
 
 -- 2. GATILHO DE PROTEÇÃO APPEND-ONLY: IMPEDE QUALQUER UPDATE OU DELETE
 create or replace function public.trg_prevent_audit_mutation()
-returns trigger as $$
+returns trigger
+language plpgsql
+set search_path = pg_catalog
+as $$
 begin
   raise exception 'Violação de Governança Canônica: A tabela de logs de auditoria do Patrimônio BRM é estritamente append-only. Operações de UPDATE ou DELETE são proibidas.';
 end;
-$$ language plpgsql;
+$$;
 
 drop trigger if exists trg_audit_no_update_delete on public.patrimonio_audit_logs;
 create trigger trg_audit_no_update_delete
@@ -42,39 +45,21 @@ for each row execute function public.trg_prevent_audit_mutation();
 
 -- 3. FUNÇÃO AUXILIAR DE VERIFICAÇÃO DE PAPEL INSTITUCIONAL
 create or replace function public.usuario_tem_papel(papel_requerido text)
-returns boolean as $$
-declare
-  v_acessos jsonb;
-begin
-  if auth.uid() is null then
-    return false;
-  end if;
-
-  select 
-    case 
-      when jsonb_typeof(usu_acessos::jsonb) = 'array' then usu_acessos::jsonb
-      else '[]'::jsonb
-    end
-  into v_acessos
-  from public.usuarios
-  where auth_user_id = auth.uid() or id::text = auth.uid()::text
-  limit 1;
-
-  if v_acessos is null then
-    return false;
-  end if;
-
-  -- Administrador possui todas as permissões
-  if v_acessos ? 'admin' then
-    return true;
-  end if;
-
-  -- Verifica papel específico
-  return v_acessos ? papel_requerido;
-exception when others then
-  return false;
-end;
-$$ language plpgsql security definer;
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog
+as $$
+  select coalesce((
+    select jsonb_typeof(u.usu_acessos) = 'array'
+      and (u.usu_acessos ? 'admin' or u.usu_acessos ? papel_requerido)
+    from public.usuarios u
+    where u.auth_user_id = auth.uid()
+      and u.usu_status = 'Ativo'
+    limit 1
+  ), false);
+$$;
 
 -- 4. HABILITAÇÃO E REVISÃO DE RLS PARA TABELA DE AUDITORIA
 alter table public.patrimonio_audit_logs enable row level security;

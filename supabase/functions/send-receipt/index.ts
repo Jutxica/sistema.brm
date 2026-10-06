@@ -2,7 +2,7 @@
 // Dispara um e-mail de confirmação de inscrição para o hóspede.
 //
 // Assinatura: POST /functions/v1/send-receipt
-// Body: { "id": "<idhospedagens>" }
+// Body: { "id": "<idhospedagens>", "token": "<segredo privado do recibo>" }
 //
 // A function lê SMTP de mainhospedagem (service_role bypassa RLS).
 // O template do e-mail é main_mensagememail, com placeholders:
@@ -32,6 +32,7 @@ const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 interface Inscrito {
   idhospedagens: number;
+  hos_recibo_token: string;
   hos_nome: string | null;
   hos_email: string | null;
   hos_estadiamotivo: number | null;
@@ -53,9 +54,9 @@ function replacePlaceholders(template: string, map: Record<string, string>): str
   return template.replace(/\[\[([a-zA-Z_]+)\]\]/g, (_, key) => map[key] ?? "");
 }
 
-async function fetchInscrito(id: number): Promise<Inscrito | null> {
+async function fetchInscrito(id: number, token: string): Promise<Inscrito | null> {
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/hospedagens?select=idhospedagens,hos_nome,hos_email,hos_estadiamotivo&idhospedagens=eq.${id}&limit=1`,
+    `${SUPABASE_URL}/rest/v1/hospedagens?select=idhospedagens,hos_recibo_token,hos_nome,hos_email,hos_estadiamotivo&idhospedagens=eq.${id}&hos_recibo_token=eq.${encodeURIComponent(token)}&limit=1`,
     {
       headers: {
         apikey: SUPABASE_SERVICE_KEY,
@@ -93,7 +94,7 @@ Deno.serve(async (req: Request) => {
     return corsResponse(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
   }
 
-  let body: { id?: string };
+  let body: { id?: string; token?: string };
   try {
     body = await req.json();
   } catch {
@@ -101,11 +102,11 @@ Deno.serve(async (req: Request) => {
   }
 
   const id = Number(body.id);
-  if (!Number.isFinite(id) || id <= 0) {
-    return corsResponse(JSON.stringify({ error: "Missing or invalid 'id'" }), { status: 400 });
+  if (!Number.isSafeInteger(id) || id <= 0 || !body.token || !/^[0-9a-f-]{36}$/i.test(body.token)) {
+    return corsResponse(JSON.stringify({ error: "Missing or invalid receipt credentials" }), { status: 400 });
   }
 
-  const inscrito = await fetchInscrito(id);
+  const inscrito = await fetchInscrito(id, body.token);
   if (!inscrito || !inscrito.hos_email) {
     return corsResponse(JSON.stringify({ error: "Inscrito não encontrado ou sem e-mail" }), { status: 404 });
   }
