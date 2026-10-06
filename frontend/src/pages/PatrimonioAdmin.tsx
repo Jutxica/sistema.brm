@@ -493,31 +493,56 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
 
   return (
     <div className="space-y-6 animate-fade-in print:space-y-4 font-sans pb-12">
-      {/* 1. Header Oficial do Economato Provincial */}
-      <header className="rounded-[10px] bg-white dark:bg-[#161b22] p-6 md:p-8 border border-slate-200/90 dark:border-slate-800 border-t-2 border-t-[#226380] shadow-xs transition-all">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="flex items-start gap-4">
+      {/* Cabeçalho e controles principais */}
+      <header className="space-y-3">
+        <div className="rounded-[10px] bg-white dark:bg-[#161b22] p-5 md:p-6 border border-slate-200/90 dark:border-slate-800 border-t-2 border-t-[#226380] shadow-xs">
+          <div className="flex items-center gap-4">
             <div className="flex items-center shrink-0">
-              <img src="/logo-sistema.png" alt="Brasão SCJ BRM" className="h-14 w-auto object-contain dark:hidden" />
-              <img src="/logo-branco.png" alt="Brasão SCJ BRM" className="h-14 w-auto object-contain hidden dark:block" />
+              <img src="/logo-sistema.png" alt="Brasão SCJ BRM" className="h-11 w-auto object-contain dark:hidden" />
+              <img src="/logo-branco.png" alt="Brasão SCJ BRM" className="h-11 w-auto object-contain hidden dark:block" />
             </div>
             <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-cinzel text-xs font-bold tracking-[0.16em] text-[#226380] dark:text-[#A3C3C7] uppercase">
-                  Província BRM
-                </span>
-              </div>
+              <span className="font-cinzel text-[11px] font-bold tracking-[0.16em] text-[#226380] dark:text-[#A3C3C7] uppercase">
+                Província BRM
+              </span>
               <h1 className="font-cinzel text-2xl md:text-3xl font-bold tracking-tight text-[#113240] dark:text-white mt-1">
                 Patrimônio
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Imóveis, veículos, inventário, contratos e manutenção.
+                Gestão de imóveis, veículos, inventário, contratos e manutenção.
               </p>
             </div>
           </div>
+        </div>
 
-          {/* Ações Institucionais Discretas */}
-          <div className="flex items-center gap-2 print:hidden shrink-0">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 print:hidden">
+          <div className="flex items-center gap-2">
+            <label htmlFor="patrimonio-categoria" className="text-xs font-medium text-slate-600 dark:text-slate-300 shrink-0">
+              Área
+            </label>
+            <select
+              id="patrimonio-categoria"
+              value={activeTab}
+              onChange={(event) => handleTabChange(event.target.value as AbaPatrimonio)}
+              className="w-full sm:w-auto sm:min-w-56 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] px-3 py-2.5 text-sm text-slate-800 dark:text-slate-200 outline-none focus:border-[#226380] focus:ring-2 focus:ring-[#226380]/15"
+            >
+              {[
+                { id: 'visao-geral', label: 'Visão geral', badge: alertasVencimento.length || null },
+                { id: 'imoveis', label: 'Imóveis e terrenos', count: imoveis.length },
+                { id: 'veiculos', label: 'Veículos', count: veiculos.length },
+                { id: 'inventario', label: 'Inventário', count: bens.length },
+                { id: 'contratos', label: 'Contratos e seguros', count: contratos.length },
+                { id: 'manutencoes', label: 'Vistorias e manutenção', count: manutencoes.length },
+                { id: 'auditoria', label: 'Auditoria', count: auditLogs.length },
+              ].map((tab) => (
+                <option key={tab.id} value={tab.id}>
+                  {tab.label}{tab.count !== undefined ? ` (${tab.count})` : tab.badge ? ` (${tab.badge} alertas)` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
             {/* Alertas Operacionais (apenas quando houver pendência ou conflito) */}
             {hasConflicts ? (
               <button
@@ -662,33 +687,6 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
           </div>
         </div>
       </header>
-
-      {/* Navegação por categoria */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 print:hidden">
-        <label htmlFor="patrimonio-categoria" className="text-xs font-medium text-slate-600 dark:text-slate-300">
-          Área
-        </label>
-        <select
-          id="patrimonio-categoria"
-          value={activeTab}
-          onChange={(event) => handleTabChange(event.target.value as AbaPatrimonio)}
-          className="w-full sm:max-w-sm rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] px-3 py-2.5 text-sm text-slate-800 dark:text-slate-200 outline-none focus:border-[#226380] focus:ring-2 focus:ring-[#226380]/15"
-        >
-          {[
-            { id: 'visao-geral', label: 'Visão geral', badge: alertasVencimento.length || null },
-            { id: 'imoveis', label: 'Imóveis e terrenos', count: imoveis.length },
-            { id: 'veiculos', label: 'Veículos', count: veiculos.length },
-            { id: 'inventario', label: 'Inventário', count: bens.length },
-            { id: 'contratos', label: 'Contratos e seguros', count: contratos.length },
-            { id: 'manutencoes', label: 'Vistorias e manutenção', count: manutencoes.length },
-            { id: 'auditoria', label: 'Auditoria', count: auditLogs.length },
-          ].map((tab) => (
-            <option key={tab.id} value={tab.id}>
-              {tab.label}{tab.count !== undefined ? ` (${tab.count})` : tab.badge ? ` (${tab.badge} alertas)` : ''}
-            </option>
-          ))}
-        </select>
-      </div>
 
       {/* ========================================================================= */}
       {/* ABA 1: VISÃO GERAL — ASYMMETRIC EXECUTIVE PORTFOLIO BENTO                 */}
