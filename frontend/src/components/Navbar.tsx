@@ -15,7 +15,7 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarCollapsed, setSidebarColl
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-between h-16 px-6 border-b border-[#e5e5ea] dark:border-white/10 bg-[#fbfbfd]/75 dark:bg-[#161b22]/75 backdrop-blur-xl print:hidden">
+    <header className="sticky top-0 z-20 flex items-center justify-between h-16 px-6 border-b border-[#e5e5ea] dark:border-white/10 bg-white dark:bg-[#161b22] print:hidden">
       {/* Left side */}
       <div className="flex items-center gap-4">
         <button
@@ -78,7 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarCollapsed, setSidebarColl
                 className="fixed inset-0 z-30" 
                 onClick={() => setProfileDropdownOpen(false)}
               />
-              <div className="absolute right-0 mt-2 w-60 rounded-[8px] border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-[#1c2128]/95 backdrop-blur-xl shadow-lg p-2 z-40">
+              <div className="absolute right-0 mt-2 w-60 rounded-[8px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1c2128] shadow-lg p-2 z-40">
                 <div className="px-3 py-2.5 border-b border-[#e5e5ea] dark:border-white/10">
                   <p className="text-xs font-semibold text-[#113240] dark:text-white truncate">{user?.nome}</p>
                   <p className="text-[11px] text-[#707070] dark:text-[#86868b] truncate mt-0.5">{user?.email}</p>

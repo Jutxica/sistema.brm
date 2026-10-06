@@ -48,7 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     <aside
       className={`fixed top-0 left-0 z-30 h-screen transition-all duration-300 border-r border-[#e5e5ea] dark:border-white/10
         ${collapsed ? 'w-20' : 'w-64'} 
-        bg-[#fbfbfd]/80 dark:bg-[#161b22]/80 backdrop-blur-xl text-[#1d1d1f] dark:text-[#f5f5f7] print:hidden`}
+        bg-white dark:bg-[#161b22] text-[#232626] dark:text-[#f5f5f7] print:hidden`}
     >
       {/* Brand Header */}
       <div className="flex items-center justify-between h-16 px-4 border-b border-[#e5e5ea] dark:border-white/10">
@@ -83,8 +83,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
               to="/inicio"
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2 rounded-[6px] transition-all duration-200 group text-[13px] font-medium border ${
-                  isActive 
-                    ? 'border-[#113240] bg-[#113240] text-white shadow-sm dark:border-[#226380] dark:bg-[#226380] dark:text-white' 
+                  isActive
+                    ? 'border-[#113240] bg-[#113240] text-white dark:border-[#226380] dark:bg-[#226380] dark:text-white'
                     : 'border-transparent text-[#474747] dark:text-[#86868b] hover:bg-black/5 dark:hover:bg-white/5 hover:text-[#113240] dark:hover:text-white'}`
               }
             >

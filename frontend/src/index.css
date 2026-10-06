@@ -498,6 +498,91 @@ select:not(.font-mono):not(.font-cinzel) {
   font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
 }
 
+/* Sistema BRM: linguagem institucional comum às áreas administrativas */
+:root {
+  --brm-canvas: #f2f2f2;
+  --brm-paper: #ffffff;
+  --brm-ink: #232626;
+  --brm-muted: #707070;
+  --brm-line: #d8dcdd;
+  --brm-navy: #113240;
+  --brm-petroleum: #226380;
+  --brm-surface-radius: 2px;
+  --brm-control-radius: 1px;
+}
+
+.dark {
+  --brm-canvas: #15191c;
+  --brm-paper: #1c2227;
+  --brm-ink: #f1f3f3;
+  --brm-muted: #a3aaad;
+  --brm-line: #343c40;
+}
+
+body {
+  background-color: var(--brm-canvas);
+  color: var(--brm-ink);
+}
+
+.institutional-app {
+  background-color: var(--brm-canvas);
+  color: var(--brm-ink);
+}
+
+.institutional-app h1 {
+  font-family: var(--font-cinzel);
+  font-weight: 600;
+  letter-spacing: 0.015em;
+}
+
+.institutional-app h2 {
+  letter-spacing: 0.005em;
+}
+
+.institutional-app [class*="rounded-"]:not([class*="rounded-full"]):not([class*="rounded-none"]) {
+  border-radius: var(--brm-surface-radius);
+}
+
+.institutional-app [class*="shadow-"]:not([class*="shadow-none"]) {
+  box-shadow: 0 1px 3px rgb(35 38 38 / 5%);
+}
+
+.dark .institutional-app [class*="shadow-"]:not([class*="shadow-none"]) {
+  box-shadow: 0 1px 3px rgb(0 0 0 / 22%);
+}
+
+.institutional-app [class*="backdrop-blur"] {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.institutional-app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.institutional-app select,
+.institutional-app textarea {
+  border-radius: var(--brm-control-radius);
+}
+
+.institutional-app input:focus-visible,
+.institutional-app select:focus-visible,
+.institutional-app textarea:focus-visible,
+.institutional-app button:focus-visible,
+.institutional-app a:focus-visible {
+  outline-color: var(--brm-petroleum);
+}
+
+.institutional-app table thead {
+  letter-spacing: 0.045em;
+}
+
+.institutional-app table tbody tr {
+  transition: background-color 140ms ease;
+}
+
+.institutional-app ::selection {
+  background: rgb(34 99 128 / 18%);
+  color: var(--brm-ink);
+}
+
 @media print {
   /* Oculta barras de navegação, menus, botões, modais e elementos da interface web */
   nav, 

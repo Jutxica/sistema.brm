@@ -11,7 +11,7 @@ export const Layout: React.FC<LayoutProps> = ({ title = 'Sistema BRM' }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] dark:bg-[#0d1117] flex transition-colors duration-300 relative">
+    <div className="institutional-app min-h-screen bg-[#F2F2F2] dark:bg-[#15191c] flex transition-colors duration-300 relative">
       {/* Sidebar navigation */}
       <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
 
@@ -33,9 +33,9 @@ export const Layout: React.FC<LayoutProps> = ({ title = 'Sistema BRM' }) => {
         </main>
 
         {/* Rodapé Centralizado Oficial */}
-        <footer className="w-full py-6 mt-auto border-t border-slate-200/80 dark:border-slate-800 text-center select-none print:hidden">
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-sans tracking-wide">
-            sistema.brm.org - todos os direitos reservados-2026
+        <footer className="w-full py-5 mt-auto border-t border-slate-200/80 dark:border-slate-800 text-center select-none print:hidden">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-sans tracking-wide">
+            Sistema BRM · Província Brasil Meridional · © 2026
           </p>
         </footer>
       </div>
