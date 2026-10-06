@@ -433,6 +433,10 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
 
     return Object.entries(contagem).sort((a, b) => b[1].total - a[1].total);
   }, [imoveis, veiculos, bens]);
+  const polosFiltrados = useMemo(
+    () => distribuicaoPolos.filter(([polo]) => filtroComunidade === 'Todas' || polo === filtroComunidade),
+    [distribuicaoPolos, filtroComunidade]
+  );
 
   const imoveisFiltrados = useMemo(() => {
     return imoveis.filter(i => 
@@ -502,18 +506,13 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                 <span className="font-cinzel text-xs font-bold tracking-[0.16em] text-[#226380] dark:text-[#A3C3C7] uppercase">
                   Província BRM
                 </span>
-                <span className="text-slate-300 dark:text-slate-700">·</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  Congregação dos Padres do Sagrado Coração de Jesus
-                </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[4px] text-[10px] font-semibold tracking-wide uppercase bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7] border border-[#226380]/30 ml-1">
-                  <CheckCircle2 className="w-3 h-3 text-[#226380] dark:text-[#A3C3C7]" />
-                  Livro de Tombo Oficial
-                </span>
               </div>
               <h1 className="font-cinzel text-2xl md:text-3xl font-bold tracking-tight text-[#113240] dark:text-white mt-1">
-                Patrimônio & Imobilizado Provincial
+                Patrimônio
               </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Imóveis, veículos, inventário, contratos e manutenção.
+              </p>
             </div>
           </div>
 
@@ -664,45 +663,31 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
         </div>
       </header>
 
-      {/* 2. Abas de Navegação Editorial */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar text-xs print:hidden border-b border-slate-200/80 dark:border-slate-800">
-        {[
-          { id: 'visao-geral', label: 'Visão Geral & Indicadores', icon: Layers, badge: alertasVencimento.length || null },
-          { id: 'imoveis', label: 'Imóveis & Terrenos', icon: Building2, count: imoveis.length },
-          { id: 'veiculos', label: 'Frota Veicular', icon: Car, count: veiculos.length },
-          { id: 'inventario', label: 'Inventário Sacro & Arte', icon: Package, count: bens.length },
-          { id: 'contratos', label: 'Contratos & Seguros', icon: ShieldCheck, count: contratos.length },
-          { id: 'manutencoes', label: 'Vistorias & Obras', icon: Wrench, count: manutencoes.length },
-          { id: 'auditoria', label: 'Trilha de Auditoria', icon: History, count: auditLogs.length },
-        ].map(tab => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => handleTabChange(tab.id as AbaPatrimonio)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-t-[6px] text-xs font-medium transition-all cursor-pointer shrink-0 border-b-2 -mb-[2px] ${
-                isActive
-                  ? 'border-[#226380] text-[#113240] dark:text-white font-semibold bg-white dark:bg-[#161b22] border-t border-l border-r border-t-slate-200/90 dark:border-t-slate-800 border-l-slate-200/90 dark:border-l-slate-800 border-r-slate-200/90 dark:border-r-slate-800 shadow-xs'
-                  : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
-              }`}
-            >
-              <Icon className="w-4 h-4 text-[#226380]" />
-              <span className="font-cinzel text-xs">{tab.label}</span>
-              {tab.badge && (
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#F2C894]/25 text-[#7A5016] dark:text-[#F2C894] border border-[#F2C894]/40">
-                  {tab.badge}
-                </span>
-              )}
-              {tab.count !== undefined && (
-                <span className="text-[11px] text-slate-400 font-mono">
-                  ({tab.count})
-                </span>
-              )}
-            </button>
-          );
-        })}
+      {/* Navegação por categoria */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 print:hidden">
+        <label htmlFor="patrimonio-categoria" className="text-xs font-medium text-slate-600 dark:text-slate-300">
+          Área
+        </label>
+        <select
+          id="patrimonio-categoria"
+          value={activeTab}
+          onChange={(event) => handleTabChange(event.target.value as AbaPatrimonio)}
+          className="w-full sm:max-w-sm rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] px-3 py-2.5 text-sm text-slate-800 dark:text-slate-200 outline-none focus:border-[#226380] focus:ring-2 focus:ring-[#226380]/15"
+        >
+          {[
+            { id: 'visao-geral', label: 'Visão geral', badge: alertasVencimento.length || null },
+            { id: 'imoveis', label: 'Imóveis e terrenos', count: imoveis.length },
+            { id: 'veiculos', label: 'Veículos', count: veiculos.length },
+            { id: 'inventario', label: 'Inventário', count: bens.length },
+            { id: 'contratos', label: 'Contratos e seguros', count: contratos.length },
+            { id: 'manutencoes', label: 'Vistorias e manutenção', count: manutencoes.length },
+            { id: 'auditoria', label: 'Auditoria', count: auditLogs.length },
+          ].map((tab) => (
+            <option key={tab.id} value={tab.id}>
+              {tab.label}{tab.count !== undefined ? ` (${tab.count})` : tab.badge ? ` (${tab.badge} alertas)` : ''}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* ========================================================================= */}
@@ -984,31 +969,22 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                     Alocação do patrimônio entre as sedes conventuais, paróquias e seminários.
                   </p>
                 </div>
-                {filtroComunidade !== 'Todas' && (
-                  <button
-                    type="button"
-                    onClick={() => setFiltroComunidade('Todas')}
-                    className="text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold underline cursor-pointer"
+                <label className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                  Polo
+                  <select
+                    value={filtroComunidade}
+                    onChange={(event) => setFiltroComunidade(event.target.value)}
+                    className="max-w-[240px] rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2.5 py-1.5 text-xs text-slate-700 dark:text-slate-300 outline-none focus:border-[#226380]"
                   >
-                    Limpar filtro ({filtroComunidade})
-                  </button>
-                )}
+                    <option value="Todas">Todos os polos</option>
+                    {distribuicaoPolos.map(([polo]) => <option key={polo} value={polo}>{polo}</option>)}
+                  </select>
+                </label>
               </div>
 
-              {/* Editorial Hub List — Typographic and Crisp without toy progress bars */}
               <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                {distribuicaoPolos.map(([polo, cont]) => {
-                  const isFiltered = filtroComunidade === polo;
-                  return (
-                    <div
-                      key={polo}
-                      onClick={() => setFiltroComunidade(isFiltered ? 'Todas' : polo)}
-                      className={`py-3 px-3.5 -mx-1 rounded-[6px] transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
-                        isFiltered
-                          ? 'bg-[#226380]/10 border border-[#226380]/40 dark:bg-[#226380]/20'
-                          : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                      }`}
-                    >
+                {polosFiltrados.map(([polo, cont]) => (
+                    <div key={polo} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div>
                         <span className="text-xs font-semibold text-slate-900 dark:text-white block">
                           {polo}
@@ -1026,15 +1002,12 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
                         <span className="text-xs font-medium text-slate-700 dark:text-slate-300 font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-[4px]">
                           {cont.total} {cont.total === 1 ? 'ativo' : 'ativos'}
                         </span>
-                        <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-[3px] ${
-                          isFiltered ? 'bg-[#226380] text-white' : 'text-slate-400'
-                        }`}>
-                          {isFiltered ? 'Filtrado' : 'Filtrar'}
-                        </span>
                       </div>
                     </div>
-                  );
-                })}
+                ))}
+                {polosFiltrados.length === 0 && (
+                  <p className="py-6 text-center text-xs text-slate-500">Nenhum patrimônio cadastrado neste polo.</p>
+                )}
               </div>
             </div>
 
@@ -1088,191 +1061,104 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
             </div>
           </div>
 
-          {/* Central Canônica de Prazos & Conformidades — Design Editorial Unificado (Padrão Estatística BRM) */}
+          {/* Prazos e conformidade */}
           <div className="rounded-[6px] bg-white dark:bg-[#161b22] p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6 transition-all">
             
-            {/* Header da Seção */}
+            {/* Cabeçalho da seção */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-100 dark:border-slate-800/80">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-[6px] bg-[#113240]/5 dark:bg-white/5 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-[#226380] shrink-0">
                   <ShieldCheck className="w-6 h-6 text-[#226380]" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-cinzel text-xs font-bold tracking-[0.2em] text-[#226380] uppercase">
-                      Província BRM
-                    </span>
-                    <span className="text-slate-300 dark:text-slate-700">·</span>
-                    <span className="text-xs text-[#707070] dark:text-[#86868b] font-mono uppercase tracking-wider">
-                      Secretaria Provincial & Economato
-                    </span>
-                  </div>
-                  <h2 className="font-cinzel text-2xl md:text-3xl font-bold tracking-tight text-[#113240] dark:text-white mt-1">
-                    Central Canônica de Prazos & Conformidades
+                  <h2 className="text-lg font-semibold text-[#113240] dark:text-white">
+                    Prazos e conformidade
                   </h2>
-                  <p className="text-xs text-[#707070] dark:text-[#86868b] mt-1 font-sans">
-                    Vigilância contínua de seguros prediais e auto, laudos do Corpo de Bombeiros (AVCB), certidões e manutenções preventivas.
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Acompanhe vencimentos e pendências dos ativos.
                   </p>
                 </div>
               </div>
 
-              {/* Filtros de Categoria (Padrão Estatística BRM) */}
-              <div className="flex flex-wrap items-center gap-1.5 print:hidden">
-                <span className="text-[11px] font-mono uppercase text-[#707070] dark:text-[#86868b] mr-2">Filtrar:</span>
-                {[
-                  { id: 'todos', label: `Todas (${conformidades.length})` },
-                  { id: 'seguros', label: `Seguros (${conformidades.filter(c => c.tipo?.includes('seguro')).length})` },
-                  { id: 'bombeiros', label: `AVCB Bombeiros (${conformidades.filter(c => c.tipo === 'avcb').length})` },
-                  { id: 'veiculos', label: `Revisões Frota (${conformidades.filter(c => c.tipo?.includes('veic') || c.tipo === 'ipva').length})` },
-                  { id: 'contratos', label: `Contratos (${conformidades.filter(c => c.tipo === 'contrato').length})` }
-                ].map(sub => (
-                  <button
-                    key={sub.id}
-                    type="button"
-                    onClick={() => setFiltroConformidade(sub.id as any)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-[6px] border transition-all cursor-pointer motion-press ${
-                      filtroConformidade === sub.id
-                        ? 'border-[#113240] bg-[#113240] text-white dark:border-white dark:bg-white dark:text-slate-900 font-semibold shadow-xs'
-                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-[#226380]/40'
-                    }`}
-                  >
-                    {sub.label}
-                  </button>
-                ))}
-              </div>
+              <details className="print:hidden rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22]">
+                <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300">
+                  <Filter className="h-3.5 w-3.5 text-[#226380] dark:text-[#A3C3C7]" />
+                  Filtros
+                  {(filtroConformidade !== 'todos' || filtroNivelConformidade !== 'todos') && (
+                    <span className="rounded-full bg-[#226380]/10 px-2 py-0.5 text-[10px] text-[#226380] dark:text-[#A3C3C7]">
+                      Ativos
+                    </span>
+                  )}
+                  <ChevronDown className="ml-auto h-3.5 w-3.5 text-slate-400" />
+                </summary>
+                <div className="grid grid-cols-1 gap-3 border-t border-slate-100 p-3 dark:border-slate-800 sm:grid-cols-2">
+                  <label className="flex flex-col gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    Categoria
+                    <select
+                      value={filtroConformidade}
+                      onChange={(event) => setFiltroConformidade(event.target.value as typeof filtroConformidade)}
+                      className="rounded-[6px] border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-700 outline-none focus:border-[#226380] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+                    >
+                      <option value="todos">Todas ({conformidades.length})</option>
+                      <option value="seguros">Seguros ({conformidades.filter(c => c.tipo?.includes('seguro')).length})</option>
+                      <option value="bombeiros">AVCB ({conformidades.filter(c => c.tipo === 'avcb').length})</option>
+                      <option value="veiculos">Revisões da frota ({conformidades.filter(c => c.tipo?.includes('veic') || c.tipo === 'ipva').length})</option>
+                      <option value="contratos">Contratos ({conformidades.filter(c => c.tipo === 'contrato').length})</option>
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    Situação
+                    <select
+                      value={filtroNivelConformidade}
+                      onChange={(event) => setFiltroNivelConformidade(event.target.value as typeof filtroNivelConformidade)}
+                      className="rounded-[6px] border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-700 outline-none focus:border-[#226380] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+                    >
+                      <option value="todos">Todas as situações</option>
+                      <option value="critico">Crítico — vencido ({contadoresSemaforo.critico})</option>
+                      <option value="urgente">Urgente — até 30 dias ({contadoresSemaforo.urgente})</option>
+                      <option value="atencao">Atenção — 31 a 60 dias ({contadoresSemaforo.atencao})</option>
+                      <option value="regular">Em dia — acima de 60 dias ({contadoresSemaforo.regular})</option>
+                    </select>
+                  </label>
+                  {(filtroConformidade !== 'todos' || filtroNivelConformidade !== 'todos') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFiltroConformidade('todos');
+                        setFiltroNivelConformidade('todos');
+                      }}
+                      className="justify-self-start text-xs font-medium text-[#226380] hover:underline dark:text-[#A3C3C7] sm:col-span-2"
+                    >
+                      Limpar filtros
+                    </button>
+                  )}
+                </div>
+              </details>
             </div>
 
-            {/* Architectural Ledger Strip (Semáforo Institucional Unificado) */}
-            <div className="rounded-[6px] overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 dark:divide-slate-800 shadow-sm">
-              {/* 1. Crítico */}
-              <button
-                type="button"
-                onClick={() => setFiltroNivelConformidade(filtroNivelConformidade === 'critico' ? 'todos' : 'critico')}
-                className={`p-5 sm:p-6 text-left flex flex-col justify-between transition-colors cursor-pointer ${
-                  filtroNivelConformidade === 'critico'
-                    ? 'bg-[#80282E]/10 ring-1 ring-inset ring-[#80282E]'
-                    : 'hover:bg-slate-50/70 dark:hover:bg-white/5'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#80282E] font-sans flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#80282E]" />
-                    Crítico
-                  </span>
-                  <span className="text-[10px] font-mono text-[#80282E] uppercase font-semibold">Vencido</span>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {[
+                { label: 'Crítico', value: contadoresSemaforo.critico, color: 'text-[#80282E]' },
+                { label: 'Urgente', value: contadoresSemaforo.urgente, color: 'text-[#9E6B28] dark:text-[#F2C894]' },
+                { label: 'Atenção', value: contadoresSemaforo.atencao, color: 'text-[#226380] dark:text-[#A3C3C7]' },
+                { label: 'Em dia', value: contadoresSemaforo.regular, color: 'text-slate-700 dark:text-slate-300' },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center justify-between rounded-[6px] border border-slate-200 bg-white px-3 py-2.5 dark:border-slate-800 dark:bg-[#161b22]">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">{item.label}</span>
+                  <span className={`text-lg font-semibold tabular-nums ${item.color}`}>{item.value}</span>
                 </div>
-                <div className="mt-3">
-                  <span className="font-serif text-3xl sm:text-4xl font-light text-[#80282E] tabular-nums">
-                    {contadoresSemaforo.critico}
-                  </span>
-                  <span className="block text-[11px] text-slate-400 mt-1 font-sans">
-                    {contadoresSemaforo.critico === 1 ? 'pendência com ação imediata' : 'pendências com ação imediata'}
-                  </span>
-                </div>
-              </button>
-
-              {/* 2. Urgente */}
-              <button
-                type="button"
-                onClick={() => setFiltroNivelConformidade(filtroNivelConformidade === 'urgente' ? 'todos' : 'urgente')}
-                className={`p-5 sm:p-6 text-left flex flex-col justify-between transition-colors cursor-pointer ${
-                  filtroNivelConformidade === 'urgente'
-                    ? 'bg-[#9E6B28]/10 ring-1 ring-inset ring-[#9E6B28]'
-                    : 'hover:bg-slate-50/70 dark:hover:bg-white/5'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9E6B28] dark:text-[#F2C894] font-sans flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#9E6B28]" />
-                    Urgente
-                  </span>
-                  <span className="text-[10px] font-mono text-[#9E6B28] dark:text-[#F2C894] uppercase font-semibold">Até 30 dias</span>
-                </div>
-                <div className="mt-3">
-                  <span className="font-serif text-3xl sm:text-4xl font-light text-[#9E6B28] dark:text-[#F2C894] tabular-nums">
-                    {contadoresSemaforo.urgente}
-                  </span>
-                  <span className="block text-[11px] text-slate-400 mt-1 font-sans">
-                    {contadoresSemaforo.urgente === 1 ? 'prazo prioritário para renovar' : 'prazos prioritários para renovar'}
-                  </span>
-                </div>
-              </button>
-
-              {/* 3. Atenção */}
-              <button
-                type="button"
-                onClick={() => setFiltroNivelConformidade(filtroNivelConformidade === 'atencao' ? 'todos' : 'atencao')}
-                className={`p-5 sm:p-6 text-left flex flex-col justify-between transition-colors cursor-pointer ${
-                  filtroNivelConformidade === 'atencao'
-                    ? 'bg-[#226380]/15 ring-1 ring-inset ring-[#226380]'
-                    : 'hover:bg-slate-50/70 dark:hover:bg-white/5'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#226380] dark:text-[#A3C3C7] font-sans flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#226380]" />
-                    Atenção
-                  </span>
-                  <span className="text-[10px] font-mono text-[#226380] dark:text-[#A3C3C7] uppercase font-semibold">31 a 60 dias</span>
-                </div>
-                <div className="mt-3">
-                  <span className="font-serif text-3xl sm:text-4xl font-light text-[#226380] dark:text-[#A3C3C7] tabular-nums">
-                    {contadoresSemaforo.atencao}
-                  </span>
-                  <span className="block text-[11px] text-slate-400 mt-1 font-sans">
-                    {contadoresSemaforo.atencao === 1 ? 'alerta para cotação e agenda' : 'alertas para cotação e agenda'}
-                  </span>
-                </div>
-              </button>
-
-              {/* 4. Em Dia */}
-              <button
-                type="button"
-                onClick={() => setFiltroNivelConformidade(filtroNivelConformidade === 'regular' ? 'todos' : 'regular')}
-                className={`p-5 sm:p-6 text-left flex flex-col justify-between transition-colors cursor-pointer ${
-                  filtroNivelConformidade === 'regular'
-                    ? 'bg-slate-100 dark:bg-white/10 ring-1 ring-inset ring-slate-400'
-                    : 'hover:bg-slate-50/70 dark:hover:bg-white/5'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-slate-300 font-sans flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#113240] dark:bg-[#A3C3C7]" />
-                    Em Dia
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-500 uppercase font-semibold">&gt; 60 dias</span>
-                </div>
-                <div className="mt-3">
-                  <span className="font-serif text-3xl sm:text-4xl font-light text-slate-950 dark:text-white tabular-nums">
-                    {contadoresSemaforo.regular}
-                  </span>
-                  <span className="block text-[11px] text-slate-400 mt-1 font-sans">
-                    {contadoresSemaforo.regular === 1 ? 'registro canônico regular' : 'registros canônicos regulares'}
-                  </span>
-                </div>
-              </button>
+              ))}
             </div>
 
-            {/* Indicador de Filtro Ativo */}
             {(filtroNivelConformidade !== 'todos' || filtroConformidade !== 'todos') && (
-              <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500 dark:text-slate-400 font-mono">
-                  Filtrado por: <strong className="text-slate-800 dark:text-slate-200">{filtroNivelConformidade !== 'todos' ? `Nível ${filtroNivelConformidade.toUpperCase()}` : 'Todos os Níveis'}</strong> {filtroConformidade !== 'todos' ? `· Categoria: ${filtroConformidade}` : ''}
+              <div className="text-xs text-slate-500 dark:text-slate-400">
+                <span>
+                  Filtros ativos: <strong className="text-slate-800 dark:text-slate-200">{filtroNivelConformidade !== 'todos' ? filtroNivelConformidade : null}</strong>{filtroNivelConformidade !== 'todos' && filtroConformidade !== 'todos' ? ' · ' : ''}<strong className="text-slate-800 dark:text-slate-200">{filtroConformidade !== 'todos' ? filtroConformidade : null}</strong>
                 </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFiltroNivelConformidade('todos');
-                    setFiltroConformidade('todos');
-                  }}
-                  className="text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold hover:underline cursor-pointer"
-                >
-                  Limpar Filtros
-                </button>
               </div>
             )}
 
-            {/* Lista Ledger de Conformidades (Zero AI Card Clutter) */}
+            {/* Lista de conformidades */}
             {conformidadesFiltradas.length === 0 ? (
               <div className="py-12 text-center space-y-2 border border-dashed border-slate-200 dark:border-slate-800 rounded-[6px]">
                 <CheckCircle2 className="w-8 h-8 text-[#226380] dark:text-[#A3C3C7] mx-auto opacity-90" />

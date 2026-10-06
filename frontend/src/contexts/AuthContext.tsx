@@ -160,9 +160,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Modo E2E / Preview para testes de renderização
     if (typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true') {
-      const isReligiosoView = localStorage.getItem('brm_e2e_role') === 'religioso';
+      const previewRole = localStorage.getItem('brm_e2e_role');
       
-      if (isReligiosoView) {
+      if (previewRole === 'patrimonio') {
+        setUser({
+          id: 'e2e-patrimonio',
+          nome: 'Usuário de Patrimônio',
+          email: 'patrimonio@brm.org.br',
+          status: 'Ativo',
+          acessos: ['patrimonio'],
+          isReligioso: false,
+          isAdmin: false,
+        });
+      } else if (previewRole === 'religioso') {
         setUser({
           id: 'e2e-religioso',
           nome: 'Pe. Carlos Eduardo, SCJ',
@@ -248,4 +258,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
