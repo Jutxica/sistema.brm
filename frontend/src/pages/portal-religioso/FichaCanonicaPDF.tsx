@@ -27,7 +27,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
   const [data, setData] = useState<any>(null);
   const [copiado, setCopiado] = useState(false);
   const [orientacao, setOrientacao] = useState<OrientacaoDocumento>('vertical');
-  const isE2E = typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true';
+  const isE2E = import.meta.env.DEV && typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true';
 
   useEffect(() => {
     const carregarDadosFicha = async () => {
@@ -81,25 +81,23 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         let targetId = religiosoId || user?.religiosoId;
 
         if (!targetId && user?.id) {
-          const { data: rel } = await supabase
+          const { data: rel, error } = await supabase
             .from('religiosos')
             .select('id')
-            .or(`auth_user_id.eq.${user.id},email_institucional.eq.${user.email},email_pessoal.eq.${user.email}`)
+            .eq('auth_user_id', user.id)
             .maybeSingle();
+          if (error) throw error;
           if (rel) targetId = rel.id;
         }
 
-        if (!targetId) {
-          const { data: list } = await supabase.from('religiosos').select('id').limit(1);
-          if (list && list.length > 0) targetId = list[0].id;
-        }
-
         if (targetId) {
-          const { data: relRecord } = await supabase
+          const { data: relRecord, error } = await supabase
             .from('religiosos')
             .select('*')
             .eq('id', targetId)
+            .eq('auth_user_id', user?.id || '')
             .maybeSingle();
+          if (error) throw error;
 
           // Buscar votos se houver tabela
           const { data: votos } = await supabase
@@ -196,6 +194,19 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         <span className="text-[12px] font-medium text-[#707070] dark:text-[#86868b] mt-3">
           Gerando Ficha Canônica Oficial...
         </span>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="rounded-[6px] border border-[#d6d6d6] bg-white p-8 text-center">
+        <p className="text-sm text-[#707070]">Não foi encontrada uma ficha vinculada à sua conta.</p>
+        {onBack && (
+          <button type="button" onClick={onBack} className="mt-4 text-sm font-medium text-[#226380] hover:underline">
+            Voltar ao portal
+          </button>
+        )}
       </div>
     );
   }

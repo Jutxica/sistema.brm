@@ -8,7 +8,7 @@ interface ReligiosoResumo {
   id: string;
   nome_civil: string;
   nome_religioso: string | null;
-  grau: string;
+  grau: string | null;
   status: string;
   status_cadastro: string;
   origem_cadastro: string;
@@ -44,7 +44,7 @@ export const ReligiososAdmin: React.FC = () => {
 
   const filtered = useMemo(() => {
     const normalized = query.toLocaleLowerCase();
-    return items.filter(item => [item.nome_civil, item.nome_religioso || '', item.grau, item.email_institucional || ''].join(' ').toLocaleLowerCase().includes(normalized));
+    return items.filter(item => [item.nome_civil, item.nome_religioso || '', item.grau || '', item.email_institucional || ''].join(' ').toLocaleLowerCase().includes(normalized));
   }, [items, query]);
 
   const remove = async (item: ReligiosoResumo) => {
@@ -151,7 +151,7 @@ export const ReligiososAdmin: React.FC = () => {
                           {item.nome_religioso || item.nome_civil}
                         </p>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                          {item.grau} · {item.nome_civil}
+                          {item.grau || 'Grau pendente de classificação'} · {item.nome_civil}
                         </p>
                       </div>
                     </div>

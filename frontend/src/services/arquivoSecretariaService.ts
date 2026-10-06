@@ -94,10 +94,7 @@ export const arquivoSecretariaService = {
   },
 
   async listarProtocolos(): Promise<ProtocoloArquivo[]> {
-    const result = await supabase
-      .from('secretaria_arquivo_protocolos_acesso')
-      .select('*')
-      .order('atualizado_em', { ascending: false });
+    const result = await supabase.rpc('arquivo_listar_protocolos_acesso');
     return unwrap(result) || [];
   },
 

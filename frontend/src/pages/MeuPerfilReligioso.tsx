@@ -44,7 +44,7 @@ interface MeuPerfilProps {
 export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false }) => {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const isE2E = typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true';
+  const isE2E = import.meta.env.DEV && typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true';
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -97,28 +97,23 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
         let targetId = user?.religiosoId;
 
         if (!targetId && user?.id) {
-          const { data: rel } = await supabase
+          const { data: rel, error } = await supabase
             .from('religiosos')
             .select('id')
-            .or(`auth_user_id.eq.${user.id},email_institucional.eq.${user.email},email_pessoal.eq.${user.email}`)
+            .eq('auth_user_id', user.id)
             .maybeSingle();
+          if (error) throw error;
           if (rel) targetId = rel.id;
         }
 
-        if (!targetId && user?.email) {
-          const { data: list } = await supabase
-            .from('religiosos')
-            .select('id')
-            .limit(1);
-          if (list && list.length > 0) targetId = list[0].id;
-        }
-
         if (targetId) {
-          const { data: relRecord } = await supabase
+          const { data: relRecord, error } = await supabase
             .from('religiosos')
             .select('id, nome_civil, nome_religioso, grau, foto_url, comunidade_atual_nome, email_institucional, whatsapp, telefone_celular')
             .eq('id', targetId)
+            .eq('auth_user_id', user?.id || '')
             .maybeSingle();
+          if (error) throw error;
 
           if (relRecord) {
             setForm({
@@ -132,13 +127,11 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
               whatsapp: relRecord.whatsapp || '',
               telefone_celular: relRecord.telefone_celular || ''
             });
+          } else {
+            setErrorMsg('Sua conta ainda não está vinculada a uma ficha da Província. Entre em contato com a Secretaria Provincial.');
           }
-        } else if (user?.email) {
-          setForm(prev => ({
-            ...prev,
-            email_institucional: user.email,
-            nome_civil: user.nome || ''
-          }));
+        } else {
+          setErrorMsg('Sua conta ainda não está vinculada a uma ficha da Província. Entre em contato com a Secretaria Provincial.');
         }
       } catch (err) {
         console.error('Erro ao carregar perfil:', err);
@@ -198,7 +191,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
         return;
       }
 
-      if (form.id) {
+      if (form.id && user?.id) {
         const payload: any = {
           nome_civil: form.nome_civil,
           nome_religioso: form.nome_religioso,
@@ -217,17 +210,21 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
         const { error } = await supabase
           .from('religiosos')
           .update(payload)
-          .eq('id', form.id);
+          .eq('id', form.id)
+          .eq('auth_user_id', user.id);
 
         if (error) {
           // Se falhar por causa da coluna foto_url inexistente, tenta sem foto_url
           if (error.message?.includes('foto_url')) {
             delete payload.foto_url;
-            await supabase.from('religiosos').update(payload).eq('id', form.id);
+            const { error: retryError } = await supabase.from('religiosos').update(payload).eq('id', form.id).eq('auth_user_id', user.id);
+            if (retryError) throw retryError;
           } else {
             throw error;
           }
         }
+      } else {
+        throw new Error('Sua ficha não está vinculada à conta autenticada.');
       }
 
       setSuccessMsg('Perfil atualizado com sucesso! Suas informações de acesso foram sincronizadas.');

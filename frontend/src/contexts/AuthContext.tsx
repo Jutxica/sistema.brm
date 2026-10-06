@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: relData } = await supabase
           .from('religiosos')
           .select('id, nome_civil, nome_religioso, grau, auth_user_id')
-          .or(`auth_user_id.eq.${userId},email_institucional.eq.${email},email_pessoal.eq.${email}`)
+          .eq('auth_user_id', userId)
           .maybeSingle();
 
         if (relData) {
@@ -61,14 +61,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           religiosoGrau = relData.grau;
           isReligioso = true;
 
-          // Se ainda não estava com o auth_user_id gravado, atualiza silenciosamente
-          if (!relData.auth_user_id) {
-            supabase
-              .from('religiosos')
-              .update({ auth_user_id: userId })
-              .eq('id', relData.id)
-              .then(() => {});
-          }
         }
       } catch (relErr) {
         console.warn("Aviso ao buscar vinculo com tabela de religiosos:", relErr);
@@ -159,7 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Modo E2E / Preview para testes de renderização
-    if (typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true') {
+    if (import.meta.env.DEV && typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true') {
       const previewRole = localStorage.getItem('brm_e2e_role');
       
       if (previewRole === 'patrimonio') {

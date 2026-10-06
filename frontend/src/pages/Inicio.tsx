@@ -67,7 +67,7 @@ export const Inicio: React.FC = () => {
       const hospedariaRecentes = (hospedagensRecentes.data || []).map(item => ({
         id: String(item.idhospedagens), nome: item.hos_nome || 'Hóspede sem nome', cidade: item.hos_cidade ? `${item.hos_cidade}${item.hos_estado ? `/${item.hos_estado}` : ''}` : 'Cidade não informada', chegada: item.hos_previsaochegada || item.hos_inscricao, status: item.hos_checkout ? 'Finalizado' : item.hos_checkin ? 'Em hospedagem' : 'Pendente',
       }));
-      const religiososRecentesData = (religiososRecentes.data || []).map(item => ({ id: item.id, nome: item.nome_religioso || item.nome_civil, grau: item.grau, origem: item.origem_cadastro === 'publico' ? 'Site público' : 'Painel Admin', status: item.status_cadastro, data: item.created_at }));
+      const religiososRecentesData = (religiososRecentes.data || []).map(item => ({ id: item.id, nome: item.nome_religioso || item.nome_civil, grau: item.grau || 'Grau pendente', origem: item.origem_cadastro === 'publico' ? 'Site público' : 'Painel Admin', status: item.status_cadastro, data: item.created_at }));
 
       // Process Grau Distribution for Apple Donut
       const grauCounts: Record<string, number> = {

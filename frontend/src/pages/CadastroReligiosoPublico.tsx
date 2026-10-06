@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileUp, Loader2, Plus, Trash2, Printer } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { confirmAction, showToast } from '../hooks/useFeedback';
+import { formatCep, lookupCep } from '../lib/cep';
 
 interface ObraReferencia { id: string; nome: string; localidade: string | null; cidade?: string | null; uf: string | null; diocese?: string | null }
 interface Familiar extends Record<string, string> { tipo: 'Pai' | 'Mãe' | 'Irmão'; nome: string; data_nascimento: string; local_nascimento: string; estado_civil: string; data_evento: string }
@@ -10,7 +11,12 @@ interface Sacrament extends Record<string, string> { tipo: string; data: string;
 interface DocumentoSelecionado { categoria: string; arquivo: File }
 interface DocumentoExistente { id: string; categoria: string; nome_arquivo: string; caminho_storage: string; data_cadastro: string }
 interface ReligiososConfigPublica { ativo: boolean; titulo: string; mensagem_abertura: string; mensagem_fechamento: string; mensagem_confirmacao: string; termos: string; exigir_documentos: boolean; instrucoes_documentos: string }
-interface CadastroReligiosoPublicoProps { adminMode?: boolean }
+interface CadastroReligiosoPublicoProps {
+  adminMode?: boolean;
+  memberMode?: boolean;
+  religiosoId?: string;
+  onSaved?: () => void;
+}
 
 const DRAFT_KEY = 'brm_rascunho_cadastro_religioso_v1';
 
@@ -23,6 +29,7 @@ const fieldLabels: Record<string, string> = {
   grau: 'Grau', nome_civil: 'Nome completo', nome_religioso: 'Nome religioso', data_nascimento: 'Data de nascimento',
   local_nascimento: 'Local de nascimento', municipio_nascimento: 'Município', estado_nascimento: 'Estado', pais_nascimento: 'País',
   nacionalidade: 'Nacionalidade', cpf: 'CPF', rg: 'RG', rg_orgao_expedidor: 'Órgão expedidor', rg_data_emissao: 'Data de emissão do RG',
+  cep: 'CEP', logradouro: 'Logradouro', numero: 'Número', complemento: 'Complemento', bairro: 'Bairro',
   titulo_eleitor: 'Título de eleitor', pis: 'PIS', cnh: 'CNH', cnh_categoria: 'Categoria da CNH', passaporte: 'Passaporte',
   contato_nome: 'Nome do contato', contato_parentesco: 'Parentesco', contato_1: 'Contato 1', contato_2: 'Contato 2',
   paroquia_origem: 'Paróquia de origem', diocese_origem: 'Diocese', grupo_movimento_pastoral: 'Grupo ou movimento pastoral', promotor_vocacional: 'Promotor vocacional',
@@ -53,6 +60,7 @@ export const requiredStep1 = [
 
 export const optionalFields = new Set([
   'nome_religioso', 'titulo_eleitor', 'pis', 'cnh', 'cnh_categoria', 'passaporte',
+  'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado',
   'redes_sociais', 'alergias', 'medicamentos_continuos', 'cirurgias', 'proteses',
   'observacoes_saude', 'observacoes', 'observacao', 'documento', 'contato_2'
 ]);
@@ -83,13 +91,22 @@ export const formatCpf = (value: string): string => {
   return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
 };
 
-export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> = ({ adminMode = false }) => {
+export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> = ({
+  adminMode = false,
+  memberMode = false,
+  religiosoId: religiosoIdProp,
+  onSaved,
+}) => {
   const navigate = useNavigate();
-  const { id: religiosoId } = useParams<{ id: string }>();
+  const { id: routeReligiosoId } = useParams<{ id: string }>();
+  const religiosoId = religiosoIdProp || routeReligiosoId;
   const [step, setStep] = useState(1);
   const [invalidFields, setInvalidFields] = useState<string[]>([]);
   const [obras, setObras] = useState<ObraReferencia[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepError, setCepError] = useState<string | null>(null);
+  const cepRequest = useRef<AbortController | null>(null);
   const ufOptions = Array.from(new Set(obras.map(item => item.uf).filter((value): value is string => Boolean(value)))).sort();
   const localidadeOptions = Array.from(new Set(obras.map(item => item.localidade || item.cidade).filter((value): value is string => Boolean(value)))).sort();
   const dioceseOptions = Array.from(new Set(obras.map(item => item.diocese).filter((value): value is string => Boolean(value)))).sort();
@@ -103,7 +120,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   const [familiares, setFamiliares] = useState<Familiar[]>([emptyFamiliar('Pai'), emptyFamiliar('Mãe')]);
   const [sacramentos, setSacramentos] = useState<Sacrament[]>([emptySacrament('Batismo'), emptySacrament('Primeira Eucaristia'), emptySacrament('Crisma')]);
   const [base, setBase] = useState<Record<string, string>>({
-    grau: 'Padre', nome_civil: '', nome_religioso: '', data_nascimento: '', local_nascimento: '', municipio_nascimento: '', estado_nascimento: '', pais_nascimento: 'Brasil', nacionalidade: 'Brasileira', cpf: '', rg: '', rg_orgao_expedidor: '', rg_data_emissao: '', titulo_eleitor: '', pis: '', cnh: '', cnh_categoria: '', passaporte: '', obra_atual_id: '', comunidade_atual_nome: '', email_institucional: '', email_pessoal: '', telefone_celular: '', whatsapp: '', redes_sociais: '', status: 'Ativo', status_cadastro: 'Aprovado',
+    grau: 'Padre', nome_civil: '', nome_religioso: '', data_nascimento: '', local_nascimento: '', municipio_nascimento: '', estado_nascimento: '', pais_nascimento: 'Brasil', nacionalidade: 'Brasileira', cpf: '', rg: '', rg_orgao_expedidor: '', rg_data_emissao: '', titulo_eleitor: '', pis: '', cnh: '', cnh_categoria: '', passaporte: '', obra_atual_id: '', comunidade_atual_nome: '', cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', email_institucional: '', email_pessoal: '', telefone_celular: '', whatsapp: '', redes_sociais: '', status: 'Ativo', status_cadastro: 'Aprovado',
     contato_nome: '', contato_parentesco: '', contato_1: '', contato_2: '', paroquia_origem: '', diocese_origem: '', grupo_movimento_pastoral: '', promotor_vocacional: '', plano_saude: '', numero_plano_saude: '', local_plano_saude: '', sus: '', tipo_sanguineo: '', fator_rh: '', alergias: '', medicamentos_continuos: '', medico_responsavel: '', contato_emergencia: '', informacoes_clinicas: '', cirurgias: '', proteses: '', observacoes_saude: '', consentimento_dados: '',
   });
   const [rows, setRows] = useState<Record<string, string>[]>([]);
@@ -114,7 +131,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
     const load = async () => {
       const [{ data: obrasData }, { data: religiosoData }, { data: configData }] = await Promise.all([
         supabase.from('religiosos_obras_referencia').select('id,nome,localidade,cidade,uf,diocese').eq('status', 'Ativa').order('nome'),
-        adminMode && religiosoId ? supabase.from('religiosos').select('*').eq('id', religiosoId).maybeSingle() : Promise.resolve({ data: null }),
+        religiosoId ? supabase.from('religiosos').select('*').eq('id', religiosoId).maybeSingle() : Promise.resolve({ data: null }),
         supabase.from('religiosos_configuracoes').select('ativo,titulo,mensagem_abertura,mensagem_fechamento,mensagem_confirmacao,termos,exigir_documentos,instrucoes_documentos').limit(1).maybeSingle(),
       ]);
       setObras((obrasData || []) as ObraReferencia[]);
@@ -158,7 +175,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         const contato = contatoData.data;
         const saude = saudeData.data;
         const endereco = enderecoData.data;
-        setBase(previous => ({ ...previous, ...(contato ? { contato_nome: contato.nome || '', contato_parentesco: contato.parentesco || '', contato_1: contato.contato_1 || '', contato_2: contato.contato_2 || '' } : {}), ...(saude ? Object.fromEntries(Object.entries(saude).filter(([key]) => key in previous).map(([key, value]) => [key, value == null ? '' : String(value)])) : {}), ...(endereco ? { obra_atual_id: endereco.obra_id || previous.obra_atual_id, telefone_celular: endereco.celular || previous.telefone_celular, email_institucional: endereco.email || previous.email_institucional, whatsapp: endereco.whatsapp || previous.whatsapp, redes_sociais: endereco.redes_sociais || previous.redes_sociais } : {}) }));
+        setBase(previous => ({ ...previous, ...(contato ? { contato_nome: contato.nome || '', contato_parentesco: contato.parentesco || '', contato_1: contato.contato_1 || '', contato_2: contato.contato_2 || '' } : {}), ...(saude ? Object.fromEntries(Object.entries(saude).filter(([key]) => key in previous).map(([key, value]) => [key, value == null ? '' : String(value)])) : {}), ...(endereco ? { obra_atual_id: endereco.obra_id || previous.obra_atual_id, cep: endereco.cep || '', logradouro: endereco.logradouro || '', numero: endereco.numero || '', complemento: endereco.complemento || '', bairro: endereco.bairro || '', cidade: endereco.cidade || '', estado: endereco.estado || '', telefone_celular: endereco.celular || previous.telefone_celular, email_institucional: endereco.email || previous.email_institucional, whatsapp: endereco.whatsapp || previous.whatsapp, redes_sociais: endereco.redes_sociais || previous.redes_sociais } : {}) }));
       } else if (!adminMode && !religiosoId) {
         // Restaurar rascunho salvo localmente
         try {
@@ -245,7 +262,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
     setDraftRestored(false);
     setStep(1);
     setBase({
-      grau: 'Padre', nome_civil: '', nome_religioso: '', data_nascimento: '', local_nascimento: '', municipio_nascimento: '', estado_nascimento: '', pais_nascimento: 'Brasil', nacionalidade: 'Brasileira', cpf: '', rg: '', rg_orgao_expedidor: '', rg_data_emissao: '', titulo_eleitor: '', pis: '', cnh: '', cnh_categoria: '', passaporte: '', obra_atual_id: '', comunidade_atual_nome: '', email_institucional: '', email_pessoal: '', telefone_celular: '', whatsapp: '', redes_sociais: '', status: 'Ativo', status_cadastro: 'Aprovado',
+      grau: 'Padre', nome_civil: '', nome_religioso: '', data_nascimento: '', local_nascimento: '', municipio_nascimento: '', estado_nascimento: '', pais_nascimento: 'Brasil', nacionalidade: 'Brasileira', cpf: '', rg: '', rg_orgao_expedidor: '', rg_data_emissao: '', titulo_eleitor: '', pis: '', cnh: '', cnh_categoria: '', passaporte: '', obra_atual_id: '', comunidade_atual_nome: '', cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', email_institucional: '', email_pessoal: '', telefone_celular: '', whatsapp: '', redes_sociais: '', status: 'Ativo', status_cadastro: 'Aprovado',
       contato_nome: '', contato_parentesco: '', contato_1: '', contato_2: '', paroquia_origem: '', diocese_origem: '', grupo_movimento_pastoral: '', promotor_vocacional: '', plano_saude: '', numero_plano_saude: '', local_plano_saude: '', sus: '', tipo_sanguineo: '', fator_rh: '', alergias: '', medicamentos_continuos: '', medico_responsavel: '', contato_emergencia: '', informacoes_clinicas: '', cirurgias: '', proteses: '', observacoes_saude: '', consentimento_dados: '',
     });
     setFamiliares([emptyFamiliar('Pai'), emptyFamiliar('Mãe')]);
@@ -255,12 +272,47 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   };
 
   const updateBase = (field: string, value: string) => {
+    if (field === 'cep') {
+      cepRequest.current?.abort();
+      cepRequest.current = null;
+      setCepLoading(false);
+    }
     setBase(previous => ({ ...previous, [field]: value }));
+    if (field === 'cep') setCepError(null);
     if (invalidFields.includes(field)) {
       setInvalidFields(previous => previous.filter(f => f !== field));
     }
     if (errorMessage) {
       setErrorMessage(null);
+    }
+  };
+  const lookupAddress = async () => {
+    if (!base.cep.trim()) return;
+    cepRequest.current?.abort();
+    const controller = new AbortController();
+    cepRequest.current = controller;
+    setCepLoading(true);
+    setCepError(null);
+    try {
+      const address = await lookupCep(base.cep, controller.signal);
+      if (base.cep.replace(/\D/g, '') !== address.cep.replace(/\D/g, '')) return;
+      setBase(previous => ({
+        ...previous,
+        cep: formatCep(address.cep),
+        logradouro: address.logradouro,
+        complemento: address.complemento || previous.complemento,
+        bairro: address.bairro,
+        cidade: address.localidade,
+        estado: address.uf,
+      }));
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      setCepError(error instanceof Error ? error.message : 'Não foi possível consultar o CEP.');
+    } finally {
+      if (cepRequest.current === controller) {
+        cepRequest.current = null;
+        setCepLoading(false);
+      }
     }
   };
   const updateRow = (index: number, field: string, value: string) => setRows(previous => previous.map((row, rowIndex) => rowIndex === index ? { ...row, [field]: value } : row));
@@ -301,7 +353,8 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
     const family = ['nome', 'data_nascimento', 'local_nascimento', 'estado_civil', 'data_evento'];
     const sacrament = ['data', 'paroquia', 'diocese', 'cidade', 'uf', 'livro', 'folha', 'numero_registro', 'celebrante', 'observacoes'];
     if (step === 1) {
-      const missing = requiredStep1.filter(field => !base[field]?.trim());
+      const requiredFields = memberMode ? requiredStep1.filter(field => field !== 'grau') : requiredStep1;
+      const missing = requiredFields.filter(field => !base[field]?.trim());
       if (missing.length > 0) {
         setInvalidFields(missing);
         const missingLabels = missing.map(f => getFieldLabel(f)).join(', ');
@@ -335,7 +388,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
     setSubmitting(true); setErrorMessage(null);
     try {
       const religiosoPayload = {
-        grau: base.grau, nome_civil: base.nome_civil, nome_religioso: base.nome_religioso || null,
+        grau: base.grau || null, nome_civil: base.nome_civil, nome_religioso: base.nome_religioso || null,
         data_nascimento: base.data_nascimento || null, local_nascimento: base.local_nascimento || null,
         municipio_nascimento: base.municipio_nascimento || null, estado_nascimento: base.estado_nascimento || null,
         pais_nascimento: base.pais_nascimento || null, nacionalidade: base.nacionalidade || null,
@@ -346,8 +399,13 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         comunidade_atual_nome: base.comunidade_atual_nome || null, email_institucional: base.email_institucional || null,
         email_pessoal: base.email_pessoal || null, telefone_celular: base.telefone_celular || null,
         whatsapp: base.whatsapp || null, redes_sociais: base.redes_sociais || null,
-        origem_cadastro: adminMode ? 'admin' : 'publico', status_cadastro: adminMode ? (base.status_cadastro || 'Aprovado') : 'Em revisão', status: adminMode ? (base.status || 'Ativo') : 'Ativo',
-        consentimento_dados: true, consentimento_em: new Date().toISOString(),
+        ...(!memberMode ? {
+          origem_cadastro: adminMode ? 'admin' : 'publico',
+          status_cadastro: adminMode ? (base.status_cadastro || 'Aprovado') : 'Em revisão',
+          status: adminMode ? (base.status || 'Ativo') : 'Ativo',
+          consentimento_dados: true,
+          consentimento_em: new Date().toISOString(),
+        } : {}),
       };
       const parentRequest = religiosoId
         ? await supabase.from('religiosos').update(religiosoPayload).eq('id', religiosoId).select('id').single()
@@ -395,6 +453,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         console.warn('Erro ao limpar rascunho:', e);
       }
       if (adminMode) navigate('/religiosos');
+      else if (memberMode) onSaved?.();
       else setSuccess(true);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Não foi possível enviar o cadastro.');
@@ -560,7 +619,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         {/* Step Contents */}
         {step === 1 && (
           <Section title="1. Identificação Civil e Religiosa">
-            <Fields fields={['grau', 'nome_civil', 'nome_religioso', 'data_nascimento', 'local_nascimento', 'municipio_nascimento', 'estado_nascimento', 'pais_nascimento', 'nacionalidade', 'cpf', 'rg', 'rg_orgao_expedidor', 'rg_data_emissao', 'titulo_eleitor', 'pis', 'cnh', 'cnh_categoria', 'passaporte']} base={base} update={updateBase} invalidFields={invalidFields} selects={{ grau: ['Padre', 'Diácono Transitório', 'Frater (Configuração)', 'Frater (Tirocinante)', 'Irmão', 'Bispo'], estado_nascimento: ufFallback }} />
+            <Fields fields={['grau', 'nome_civil', 'nome_religioso', 'data_nascimento', 'local_nascimento', 'municipio_nascimento', 'estado_nascimento', 'pais_nascimento', 'nacionalidade', 'cpf', 'rg', 'rg_orgao_expedidor', 'rg_data_emissao', 'titulo_eleitor', 'pis', 'cnh', 'cnh_categoria', 'passaporte']} base={base} update={updateBase} invalidFields={invalidFields} readOnlyFields={memberMode ? ['cpf'] : []} optionalOverrides={memberMode ? ['grau'] : []} selects={{ grau: ['Padre', 'Diácono Transitório', 'Frater (Configuração)', 'Frater (Tirocinante)', 'Irmão', 'Bispo'], estado_nascimento: ufFallback }} />
             {adminMode && (
               <div className="mt-6 pt-6 border-t border-[#e5e5ea] dark:border-white/10 grid gap-4 md:grid-cols-2">
                 <Fields fields={['status_cadastro', 'status']} base={base} update={updateBase} selects={{ status_cadastro: ['Em revisão', 'Aprovado', 'Arquivado'], status: ['Ativo', 'Em missão externa', 'Em estudos', 'Emérito (Casa São João)', 'Emérito', 'Falecido', 'Exclaustrado'] }} />
@@ -654,7 +713,11 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
 
         {step === 11 && (
           <Section title="11. Endereço Atual e Contatos">
-            <Fields fields={['obra_atual_id', 'comunidade_atual_nome', 'email_institucional', 'email_pessoal', 'telefone_celular', 'whatsapp', 'redes_sociais']} base={base} update={updateBase} selects={{ obra_atual_id: obras.map(obra => ({ value: obra.id, label: `${obra.nome}${obra.localidade ? ` - ${obra.localidade}/${obra.uf || ''}` : ''}` })), comunidade_atual_nome: localidadeOptions.length ? localidadeOptions : ['Curitiba', 'Joinville', 'Jaraguá do Sul', 'Rio do Sul', 'Brusque', 'Porto Velho'] }} />
+            <Fields fields={['obra_atual_id', 'comunidade_atual_nome', 'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado', 'email_institucional', 'email_pessoal', 'telefone_celular', 'whatsapp', 'redes_sociais']} base={base} update={(field, value) => updateBase(field, field === 'cep' ? formatCep(value) : value)} onBlur={field => { if (field === 'cep') void lookupAddress(); }} readOnlyFields={memberMode ? ['email_institucional', 'email_pessoal'] : []} selects={{ obra_atual_id: obras.map(obra => ({ value: obra.id, label: `${obra.nome}${obra.localidade ? ` - ${obra.localidade}/${obra.uf || ''}` : ''}` })), comunidade_atual_nome: localidadeOptions.length ? localidadeOptions : ['Curitiba', 'Joinville', 'Jaraguá do Sul', 'Rio do Sul', 'Brusque', 'Porto Velho'] }} />
+            {memberMode && <p className="mt-2 text-xs text-[#707070] dark:text-[#86868b]">Para alterar CPF ou e-mail associado ao vínculo, solicite a validação da Secretaria Provincial.</p>}
+            <p className="mt-2 text-xs text-[#707070] dark:text-[#86868b]">Ao sair do campo CEP, consultamos o ViaCEP para preencher logradouro, bairro, cidade e estado. Você pode revisar e corrigir os dados.</p>
+            {cepLoading && <p role="status" className="mt-2 text-xs text-[#226380]">Consultando CEP...</p>}
+            {cepError && <p role="alert" className="mt-2 text-xs text-rose-600">{cepError}</p>}
             <p className="mt-4 text-xs text-[#707070] dark:text-[#86868b] leading-relaxed">A obra selecionada será associada ao endereço atual e seus dados poderão ser completados pela secretaria provincial.</p>
           </Section>
         )}
@@ -787,11 +850,15 @@ const Fields: React.FC<{
   update: (field: string, value: string) => void;
   selects?: Record<string, string[] | { value: string; label: string }[]>;
   invalidFields?: string[];
-}> = ({ fields, base, update, selects = {}, invalidFields = [] }) => (
+  readOnlyFields?: string[];
+  optionalOverrides?: string[];
+  onBlur?: (field: string) => void;
+}> = ({ fields, base, update, selects = {}, invalidFields = [], readOnlyFields = [], optionalOverrides = [], onBlur }) => (
   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
     {fields.map(field => {
-      const isOptional = optionalFields.has(field);
+      const isOptional = optionalFields.has(field) || optionalOverrides.includes(field);
       const isInvalid = invalidFields.includes(field);
+      const isReadOnly = readOnlyFields.includes(field);
       return (
         <label className="space-y-1.5 block" key={field} htmlFor={`input-${field}`}>
           <span className="text-[12px] font-medium text-[#707070] dark:text-[#86868b] flex items-center justify-between">
@@ -807,6 +874,7 @@ const Fields: React.FC<{
               required={!isOptional}
               className={`${inputClass} ${isInvalid ? '!border-rose-500 !ring-rose-500/20 ring-4 focus:!border-rose-500' : ''}`}
               value={base[field] || ''}
+              disabled={isReadOnly}
               onChange={event => update(field, event.target.value)}
             >
               <option value="">Selecione...</option>
@@ -825,8 +893,10 @@ const Fields: React.FC<{
               className={`${inputClass} ${isInvalid ? '!border-rose-500 !ring-rose-500/20 ring-4 focus:!border-rose-500' : ''}`}
               type={field.includes('data') || field === 'inicio' || field === 'fim' ? 'date' : field === 'email' ? 'email' : 'text'}
               value={base[field] || ''}
-              placeholder={field === 'cpf' ? '000.000.000-00' : isOptional ? 'Opcional' : ''}
-              onChange={event => update(field, field === 'cpf' ? formatCpf(event.target.value) : event.target.value)}
+              disabled={isReadOnly}
+              placeholder={field === 'cpf' ? '000.000.000-00' : field === 'cep' ? '00000-000' : isOptional ? 'Opcional' : ''}
+              onChange={event => update(field, field === 'cpf' ? formatCpf(event.target.value) : field === 'cep' ? formatCep(event.target.value) : event.target.value)}
+              onBlur={() => onBlur?.(field)}
             />
           )}
         </label>

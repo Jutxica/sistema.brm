@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import MeuPerfilReligioso from '../MeuPerfilReligioso';
 import AnuarioBRM from '../AnuarioBRM';
-import CadastroReligiosoPublico from '../CadastroReligiosoPublico';
+import CadastroReligiosoPublico, { validateCpf } from '../CadastroReligiosoPublico';
 import FichaCanonicaPDF from './FichaCanonicaPDF';
 import type { DocumentoProvincial, CategoriaDocumento } from '../DocumentosAdmin';
 import type { EventoProvincial } from '../AgendaAdmin';
@@ -19,7 +19,6 @@ import { staggerStyle } from '../../hooks/useMotion';
 import { FormularioTimbrado } from '../../components/FormularioTimbrado';
 import { LeitorDocumentoModal } from '../../components/LeitorDocumentoModal';
 import { downloadArquivo } from '../../lib/downloadHelper';
-import { SEED_FORMULARIOS } from '../SecretariaConfiguracoes';
 import type { FormularioSecretaria, RespostaFormulario } from '../SecretariaConfiguracoes';
 import { showToast } from '../../hooks/useFeedback';
 
@@ -48,6 +47,10 @@ export const PortalReligioso: React.FC = () => {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
+  const [recoveryMode, setRecoveryMode] = useState(false);
+  const [recoveryPassword, setRecoveryPassword] = useState('');
+  const [consentAccepted, setConsentAccepted] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   // Active View inside Member Area: 'inicio' | 'perfil' | 'inscricao' | 'ficha-pdf' | 'calendario' | 'documentos' | 'anuario' | 'hospedagem'
   const [activeSection, setActiveSection] = useState<'inicio' | 'perfil' | 'inscricao' | 'ficha-pdf' | 'calendario' | 'documentos' | 'anuario' | 'hospedagem'>('inicio');
@@ -59,6 +62,7 @@ export const PortalReligioso: React.FC = () => {
   // Documentos Oficiais da Província BRM
   const [documentos, setDocumentos] = useState<DocumentoProvincial[]>([]);
   const [loadingDocumentos, setLoadingDocumentos] = useState(false);
+  const [documentosError, setDocumentosError] = useState(false);
   const [docSearch, setDocSearch] = useState('');
   const [docCategoria, setDocCategoria] = useState<string>('Todas');
   const [documentoLeitura, setDocumentoLeitura] = useState<DocumentoProvincial | null>(null);
@@ -66,23 +70,23 @@ export const PortalReligioso: React.FC = () => {
   // Agenda & Eventos da Província BRM
   const [eventos, setEventos] = useState<EventoProvincial[]>([]);
   const [loadingEventos, setLoadingEventos] = useState(false);
+  const [eventosError, setEventosError] = useState(false);
   const [eventoFiltroTipo, setEventoFiltroTipo] = useState<string>('Todos');
   const [eventoSearch, setEventoSearch] = useState('');
 
   // Formulários & Inscrições Canônicas da Secretaria
   const [formulariosSecretaria, setFormulariosSecretaria] = useState<FormularioSecretaria[]>([]);
+  const [formulariosError, setFormulariosError] = useState(false);
   const [respostasInscricoes, setRespostasInscricoes] = useState<RespostaFormulario[]>([]);
   const [eventoInscricaoModal, setEventoInscricaoModal] = useState<EventoProvincial | null>(null);
   const [formularioInscricaoAtivo, setFormularioInscricaoAtivo] = useState<FormularioSecretaria | null>(null);
   const [salvandoInscricao, setSalvandoInscricao] = useState(false);
 
   // Registration State
-  const [regGrau, setRegGrau] = useState('Padre');
   const [regNomeCivil, setRegNomeCivil] = useState('');
-  const [regNomeReligioso, setRegNomeReligioso] = useState('');
   const [regCpf, setRegCpf] = useState('');
+  const [regDataNascimento, setRegDataNascimento] = useState('');
   const [regEmail, setRegEmail] = useState('');
-  const [regTelefone, setRegTelefone] = useState('');
   const [regSenha, setRegSenha] = useState('');
   const [regConfirmarSenha, setRegConfirmarSenha] = useState('');
 
@@ -95,7 +99,7 @@ export const PortalReligioso: React.FC = () => {
   const [loadingProfile, setLoadingProfile] = useState(false);
 
   // E2E Preview Mode for Member Portal
-  const isE2E = typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true';
+  const isE2E = import.meta.env.DEV && typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true';
 
   // Helper CPF
   const formatCpf = (val: string) => {
@@ -110,6 +114,7 @@ export const PortalReligioso: React.FC = () => {
   const loadMemberData = async () => {
     if (!user && !isE2E) return;
     setLoadingProfile(true);
+    setProfileError(null);
 
     try {
       if (isE2E) {
@@ -125,17 +130,27 @@ export const PortalReligioso: React.FC = () => {
         return;
       }
 
-      const { data } = await supabase
+      const { data: linkedId, error: linkError } = await supabase.rpc('ensure_religious_portal_profile');
+      if (linkError) throw linkError;
+
+      const { data, error } = await supabase
         .from('religiosos')
         .select('*')
-        .or(`auth_user_id.eq.${user?.id},email_institucional.eq.${user?.email},email_pessoal.eq.${user?.email}`)
-        .maybeSingle();
+        .eq('id', linkedId)
+        .eq('auth_user_id', user?.id)
+        .single();
+      if (error) throw error;
 
       if (data) {
         setReligiosoData(data);
+        await refreshUserProfile?.(user!.id);
       }
     } catch (err) {
       console.error(err);
+      setReligiosoData(null);
+      setProfileError(err instanceof Error
+        ? err.message
+        : 'Não foi possível localizar seu cadastro. Entre em contato com a Secretaria Provincial.');
     } finally {
       setLoadingProfile(false);
     }
@@ -186,97 +201,13 @@ export const PortalReligioso: React.FC = () => {
           .eq('status', 'Ativo')
           .order('data_documento', { ascending: false });
 
-        if (error || !data || data.length === 0) {
-          const saved = localStorage.getItem('brm_documentos_provinciais_v1');
-          if (saved) {
-            const parsed = JSON.parse(saved).filter((d: any) => d.status === 'Ativo');
-            setDocumentos(parsed);
-          } else {
-            setDocumentos([
-              {
-                id: 'doc-seed-1',
-                titulo: 'Diretório Provincial da Província Brasil Meridional - Edição Atualizada',
-                categoria: 'Diretórios',
-                numero_referencia: 'Dir. BRM 2026',
-                data_documento: '2026-01-15',
-                arquivo_nome: 'Diretorio_Provincial_BRM_2026.pdf',
-                arquivo_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-                arquivo_tamanho_bytes: 2450000,
-                mime_type: 'application/pdf',
-                descricao: 'Texto oficial com normas canônicas de vida comunitária, administração e governo da Província BRM.',
-                publicado_por: 'Secretaria Provincial',
-                status: 'Ativo',
-                created_at: new Date('2026-01-15').toISOString()
-              },
-              {
-                id: 'doc-seed-2',
-                titulo: 'Nomeações e Transferências Canônicas para o Triênio 2026-2028',
-                categoria: 'Transferências',
-                numero_referencia: 'Prot. 03/2026',
-                data_documento: '2026-02-01',
-                arquivo_nome: 'Nomeacoes_Transferencias_BRM_2026.pdf',
-                arquivo_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-                arquivo_tamanho_bytes: 1150000,
-                mime_type: 'application/pdf',
-                descricao: 'Decreto do Superior Provincial com o remanejamento dos confrades nas comunidades e paróquias.',
-                publicado_por: 'Secretaria Provincial',
-                status: 'Ativo',
-                created_at: new Date('2026-02-01').toISOString()
-              },
-              {
-                id: 'doc-seed-3',
-                titulo: 'Circular nº 01/2026: Orientações para a Quaresma e Ano Jubilar',
-                categoria: 'Comunicados',
-                numero_referencia: 'Circ. 01/2026',
-                data_documento: '2026-02-18',
-                arquivo_nome: 'Circular_01_2026_Quaresma_Jubileu.pdf',
-                arquivo_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-                arquivo_tamanho_bytes: 890000,
-                mime_type: 'application/pdf',
-                descricao: 'Mensagem do Governo Provincial a todas as comunidades sobre vivência fraterna e oração.',
-                publicado_por: 'Secretaria Provincial',
-                status: 'Ativo',
-                created_at: new Date('2026-02-18').toISOString()
-              },
-              {
-                id: 'doc-seed-4',
-                titulo: 'Protocolo de Gestão Documental e Arquivística Paroquial',
-                categoria: 'Protocolos',
-                numero_referencia: 'Prot. 07/2026',
-                data_documento: '2026-03-02',
-                arquivo_nome: 'Protocolo_Gestao_Documental_BRM.pdf',
-                arquivo_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-                arquivo_tamanho_bytes: 1450000,
-                mime_type: 'application/pdf',
-                descricao: 'Diretrizes canônicas para organização dos livros de tombo, batismos e arquivos patrimoniais.',
-                publicado_por: 'Secretaria Provincial',
-                status: 'Ativo',
-                created_at: new Date('2026-03-02').toISOString()
-              },
-              {
-                id: 'doc-seed-5',
-                titulo: 'Subsídio de Oração e Hora Santa Dehoniana - Mês do Sagrado Coração',
-                categoria: 'Formação & Subsídios',
-                numero_referencia: 'Subs. 02/2026',
-                data_documento: '2026-03-10',
-                arquivo_nome: 'Subsidio_Hora_Santa_Dehoniana_2026.pdf',
-                arquivo_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-                arquivo_tamanho_bytes: 1820000,
-                mime_type: 'application/pdf',
-                descricao: 'Roteiro litúrgico para a Hora Santa semanal nas comunidades formativas e religiosas da BRM.',
-                publicado_por: 'Secretaria Provincial',
-                status: 'Ativo',
-                created_at: new Date('2026-03-10').toISOString()
-              }
-            ]);
-          }
-        } else {
-          setDocumentos(data as DocumentoProvincial[]);
-        }
+        if (error) throw error;
+        setDocumentos((data || []) as DocumentoProvincial[]);
+        setDocumentosError(false);
       } catch (err) {
         console.warn('Erro ao carregar documentos:', err);
-        const saved = localStorage.getItem('brm_documentos_provinciais_v1');
-        if (saved) setDocumentos(JSON.parse(saved));
+        setDocumentos([]);
+        setDocumentosError(true);
       } finally {
         setLoadingDocumentos(false);
       }
@@ -291,169 +222,37 @@ export const PortalReligioso: React.FC = () => {
           .neq('status', 'Cancelado')
           .order('data_inicio', { ascending: true });
 
-        if (error || !data || data.length === 0) {
-          const saved = localStorage.getItem('brm_eventos_provinciais_v1');
-          if (saved) {
-            setEventos(JSON.parse(saved));
-          } else {
-            setEventos([
-              {
-                id: 'evt-1',
-                titulo: 'Retiro Provincial dos Presbíteros (Turma I)',
-                tipo: 'Retiro',
-                data_inicio: '2026-03-14',
-                data_fim: '2026-03-18',
-                horario: '08:00',
-                local: 'Casa Padre Dehon',
-                cidade: 'Brusque',
-                uf: 'SC',
-                descricao: 'Retiro anual de espiritualidade dehoniana para a primeira turma de presbíteros da Província BRM.',
-                publico_alvo: 'Presbíteros',
-                status: 'Confirmado',
-                exige_inscricao: true,
-                formulario_id: 'form-retiro-presbiteros-2026',
-                limite_vagas: 60,
-                created_at: new Date('2026-01-10').toISOString()
-              },
-              {
-                id: 'evt-2',
-                titulo: 'Reunião Ordinária do Conselho Provincial',
-                tipo: 'Reunião',
-                data_inicio: '2026-04-15',
-                data_fim: null,
-                horario: '09:00',
-                local: 'Sede Provincial',
-                cidade: 'Curitiba',
-                uf: 'PR',
-                descricao: 'Sessão com o Superior Provincial e Conselheiros para avaliação pastoral e atos canônicos.',
-                publico_alvo: 'Governo Provincial',
-                status: 'Confirmado',
-                created_at: new Date('2026-01-10').toISOString()
-              },
-              {
-                id: 'evt-3',
-                titulo: 'Encontro dos Fratres da Etapa de Configuração (Teologia)',
-                tipo: 'Encontro',
-                data_inicio: '2026-05-22',
-                data_fim: '2026-05-24',
-                horario: '14:00',
-                local: 'Seminário SCJ',
-                cidade: 'Corupá',
-                uf: 'SC',
-                descricao: 'Convivência vocacional, partilha pastoral e aprofundamento do carisma do Pe. Dehon.',
-                publico_alvo: 'Fratres',
-                status: 'Confirmado',
-                exige_inscricao: true,
-                formulario_id: 'form-encontro-fratres-2026',
-                limite_vagas: 30,
-                created_at: new Date('2026-01-10').toISOString()
-              },
-              {
-                id: 'evt-4',
-                titulo: 'Solenidade do Sagrado Coração de Jesus (Festa Patronal SCJ)',
-                tipo: 'Celebração / Solenidade',
-                data_inicio: '2026-06-19',
-                data_fim: null,
-                horario: '19:00',
-                local: 'Todas as Comunidades da Província',
-                cidade: 'Curitiba',
-                uf: 'PR',
-                descricao: 'Festa titular da Congregação com renovação comunitária dos votos e adoração reparadora.',
-                publico_alvo: 'Toda a Província',
-                status: 'Confirmado',
-                created_at: new Date('2026-01-10').toISOString()
-              },
-              {
-                id: 'evt-5',
-                titulo: 'Memória do Venerável Pe. Leão João Dehon',
-                tipo: 'Celebração / Solenidade',
-                data_inicio: '2026-08-12',
-                data_fim: null,
-                horario: '19:30',
-                local: 'Todas as Paróquias e Casas da Província',
-                cidade: 'Curitiba',
-                uf: 'PR',
-                descricao: 'Celebração eucarística em honra ao nosso fundador com súplica pela beatificação.',
-                publico_alvo: 'Toda a Província',
-                status: 'Confirmado',
-                created_at: new Date('2026-01-10').toISOString()
-              },
-              {
-                id: 'evt-6',
-                titulo: 'Assembleia Provincial Ordinária 2026',
-                tipo: 'Assembleia',
-                data_inicio: '2026-10-05',
-                data_fim: '2026-10-09',
-                horario: '08:30',
-                local: 'Seminário São José',
-                cidade: 'Rio Negrinho',
-                uf: 'SC',
-                descricao: 'Assembleia anual com a presença de todos os confrades perpétuos e temporários para planejamento e avaliação pastoral.',
-                publico_alvo: 'Toda a Província',
-                status: 'Confirmado',
-                created_at: new Date('2026-01-10').toISOString()
-              }
-            ]);
-          }
-        } else {
-          setEventos(data as EventoProvincial[]);
-        }
+        if (error) throw error;
+        setEventos((data || []) as EventoProvincial[]);
+        setEventosError(false);
       } catch (err) {
         console.warn('Erro ao carregar eventos:', err);
-        const saved = localStorage.getItem('brm_eventos_provinciais_v1');
-        if (saved) setEventos(JSON.parse(saved));
+        setEventos([]);
+        setEventosError(true);
       } finally {
         setLoadingEventos(false);
       }
     };
 
     const fetchFormulariosERespostas = async () => {
-      let formsCarregados: FormularioSecretaria[] = [];
       try {
-        const { data: fData } = await supabase.from('secretaria_formularios').select('*');
-        if (fData && fData.length > 0) {
-          formsCarregados = fData as FormularioSecretaria[];
-        } else {
-          const savedForms = localStorage.getItem('brm_secretaria_formularios_v1');
-          if (savedForms) {
-            const parsed = JSON.parse(savedForms);
-            if (Array.isArray(parsed) && parsed.length > 0) formsCarregados = parsed;
-          }
-        }
-      } catch {
-        const savedForms = localStorage.getItem('brm_secretaria_formularios_v1');
-        if (savedForms) {
-          try {
-            const parsed = JSON.parse(savedForms);
-            if (Array.isArray(parsed) && parsed.length > 0) formsCarregados = parsed;
-          } catch {
-            // ignore
-          }
-        }
+        const { data: forms, error: formsQueryError } = await supabase.from('secretaria_formularios').select('*');
+        if (formsQueryError) throw formsQueryError;
+        setFormulariosSecretaria((forms || []) as FormularioSecretaria[]);
+        setFormulariosError(false);
+      } catch (error) {
+        console.error('Erro ao carregar formulários de inscrição:', error);
+        setFormulariosSecretaria([]);
+        setFormulariosError(true);
       }
 
-      if (formsCarregados.length === 0) {
-        formsCarregados = SEED_FORMULARIOS;
-      }
-      setFormulariosSecretaria(formsCarregados);
-
       try {
-        const { data: rData } = await supabase.from('secretaria_respostas_formulario').select('*');
-        if (rData && Array.isArray(rData)) {
-          setRespostasInscricoes(rData as RespostaFormulario[]);
-        } else {
-          const savedResp = localStorage.getItem('brm_secretaria_respostas_v1');
-          if (savedResp) setRespostasInscricoes(JSON.parse(savedResp));
-        }
-      } catch {
-        const savedResp = localStorage.getItem('brm_secretaria_respostas_v1');
-        if (savedResp) {
-          try {
-            setRespostasInscricoes(JSON.parse(savedResp));
-          } catch {
-            setRespostasInscricoes([]);
-          }
-        }
+        const { data: responses, error: responsesError } = await supabase.from('secretaria_respostas_formulario').select('*');
+        if (responsesError) throw responsesError;
+        setRespostasInscricoes((responses || []) as RespostaFormulario[]);
+      } catch (error) {
+        console.error('Erro ao carregar inscrições do portal:', error);
+        setRespostasInscricoes([]);
       }
     };
 
@@ -466,7 +265,14 @@ export const PortalReligioso: React.FC = () => {
     if (user || isE2E) {
       loadMemberData();
     }
-  }, [user]);
+  }, [user?.id]);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(event => {
+      if (event === 'PASSWORD_RECOVERY') setRecoveryMode(true);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Fechar dropdown ao clicar fora
   useEffect(() => {
@@ -480,11 +286,7 @@ export const PortalReligioso: React.FC = () => {
   }, []);
 
   // Verificar se já possui dados cadastrais completos ou primeiro acesso
-  const hasCompletedRegistration = Boolean(
-    religiosoData?.cpf || 
-    (religiosoData?.status_cadastro && religiosoData.status_cadastro !== 'Pendente') || 
-    isE2E
-  );
+  const hasCompletedRegistration = Boolean(religiosoData?.id || isE2E);
   const registrationMenuLabel = hasCompletedRegistration ? 'Atualizar Dados' : 'Cadastro BRM';
 
   const CATEGORIAS_OFICIAIS: CategoriaDocumento[] = [
@@ -574,23 +376,10 @@ export const PortalReligioso: React.FC = () => {
     setAuthSuccess(null);
 
     try {
-      let targetEmail = identificador.trim();
-      const cleanDigits = identificador.replace(/\D/g, '');
-
-      if (!identificador.includes('@') && cleanDigits.length === 11) {
-        const { data: rel } = await supabase
-          .from('religiosos')
-          .select('email_institucional, email_pessoal')
-          .or(`cpf.eq.${cleanDigits},cpf.eq.${formatCpf(cleanDigits)}`)
-          .maybeSingle();
-
-        if (rel && (rel.email_institucional || rel.email_pessoal)) {
-          targetEmail = (rel.email_institucional || rel.email_pessoal)!.trim();
-        } else {
-          setAuthError('CPF não localizado nos registros da Província. Se for seu primeiro acesso, clique em "Criar Conta".');
-          setAuthLoading(false);
-          return;
-        }
+      const targetEmail = identificador.trim().toLowerCase();
+      if (!targetEmail.includes('@')) {
+        setAuthError('Use o e-mail confirmado da sua conta para entrar. O CPF não é usado como identificador de login.');
+        return;
       }
 
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -600,15 +389,15 @@ export const PortalReligioso: React.FC = () => {
 
       if (error) {
         setAuthError(error.message === 'Invalid login credentials' 
-          ? 'Credenciais inválidas. Verifique seu CPF/e-mail e senha.' 
+          ? 'Credenciais inválidas. Verifique seu e-mail e senha.'
           : error.message);
       } else if (data.session) {
-        if (refreshUserProfile) await refreshUserProfile(data.session.user.id);
+        await refreshUserProfile(data.session.user.id);
         setActiveSection('inicio');
       }
     } catch (err) {
       console.error(err);
-      setAuthError('Erro ao conectar com o servidor.');
+      setAuthError(err instanceof Error ? err.message : 'Erro ao conectar com o servidor.');
     } finally {
       setAuthLoading(false);
     }
@@ -622,8 +411,20 @@ export const PortalReligioso: React.FC = () => {
     setAuthSuccess(null);
 
     const cleanCpf = regCpf.replace(/\D/g, '');
-    if (cleanCpf.length !== 11) {
-      setAuthError('Por favor, informe um CPF válido com 11 dígitos.');
+    if (!validateCpf(cleanCpf)) {
+      setAuthError('CPF inválido. Confira os 11 dígitos verificadores.');
+      setAuthLoading(false);
+      return;
+    }
+
+    if (!consentAccepted) {
+      setAuthError('Confirme a autorização para uso dos dados do cadastro conforme a Política de Privacidade.');
+      setAuthLoading(false);
+      return;
+    }
+
+    if (!regDataNascimento || regDataNascimento >= new Date().toISOString().slice(0, 10)) {
+      setAuthError('Informe uma data de nascimento válida.');
       setAuthLoading(false);
       return;
     }
@@ -645,10 +446,12 @@ export const PortalReligioso: React.FC = () => {
         email: regEmail.trim().toLowerCase(),
         password: regSenha,
         options: {
+          emailRedirectTo: `${window.location.origin}/portal-religioso`,
           data: {
-            nome: regNomeReligioso || regNomeCivil,
+            nome: regNomeCivil.trim(),
             cpf: cleanCpf,
-            grau: regGrau,
+            data_nascimento: regDataNascimento,
+            consentimento_dados: 'true',
           }
         }
       });
@@ -661,63 +464,64 @@ export const PortalReligioso: React.FC = () => {
         return;
       }
 
-      const authUserId = authData.user?.id;
-
-      // Vinculação com a tabela religiosos
-      const { data: existingRel } = await supabase
-        .from('religiosos')
-        .select('id')
-        .or(`cpf.eq.${cleanCpf},cpf.eq.${regCpf}`)
-        .maybeSingle();
-
-      if (existingRel && authUserId) {
-        await supabase
-          .from('religiosos')
-          .update({
-            auth_user_id: authUserId,
-            email_institucional: regEmail.trim().toLowerCase(),
-            telefone_celular: regTelefone || undefined,
-          })
-          .eq('id', existingRel.id);
+      if (authData.session && authData.user) {
+        const { error: linkError } = await supabase.rpc('ensure_religious_portal_profile');
+        if (linkError) throw linkError;
+        await refreshUserProfile(authData.user.id);
+        setAuthSuccess('Conta criada e cadastro vinculado. Você já pode acessar o portal.');
       } else {
-        await supabase
-          .from('religiosos')
-          .insert({
-            auth_user_id: authUserId || null,
-            grau: regGrau,
-            nome_civil: regNomeCivil.trim(),
-            nome_religioso: regNomeReligioso.trim() || null,
-            cpf: cleanCpf,
-            email_institucional: regEmail.trim().toLowerCase(),
-            telefone_celular: regTelefone.trim() || null,
-            origem_cadastro: 'publico',
-            status_cadastro: 'Em revisão',
-            status: 'Ativo',
-            consentimento_dados: true,
-            consentimento_em: new Date().toISOString(),
-          });
+        setAuthSuccess('Conta criada. Enviamos um link de confirmação para seu e-mail. Confirme-o e depois entre com seu e-mail e senha. A ficha ficará sujeita à validação da Secretaria Provincial.');
       }
-
-      // Conceder papel de membro
-      if (authUserId) {
-        await supabase
-          .from('usuarios')
-          .upsert({
-            auth_user_id: authUserId,
-            usu_nome: regNomeReligioso || regNomeCivil,
-            usu_email: regEmail.trim().toLowerCase(),
-            usu_status: 'Ativo',
-            usu_acessos: JSON.stringify(['religioso', 'portal']),
-          }, { onConflict: 'auth_user_id' });
-      }
-
-      setAuthSuccess('Conta criada com sucesso! Faça login com seu CPF ou e-mail.');
       setAuthMode('login');
-      setIdentificador(regCpf || regEmail);
-      setSenha(regSenha);
+      setIdentificador(regEmail.trim().toLowerCase());
+      setSenha('');
     } catch (err: any) {
       console.error(err);
-      setAuthError(err.message || 'Falha ao registrar conta de religioso.');
+      setAuthError(err instanceof Error ? err.message : 'Falha ao registrar conta de religioso.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handlePasswordRecovery = async () => {
+    const email = identificador.trim().toLowerCase();
+    if (!email.includes('@')) {
+      setAuthError('Informe o e-mail da sua conta para receber o link de recuperação.');
+      return;
+    }
+    setAuthLoading(true);
+    setAuthError(null);
+    setAuthSuccess(null);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/portal-religioso`,
+      });
+      if (error) throw error;
+      setAuthSuccess('Se houver uma conta para este e-mail, enviaremos as instruções de recuperação.');
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Não foi possível solicitar a recuperação da senha.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handlePasswordUpdate = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (recoveryPassword.length < 6) {
+      setAuthError('A senha deve possuir no mínimo 6 caracteres.');
+      return;
+    }
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: recoveryPassword });
+      if (error) throw error;
+      setRecoveryMode(false);
+      setRecoveryPassword('');
+      setAuthSuccess('Senha atualizada. Você já pode acessar o portal com a nova senha.');
+      showToast.success('Senha atualizada com sucesso.');
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Não foi possível atualizar a senha.');
     } finally {
       setAuthLoading(false);
     }
@@ -803,11 +607,28 @@ export const PortalReligioso: React.FC = () => {
             )}
 
             {/* FORM LOGIN */}
-            {authMode === 'login' ? (
+            {recoveryMode ? (
+              <form onSubmit={handlePasswordUpdate} className="space-y-4">
+                <label className="block text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
+                  Nova senha
+                  <input
+                    type="password"
+                    minLength={6}
+                    required
+                    value={recoveryPassword}
+                    onChange={event => setRecoveryPassword(event.target.value)}
+                    className="mt-2 w-full px-4 py-3 bg-[#f5f5f7] dark:bg-[#262628] rounded-[14px] border border-transparent focus:border-[#0071e3] outline-none"
+                  />
+                </label>
+                <button type="submit" disabled={authLoading} className="w-full py-3 rounded-full bg-[#0071e3] text-white font-medium disabled:opacity-50">
+                  Atualizar senha
+                </button>
+              </form>
+            ) : authMode === 'login' ? (
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block">
-                    CPF ou E-mail Institucional
+                    E-mail da conta
                   </label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-[#707070] dark:text-[#86868b] pointer-events-none">
@@ -817,14 +638,8 @@ export const PortalReligioso: React.FC = () => {
                       type="text"
                       required
                       value={identificador}
-                      onChange={(e) => {
-                        if (/^\d+$/.test(e.target.value.replace(/\D/g, '')) && !e.target.value.includes('@')) {
-                          setIdentificador(formatCpf(e.target.value));
-                        } else {
-                          setIdentificador(e.target.value);
-                        }
-                      }}
-                      placeholder="000.000.000-00 ou confrade@brm.org.br"
+                      onChange={(e) => setIdentificador(e.target.value)}
+                      placeholder="confrade@brm.org.br"
                       className="w-full pl-10 pr-4 py-3 bg-[#f5f5f7] dark:bg-[#262628] hover:bg-[#efeff2] dark:hover:bg-[#2d2d30] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
                     />
                   </div>
@@ -835,12 +650,13 @@ export const PortalReligioso: React.FC = () => {
                     <label className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block">
                       Senha
                     </label>
-                    <a 
-                      href="#" 
+                    <button
+                      type="button"
+                      onClick={() => void handlePasswordRecovery()}
                       className="text-[13px] text-[#0066cc] dark:text-[#2997ff] hover:underline font-normal transition-colors"
                     >
                       Esqueceu a senha?
-                    </a>
+                    </button>
                   </div>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-[#707070] dark:text-[#86868b] pointer-events-none">
@@ -880,17 +696,19 @@ export const PortalReligioso: React.FC = () => {
                     )}
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      localStorage.setItem('brm_e2e_preview', 'true');
-                      localStorage.setItem('brm_e2e_role', 'religioso');
-                      window.location.reload();
-                    }}
-                    className="w-full mt-2.5 py-2.5 px-4 rounded-full bg-[#f5f5f7] dark:bg-[#262628] hover:bg-[#ebebed] dark:hover:bg-[#303033] text-[#0071e3] dark:text-[#2997ff] text-xs font-semibold transition-all cursor-pointer border border-[#0071e3]/30 flex items-center justify-center gap-2"
-                  >
-                    <span>Acesso Rápido de Confrade (Demonstração)</span>
-                  </button>
+                  {import.meta.env.DEV && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        localStorage.setItem('brm_e2e_preview', 'true');
+                        localStorage.setItem('brm_e2e_role', 'religioso');
+                        window.location.reload();
+                      }}
+                      className="w-full mt-2.5 py-2.5 px-4 rounded-full bg-[#f5f5f7] dark:bg-[#262628] hover:bg-[#ebebed] dark:hover:bg-[#303033] text-[#0071e3] dark:text-[#2997ff] text-xs font-semibold transition-all cursor-pointer border border-[#0071e3]/30 flex items-center justify-center gap-2"
+                    >
+                      <span>Acesso Rápido de Confrade (Demonstração)</span>
+                    </button>
+                  )}
                 </div>
               </form>
             ) : (
@@ -898,45 +716,15 @@ export const PortalReligioso: React.FC = () => {
               <form onSubmit={handleRegister} className="space-y-3.5">
                 <div>
                   <label className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
-                    Grau Canônico *
-                  </label>
-                  <select
-                    value={regGrau}
-                    onChange={(e) => setRegGrau(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] rounded-[14px] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
-                  >
-                    <option value="Padre">Padre (Presbítero)</option>
-                    <option value="Diácono">Diácono Transitório</option>
-                    <option value="Frater">Fráter (Configuração / Teologia)</option>
-                    <option value="Frater">Fráter (Tirocinante)</option>
-                    <option value="Irmão">Irmão Religioso</option>
-                    <option value="Bispo">Bispo</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
-                    Nome Civil Completo *
+                    Nome completo *
                   </label>
                   <input
                     type="text"
                     required
                     value={regNomeCivil}
                     onChange={(e) => setRegNomeCivil(e.target.value)}
-                    placeholder="Nome civil de certidão"
-                    className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
-                    Nome Religioso (Opcional)
-                  </label>
-                  <input
-                    type="text"
-                    value={regNomeReligioso}
-                    onChange={(e) => setRegNomeReligioso(e.target.value)}
-                    placeholder="Como é conhecido (ex: Pe. Carlos)"
+                    autoComplete="name"
+                    placeholder="Seu nome completo"
                     className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
                   />
                 </div>
@@ -958,13 +746,14 @@ export const PortalReligioso: React.FC = () => {
                   </div>
                   <div>
                     <label className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
-                      Celular / WhatsApp
+                      Data de nascimento *
                     </label>
                     <input
-                      type="text"
-                      value={regTelefone}
-                      onChange={(e) => setRegTelefone(e.target.value)}
-                      placeholder="(00) 00000-0000"
+                      type="date"
+                      required
+                      max={new Date().toISOString().slice(0, 10)}
+                      value={regDataNascimento}
+                      onChange={(e) => setRegDataNascimento(e.target.value)}
                       className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
                     />
                   </div>
@@ -972,14 +761,15 @@ export const PortalReligioso: React.FC = () => {
 
                 <div>
                   <label className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
-                    E-mail Institucional ou Pessoal *
+                    E-mail *
                   </label>
                   <input
                     type="email"
                     required
                     value={regEmail}
                     onChange={(e) => setRegEmail(e.target.value)}
-                    placeholder="seu.email@brm.org.br"
+                    autoComplete="email"
+                    placeholder="seu@email.com"
                     className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
                   />
                 </div>
@@ -992,7 +782,9 @@ export const PortalReligioso: React.FC = () => {
                     <input
                       type="password"
                       required
-                      value={regSenha}
+                        minLength={6}
+                        autoComplete="new-password"
+                        value={regSenha}
                       onChange={(e) => setRegSenha(e.target.value)}
                       placeholder="Mínimo 6 dígitos"
                       className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
@@ -1005,13 +797,29 @@ export const PortalReligioso: React.FC = () => {
                     <input
                       type="password"
                       required
-                      value={regConfirmarSenha}
+                        minLength={6}
+                        autoComplete="new-password"
+                        value={regConfirmarSenha}
                       onChange={(e) => setRegConfirmarSenha(e.target.value)}
                       placeholder="Repita a senha"
                       className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
                     />
                   </div>
                 </div>
+
+                <label className="flex items-start gap-2.5 text-xs leading-relaxed text-[#707070] dark:text-[#a1a1a6]">
+                  <input
+                    type="checkbox"
+                    checked={consentAccepted}
+                    onChange={event => setConsentAccepted(event.target.checked)}
+                    className="mt-0.5 accent-[#226380]"
+                  />
+                  <span>Autorizo o uso destes dados para localizar e manter minha ficha institucional, conforme a Política de Privacidade e a LGPD. O CPF não é prova de identidade.</span>
+                </label>
+
+                <p className="text-xs leading-relaxed text-[#707070] dark:text-[#86868b]">
+                  Enviaremos um link para confirmar seu e-mail. Depois da confirmação, você poderá entrar com sua senha. A Secretaria confere os dados antes de validar sua ficha.
+                </p>
 
                 <div className="pt-2">
                   <button
@@ -1137,20 +945,15 @@ export const PortalReligioso: React.FC = () => {
                   created_at: new Date().toISOString()
                 };
 
-                try {
-                  await supabase.from('secretaria_respostas_formulario').insert([novaResp]);
-                } catch (e) {
-                  console.warn('Salvando localmente resposta do religioso:', e);
-                }
-
-                const saved = localStorage.getItem('brm_secretaria_respostas_v1');
-                const list = saved ? JSON.parse(saved) : [];
-                list.unshift(novaResp);
-                localStorage.setItem('brm_secretaria_respostas_v1', JSON.stringify(list));
+                const { error } = await supabase.from('secretaria_respostas_formulario').insert([novaResp]);
+                if (error) throw error;
 
                 setRespostasInscricoes(prev => [novaResp, ...prev]);
                 setEventoInscricaoModal(null);
                 setFormularioInscricaoAtivo(null);
+              } catch (error) {
+                console.error('Erro ao enviar inscrição:', error);
+                showToast.error(error instanceof Error ? error.message : 'Não foi possível enviar a inscrição.');
               } finally {
                 setSalvandoInscricao(false);
               }
@@ -1349,7 +1152,32 @@ export const PortalReligioso: React.FC = () => {
       </header>
 
       {/* 2. CORPO DO SITE: SIDEBAR + CONTEÚDO PRINCIPAL (APPLE FORMAT) */}
-      <div className="flex-1 flex max-w-[1400px] w-full mx-auto px-4 sm:px-6 py-6 gap-6">
+      <div className="flex-1 flex flex-col md:flex-row max-w-[1400px] w-full mx-auto px-4 sm:px-6 py-6 gap-6">
+        <nav aria-label="Navegação do portal" className="md:hidden flex gap-2 overflow-x-auto pb-1">
+          {([
+            ['inicio', 'Início'],
+            ['perfil', 'Perfil'],
+            ['inscricao', 'Ficha'],
+            ['ficha-pdf', 'Ficha PDF'],
+            ['calendario', 'Agenda'],
+            ['documentos', 'Documentos'],
+            ['anuario', 'Anuário'],
+            ['hospedagem', 'Hospedagem'],
+          ] as const).map(([section, label]) => (
+            <button
+              key={section}
+              type="button"
+              onClick={() => setActiveSection(section)}
+              className={`shrink-0 rounded-full border px-3 py-2 text-xs font-medium transition-colors ${
+                activeSection === section
+                  ? 'border-[#226380] bg-[#226380] text-white'
+                  : 'border-[#d6d6d6] bg-white text-[#1d1d1f] dark:border-white/10 dark:bg-[#161617] dark:text-white'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
         
         {/* SIDEBAR APPLE */}
         <aside className="w-64 shrink-0 hidden md:block space-y-6">
@@ -1440,6 +1268,31 @@ export const PortalReligioso: React.FC = () => {
 
         {/* 3. CONTEÚDO PRINCIPAL (PÁGINA NORMAL) */}
         <main className="flex-1 min-w-0 space-y-6">
+          {recoveryMode && (
+            <form onSubmit={handlePasswordUpdate} className="rounded-[6px] border border-[#226380]/30 bg-white p-5 dark:bg-[#161617]">
+              <label className="block text-sm font-medium text-[#1d1d1f] dark:text-white">
+                Defina sua nova senha
+                <input
+                  type="password"
+                  minLength={6}
+                  required
+                  value={recoveryPassword}
+                  onChange={event => setRecoveryPassword(event.target.value)}
+                  className="mt-2 w-full rounded-[6px] border border-slate-300 bg-transparent px-3 py-2"
+                />
+              </label>
+              <button type="submit" disabled={authLoading} className="mt-3 rounded-[6px] bg-[#226380] px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+                Atualizar senha
+              </button>
+            </form>
+          )}
+          {profileError && (
+            <div role="alert" className="rounded-[6px] border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+              <p className="font-semibold">Não foi possível vincular uma ficha à sua conta.</p>
+              <p className="mt-1">{profileError}</p>
+              <p className="mt-1">O CPF serve apenas para conferir a ficha e não comprova identidade. Se o e-mail ou os dados estiverem diferentes, solicite a validação da Secretaria Provincial.</p>
+            </div>
+          )}
           
           {/* SEÇÃO: INÍCIO / PAINEL DO CONFRADE */}
           {activeSection === 'inicio' && (
@@ -1462,7 +1315,7 @@ export const PortalReligioso: React.FC = () => {
 
                   <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
                     <span className="px-4 py-1.5 rounded-full text-xs font-medium bg-[#f5f5f7] dark:bg-[#262628] text-[#1d1d1f] dark:text-[#f5f5f7] border border-[#d6d6d6]/60 dark:border-white/10">
-                      Status: {religiosoData?.status_cadastro || 'Em revisão'}
+                      Status: {religiosoData?.status_cadastro || 'Vínculo pendente'}
                     </span>
                   </div>
                 </div>
@@ -1617,8 +1470,12 @@ export const PortalReligioso: React.FC = () => {
                     </div>
                     <div className="flex justify-between py-3 items-center">
                       <span className="text-[#707070] dark:text-[#86868b]">Validação da Secretaria</span>
-                      <span className="rounded-full px-3 py-0.5 text-[11px] font-medium bg-[#e8f5e9] text-[#2e7d32] dark:bg-[#152a1b] dark:text-[#81c784]">
-                        Em conformidade
+                      <span className={`rounded-full px-3 py-0.5 text-[11px] font-medium ${
+                        religiosoData?.status_cadastro === 'Aprovado'
+                          ? 'bg-[#e8f5e9] text-[#2e7d32] dark:bg-[#152a1b] dark:text-[#81c784]'
+                          : 'bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200'
+                      }`}>
+                        {religiosoData?.status_cadastro || 'Aguardando vínculo'}
                       </span>
                     </div>
                   </div>
@@ -1799,7 +1656,20 @@ export const PortalReligioso: React.FC = () => {
                   Preencha ou revise a qualquer momento todos os dados canônicos, histórico de comunidades e anexos comprobatórios.
                 </p>
               </div>
-              <CadastroReligiosoPublico />
+              {religiosoData?.id ? (
+                <CadastroReligiosoPublico
+                  memberMode
+                  religiosoId={religiosoData.id}
+                  onSaved={() => {
+                    setActiveSection('inicio');
+                    void loadMemberData();
+                  }}
+                />
+              ) : (
+                <div className="rounded-[6px] border border-amber-300 bg-amber-50 p-5 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                  Para preencher ou atualizar a ficha pelo portal, primeiro é necessário validar o vínculo com a Secretaria Provincial.
+                </div>
+              )}
             </div>
           )}
 
@@ -1908,7 +1778,9 @@ export const PortalReligioso: React.FC = () => {
                   </div>
                 ) : eventosFiltrados.length === 0 ? (
                   <div className="py-12 text-center text-xs text-[#707070] dark:text-[#86868b] bg-[#f5f5f7]/60 dark:bg-[#262628]/40 rounded-[20px] p-6">
-                    Nenhum evento encontrado para o filtro selecionado.
+                    {eventosError
+                      ? 'Não foi possível carregar a agenda provincial. Tente novamente mais tarde.'
+                      : 'Nenhum evento encontrado para o filtro selecionado.'}
                   </div>
                 ) : (
                   <div className="divide-y divide-[#d6d6d6]/40 dark:divide-white/5">
@@ -2005,7 +1877,11 @@ export const PortalReligioso: React.FC = () => {
                                     setEventoInscricaoModal(evt);
                                     setFormularioInscricaoAtivo(formVinculado);
                                   } else {
-                                    showToast.info('O formulário para este evento está em fase de homologação pela Secretaria.');
+                                    if (formulariosError) {
+                                      showToast.error('Não foi possível carregar os formulários de inscrição. Tente novamente mais tarde.');
+                                    } else {
+                                      showToast.info('O formulário para este evento ainda não foi publicado pela Secretaria.');
+                                    }
                                   }
                                 }}
                                 className="inline-flex items-center gap-1.5 rounded-[6px] px-4 py-2 text-xs font-semibold bg-[#113240] text-white hover:bg-[#226380] whitespace-nowrap shadow-sm cursor-pointer transition-all active:scale-95"
@@ -2122,10 +1998,12 @@ export const PortalReligioso: React.FC = () => {
                 <div className="py-16 text-center bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-8">
                   <FileText className="w-10 h-10 text-[#707070]/40 mx-auto mb-3" />
                   <h4 className="text-base font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-1">
-                    Nenhum documento encontrado
+                    {documentosError ? 'Documentos indisponíveis' : 'Nenhum documento encontrado'}
                   </h4>
                   <p className="text-xs text-[#707070] dark:text-[#86868b] max-w-sm mx-auto mb-4">
-                    Não encontramos nenhum documento oficial correspondente à categoria ou termo de busca selecionado.
+                    {documentosError
+                      ? 'Não foi possível carregar os documentos oficiais. Tente novamente mais tarde.'
+                      : 'Não encontramos nenhum documento oficial correspondente à categoria ou termo de busca selecionado.'}
                   </p>
                   {(docSearch || docCategoria !== 'Todas') && (
                     <button

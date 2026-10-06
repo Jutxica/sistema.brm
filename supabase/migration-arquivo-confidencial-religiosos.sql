@@ -215,42 +215,59 @@ create policy "arquivo dados leitura secretaria"
     or public.arquivo_usuario_tem_papel('arquivo_substituto')
   );
 
-create or replace view public.secretaria_arquivo_protocolos_acesso
-with (security_barrier = true)
-as
-select
-  p.id,
-  p.numero_protocolo,
-  case when acesso.v_secretaria then p.religioso_nome
-       when acesso.v_remetente_pode_ver then p.religioso_nome
-       else null end as religioso_nome,
-  case when acesso.v_secretaria or acesso.v_remetente_pode_ver then p.tipo_documento
-       else null end as tipo_documento,
-  case when acesso.v_secretaria or acesso.v_remetente_pode_ver then p.descricao
-       else null end as descricao,
-  p.status,
-  case when acesso.v_secretaria or acesso.v_remetente_pode_ver then p.enviado_por_nome
-       else null end as enviado_por_nome,
-  p.ultima_observacao,
-  p.criado_em,
-  p.atualizado_em
-from public.secretaria_arquivo_protocolos p
-cross join lateral (
+drop view if exists public.secretaria_arquivo_protocolos_acesso;
+
+create or replace function public.arquivo_listar_protocolos_acesso()
+returns table (
+  id uuid,
+  numero_protocolo text,
+  religioso_nome text,
+  tipo_documento text,
+  descricao text,
+  status text,
+  enviado_por_nome text,
+  ultima_observacao text,
+  criado_em timestamptz,
+  atualizado_em timestamptz
+)
+language sql
+stable
+security definer
+set search_path = pg_catalog
+as $$
   select
-    public.arquivo_usuario_tem_papel('arquivo_secretaria')
-      or public.arquivo_usuario_tem_papel('arquivo_substituto') as v_secretaria,
-    p.enviado_por = auth.uid()
-      and p.status in ('rascunho', 'enviado', 'em_conferencia', 'complementacao_solicitada')
-      as v_remetente_pode_ver
-) acesso
-where acesso.v_secretaria or p.enviado_por = auth.uid();
+    p.id,
+    p.numero_protocolo,
+    case when acesso.v_secretaria then p.religioso_nome
+         when acesso.v_remetente_pode_ver then p.religioso_nome
+         else null end,
+    case when acesso.v_secretaria or acesso.v_remetente_pode_ver then p.tipo_documento
+         else null end,
+    case when acesso.v_secretaria or acesso.v_remetente_pode_ver then p.descricao
+         else null end,
+    p.status,
+    case when acesso.v_secretaria or acesso.v_remetente_pode_ver then p.enviado_por_nome
+         else null end,
+    p.ultima_observacao,
+    p.criado_em,
+    p.atualizado_em
+  from public.secretaria_arquivo_protocolos p
+  cross join lateral (
+    select
+      public.arquivo_usuario_tem_papel('arquivo_secretaria')
+        or public.arquivo_usuario_tem_papel('arquivo_substituto') as v_secretaria,
+      p.enviado_por = auth.uid()
+        and p.status in ('rascunho', 'enviado', 'em_conferencia', 'complementacao_solicitada')
+        as v_remetente_pode_ver
+  ) acesso
+  where acesso.v_secretaria or p.enviado_por = auth.uid()
+  order by p.atualizado_em desc;
+$$;
 
 revoke all on public.secretaria_arquivo_protocolos from anon, authenticated;
 revoke all on public.secretaria_arquivo_versoes from anon, authenticated;
 revoke all on public.secretaria_arquivo_dados from anon, authenticated;
 revoke all on public.secretaria_arquivo_eventos from anon, authenticated;
-revoke all on public.secretaria_arquivo_protocolos_acesso from anon, authenticated;
-grant select on public.secretaria_arquivo_protocolos_acesso to authenticated;
 grant select on public.secretaria_arquivo_versoes to authenticated;
 grant select on public.secretaria_arquivo_dados to authenticated;
 grant select on public.secretaria_arquivo_eventos to authenticated;
@@ -623,6 +640,7 @@ create policy "arquivo confidencial limpeza de upload incompleto"
   );
 
 revoke all on function public.arquivo_usuario_tem_papel(text) from public, anon;
+revoke all on function public.arquivo_listar_protocolos_acesso() from public, anon;
 revoke all on function public.arquivo_pode_ler_protocolo(uuid) from public, anon;
 revoke all on function public.arquivo_pode_enviar_arquivo(text) from public, anon;
 revoke all on function public.arquivo_pode_excluir_orfao(text) from public, anon;
@@ -633,6 +651,7 @@ revoke all on function public.arquivo_associar_versao(uuid, text, text, text, bi
 revoke all on function public.arquivo_enviar_protocolo(uuid) from public, anon;
 revoke all on function public.arquivo_avancar_protocolo(uuid, text, text, text, text, text) from public, anon;
 grant execute on function public.arquivo_usuario_tem_papel(text) to authenticated, service_role;
+grant execute on function public.arquivo_listar_protocolos_acesso() to authenticated, service_role;
 grant execute on function public.arquivo_pode_ler_protocolo(uuid) to authenticated, service_role;
 grant execute on function public.arquivo_pode_enviar_arquivo(text) to authenticated, service_role;
 grant execute on function public.arquivo_pode_excluir_orfao(text) to authenticated, service_role;
