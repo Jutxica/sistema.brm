@@ -27,7 +27,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
   const [data, setData] = useState<any>(null);
   const [copiado, setCopiado] = useState(false);
   const [orientacao, setOrientacao] = useState<OrientacaoDocumento>('vertical');
-  const isE2E = typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true';
+  const isE2E = import.meta.env.DEV && typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true';
 
   useEffect(() => {
     const carregarDadosFicha = async () => {

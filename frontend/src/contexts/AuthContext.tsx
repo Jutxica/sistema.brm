@@ -159,7 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Modo E2E / Preview para testes de renderização
-    if (typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true') {
+    if (import.meta.env.DEV && typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true') {
       const isReligiosoView = localStorage.getItem('brm_e2e_role') === 'religioso';
       
       if (isReligiosoView) {
@@ -248,4 +248,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

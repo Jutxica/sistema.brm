@@ -95,7 +95,7 @@ export const PortalReligioso: React.FC = () => {
   const [loadingProfile, setLoadingProfile] = useState(false);
 
   // E2E Preview Mode for Member Portal
-  const isE2E = typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true';
+  const isE2E = import.meta.env.DEV && typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true';
 
   // Helper CPF
   const formatCpf = (val: string) => {
@@ -880,7 +880,7 @@ export const PortalReligioso: React.FC = () => {
                     )}
                   </button>
 
-                  <button
+                  {import.meta.env.DEV && <button
                     type="button"
                     onClick={() => {
                       localStorage.setItem('brm_e2e_preview', 'true');
@@ -890,7 +890,7 @@ export const PortalReligioso: React.FC = () => {
                     className="w-full mt-2.5 py-2.5 px-4 rounded-full bg-[#f5f5f7] dark:bg-[#262628] hover:bg-[#ebebed] dark:hover:bg-[#303033] text-[#0071e3] dark:text-[#2997ff] text-xs font-semibold transition-all cursor-pointer border border-[#0071e3]/30 flex items-center justify-center gap-2"
                   >
                     <span>Acesso Rápido de Confrade (Demonstração)</span>
-                  </button>
+                  </button>}
                 </div>
               </form>
             ) : (
