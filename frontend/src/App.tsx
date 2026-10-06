@@ -34,6 +34,7 @@ const PatrimonioForm = lazy(() => import('./pages/PatrimonioForm'));
 const PatrimonioDetalhes = lazy(() => import('./pages/PatrimonioDetalhes'));
 const ValidarDocumento = lazy(() => import('./pages/ValidarDocumento'));
 const ArquivoSecretaria = lazy(() => import('./pages/ArquivoSecretaria'));
+const SecretariaDashboard = lazy(() => import('./pages/SecretariaDashboard'));
 
 // Apple Loading Spinner Fallback
 const AppleLoadingFallback: React.FC = () => (
@@ -66,15 +67,16 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 const getDefaultPath = (user: ReturnType<typeof useAuth>['user']): string => {
+  if (user?.acessos.includes('secretaria')) return '/secretaria';
+
   const destinations = [
     ['inicio', '/inicio'],
     ['patrimonio', '/patrimonio'],
-    ['arquivo_secretaria', '/secretaria/arquivo'],
-    ['arquivo_substituto', '/secretaria/arquivo'],
+    ['arquivo_secretaria', '/secretaria'],
+    ['arquivo_substituto', '/secretaria'],
     ['religiosos', '/religiosos'],
     ['obras', '/obras'],
     ['hospedagens', '/hospedagens-inscricoes'],
-    ['secretaria', '/documentos'],
     ['configuracoes', '/religiosos-configuracoes'],
     ['usuarios', '/usuarios'],
     ['religioso', '/meu-perfil'],
@@ -111,6 +113,20 @@ const ArquivoSecretariaRoute: React.FC<{ children: React.ReactNode }> = ({ child
     return <Navigate to={getDefaultPath(user)} replace />;
   }
   return <>{children}</>;
+};
+
+const SecretariaDashboardRoute: React.FC = () => {
+  const { user, loading, isAuthenticated } = useAuth();
+  const canAccessArchive = Boolean(
+    user?.acessos.some(access => access === 'arquivo_secretaria' || access === 'arquivo_substituto'),
+  );
+
+  if (loading) return <AppleLoadingFallback />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!hasModuleAccess(user, 'secretaria') && !canAccessArchive) {
+    return <Navigate to={getDefaultPath(user)} replace />;
+  }
+  return <SecretariaDashboard />;
 };
 
 const DefaultRedirect: React.FC = () => {
@@ -162,6 +178,7 @@ export const App: React.FC = () => {
                   <Route path="religiosos" element={<ModuleRoute accessKey="religiosos"><ReligiososAdmin /></ModuleRoute>} />
                   <Route path="estatisticas-brm" element={<ModuleRoute accessKey="religiosos"><EstatisticaBRM /></ModuleRoute>} />
                   <Route path="documentos" element={<ModuleRoute accessKey="secretaria"><DocumentosAdmin /></ModuleRoute>} />
+                  <Route path="secretaria" element={<SecretariaDashboardRoute />} />
                   <Route path="secretaria/arquivo" element={<ArquivoSecretariaRoute><ArquivoSecretaria modo="secretaria" /></ArquivoSecretariaRoute>} />
                   <Route path="agenda" element={<ModuleRoute accessKey="secretaria"><AgendaAdmin /></ModuleRoute>} />
                   <Route path="secretaria-configuracoes" element={<ModuleRoute accessKey="configuracoes"><SecretariaConfiguracoes /></ModuleRoute>} />

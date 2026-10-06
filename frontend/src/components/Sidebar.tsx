@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { 
   Home, ClipboardList, Settings, Users, LogOut, ChevronLeft, ChevronRight, 
   Building, UserRound, ChevronDown, Plus, Church, Landmark, Layers, BarChart3,
-  FileText, Calendar, Car, ShieldCheck, Wrench, History, Archive, Send
+  FileText, Calendar, Car, ShieldCheck, Wrench, History, Archive, Send, LayoutDashboard
 } from 'lucide-react';
 import { useAuth as useAuthHook, hasModuleAccess } from '../contexts/AuthContext';
 
@@ -12,30 +12,27 @@ interface SidebarProps {
   setCollapsed: (collapsed: boolean) => void;
 }
 
+const useRouteExpanded = (routeIsActive: boolean): [boolean, () => void] => {
+  const [override, setOverride] = React.useState<boolean | null>(null);
+  return [
+    override ?? routeIsActive,
+    () => setOverride(previous => !(previous ?? routeIsActive)),
+  ];
+};
+
 export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
   const { logout, user } = useAuthHook();
   const location = useLocation();
-  const [secretariaOpen, setSecretariaOpen] = React.useState(
-    location.pathname.startsWith('/documentos') || location.pathname.startsWith('/agenda') || location.pathname.startsWith('/secretaria-configuracoes') || location.pathname.startsWith('/secretaria/arquivo')
+  const secretariaRouteActive = location.pathname.startsWith('/secretaria')
+    || location.pathname.startsWith('/documentos')
+    || location.pathname.startsWith('/agenda');
+  const [secretariaOpen, toggleSecretariaOpen] = useRouteExpanded(secretariaRouteActive);
+  const [religiososOpen, toggleReligiososOpen] = useRouteExpanded(
+    location.pathname.startsWith('/religiosos') || location.pathname.startsWith('/estatisticas-brm'),
   );
-  const [religiososOpen, setReligiososOpen] = React.useState(
-    location.pathname.startsWith('/religiosos') || location.pathname.startsWith('/estatisticas-brm')
-  );
-  const [obrasOpen, setObrasOpen] = React.useState(location.pathname.startsWith('/obras'));
-  const [patrimonioOpen, setPatrimonioOpen] = React.useState(location.pathname.startsWith('/patrimonio'));
-  const [hospedariaOpen, setHospedariaOpen] = React.useState(location.pathname.startsWith('/hospedagens'));
-
-  React.useEffect(() => {
-    if (location.pathname.startsWith('/documentos') || location.pathname.startsWith('/agenda') || location.pathname.startsWith('/secretaria-configuracoes') || location.pathname.startsWith('/secretaria/arquivo')) {
-      setSecretariaOpen(true);
-    }
-    if (location.pathname.startsWith('/religiosos') || location.pathname.startsWith('/estatisticas-brm')) {
-      setReligiososOpen(true);
-    }
-    if (location.pathname.startsWith('/patrimonio')) {
-      setPatrimonioOpen(true);
-    }
-  }, [location.pathname]);
+  const [obrasOpen, toggleObrasOpen] = useRouteExpanded(location.pathname.startsWith('/obras'));
+  const [patrimonioOpen, togglePatrimonioOpen] = useRouteExpanded(location.pathname.startsWith('/patrimonio'));
+  const [hospedariaOpen, toggleHospedariaOpen] = useRouteExpanded(location.pathname.startsWith('/hospedagens'));
 
   const canAccessInicio = hasModuleAccess(user, 'inicio');
   const canAccessReligiosos = hasModuleAccess(user, 'religiosos');
@@ -98,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
 
           {/* 2. Religiosos */}
           {(canAccessReligiosos || canAccessConfiguracoes) && (
-            <SidebarGroup label="Religiosos" icon={UserRound} open={religiososOpen} onToggle={() => setReligiososOpen(previous => !previous)} collapsed={collapsed}>
+            <SidebarGroup label="Religiosos" icon={UserRound} open={religiososOpen} onToggle={toggleReligiososOpen} collapsed={collapsed}>
               {canAccessReligiosos && <SidebarSubLink to="/religiosos" label="Inscritos" icon={Users} collapsed={collapsed} />}
               {canAccessReligiosos && <SidebarSubLink to="/estatisticas-brm" label="Estatística BRM" icon={BarChart3} collapsed={collapsed} />}
               {canAccessReligiosos && <SidebarSubLink to="/religiosos/novo" label="Novo cadastro" icon={Plus} collapsed={collapsed} />}
@@ -108,7 +105,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
 
           {/* 3. Secretaria & Atos */}
           {(canAccessSecretaria || canAccessConfiguracoes || canAccessArquivoSecretaria) && (
-            <SidebarGroup label="Secretaria & Atos" icon={FileText} open={secretariaOpen} onToggle={() => setSecretariaOpen(previous => !previous)} collapsed={collapsed}>
+            <SidebarGroup label="Secretaria & Atos" icon={FileText} open={secretariaOpen} onToggle={toggleSecretariaOpen} collapsed={collapsed}>
+              {(canAccessSecretaria || canAccessArquivoSecretaria) && <SidebarSubLink to="/secretaria" label="Painel da Secretaria" icon={LayoutDashboard} collapsed={collapsed} />}
               {canAccessSecretaria && <SidebarSubLink to="/documentos" label="Documentos Oficiais" icon={FileText} collapsed={collapsed} />}
               {canAccessSecretaria && <SidebarSubLink to="/agenda" label="Agenda & Eventos" icon={Calendar} collapsed={collapsed} />}
               {canAccessArquivoSecretaria && <SidebarSubLink to="/secretaria/arquivo" label="Arquivo Confidencial" icon={Archive} collapsed={collapsed} />}
@@ -118,7 +116,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
 
           {/* 4. Comunidades & Obras */}
           {canAccessObras && (
-            <SidebarGroup label="Comunidades & Obras" icon={Building} open={obrasOpen} onToggle={() => setObrasOpen(previous => !previous)} collapsed={collapsed}>
+            <SidebarGroup label="Comunidades & Obras" icon={Building} open={obrasOpen} onToggle={toggleObrasOpen} collapsed={collapsed}>
               <SidebarSubLink to="/obras" label="Todas as Obras" icon={Layers} collapsed={collapsed} />
               <SidebarSubLink to="/obras?tipo=Paroquia" label="Paróquias" icon={Church} collapsed={collapsed} />
               <SidebarSubLink to="/obras?tipo=Casa" label="Casas Religiosas" icon={Home} collapsed={collapsed} />
@@ -129,7 +127,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
 
           {/* 5. Patrimônio Provincial */}
           {canAccessPatrimonio && (
-            <SidebarGroup label="Patrimônio" icon={Landmark} open={patrimonioOpen} onToggle={() => setPatrimonioOpen(previous => !previous)} collapsed={collapsed}>
+            <SidebarGroup label="Patrimônio" icon={Landmark} open={patrimonioOpen} onToggle={togglePatrimonioOpen} collapsed={collapsed}>
               <SidebarSubLink to="/patrimonio" label="Visão Geral & Alertas" icon={Layers} collapsed={collapsed} />
               <SidebarSubLink to="/patrimonio?tab=imoveis" label="Imóveis & Terrenos" icon={Building} collapsed={collapsed} />
               <SidebarSubLink to="/patrimonio?tab=veiculos" label="Frota de Veículos" icon={Car} collapsed={collapsed} />
@@ -143,7 +141,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
 
           {/* 6. Hospedaria */}
           {(canAccessHospedagens || canAccessConfiguracoes) && (
-            <SidebarGroup label="Hospedaria" icon={Building} open={hospedariaOpen} onToggle={() => setHospedariaOpen(previous => !previous)} collapsed={collapsed}>
+            <SidebarGroup label="Hospedaria" icon={Building} open={hospedariaOpen} onToggle={toggleHospedariaOpen} collapsed={collapsed}>
               {canAccessHospedagens && <SidebarSubLink to="/hospedagens-inscricoes" label="Inscrições" icon={ClipboardList} collapsed={collapsed} />}
               {canAccessConfiguracoes && <SidebarSubLink to="/hospedagens-configuracoes" label="Configurações" icon={Settings} collapsed={collapsed} />}
             </SidebarGroup>
