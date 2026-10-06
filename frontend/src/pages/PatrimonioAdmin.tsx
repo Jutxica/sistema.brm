@@ -7,7 +7,7 @@ import {
   Eye, RefreshCw, Printer, LayoutGrid, ListFilter,
   ChevronRight, ChevronDown, HardDrive, Clock, Layers, Landmark, Shield,
   ArrowUpRight, FileCheck, FileSpreadsheet, Wifi, WifiOff, Download,
-  SlidersHorizontal, History, ScrollText, Filter, User, Tag
+  SlidersHorizontal, History, ScrollText, Filter, User, Tag, Send
 } from 'lucide-react';
 import { 
   imoveisService, 
@@ -675,6 +675,15 @@ ${document.location.origin}/supabase/migration-fase1-seguranca-auditoria.sql`;
             </div>
 
             {/* Ação Primária Limpa */}
+            <button
+              type="button"
+              onClick={() => navigate('/patrimonio/envios-secretaria')}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold border border-[#113240]/20 text-[#113240] hover:bg-[#113240]/5 transition-all cursor-pointer rounded-[6px] dark:border-white/15 dark:text-slate-100 dark:hover:bg-white/5"
+              title="Protocolar documentos digitalizados para a Secretaria"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Enviar à Secretaria</span>
+            </button>
             <button
               type="button"
               onClick={() => navigate('/patrimonio/novo')}

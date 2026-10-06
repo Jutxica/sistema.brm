@@ -33,6 +33,7 @@ const PatrimonioAdmin = lazy(() => import('./pages/PatrimonioAdmin'));
 const PatrimonioForm = lazy(() => import('./pages/PatrimonioForm'));
 const PatrimonioDetalhes = lazy(() => import('./pages/PatrimonioDetalhes'));
 const ValidarDocumento = lazy(() => import('./pages/ValidarDocumento'));
+const ArquivoSecretaria = lazy(() => import('./pages/ArquivoSecretaria'));
 
 // Apple Loading Spinner Fallback
 const AppleLoadingFallback: React.FC = () => (
@@ -68,6 +69,8 @@ const getDefaultPath = (user: ReturnType<typeof useAuth>['user']): string => {
   const destinations = [
     ['inicio', '/inicio'],
     ['patrimonio', '/patrimonio'],
+    ['arquivo_secretaria', '/secretaria/arquivo'],
+    ['arquivo_substituto', '/secretaria/arquivo'],
     ['religiosos', '/religiosos'],
     ['obras', '/obras'],
     ['hospedagens', '/hospedagens-inscricoes'],
@@ -96,6 +99,17 @@ const ModuleRoute: React.FC<{ children: React.ReactNode; accessKey: string }> = 
     return <Navigate to={getDefaultPath(user)} replace />;
   }
 
+  return <>{children}</>;
+};
+
+const ArquivoSecretariaRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading, isAuthenticated } = useAuth();
+
+  if (loading) return <AppleLoadingFallback />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!user?.acessos.some(access => access === 'arquivo_secretaria' || access === 'arquivo_substituto')) {
+    return <Navigate to={getDefaultPath(user)} replace />;
+  }
   return <>{children}</>;
 };
 
@@ -148,6 +162,7 @@ export const App: React.FC = () => {
                   <Route path="religiosos" element={<ModuleRoute accessKey="religiosos"><ReligiososAdmin /></ModuleRoute>} />
                   <Route path="estatisticas-brm" element={<ModuleRoute accessKey="religiosos"><EstatisticaBRM /></ModuleRoute>} />
                   <Route path="documentos" element={<ModuleRoute accessKey="secretaria"><DocumentosAdmin /></ModuleRoute>} />
+                  <Route path="secretaria/arquivo" element={<ArquivoSecretariaRoute><ArquivoSecretaria modo="secretaria" /></ArquivoSecretariaRoute>} />
                   <Route path="agenda" element={<ModuleRoute accessKey="secretaria"><AgendaAdmin /></ModuleRoute>} />
                   <Route path="secretaria-configuracoes" element={<ModuleRoute accessKey="configuracoes"><SecretariaConfiguracoes /></ModuleRoute>} />
                   <Route path="religiosos/novo" element={<ModuleRoute accessKey="religiosos"><CadastroReligiosoPublico adminMode /></ModuleRoute>} />
@@ -165,6 +180,7 @@ export const App: React.FC = () => {
                       </ModuleRoute>
                     }
                   />
+                  <Route path="patrimonio/envios-secretaria" element={<ModuleRoute accessKey="patrimonio"><ArquivoSecretaria modo="patrimonio" /></ModuleRoute>} />
                   <Route
                     path="patrimonio/novo"
                     element={

@@ -198,6 +198,8 @@ export const Usuarios: React.FC = () => {
     { key: 'obras', name: 'Comunidades & Obras', desc: 'Gestão de paróquias, casas religiosas e presenças da Província' },
     { key: 'patrimonio', name: 'Módulo Patrimônio', desc: 'Gestão de imóveis, veículos, inventário, contratos e manutenção patrimonial' },
     { key: 'secretaria', name: 'Secretaria & Atos', desc: 'Acesso a documentos oficiais, agenda e eventos provinciais' },
+    { key: 'arquivo_secretaria', name: 'Arquivo confidencial — Secretaria', desc: 'Acesso restrito a protocolos, documentos pessoais recebidos, classificação e arquivamento; atribuir somente ao secretário responsável' },
+    { key: 'arquivo_substituto', name: 'Arquivo confidencial — Substituto', desc: 'Acesso restrito ao acervo para o substituto formalmente designado pelo secretário' },
     { key: 'hospedagens', name: 'Módulo Hospedagens', desc: 'Inscrições, quartos, check-in e relatórios de hóspedes' },
     { key: 'configuracoes', name: 'Configurações do Sistema', desc: 'Regras de formulários, motivos de estadia e parâmetros' },
     { key: 'usuarios', name: 'Gestão de Usuários', desc: 'Controle de contas administrativas e permissões de acesso' },

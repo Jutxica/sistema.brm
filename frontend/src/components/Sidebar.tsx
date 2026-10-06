@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { 
   Home, ClipboardList, Settings, Users, LogOut, ChevronLeft, ChevronRight, 
   Building, UserRound, ChevronDown, Plus, Church, Landmark, Layers, BarChart3,
-  FileText, Calendar, Car, ShieldCheck, Wrench, History
+  FileText, Calendar, Car, ShieldCheck, Wrench, History, Archive, Send
 } from 'lucide-react';
 import { useAuth as useAuthHook, hasModuleAccess } from '../contexts/AuthContext';
 
@@ -16,7 +16,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
   const { logout, user } = useAuthHook();
   const location = useLocation();
   const [secretariaOpen, setSecretariaOpen] = React.useState(
-    location.pathname.startsWith('/documentos') || location.pathname.startsWith('/agenda') || location.pathname.startsWith('/secretaria-configuracoes')
+    location.pathname.startsWith('/documentos') || location.pathname.startsWith('/agenda') || location.pathname.startsWith('/secretaria-configuracoes') || location.pathname.startsWith('/secretaria/arquivo')
   );
   const [religiososOpen, setReligiososOpen] = React.useState(
     location.pathname.startsWith('/religiosos') || location.pathname.startsWith('/estatisticas-brm')
@@ -26,7 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
   const [hospedariaOpen, setHospedariaOpen] = React.useState(location.pathname.startsWith('/hospedagens'));
 
   React.useEffect(() => {
-    if (location.pathname.startsWith('/documentos') || location.pathname.startsWith('/agenda') || location.pathname.startsWith('/secretaria-configuracoes')) {
+    if (location.pathname.startsWith('/documentos') || location.pathname.startsWith('/agenda') || location.pathname.startsWith('/secretaria-configuracoes') || location.pathname.startsWith('/secretaria/arquivo')) {
       setSecretariaOpen(true);
     }
     if (location.pathname.startsWith('/religiosos') || location.pathname.startsWith('/estatisticas-brm')) {
@@ -45,6 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
   const canAccessHospedagens = hasModuleAccess(user, 'hospedagens');
   const canAccessConfiguracoes = hasModuleAccess(user, 'configuracoes');
   const canAccessUsuarios = hasModuleAccess(user, 'usuarios');
+  const canAccessArquivoSecretaria = Boolean(user?.acessos.some(access => access === 'arquivo_secretaria' || access === 'arquivo_substituto'));
 
   return (
     <aside
@@ -106,10 +107,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
           )}
 
           {/* 3. Secretaria & Atos */}
-          {(canAccessSecretaria || canAccessConfiguracoes) && (
+          {(canAccessSecretaria || canAccessConfiguracoes || canAccessArquivoSecretaria) && (
             <SidebarGroup label="Secretaria & Atos" icon={FileText} open={secretariaOpen} onToggle={() => setSecretariaOpen(previous => !previous)} collapsed={collapsed}>
               {canAccessSecretaria && <SidebarSubLink to="/documentos" label="Documentos Oficiais" icon={FileText} collapsed={collapsed} />}
               {canAccessSecretaria && <SidebarSubLink to="/agenda" label="Agenda & Eventos" icon={Calendar} collapsed={collapsed} />}
+              {canAccessArquivoSecretaria && <SidebarSubLink to="/secretaria/arquivo" label="Arquivo Confidencial" icon={Archive} collapsed={collapsed} />}
               {canAccessConfiguracoes && <SidebarSubLink to="/secretaria-configuracoes" label="Configurações & Formulários" icon={Settings} collapsed={collapsed} />}
             </SidebarGroup>
           )}
@@ -135,6 +137,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
               <SidebarSubLink to="/patrimonio?tab=contratos" label="Contratos & Seguros" icon={ShieldCheck} collapsed={collapsed} />
               <SidebarSubLink to="/patrimonio?tab=manutencoes" label="Vistorias & Obras" icon={Wrench} collapsed={collapsed} />
               <SidebarSubLink to="/patrimonio?tab=auditoria" label="Logs de Auditoria" icon={History} collapsed={collapsed} />
+              <SidebarSubLink to="/patrimonio/envios-secretaria" label="Enviar documentos à Secretaria" icon={Send} collapsed={collapsed} />
             </SidebarGroup>
           )}
 
