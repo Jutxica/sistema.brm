@@ -583,6 +583,95 @@ body {
   color: var(--brm-ink);
 }
 
+/* Subtle motion shared by administrative pages and their common controls */
+.institutional-content > * {
+  animation: institutional-page-enter 300ms var(--ease-smooth) backwards;
+}
+
+.institutional-content > * [class*="grid"] > :nth-child(-n + 6) {
+  animation: institutional-item-enter 320ms var(--ease-out) backwards;
+}
+
+.institutional-content > * [class*="grid"] > :nth-child(1) { animation-delay: 25ms; }
+.institutional-content > * [class*="grid"] > :nth-child(2) { animation-delay: 50ms; }
+.institutional-content > * [class*="grid"] > :nth-child(3) { animation-delay: 75ms; }
+.institutional-content > * [class*="grid"] > :nth-child(4) { animation-delay: 100ms; }
+.institutional-content > * [class*="grid"] > :nth-child(5) { animation-delay: 125ms; }
+.institutional-content > * [class*="grid"] > :nth-child(6) { animation-delay: 150ms; }
+
+.institutional-app button:not(:disabled),
+.institutional-app a[href],
+.institutional-app summary {
+  transition-property: transform, box-shadow, background-color, border-color, color, opacity;
+  transition-duration: 180ms;
+  transition-timing-function: var(--ease-out);
+}
+
+.institutional-app button:not(:disabled):active,
+.institutional-app a[href]:active,
+.institutional-app summary:active {
+  transform: scale(0.985);
+}
+
+.institutional-app button:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.institutional-app button:not(:disabled):active {
+  transform: scale(0.985);
+}
+
+.institutional-app a[class*="border"][class*="bg-white"]:hover,
+.institutional-app a[class*="border"][class*="bg-slate"]:hover,
+.institutional-app button[class*="border"][class*="bg-white"]:hover,
+.institutional-app button[class*="border"][class*="bg-slate"]:hover,
+.institutional-app .apple-card:hover,
+.institutional-app .card-editorial:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 14px rgb(35 38 38 / 8%);
+}
+
+.dark .institutional-app a[class*="border"][class*="bg-white"]:hover,
+.dark .institutional-app a[class*="border"][class*="bg-slate"]:hover,
+.dark .institutional-app button[class*="border"][class*="bg-white"]:hover,
+.dark .institutional-app button[class*="border"][class*="bg-slate"]:hover,
+.dark .institutional-app .apple-card:hover,
+.dark .institutional-app .card-editorial:hover {
+  box-shadow: 0 5px 14px rgb(0 0 0 / 24%);
+}
+
+.institutional-app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.institutional-app select,
+.institutional-app textarea {
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.institutional-app table tbody tr {
+  transition: background-color 150ms ease;
+}
+
+@keyframes institutional-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(7px) scale(0.997);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes institutional-item-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media print {
   /* Oculta barras de navegação, menus, botões, modais e elementos da interface web */
   nav, 

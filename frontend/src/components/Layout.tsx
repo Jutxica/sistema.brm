@@ -28,7 +28,7 @@ export const Layout: React.FC<LayoutProps> = ({ title = 'Sistema BRM' }) => {
         />
 
         {/* Dynamic page contents - Apple cathedral of space */}
-        <main className="flex-1 px-5 py-6 md:px-8 md:py-8 lg:px-10 lg:py-10 max-w-[1400px] w-full mx-auto print:p-0 print:m-0 print:max-w-none">
+        <main className="institutional-content flex-1 px-5 py-6 md:px-8 md:py-8 lg:px-10 lg:py-10 max-w-[1400px] w-full mx-auto print:p-0 print:m-0 print:max-w-none">
           <Outlet />
         </main>
 
