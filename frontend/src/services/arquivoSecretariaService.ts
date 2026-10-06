@@ -88,6 +88,7 @@ export const arquivoSecretariaService = {
       .from('religiosos')
       .select('id, nome_civil, nome_religioso')
       .eq('status', 'Ativo')
+      .eq('status_cadastro', 'Aprovado')
       .order('nome_civil');
     return unwrap(result) || [];
   },
