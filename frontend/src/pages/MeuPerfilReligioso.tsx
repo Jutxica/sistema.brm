@@ -22,6 +22,7 @@ interface PerfilData {
   nome_religioso: string;
   grau: string;
   foto_url: string;
+  foto_path: string;
   comunidade_atual_nome: string;
   email_institucional: string;
   whatsapp: string;
@@ -52,16 +53,26 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [comunidades, setComunidades] = useState<ComunidadeRef[]>([]);
+  const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState('');
+  const [photoRemoved, setPhotoRemoved] = useState(false);
   const [form, setForm] = useState<PerfilData>({
     nome_civil: '',
     nome_religioso: '',
     grau: 'Padre',
     foto_url: '',
+    foto_path: '',
     comunidade_atual_nome: '',
     email_institucional: '',
     whatsapp: '',
     telefone_celular: ''
   });
+
+  useEffect(() => {
+    return () => {
+      if (photoPreview.startsWith('blob:')) URL.revokeObjectURL(photoPreview);
+    };
+  }, [photoPreview]);
 
   // Carregar dados básicos do religioso e comunidades oficiais da Província BRM
   useEffect(() => {
@@ -85,6 +96,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
             nome_religioso: 'Pe. Carlos Eduardo, SCJ',
             grau: 'Padre',
             foto_url: '',
+            foto_path: '',
             comunidade_atual_nome: 'Sede Provincial BRM • Curitiba/PR',
             email_institucional: 'pe.carlos@brm.org.br',
             whatsapp: '(41) 99876-5432',
@@ -109,19 +121,28 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
         if (targetId) {
           const { data: relRecord, error } = await supabase
             .from('religiosos')
-            .select('id, nome_civil, nome_religioso, grau, foto_url, comunidade_atual_nome, email_institucional, whatsapp, telefone_celular')
+            .select('id, nome_civil, nome_religioso, grau, foto_path, comunidade_atual_nome, email_institucional, whatsapp, telefone_celular')
             .eq('id', targetId)
             .eq('auth_user_id', user?.id || '')
             .maybeSingle();
           if (error) throw error;
 
           if (relRecord) {
+            let photoUrl = '';
+            if (relRecord.foto_path) {
+              const { data: signedPhoto, error: photoError } = await supabase.storage
+                .from('religiosos-perfil')
+                .createSignedUrl(relRecord.foto_path, 60 * 60);
+              if (photoError) throw photoError;
+              photoUrl = signedPhoto.signedUrl;
+            }
             setForm({
               id: relRecord.id,
               nome_civil: relRecord.nome_civil || '',
               nome_religioso: relRecord.nome_religioso || '',
               grau: relRecord.grau || 'Padre',
-              foto_url: relRecord.foto_url || '',
+              foto_url: photoUrl,
+              foto_path: relRecord.foto_path || '',
               comunidade_atual_nome: relRecord.comunidade_atual_nome || '',
               email_institucional: relRecord.email_institucional || user?.email || '',
               whatsapp: relRecord.whatsapp || '',
@@ -143,23 +164,33 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
     loadProfile();
   }, [user, isE2E]);
 
-  // Upload da Foto de Perfil
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Converte para Base64 preview imediato
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      setForm(prev => ({ ...prev, foto_url: result }));
-      setSuccessMsg('Foto carregada. Clique em "Salvar Alterações" para confirmar.');
-      setTimeout(() => setSuccessMsg(null), 4000);
-    };
-    reader.readAsDataURL(file);
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setErrorMsg('Escolha uma imagem JPEG, PNG ou WebP.');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMsg('A foto deve ter no máximo 5 MB.');
+      e.target.value = '';
+      return;
+    }
+
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setPendingPhoto(file);
+    setPhotoRemoved(false);
+    setPhotoPreview(URL.createObjectURL(file));
+    setForm(prev => ({ ...prev, foto_url: '' }));
   };
 
   const handleRemovePhoto = () => {
+    setPendingPhoto(null);
+    setPhotoPreview('');
+    setPhotoRemoved(true);
     setForm(prev => ({ ...prev, foto_url: '' }));
     if (fileInputRef.current) fileInputRef.current.value = '';
     setSuccessMsg('Foto removida. Clique em "Salvar Alterações" para confirmar.');
@@ -192,7 +223,44 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
       }
 
       if (form.id && user?.id) {
-        const payload: any = {
+        const previousPhotoPath = form.foto_path;
+        let nextPhotoPath = previousPhotoPath;
+        let nextPhotoUrl = form.foto_url;
+        let uploadedPhotoPath: string | null = null;
+
+        if (pendingPhoto) {
+          const extensionByType: Record<string, string> = {
+            'image/jpeg': 'jpg',
+            'image/png': 'png',
+            'image/webp': 'webp',
+          };
+          uploadedPhotoPath = `${user.id}/${crypto.randomUUID()}.${extensionByType[pendingPhoto.type]}`;
+          const { error: uploadError } = await supabase.storage
+            .from('religiosos-perfil')
+            .upload(uploadedPhotoPath, pendingPhoto, {
+              contentType: pendingPhoto.type,
+              upsert: false,
+            });
+          if (uploadError) throw uploadError;
+
+          const { data: signedPhoto, error: photoError } = await supabase.storage
+            .from('religiosos-perfil')
+            .createSignedUrl(uploadedPhotoPath, 60 * 60);
+          if (photoError) {
+            const { error: cleanupError } = await supabase.storage
+              .from('religiosos-perfil')
+              .remove([uploadedPhotoPath]);
+            if (cleanupError) console.error('Falha ao limpar foto não vinculada ao perfil:', cleanupError);
+            throw photoError;
+          }
+          nextPhotoPath = uploadedPhotoPath;
+          nextPhotoUrl = signedPhoto.signedUrl;
+        } else if (photoRemoved) {
+          nextPhotoPath = '';
+          nextPhotoUrl = '';
+        }
+
+        const payload: Record<string, unknown> = {
           nome_civil: form.nome_civil,
           nome_religioso: form.nome_religioso,
           comunidade_atual_nome: form.comunidade_atual_nome,
@@ -201,26 +269,41 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
           telefone_celular: form.whatsapp,
           updated_at: new Date().toISOString()
         };
-
-        // Adiciona foto_url se coluna existir
-        if (form.foto_url) {
-          payload.foto_url = form.foto_url;
+        if (pendingPhoto || photoRemoved) {
+          payload.foto_path = nextPhotoPath || null;
         }
 
-        const { error } = await supabase
+        const { data: updatedRecord, error } = await supabase
           .from('religiosos')
           .update(payload)
           .eq('id', form.id)
-          .eq('auth_user_id', user.id);
+          .eq('auth_user_id', user.id)
+          .select('id')
+          .maybeSingle();
 
-        if (error) {
-          // Se falhar por causa da coluna foto_url inexistente, tenta sem foto_url
-          if (error.message?.includes('foto_url')) {
-            delete payload.foto_url;
-            const { error: retryError } = await supabase.from('religiosos').update(payload).eq('id', form.id).eq('auth_user_id', user.id);
-            if (retryError) throw retryError;
-          } else {
-            throw error;
+        if (error || !updatedRecord) {
+          if (uploadedPhotoPath) {
+            const { error: cleanupError } = await supabase.storage
+              .from('religiosos-perfil')
+              .remove([uploadedPhotoPath]);
+            if (cleanupError) console.error('Falha ao limpar foto não vinculada ao perfil:', cleanupError);
+          }
+          if (error) throw error;
+          throw new Error('Não foi possível atualizar a ficha vinculada à sua conta.');
+        }
+
+        setForm(prev => ({ ...prev, foto_path: nextPhotoPath, foto_url: nextPhotoUrl }));
+        setPendingPhoto(null);
+        setPhotoPreview('');
+        setPhotoRemoved(false);
+
+        if ((pendingPhoto || photoRemoved) && previousPhotoPath) {
+          const { error: removeError } = await supabase.storage
+            .from('religiosos-perfil')
+            .remove([previousPhotoPath]);
+          if (removeError) {
+            console.error('Falha ao remover a foto anterior do perfil:', removeError);
+            throw new Error('Perfil salvo, mas não foi possível remover a foto anterior. Tente novamente ou contacte o suporte.');
           }
         }
       } else {
@@ -229,9 +312,9 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
 
       setSuccessMsg('Perfil atualizado com sucesso! Suas informações de acesso foram sincronizadas.');
       setTimeout(() => setSuccessMsg(null), 5000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao salvar perfil:', err);
-      setErrorMsg(err.message || 'Erro ao salvar perfil. Tente novamente.');
+      setErrorMsg(err instanceof Error ? err.message : 'Erro ao salvar perfil. Tente novamente.');
     } finally {
       setSaving(false);
     }
@@ -274,8 +357,8 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
                 ? "w-24 h-24 rounded-[22px] bg-[#f5f5f7] dark:bg-[#262628] border-2 border-[#d6d6d6]/80 dark:border-white/10 overflow-hidden flex items-center justify-center shadow-inner"
                 : "w-24 h-24 rounded-[6px] bg-[#113240]/5 dark:bg-slate-800 border border-[#A3C3C7]/40 dark:border-slate-700 overflow-hidden flex items-center justify-center"
             }>
-              {form.foto_url ? (
-                <img src={form.foto_url} alt="Foto do perfil" className="w-full h-full object-cover" />
+              {(photoPreview || form.foto_url) ? (
+                <img src={photoPreview || form.foto_url} alt="Foto do perfil" className="w-full h-full object-cover" />
               ) : (
                 <div className={`flex flex-col items-center justify-center ${isPortal ? 'text-[#707070] dark:text-[#86868b]' : 'text-[#113240] dark:text-slate-300'}`}>
                   <User className="w-10 h-10 stroke-[1.5]" />
@@ -301,7 +384,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
             <input 
               ref={fileInputRef} 
               type="file" 
-              accept="image/*" 
+              accept="image/jpeg,image/png,image/webp"
               onChange={handlePhotoUpload} 
               className="hidden" 
             />
@@ -340,7 +423,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
               Gerencie suas informações essenciais de identificação, comunidade e contatos de segurança.
             </p>
 
-            {form.foto_url && (
+            {(photoPreview || form.foto_url) && (
               <div className="pt-2">
                 <button
                   type="button"

@@ -142,7 +142,15 @@ export const PortalReligioso: React.FC = () => {
       if (error) throw error;
 
       if (data) {
-        setReligiosoData(data);
+        let fotoUrl = '';
+        if (data.foto_path) {
+          const { data: signedPhoto, error: photoError } = await supabase.storage
+            .from('religiosos-perfil')
+            .createSignedUrl(data.foto_path, 60 * 60);
+          if (photoError) throw photoError;
+          fotoUrl = signedPhoto.signedUrl;
+        }
+        setReligiosoData({ ...data, foto_url: fotoUrl });
         await refreshUserProfile?.(user!.id);
       }
     } catch (err) {

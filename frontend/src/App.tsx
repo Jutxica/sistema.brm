@@ -30,6 +30,7 @@ const AgendaAdmin = lazy(() => import('./pages/AgendaAdmin'));
 const SecretariaConfiguracoes = lazy(() => import('./pages/SecretariaConfiguracoes'));
 const FormularioPublicoInscricao = lazy(() => import('./pages/FormularioPublicoInscricao'));
 const PatrimonioAdmin = lazy(() => import('./pages/PatrimonioAdmin'));
+const PatrimonioTarefas = lazy(() => import('./pages/PatrimonioTarefas'));
 const PatrimonioForm = lazy(() => import('./pages/PatrimonioForm'));
 const PatrimonioDetalhes = lazy(() => import('./pages/PatrimonioDetalhes'));
 const ValidarDocumento = lazy(() => import('./pages/ValidarDocumento'));
@@ -189,6 +190,7 @@ export const App: React.FC = () => {
                   <Route path="obras/nova" element={<ModuleRoute accessKey="obras"><ObraForm /></ModuleRoute>} />
                   <Route path="obras/editar/:id" element={<ModuleRoute accessKey="obras"><ObraForm /></ModuleRoute>} />
                   <Route path="institucional" element={<ModuleRoute accessKey="obras"><Institucional /></ModuleRoute>} />
+                  <Route path="patrimonio/tarefas" element={<PatrimonioTarefas />} />
                   <Route
                     path="patrimonio"
                     element={

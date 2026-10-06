@@ -1,7 +1,17 @@
-import React, { useState } from 'react';
-import { Sun, Moon, Bell, User as UserIcon, LogOut, Menu } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Sun, Moon, Bell, User as UserIcon, LogOut, Menu, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabaseClient';
+
+interface TaskReminder {
+  id: string;
+  titulo: string;
+  mensagem: string;
+  criada_em: string;
+  lida_em: string | null;
+}
 
 interface NavbarProps {
   sidebarCollapsed: boolean;
@@ -12,7 +22,61 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ sidebarCollapsed, setSidebarCollapsed, title }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState<TaskReminder[]>([]);
+  const [notificationError, setNotificationError] = useState('');
+
+  const loadNotifications = useCallback(async () => {
+    if (!user?.id) return;
+    const { data, error } = await supabase
+      .from('patrimonio_tarefas_notificacoes')
+      .select('id, titulo, mensagem, criada_em, lida_em')
+      .order('criada_em', { ascending: false })
+      .limit(10);
+    if (error) {
+      console.error('Falha ao carregar notificações de tarefas:', error);
+      setNotificationError('Não foi possível carregar as notificações.');
+      return;
+    }
+    setNotificationError('');
+    setNotifications((data || []) as TaskReminder[]);
+  }, [user?.id]);
+
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => void loadNotifications(), 0);
+    const timer = window.setInterval(() => void loadNotifications(), 60_000);
+    return () => {
+      window.clearTimeout(initialLoad);
+      window.clearInterval(timer);
+    };
+  }, [loadNotifications]);
+
+  const markAsRead = async (notification: TaskReminder) => {
+    if (!user?.id || notification.lida_em) return;
+    const { error } = await supabase
+      .from('patrimonio_tarefas_notificacoes')
+      .update({ lida_em: new Date().toISOString() })
+      .eq('id', notification.id)
+      .eq('usuario_id', user.id);
+    if (error) {
+      console.error('Falha ao marcar notificação como lida:', error);
+      setNotificationError('Não foi possível atualizar esta notificação.');
+      return;
+    }
+    setNotifications(current => current.map(item =>
+      item.id === notification.id ? { ...item, lida_em: new Date().toISOString() } : item,
+    ));
+  };
+
+  const openReminder = async (notification: TaskReminder) => {
+    await markAsRead(notification);
+    setNotificationOpen(false);
+    navigate('/patrimonio/tarefas');
+  };
+
+  const unreadCount = notifications.filter(notification => !notification.lida_em).length;
 
   return (
     <header className="sticky top-0 z-20 flex items-center justify-between h-16 px-6 border-b border-[#e5e5ea] dark:border-white/10 bg-white dark:bg-[#161b22] print:hidden">
@@ -47,13 +111,55 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarCollapsed, setSidebarColl
         </button>
 
         {/* Notifications */}
-        <button
-          title="Notificações"
-          className="p-2 rounded-[6px] text-[#707070] dark:text-[#86868b] hover:bg-black/5 dark:hover:bg-white/10 transition-colors relative cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-white/10"
-        >
-          <Bell className="w-4.5 h-4.5" />
-          <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-[#226380] rounded-full" />
-        </button>
+        <div className="relative">
+          <button
+            type="button"
+            title="Notificações"
+            aria-label={`Notificações${unreadCount ? `, ${unreadCount} não lidas` : ''}`}
+            onClick={() => {
+              setNotificationOpen(open => !open);
+              void loadNotifications();
+            }}
+            className="p-2 rounded-[6px] text-[#707070] dark:text-[#86868b] hover:bg-black/5 dark:hover:bg-white/10 transition-colors relative cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-white/10"
+          >
+            <Bell className="w-4.5 h-4.5" />
+            {unreadCount > 0 && <span className="absolute -right-1 -top-1 min-w-4 h-4 rounded-full bg-rose-600 px-1 text-[9px] font-bold leading-4 text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>}
+          </button>
+
+          {notificationOpen && (
+            <>
+              <button aria-label="Fechar notificações" className="fixed inset-0 z-30 cursor-default" onClick={() => setNotificationOpen(false)} />
+              <div className="absolute right-0 z-40 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#1c2128]">
+                <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
+                  <p className="text-sm font-semibold text-[#113240] dark:text-white">Lembretes de tarefas</p>
+                  <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Avisos das atividades atribuídas a você</p>
+                </div>
+                {notificationError ? (
+                  <p role="alert" className="p-4 text-xs text-rose-700 dark:text-rose-300">{notificationError}</p>
+                ) : notifications.length ? (
+                  <ul className="max-h-80 divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800">
+                    {notifications.map(notification => (
+                      <li key={notification.id}>
+                        <button type="button" onClick={() => void openReminder(notification)} className={`w-full px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/70 ${notification.lida_em ? '' : 'bg-[#226380]/5'}`}>
+                          <span className="flex items-start justify-between gap-3">
+                            <span>
+                              <span className="block text-xs font-semibold text-slate-800 dark:text-slate-100">{notification.titulo}</span>
+                              <span className="mt-1 block text-xs text-slate-600 dark:text-slate-300">{notification.mensagem}</span>
+                              <span className="mt-1.5 block text-[10px] text-slate-400">{new Date(notification.criada_em).toLocaleString('pt-BR')}</span>
+                            </span>
+                            {notification.lida_em && <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="p-5 text-center text-xs text-slate-500 dark:text-slate-400">Você não tem lembretes de prazo.</p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
 
         <div className="w-px h-5 bg-[#e5e5ea] dark:bg-white/10 mx-1" />
 

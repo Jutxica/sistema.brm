@@ -93,6 +93,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
             </NavLink>
           </li>}
 
+          {user && !canAccessPatrimonio && (
+            <li>
+              <SidebarSubLink to="/patrimonio/tarefas" label="Minhas tarefas" icon={ClipboardList} collapsed={collapsed} />
+            </li>
+          )}
+
           {/* 2. Religiosos */}
           {(canAccessReligiosos || canAccessConfiguracoes) && (
             <SidebarGroup label="Religiosos" icon={UserRound} open={religiososOpen} onToggle={toggleReligiososOpen} collapsed={collapsed}>
@@ -134,6 +140,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
               <SidebarSubLink to="/patrimonio?tab=inventario" label="Inventário & Arte Sacra" icon={Church} collapsed={collapsed} />
               <SidebarSubLink to="/patrimonio?tab=contratos" label="Contratos & Seguros" icon={ShieldCheck} collapsed={collapsed} />
               <SidebarSubLink to="/patrimonio?tab=manutencoes" label="Vistorias & Obras" icon={Wrench} collapsed={collapsed} />
+              <SidebarSubLink to="/patrimonio/tarefas" label="Agenda de atividades" icon={ClipboardList} collapsed={collapsed} />
               <SidebarSubLink to="/patrimonio?tab=auditoria" label="Logs de Auditoria" icon={History} collapsed={collapsed} />
               <SidebarSubLink to="/patrimonio/envios-secretaria" label="Enviar documentos à Secretaria" icon={Send} collapsed={collapsed} />
             </SidebarGroup>
