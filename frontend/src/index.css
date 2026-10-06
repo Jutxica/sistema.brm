@@ -507,6 +507,7 @@ select:not(.font-mono):not(.font-cinzel) {
   --brm-line: #d8dcdd;
   --brm-navy: #113240;
   --brm-petroleum: #226380;
+  --brm-petroleum-rgb: 34 99 128;
   --brm-surface-radius: 2px;
   --brm-control-radius: 1px;
 }
@@ -578,6 +579,10 @@ body {
   transition: background-color 140ms ease;
 }
 
+.institutional-app table tbody tr:hover {
+  background-color: rgb(var(--brm-petroleum-rgb) / 6%);
+}
+
 .institutional-app ::selection {
   background: rgb(34 99 128 / 18%);
   color: var(--brm-ink);
@@ -602,15 +607,30 @@ body {
 .institutional-app button:not(:disabled),
 .institutional-app a[href],
 .institutional-app summary {
-  transition-property: transform, box-shadow, background-color, border-color, color, opacity;
+  transition-property: transform, box-shadow, background-color, background-image, border-color, color, opacity;
   transition-duration: 180ms;
   transition-timing-function: var(--ease-out);
+}
+
+.institutional-app button:not(:disabled):hover,
+.institutional-app a[href]:hover,
+.institutional-app summary:hover {
+  background-image: linear-gradient(
+    rgb(var(--brm-petroleum-rgb) / 8%),
+    rgb(var(--brm-petroleum-rgb) / 8%)
+  );
+  border-color: var(--brm-petroleum);
 }
 
 .institutional-app button:not(:disabled):active,
 .institutional-app a[href]:active,
 .institutional-app summary:active {
   transform: scale(0.985);
+  background-image: linear-gradient(
+    rgb(var(--brm-petroleum-rgb) / 18%),
+    rgb(var(--brm-petroleum-rgb) / 18%)
+  );
+  border-color: var(--brm-petroleum);
 }
 
 .institutional-app button:not(:disabled):hover {
@@ -628,7 +648,8 @@ body {
 .institutional-app .apple-card:hover,
 .institutional-app .card-editorial:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 14px rgb(35 38 38 / 8%);
+  border-color: var(--brm-petroleum);
+  box-shadow: 0 5px 14px rgb(var(--brm-petroleum-rgb) / 14%);
 }
 
 .dark .institutional-app a[class*="border"][class*="bg-white"]:hover,
@@ -637,7 +658,7 @@ body {
 .dark .institutional-app button[class*="border"][class*="bg-slate"]:hover,
 .dark .institutional-app .apple-card:hover,
 .dark .institutional-app .card-editorial:hover {
-  box-shadow: 0 5px 14px rgb(0 0 0 / 24%);
+  box-shadow: 0 5px 14px rgb(var(--brm-petroleum-rgb) / 24%);
 }
 
 .institutional-app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
@@ -648,6 +669,13 @@ body {
 
 .institutional-app table tbody tr {
   transition: background-color 150ms ease;
+}
+
+.institutional-app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+.institutional-app select:focus,
+.institutional-app textarea:focus {
+  border-color: var(--brm-petroleum);
+  box-shadow: 0 0 0 3px rgb(var(--brm-petroleum-rgb) / 12%);
 }
 
 @keyframes institutional-page-enter {
