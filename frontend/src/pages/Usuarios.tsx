@@ -11,7 +11,7 @@ interface SystemUser {
   usu_email: string;
   usu_nome: string;
   usu_status: 'Ativo' | 'Inativo';
-  usu_acessos: string; // JSON string or array
+  usu_acessos: string[] | string;
   auth_user_id: string;
   usu_pref_opensidebar?: string;
 }
@@ -149,7 +149,7 @@ export const Usuarios: React.FC = () => {
       usu_nome: editingUser.usu_nome,
       usu_email: editingUser.usu_email,
       usu_status: editingUser.usu_status,
-      usu_acessos: JSON.stringify(selectedAcessos),
+      usu_acessos: selectedAcessos,
       auth_user_id: editingUser.auth_user_id || null,
       usu_pref_opensidebar: editingUser.usu_pref_opensidebar || null
     };
@@ -396,7 +396,9 @@ export const Usuarios: React.FC = () => {
                   {users.map(u => {
                     let parsedAcessos: string[] = [];
                     try {
-                      parsedAcessos = JSON.parse(u.usu_acessos || '[]');
+                      parsedAcessos = typeof u.usu_acessos === 'string'
+                        ? JSON.parse(u.usu_acessos)
+                        : u.usu_acessos || [];
                     } catch {
                       parsedAcessos = [];
                     }
@@ -495,4 +497,3 @@ export const Usuarios: React.FC = () => {
 };
 
 export default Usuarios;
-
