@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthProvider, useAuth, hasModuleAccess } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { FeedbackProvider } from './contexts/FeedbackContext';
 import Layout from './components/Layout';
@@ -83,6 +83,24 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
+const PatrimonioRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading, isAuthenticated } = useAuth();
+
+  if (loading) {
+    return <AppleLoadingFallback />;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!hasModuleAccess(user, 'patrimonio')) {
+    return <Navigate to="/inicio" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 const DefaultRedirect: React.FC = () => {
   const { isAuthenticated, loading } = useAuth();
   
@@ -141,10 +159,38 @@ export const App: React.FC = () => {
                   <Route path="obras/nova" element={<ObraForm />} />
                   <Route path="obras/editar/:id" element={<ObraForm />} />
                   <Route path="institucional" element={<Institucional />} />
-                  <Route path="patrimonio" element={<PatrimonioAdmin />} />
-                  <Route path="patrimonio/novo" element={<PatrimonioForm />} />
-                  <Route path="patrimonio/editar/:tipo/:id" element={<PatrimonioForm />} />
-                  <Route path="patrimonio/detalhes/:tipo/:id" element={<PatrimonioDetalhes />} />
+                  <Route
+                    path="patrimonio"
+                    element={
+                      <PatrimonioRoute>
+                        <PatrimonioAdmin />
+                      </PatrimonioRoute>
+                    }
+                  />
+                  <Route
+                    path="patrimonio/novo"
+                    element={
+                      <PatrimonioRoute>
+                        <PatrimonioForm />
+                      </PatrimonioRoute>
+                    }
+                  />
+                  <Route
+                    path="patrimonio/editar/:tipo/:id"
+                    element={
+                      <PatrimonioRoute>
+                        <PatrimonioForm />
+                      </PatrimonioRoute>
+                    }
+                  />
+                  <Route
+                    path="patrimonio/detalhes/:tipo/:id"
+                    element={
+                      <PatrimonioRoute>
+                        <PatrimonioDetalhes />
+                      </PatrimonioRoute>
+                    }
+                  />
                   <Route path="hospedagens-inscricoes" element={<HospedagensInscricoes />} />
                   <Route path="hospedagens-configuracoes" element={<HospedagensConfiguracoes />} />
                   <Route

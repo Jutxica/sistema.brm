@@ -196,6 +196,7 @@ export const Usuarios: React.FC = () => {
     { key: 'inicio', name: 'Painel Inicial', desc: 'Resumo geral, métricas de ocupação e atalhos rápidos' },
     { key: 'religiosos', name: 'Módulo Religiosos', desc: 'Fichas canônicas, histórico vocacional e dados sacramentais' },
     { key: 'obras', name: 'Comunidades & Obras', desc: 'Gestão de paróquias, casas religiosas e presenças da Província' },
+    { key: 'patrimonio', name: 'Módulo Patrimônio', desc: 'Gestão de imóveis, veículos, inventário, contratos e manutenção patrimonial' },
     { key: 'hospedagens', name: 'Módulo Hospedagens', desc: 'Inscrições, quartos, check-in e relatórios de hóspedes' },
     { key: 'configuracoes', name: 'Configurações do Sistema', desc: 'Regras de formulários, motivos de estadia e parâmetros' },
     { key: 'usuarios', name: 'Gestão de Usuários', desc: 'Controle de contas administrativas e permissões de acesso' },

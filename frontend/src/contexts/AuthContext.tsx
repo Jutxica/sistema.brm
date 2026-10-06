@@ -14,6 +14,11 @@ export interface User {
   isAdmin?: boolean;
 }
 
+export const hasModuleAccess = (user: User | null, accessKey: string): boolean => {
+  if (!user) return false;
+  return Boolean(user.acessos.includes('admin') || user.acessos.includes(accessKey));
+};
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -129,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             nome: email.split('@')[0],
             email: email,
             status: 'Ativo',
-            acessos: ['admin', 'inicio', 'religiosos', 'hospedagens', 'configuracoes', 'usuarios', 'obras', 'religioso'],
+            acessos: ['admin', 'inicio', 'religiosos', 'hospedagens', 'configuracoes', 'usuarios', 'obras', 'patrimonio', 'religioso'],
             isReligioso: false,
             isAdmin: true,
           });
@@ -176,7 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           nome: 'Administrador Dehoniano',
           email: 'admin@brm.org.br',
           status: 'Ativo',
-          acessos: ['admin', 'inicio', 'religiosos', 'hospedagens', 'configuracoes', 'usuarios', 'obras', 'religioso', 'portal'],
+          acessos: ['admin', 'inicio', 'religiosos', 'hospedagens', 'configuracoes', 'usuarios', 'obras', 'patrimonio', 'religioso', 'portal'],
           religiosoId: 'e2e-religioso-admin',
           religiosoNome: 'Pe. Secretário Provincial',
           religiosoGrau: 'Padre',

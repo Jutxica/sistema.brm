@@ -5,7 +5,7 @@ import {
   Building, UserRound, ChevronDown, Plus, Church, Landmark, Layers, BarChart3,
   FileText, Calendar, Car, ShieldCheck, Wrench, History
 } from 'lucide-react';
-import { useAuth as useAuthHook } from '../contexts/AuthContext';
+import { useAuth as useAuthHook, hasModuleAccess } from '../contexts/AuthContext';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -39,6 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
 
   // Exibir Usuários apenas para administradores autorizados
   const isAdmin = Boolean(user?.acessos?.includes('admin') || user?.acessos?.includes('usuarios'));
+  const canAccessPatrimonio = hasModuleAccess(user, 'patrimonio');
 
   return (
     <aside
@@ -114,15 +115,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
           </SidebarGroup>
 
           {/* 5. Patrimônio Provincial */}
-          <SidebarGroup label="Patrimônio" icon={Landmark} open={patrimonioOpen} onToggle={() => setPatrimonioOpen(previous => !previous)} collapsed={collapsed}>
-            <SidebarSubLink to="/patrimonio" label="Visão Geral & Alertas" icon={Layers} collapsed={collapsed} />
-            <SidebarSubLink to="/patrimonio?tab=imoveis" label="Imóveis & Terrenos" icon={Building} collapsed={collapsed} />
-            <SidebarSubLink to="/patrimonio?tab=veiculos" label="Frota de Veículos" icon={Car} collapsed={collapsed} />
-            <SidebarSubLink to="/patrimonio?tab=inventario" label="Inventário & Arte Sacra" icon={Church} collapsed={collapsed} />
-            <SidebarSubLink to="/patrimonio?tab=contratos" label="Contratos & Seguros" icon={ShieldCheck} collapsed={collapsed} />
-            <SidebarSubLink to="/patrimonio?tab=manutencoes" label="Vistorias & Obras" icon={Wrench} collapsed={collapsed} />
-            <SidebarSubLink to="/patrimonio?tab=auditoria" label="Logs de Auditoria" icon={History} collapsed={collapsed} />
-          </SidebarGroup>
+          {canAccessPatrimonio && (
+            <SidebarGroup label="Patrimônio" icon={Landmark} open={patrimonioOpen} onToggle={() => setPatrimonioOpen(previous => !previous)} collapsed={collapsed}>
+              <SidebarSubLink to="/patrimonio" label="Visão Geral & Alertas" icon={Layers} collapsed={collapsed} />
+              <SidebarSubLink to="/patrimonio?tab=imoveis" label="Imóveis & Terrenos" icon={Building} collapsed={collapsed} />
+              <SidebarSubLink to="/patrimonio?tab=veiculos" label="Frota de Veículos" icon={Car} collapsed={collapsed} />
+              <SidebarSubLink to="/patrimonio?tab=inventario" label="Inventário & Arte Sacra" icon={Church} collapsed={collapsed} />
+              <SidebarSubLink to="/patrimonio?tab=contratos" label="Contratos & Seguros" icon={ShieldCheck} collapsed={collapsed} />
+              <SidebarSubLink to="/patrimonio?tab=manutencoes" label="Vistorias & Obras" icon={Wrench} collapsed={collapsed} />
+              <SidebarSubLink to="/patrimonio?tab=auditoria" label="Logs de Auditoria" icon={History} collapsed={collapsed} />
+            </SidebarGroup>
+          )}
 
           {/* 6. Hospedaria */}
           <SidebarGroup label="Hospedaria" icon={Building} open={hospedariaOpen} onToggle={() => setHospedariaOpen(previous => !previous)} collapsed={collapsed}>
