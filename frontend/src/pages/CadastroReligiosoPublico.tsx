@@ -891,6 +891,7 @@ const PublicShell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
         Formulário Oficial
       </div>
     </div>
+    <main className="mx-auto max-w-6xl">{children}</main>
     <div className="mx-auto max-w-6xl text-center pt-8 border-t border-[#e5e5ea] dark:border-white/10 mt-12 print:hidden space-y-2">
       <p className="text-xs text-slate-500 dark:text-slate-400 font-sans tracking-wide">
         sistema.brm.org - todos os direitos reservados-2026
