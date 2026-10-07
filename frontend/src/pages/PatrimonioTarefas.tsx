@@ -18,6 +18,14 @@ const priorities = [
   { value: 'urgente', label: 'Urgente' },
 ] as const;
 
+const stageStyles: Record<TaskStatus, string> = {
+  a_fazer: 'border-slate-300 bg-slate-50 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200',
+  em_andamento: 'border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200',
+  aguardando: 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200',
+  concluido: 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200',
+  cancelado: 'border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200',
+};
+
 const priorityStyles: Record<TaskPriority, { label: string; card: string; badge: string }> = {
   baixa: {
     label: 'Baixa',
@@ -42,6 +50,7 @@ const priorityStyles: Record<TaskPriority, { label: string; card: string; badge:
 };
 
 type TaskPriority = typeof priorities[number]['value'];
+type TaskStatus = typeof stages[number]['value'];
 
 type Task = {
   id: string;
@@ -787,6 +796,12 @@ const PatrimonioTarefas: React.FC = () => {
                           <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${priorityStyle.badge}`}>
                             {task.prioridade === 'urgente' ? '⚠ ' : ''}{priorityStyle.label}
                           </span>
+                          {canMoveTask && <label className="inline-flex items-center gap-1.5">
+                            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Etapa</span>
+                            <select aria-label={`Alterar etapa: ${task.titulo}`} disabled={movingTaskIds.has(task.id)} value={task.status} onChange={event => void moveTask(task, event.target.value as Task['status'])} className={`max-w-36 rounded border px-2 py-1 text-[10px] font-semibold disabled:opacity-60 ${stageStyles[task.status]}`}>
+                              {(canManage ? stages : stages.filter(item => item.value !== 'cancelado')).map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
+                            </select>
+                          </label>}
                           {assetLabel && (
                             <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
                               <Link2 className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{assetLabel}</span>
@@ -798,9 +813,6 @@ const PatrimonioTarefas: React.FC = () => {
                           <button type="button" onClick={() => void loadTaskDetails(task)} className="inline-flex items-center gap-1.5 rounded px-1.5 py-1 text-xs font-semibold text-[#226380] hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-slate-800">
                             <ListChecks className="h-3.5 w-3.5" />Detalhes
                           </button>
-                          {canMoveTask && <select aria-label={`Alterar etapa: ${task.titulo}`} disabled={movingTaskIds.has(task.id)} value={task.status} onChange={event => void moveTask(task, event.target.value as Task['status'])} className="max-w-36 rounded border border-slate-200 bg-white px-1.5 py-1 text-[10px] dark:border-slate-700 dark:bg-slate-900">
-                            {(canManage ? stages : stages.filter(item => item.value !== 'cancelado')).map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
-                          </select>}
                           {!canManage && canMoveTask && <button type="button" onClick={() => openProgressDraft(task)} className="rounded border border-[#226380]/30 px-2 py-1 text-[10px] font-semibold text-[#226380] hover:bg-[#226380]/5 dark:text-[#A3C3C7]">Nota</button>}
                         </div>
                       </article>
