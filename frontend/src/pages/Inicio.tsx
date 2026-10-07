@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Building2, CalendarDays, CheckCircle2, ClipboardList, FileCheck2, Hotel, Loader2, Plus, Settings2, ShieldCheck, UserRound, Users } from 'lucide-react';
+import { AlertCircle, ArrowRight, Building2, CalendarDays, CheckCircle2, ClipboardList, FileCheck2, Hotel, Loader2, Plus, Settings2, UserRound, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { AppleTrendChart, AppleDonutChart, AppleOccupancyGauge } from '../components/AppleCharts';
@@ -156,54 +156,57 @@ export const Inicio: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 animate-fade-in pb-12">
-      {/* Provincial Hero Header - Clean & Architectural */}
-      <header className="rounded-[6px] bg-white dark:bg-[#161b22] p-6 md:p-8 border border-slate-200 dark:border-slate-800 border-t-2 border-t-[#226380] shadow-[0_1px_3px_rgba(17,50,64,0.03)] transition-all">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-5">
-            <div className="flex items-center shrink-0">
-              <img src="/logo-sistema.png" alt="BRM" className="h-14 w-auto object-contain dark:hidden" />
-              <img src="/logo-branco.png" alt="BRM" className="h-14 w-auto object-contain hidden dark:block" />
+    <div className="space-y-6 pb-10">
+      <header className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161b22] sm:p-7">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#226380] dark:text-[#A3C3C7]">
+                Província Brasil Meridional
+              </span>
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:bg-white/10 dark:text-slate-300">
+                Painel integrado
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#226380] font-cinzel">
-                  Província BRM
-                </span>
-                <span className="text-slate-300 dark:text-slate-700">·</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">Painel Integrado</span>
-              </div>
-              <h1 className="mt-1 text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-[#113240] dark:text-white font-cinzel">
-                Olá, {user?.nome || 'Usuário'}
-              </h1>
-            </div>
+            <h1 className="text-2xl font-semibold tracking-tight text-[#17333d] dark:text-white sm:text-3xl">
+              Olá, {user?.nome || 'Usuário'}
+            </h1>
+            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+              Acompanhe cadastros, hospedagens e as principais pendências da Província.
+            </p>
           </div>
-
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
+            <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${
+              data.inscricoesAbertas
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-300'
+                : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
+            }`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${data.inscricoesAbertas ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+              Inscrições {data.inscricoesAbertas ? 'abertas' : 'pausadas'}
+            </span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'full' }).format(new Date())}
+            </span>
             <Link
               to="/religiosos/novo"
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-mono uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#113240] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#226380] dark:bg-[#226380] dark:hover:bg-[#2d7898]"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-4 w-4" />
               <span>Novo religioso</span>
             </Link>
           </div>
         </div>
-
-        <p className="mt-4 max-w-3xl text-xs md:text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
-          Visão centralizada de entradas, revisões cadastrais de religiosos e movimentações da hospedaria da Província.
-        </p>
       </header>
 
       {data.warning && (
         <div className="flex items-center gap-3 rounded-[6px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-800 dark:text-amber-300">
-          <ShieldCheck className="h-4 w-4 shrink-0" />
+          <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{data.warning}</span>
         </div>
       )}
 
       {/* Bento Grid Metrics — utxica-tasteskill Principles */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <section aria-label="Indicadores principais" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <MetricCard label="Religiosos" value={data.religiosos.total} icon={Users} tone="blue" href="/religiosos" index={0} />
         <MetricCard label="Em revisão" value={data.religiosos.revisao} icon={FileCheck2} tone="amber" href="/religiosos" highlight={data.religiosos.revisao > 0} index={1} />
         <MetricCard label="Hospedagens" value={data.hospedaria.total} icon={Hotel} tone="indigo" href="/hospedagens-inscricoes" index={2} />
@@ -213,7 +216,7 @@ export const Inicio: React.FC = () => {
       </section>
 
       {/* Apple Visual Analytics: Trend Curve & Occupancy Gauge */}
-      <section className="grid gap-6 lg:grid-cols-12">
+      <section aria-label="Tendências e ocupação" className="grid gap-4 lg:grid-cols-12">
         <div className="lg:col-span-8">
           <AppleTrendChart data={data.trendPoints} />
         </div>
@@ -227,7 +230,7 @@ export const Inicio: React.FC = () => {
       </section>
 
       {/* Analytics Donut & Religious Activity Bento Panels */}
-      <section className="grid gap-6 lg:grid-cols-12">
+      <section aria-label="Composição e atividade recente" className="grid gap-4 lg:grid-cols-12">
         <div className="lg:col-span-5">
           <AppleDonutChart data={data.grausDistribution} />
         </div>
@@ -360,31 +363,41 @@ const MetricCard: React.FC<{
   href: string;
   highlight?: boolean;
   index?: number;
-}> = ({ label, value, href, highlight, index = 0 }) => {
+}> = ({ label, value, icon: Icon, tone, href, highlight, index = 0 }) => {
   const animatedValue = useAnimatedNumber(value);
+  const toneStyles = {
+    blue: 'bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300',
+    amber: 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300',
+    rose: 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300',
+    emerald: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300',
+    indigo: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300',
+  };
   return (
     <Link 
       to={href} 
       style={staggerStyle(index)}
-      className={`group rounded-[6px] bg-white dark:bg-[#161b22] p-5 border flex flex-col justify-between shadow-[0_1px_3px_rgba(17,50,64,0.02)] motion-lift motion-press motion-stagger-item
+      className={`group flex min-h-36 flex-col justify-between rounded-xl border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:bg-[#161b22] sm:p-5 motion-stagger-item
         ${highlight 
-          ? 'border-[#226380] dark:border-white ring-1 ring-[#226380]/20 dark:ring-white/10' 
-          : 'border-slate-200 dark:border-slate-800 hover:border-[#226380] dark:hover:border-slate-600'}`}
+          ? 'border-amber-300 ring-1 ring-amber-100 dark:border-amber-800 dark:ring-amber-950'
+          : 'border-slate-200/90 hover:border-slate-300 dark:border-white/10 dark:hover:border-white/20'}`}
     >
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 font-sans">
+      <div className="flex items-start justify-between gap-3">
+        <span className="text-xs font-medium leading-snug text-slate-600 dark:text-slate-400">
           {label}
         </span>
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${toneStyles[tone]}`}>
+          <Icon className="h-4 w-4" />
+        </span>
         {highlight && (
-          <span className="h-1.5 w-1.5 rounded-full bg-[#226380] dark:bg-white" />
+          <span className="sr-only">Requer atenção</span>
         )}
       </div>
-      <p className="mt-3 font-serif text-3xl xl:text-4xl font-light text-[#113240] dark:text-white tabular-nums">
+      <p className="mt-4 text-3xl font-semibold tracking-tight text-[#17333d] dark:text-white tabular-nums">
         {animatedValue}
       </p>
-      <div className="mt-3 flex items-center gap-1 text-[11px] font-medium text-slate-400 group-hover:text-[#226380] dark:group-hover:text-white transition-colors">
-        <span>Acessar</span>
-        <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+      <div className="mt-3 flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+        <span>{highlight ? 'Aguardando ação' : 'Ver detalhes'}</span>
+        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
       </div>
     </Link>
   );
@@ -397,10 +410,10 @@ const ApplePanel: React.FC<{
   href?: string; 
   children: React.ReactNode 
 }> = ({ title, subtitle, action, href, children }) => (
-  <section className="rounded-[6px] bg-white dark:bg-[#161b22] p-6 md:p-7 border border-slate-200 dark:border-slate-800 shadow-[0_1px_3px_rgba(17,50,64,0.02)]">
+  <section className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161b22] sm:p-6">
     <div className="mb-5 flex items-start justify-between gap-4">
       <div>
-        <h2 className="text-base md:text-lg font-bold tracking-tight text-[#113240] dark:text-white font-cinzel">
+        <h2 className="text-base font-semibold tracking-tight text-[#17333d] dark:text-white md:text-lg">
           {title}
         </h2>
         <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 font-sans">
@@ -410,7 +423,7 @@ const ApplePanel: React.FC<{
       {action && href && (
         <Link 
           to={href} 
-          className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-[#226380] dark:text-[#A3C3C7] hover:underline motion-press"
+          className="inline-flex min-h-8 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-semibold text-[#226380] transition-colors hover:bg-sky-50 dark:text-[#A3C3C7] dark:hover:bg-white/5"
         >
           {action}
           <ArrowRight className="h-3 w-3" />
@@ -429,13 +442,13 @@ const QuickActionCard: React.FC<{
 }> = ({ href, icon: Icon, title, text }) => (
   <Link 
     to={href} 
-    className="flex items-center gap-3.5 rounded-[6px] border border-slate-200 dark:border-slate-800 p-3.5 hover:bg-[#F2F2F2]/60 dark:hover:bg-white/[0.02] hover:border-[#226380] dark:hover:border-slate-600 bg-white dark:bg-[#161b22] motion-lift motion-press"
+    className="flex items-center gap-3.5 rounded-lg border border-slate-200 bg-white p-3.5 transition hover:border-[#226380]/40 hover:bg-slate-50 dark:border-white/10 dark:bg-[#161b22] dark:hover:bg-white/[0.03]"
   >
     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[6px] border border-[#A3C3C7]/40 dark:border-slate-700 bg-[#113240]/5 dark:bg-white/5 text-[#113240] dark:text-slate-200">
       <Icon className="h-4 w-4" />
     </span>
     <div>
-      <strong className="block text-xs font-semibold text-[#113240] dark:text-white font-sans">{title}</strong>
+      <strong className="block text-sm font-semibold text-[#17333d] dark:text-white">{title}</strong>
       <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight block mt-0.5 font-sans">{text}</span>
     </div>
   </Link>
@@ -446,21 +459,28 @@ const AttentionCard: React.FC<{
   value: number; 
   href: string; 
   tone: 'amber' | 'rose' | 'emerald'; 
-}> = ({ label, value, href }) => {
+}> = ({ label, value, href, tone }) => {
   const animatedValue = useAnimatedNumber(value);
+  const toneStyles = {
+    amber: 'border-l-amber-400 dark:border-l-amber-500',
+    rose: 'border-l-rose-400 dark:border-l-rose-500',
+    emerald: 'border-l-emerald-400 dark:border-l-emerald-500',
+  };
   return (
     <Link 
       to={href} 
-      className="rounded-[6px] border-l-2 border-l-[#226380] border-t border-r border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] p-4 block shadow-[0_1px_3px_rgba(17,50,64,0.02)] motion-lift motion-press"
+      className={`block rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-white/10 dark:bg-[#161b22] ${
+        value > 0 ? `border-l-4 ${toneStyles[tone]}` : ''
+      }`}
     >
-      <p className="font-serif text-2xl lg:text-3xl font-light text-[#113240] dark:text-white tabular-nums">{animatedValue}</p>
-      <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 leading-snug font-sans">{label}</p>
+      <p className="text-2xl font-semibold tracking-tight text-[#17333d] dark:text-white tabular-nums lg:text-3xl">{animatedValue}</p>
+      <p className="mt-1 text-xs leading-snug text-slate-600 dark:text-slate-400">{label}</p>
     </Link>
   );
 };
 
 const EmptyState: React.FC<{ text: string }> = ({ text }) => (
-  <p className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">{text}</p>
+  <p role="status" className="rounded-lg bg-slate-50 px-4 py-8 text-center text-sm text-slate-500 dark:bg-white/[0.03] dark:text-slate-400">{text}</p>
 );
 
 export default Inicio;

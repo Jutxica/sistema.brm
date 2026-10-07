@@ -17,7 +17,6 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
 interface PerfilData {
-  id?: string;
   nome_civil: string;
   nome_religioso: string;
   grau: string;
@@ -28,6 +27,8 @@ interface PerfilData {
   whatsapp: string;
   telefone_celular: string;
 }
+
+const grausPerfil = ['Dom', 'Padre', 'Diácono', 'Frater', 'Irmão'] as const;
 
 interface ComunidadeRef {
   id: string;
@@ -40,9 +41,10 @@ interface ComunidadeRef {
 
 interface MeuPerfilProps {
   isPortal?: boolean;
+  onSaved?: () => void | Promise<void>;
 }
 
-export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false }) => {
+export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false, onSaved }) => {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isE2E = import.meta.env.DEV && typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true';
@@ -106,56 +108,43 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
           return;
         }
 
-        let targetId = user?.religiosoId;
-
-        if (!targetId && user?.id) {
-          const { data: rel, error } = await supabase
-            .from('religiosos')
-            .select('id')
+        if (!user?.id) return;
+        const [{ data: authResult, error: authError }, { data: profile, error: profileError }] = await Promise.all([
+          supabase.auth.getUser(),
+          supabase
+            .from('portal_perfis_religiosos')
+            .select('*')
             .eq('auth_user_id', user.id)
-            .maybeSingle();
-          if (error) throw error;
-          if (rel) targetId = rel.id;
-        }
+            .maybeSingle(),
+        ]);
+        if (authError) throw authError;
+        if (profileError) throw profileError;
 
-        if (targetId) {
-          const { data: relRecord, error } = await supabase
-            .from('religiosos')
-            .select('id, nome_civil, nome_religioso, grau, foto_path, comunidade_atual_nome, email_institucional, whatsapp, telefone_celular')
-            .eq('id', targetId)
-            .eq('auth_user_id', user?.id || '')
-            .maybeSingle();
-          if (error) throw error;
-
-          if (relRecord) {
-            let photoUrl = '';
-            if (relRecord.foto_path) {
-              const { data: signedPhoto, error: photoError } = await supabase.storage
-                .from('religiosos-perfil')
-                .createSignedUrl(relRecord.foto_path, 60 * 60);
-              if (photoError) throw photoError;
-              photoUrl = signedPhoto.signedUrl;
-            }
-            setForm({
-              id: relRecord.id,
-              nome_civil: relRecord.nome_civil || '',
-              nome_religioso: relRecord.nome_religioso || '',
-              grau: relRecord.grau || 'Padre',
-              foto_url: photoUrl,
-              foto_path: relRecord.foto_path || '',
-              comunidade_atual_nome: relRecord.comunidade_atual_nome || '',
-              email_institucional: relRecord.email_institucional || user?.email || '',
-              whatsapp: relRecord.whatsapp || '',
-              telefone_celular: relRecord.telefone_celular || ''
-            });
-          } else {
-            setErrorMsg('Sua conta ainda não está vinculada a uma ficha da Província. Entre em contato com a Secretaria Provincial.');
-          }
-        } else {
-          setErrorMsg('Sua conta ainda não está vinculada a uma ficha da Província. Entre em contato com a Secretaria Provincial.');
+        const metadata = authResult.user?.user_metadata || {};
+        let photoUrl = '';
+        if (profile?.foto_path) {
+          const { data: signedPhoto, error: photoError } = await supabase.storage
+            .from('religiosos-perfil')
+            .createSignedUrl(profile.foto_path, 60 * 60);
+          if (photoError) throw photoError;
+          photoUrl = signedPhoto.signedUrl;
         }
+        setForm({
+          nome_civil: profile?.nome_civil || metadata.nome || user.nome || '',
+          nome_religioso: profile?.nome_religioso || '',
+          grau: profile?.grau || 'Padre',
+          foto_url: photoUrl,
+          foto_path: profile?.foto_path || '',
+          comunidade_atual_nome: profile?.comunidade_atual_nome || '',
+          email_institucional: profile?.email_institucional || authResult.user?.email || user.email || '',
+          whatsapp: profile?.whatsapp || '',
+          telefone_celular: profile?.telefone_celular || '',
+        });
       } catch (err) {
         console.error('Erro ao carregar perfil:', err);
+        setErrorMsg(err instanceof Error
+          ? err.message
+          : 'Não foi possível carregar as informações do perfil.');
       } finally {
         setLoading(false);
       }
@@ -222,7 +211,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
         return;
       }
 
-      if (form.id && user?.id) {
+      if (user?.id) {
         const previousPhotoPath = form.foto_path;
         let nextPhotoPath = previousPhotoPath;
         let nextPhotoUrl = form.foto_url;
@@ -261,35 +250,32 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
         }
 
         const payload: Record<string, unknown> = {
+          auth_user_id: user.id,
           nome_civil: form.nome_civil,
           nome_religioso: form.nome_religioso,
+          grau: form.grau,
           comunidade_atual_nome: form.comunidade_atual_nome,
           email_institucional: form.email_institucional,
           whatsapp: form.whatsapp,
           telefone_celular: form.whatsapp,
-          updated_at: new Date().toISOString()
+          atualizado_em: new Date().toISOString()
         };
         if (pendingPhoto || photoRemoved) {
           payload.foto_path = nextPhotoPath || null;
         }
 
-        const { data: updatedRecord, error } = await supabase
-          .from('religiosos')
-          .update(payload)
-          .eq('id', form.id)
-          .eq('auth_user_id', user.id)
-          .select('id')
-          .maybeSingle();
+        const { error } = await supabase
+          .from('portal_perfis_religiosos')
+          .upsert(payload, { onConflict: 'auth_user_id' });
 
-        if (error || !updatedRecord) {
+        if (error) {
           if (uploadedPhotoPath) {
             const { error: cleanupError } = await supabase.storage
               .from('religiosos-perfil')
               .remove([uploadedPhotoPath]);
             if (cleanupError) console.error('Falha ao limpar foto não vinculada ao perfil:', cleanupError);
           }
-          if (error) throw error;
-          throw new Error('Não foi possível atualizar a ficha vinculada à sua conta.');
+          throw error;
         }
 
         setForm(prev => ({ ...prev, foto_path: nextPhotoPath, foto_url: nextPhotoUrl }));
@@ -307,10 +293,11 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
           }
         }
       } else {
-        throw new Error('Sua ficha não está vinculada à conta autenticada.');
+        throw new Error('Entre na sua conta para salvar as informações do perfil.');
       }
 
-      setSuccessMsg('Perfil atualizado com sucesso! Suas informações de acesso foram sincronizadas.');
+      setSuccessMsg('Perfil pessoal atualizado com sucesso.');
+      await onSaved?.();
       setTimeout(() => setSuccessMsg(null), 5000);
     } catch (err: unknown) {
       console.error('Erro ao salvar perfil:', err);
@@ -338,6 +325,8 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
   const labelClass = isPortal
     ? "block text-[12px] font-medium text-[#707070] dark:text-[#86868b] mb-1.5"
     : "block text-xs font-semibold font-mono text-[#113240] dark:text-slate-300 mb-1";
+  const gradeOptions: string[] = [...grausPerfil];
+  if (form.grau && !gradeOptions.includes(form.grau)) gradeOptions.push(form.grau);
 
   return (
     <div className={`w-full max-w-3xl mx-auto space-y-6 ${!isPortal ? 'font-sans' : ''}`}>
@@ -413,8 +402,14 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
                 ? "text-2xl font-bold tracking-tight text-[#113240] dark:text-[#f5f5f7]"
                 : "text-2xl md:text-3xl font-bold tracking-tight text-[#113240] dark:text-white font-cinzel"
             }>
-              {form.nome_religioso || form.nome_civil || 'Meu Perfil'}
+              {form.nome_civil || 'Meu Perfil'}
             </h1>
+            {form.nome_religioso && <p className={isPortal
+              ? "text-sm font-normal text-[#707070] dark:text-[#a1a1a6]"
+              : "text-sm font-normal text-slate-600 dark:text-slate-300"
+            }>
+              {form.nome_religioso} · {form.grau || 'Religioso SCJ'}
+            </p>}
             <p className={
               isPortal
                 ? "text-xs text-[#707070] dark:text-[#86868b]"
@@ -472,6 +467,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
               <input
                 type="text"
                 required
+                maxLength={160}
                 value={form.nome_civil}
                 onChange={e => setForm({ ...form, nome_civil: e.target.value })}
                 placeholder="Ex: Carlos Eduardo da Silva"
@@ -485,6 +481,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
               <input
                 type="text"
                 required
+                maxLength={160}
                 value={form.nome_religioso}
                 onChange={e => setForm({ ...form, nome_religioso: e.target.value })}
                 placeholder="Ex: Pe. Carlos Eduardo, SCJ"
@@ -492,6 +489,21 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
               />
             </div>
 
+          </div>
+          <div className="max-w-sm">
+            <label className={labelClass}>Categoria de apresentação</label>
+            <select
+              value={form.grau}
+              onChange={e => setForm({ ...form, grau: e.target.value })}
+              className={inputClass}
+            >
+              {gradeOptions.map(grau => (
+                <option key={grau} value={grau}>{grau}</option>
+              ))}
+            </select>
+            <span className={`mt-1 block text-[11px] ${isPortal ? 'text-[#707070] dark:text-[#86868b]' : 'text-slate-500'}`}>
+              Esta categoria é apenas de apresentação do perfil; não altera a Ficha Cadastral Oficial da Província.
+            </span>
           </div>
 
           {/* Comunidade Religiosa Atual */}
@@ -502,6 +514,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
                 type="text"
                 list="comunidades-list"
                 required
+                maxLength={240}
                 value={form.comunidade_atual_nome}
                 onChange={e => setForm({ ...form, comunidade_atual_nome: e.target.value })}
                 placeholder="Selecione ou digite sua comunidade/convento"
@@ -528,6 +541,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
                 <input
                   type="email"
                   required
+                  maxLength={254}
                   value={form.email_institucional}
                   onChange={e => setForm({ ...form, email_institucional: e.target.value })}
                   placeholder="confrade@brm.org.br"
@@ -535,23 +549,24 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
                 />
               </div>
               <span className={`text-[11px] ${isPortal ? 'text-[#707070] dark:text-[#86868b]' : 'text-slate-500 font-mono'} mt-1 block`}>
-                Utilizado para login e comunicados da Sede Provincial.
+                Contato institucional exibido no perfil. O e-mail de acesso à conta é gerenciado separadamente.
               </span>
             </div>
 
             {/* WhatsApp (Segurança & Recuperação) */}
             <div>
-              <label className={labelClass}>WhatsApp / Celular (Recuperação de Acesso) *</label>
+              <label className={labelClass}>WhatsApp / Celular *</label>
               <input
                 type="text"
                 required
+                maxLength={40}
                 value={form.whatsapp}
                 onChange={e => setForm({ ...form, whatsapp: formatPhone(e.target.value) })}
                 placeholder="(00) 00000-0000"
                 className={inputClass}
               />
               <span className={`text-[11px] ${isPortal ? 'text-[#707070] dark:text-[#86868b]' : 'text-slate-500 font-mono'} mt-1 block`}>
-                Contato verificado para recuperar a conta e receber avisos da Secretaria Provincial.
+                Contato de apresentação do perfil; a recuperação de senha usa o e-mail da conta.
               </span>
             </div>
 
@@ -569,7 +584,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
                 Segurança & Verificação da Conta
               </span>
               <p className={isPortal ? 'text-[#707070] dark:text-[#86868b] leading-relaxed' : 'text-slate-600 dark:text-slate-400 leading-relaxed font-sans'}>
-                Seu e-mail institucional e WhatsApp são os canais oficiais para redefinição de credenciais e comunicações sigilosas. Mantenha-os sempre atualizados.
+                Os contatos deste perfil não alteram os dados da Ficha Cadastral Oficial. A recuperação de senha é enviada ao e-mail usado para entrar na conta.
               </p>
             </div>
           </div>

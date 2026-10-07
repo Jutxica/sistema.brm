@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Sun, Moon, Bell, User as UserIcon, LogOut, Menu, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 
 interface TaskReminder {
@@ -14,15 +14,16 @@ interface TaskReminder {
 }
 
 interface NavbarProps {
-  sidebarCollapsed: boolean;
-  setSidebarCollapsed: (collapsed: boolean) => void;
+  mobileNavigationOpen: boolean;
+  onMobileMenuToggle: () => void;
   title: string;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ sidebarCollapsed, setSidebarCollapsed, title }) => {
+export const Navbar: React.FC<NavbarProps> = ({ mobileNavigationOpen, onMobileMenuToggle, title }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState<TaskReminder[]>([]);
@@ -77,24 +78,53 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarCollapsed, setSidebarColl
   };
 
   const unreadCount = notifications.filter(notification => !notification.lida_em).length;
+  const routeTitles: Record<string, string> = {
+    '/inicio': 'Visão geral',
+    '/meu-perfil': 'Meu perfil',
+    '/anuario': 'Anuário dos Confrades',
+    '/religiosos': 'Religiosos',
+    '/estatisticas-brm': 'Estatísticas BRM',
+    '/documentos': 'Documentos oficiais',
+    '/secretaria': 'Secretaria Provincial',
+    '/secretaria/arquivo': 'Arquivo confidencial',
+    '/agenda': 'Agenda & eventos',
+    '/secretaria-configuracoes': 'Configurações da Secretaria',
+    '/religiosos/novo': 'Novo cadastro',
+    '/religiosos-configuracoes': 'Configurações de religiosos',
+    '/obras': 'Comunidades & obras',
+    '/obras/nova': 'Nova obra',
+    '/patrimonio': 'Patrimônio',
+    '/patrimonio/tarefas': 'Tarefas do Patrimônio',
+    '/patrimonio/envios-secretaria': 'Envios à Secretaria',
+    '/hospedagens-inscricoes': 'Hospedaria',
+    '/hospedagens-configuracoes': 'Configurações da hospedaria',
+    '/usuarios': 'Usuários e acessos',
+    '/institucional': 'Institucional',
+  };
+  const pageTitle = routeTitles[location.pathname]
+    || (location.pathname.startsWith('/religiosos/editar/') ? 'Editar cadastro' : undefined)
+    || (location.pathname.startsWith('/obras/editar/') ? 'Editar obra' : undefined)
+    || (location.pathname.startsWith('/patrimonio/') ? 'Patrimônio' : undefined)
+    || title;
 
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-between h-16 px-6 border-b border-[#e5e5ea] dark:border-white/10 bg-white dark:bg-[#161b22] print:hidden">
+    <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-[#e5e5ea] bg-white/95 px-4 backdrop-blur-sm dark:border-white/10 dark:bg-[#161b22]/95 sm:px-6 print:hidden">
       {/* Left side */}
       <div className="flex items-center gap-4">
         <button
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="p-2 rounded-[6px] hover:bg-black/5 dark:hover:bg-white/10 text-[#707070] dark:text-[#86868b] md:hidden transition-colors cursor-pointer"
-          title="Alternar menu"
+          type="button"
+          onClick={onMobileMenuToggle}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-[#52636a] transition-colors hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#226380] dark:text-[#a3aaad] dark:hover:bg-white/10 md:hidden"
+          aria-label="Abrir navegação"
+          aria-controls="administrative-sidebar"
+          aria-expanded={mobileNavigationOpen}
         >
-          <Menu className="w-5 h-5" />
+          <Menu className="h-5 w-5" />
         </button>
-        <div className="flex items-center gap-3">
-          <span className="inline-flex rounded-[4px] border border-[#226380]/20 bg-[#226380]/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#226380] dark:border-[#A3C3C7]/20 dark:bg-[#A3C3C7]/10 dark:text-[#A3C3C7]">
-            Painel
-          </span>
-          <h1 className="font-cinzel text-[17px] font-bold text-[#113240] dark:text-white leading-tight tracking-tight">
-            {title}
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="hidden h-7 w-1 shrink-0 rounded-full bg-[#226380] sm:block" />
+          <h1 className="truncate text-[15px] font-semibold tracking-tight text-[#17333d] dark:text-white sm:text-base">
+            {pageTitle}
           </h1>
         </div>
       </div>
@@ -103,11 +133,13 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarCollapsed, setSidebarColl
       <div className="flex items-center gap-2">
         {/* Theme Toggle */}
         <button
+          type="button"
           onClick={toggleTheme}
+          aria-label={theme === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
           title="Alternar tema"
-          className="p-2 rounded-[6px] text-[#707070] dark:text-[#86868b] hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-white/10"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-[#52636a] transition-colors hover:bg-slate-100 dark:text-[#a3aaad] dark:hover:bg-white/10"
         >
-          {theme === 'dark' ? <Sun className="w-4.5 h-4.5 text-[#F2C894]" /> : <Moon className="w-4.5 h-4.5 text-[#113240]" />}
+          {theme === 'dark' ? <Sun className="h-4 w-4 text-[#F2C894]" /> : <Moon className="h-4 w-4 text-[#113240]" />}
         </button>
 
         {/* Notifications */}
@@ -116,20 +148,21 @@ export const Navbar: React.FC<NavbarProps> = ({ sidebarCollapsed, setSidebarColl
             type="button"
             title="Notificações"
             aria-label={`Notificações${unreadCount ? `, ${unreadCount} não lidas` : ''}`}
+            aria-expanded={notificationOpen}
             onClick={() => {
               setNotificationOpen(open => !open);
               void loadNotifications();
             }}
-            className="p-2 rounded-[6px] text-[#707070] dark:text-[#86868b] hover:bg-black/5 dark:hover:bg-white/10 transition-colors relative cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-white/10"
+            className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[#52636a] transition-colors hover:bg-slate-100 dark:text-[#a3aaad] dark:hover:bg-white/10"
           >
-            <Bell className="w-4.5 h-4.5" />
+              <Bell className="h-4 w-4" />
             {unreadCount > 0 && <span className="absolute -right-1 -top-1 min-w-4 h-4 rounded-full bg-rose-600 px-1 text-[9px] font-bold leading-4 text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>}
           </button>
 
           {notificationOpen && (
             <>
               <button aria-label="Fechar notificações" className="fixed inset-0 z-30 cursor-default" onClick={() => setNotificationOpen(false)} />
-              <div className="absolute right-0 z-40 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#1c2128]">
+              <div className="absolute right-0 z-40 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#1c2128]">
                 <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
                   <p className="text-sm font-semibold text-[#113240] dark:text-white">Lembretes de tarefas</p>
                   <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Avisos das atividades atribuídas a você</p>

@@ -3,13 +3,15 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { 
   Home, ClipboardList, Settings, Users, LogOut, ChevronLeft, ChevronRight, 
   Building, UserRound, ChevronDown, Plus, Church, Landmark, Layers, BarChart3,
-  FileText, Calendar, Car, ShieldCheck, Wrench, History, Archive, Send, LayoutDashboard
+  FileText, Calendar, Car, ShieldCheck, Wrench, History, Archive, Send, LayoutDashboard, X
 } from 'lucide-react';
 import { useAuth as useAuthHook, hasModuleAccess } from '../contexts/AuthContext';
 
 interface SidebarProps {
   collapsed: boolean;
   setCollapsed: (collapsed: boolean) => void;
+  mobileOpen: boolean;
+  setMobileOpen: (open: boolean) => void;
 }
 
 const useRouteExpanded = (routeIsActive: boolean): [boolean, () => void] => {
@@ -20,7 +22,7 @@ const useRouteExpanded = (routeIsActive: boolean): [boolean, () => void] => {
   ];
 };
 
-export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) => {
   const { logout, user } = useAuthHook();
   const location = useLocation();
   const secretariaRouteActive = location.pathname.startsWith('/secretaria')
@@ -44,12 +46,41 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
   const canAccessUsuarios = hasModuleAccess(user, 'usuarios');
   const canAccessArquivoSecretaria = Boolean(user?.acessos.some(access => access === 'arquivo_secretaria' || access === 'arquivo_substituto'));
 
+  React.useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname, location.search, setMobileOpen]);
+
+  React.useEffect(() => {
+    if (!mobileOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileOpen(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [mobileOpen, setMobileOpen]);
+
   return (
-    <aside
-      className={`fixed top-0 left-0 z-30 h-screen transition-all duration-300 border-r border-[#e5e5ea] dark:border-white/10
-        ${collapsed ? 'w-20' : 'w-64'} 
-        bg-white dark:bg-[#161b22] text-[#232626] dark:text-[#f5f5f7] print:hidden`}
-    >
+    <>
+      {mobileOpen && (
+        <button
+          type="button"
+          aria-label="Fechar navegação"
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-[1px] md:hidden print:hidden"
+        />
+      )}
+      <aside
+        id="administrative-sidebar"
+        aria-label="Navegação principal"
+        className={`fixed inset-y-0 left-0 z-50 w-[min(18rem,calc(100vw-2.5rem))] border-r border-[#e5e5ea] bg-white text-[#232626] transition-[width,transform] duration-200 dark:border-white/10 dark:bg-[#161b22] dark:text-[#f5f5f7] md:z-30 md:translate-x-0 print:hidden
+          ${collapsed ? 'md:w-20' : 'md:w-64'}
+          ${mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}
+      >
       {/* Brand Header */}
       <div className="flex items-center justify-between h-16 px-4 border-b border-[#e5e5ea] dark:border-white/10">
         <div className="flex items-center gap-3 overflow-hidden">
@@ -67,25 +98,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
         
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="hidden md:flex items-center justify-center w-7 h-7 rounded-[6px] border border-slate-200 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 text-[#707070] dark:text-[#86868b] transition-colors cursor-pointer"
+          className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-[#707070] transition-colors hover:bg-slate-50 dark:border-white/10 dark:text-[#86868b] dark:hover:bg-white/10"
+          aria-label={collapsed ? 'Expandir navegação' : 'Recolher navegação'}
           title={collapsed ? "Expandir barra lateral" : "Recolher barra lateral"}
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
+        <button
+          type="button"
+          onClick={() => setMobileOpen(false)}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-[#707070] transition-colors hover:bg-slate-100 dark:text-[#a3aaad] dark:hover:bg-white/10 md:hidden"
+          aria-label="Fechar navegação"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       {/* Nav List */}
-      <nav className="flex flex-col justify-between h-[calc(100vh-4rem)] p-3">
-        <ul className="space-y-1">
+      <nav className="flex h-[calc(100dvh-4rem)] flex-col justify-between overflow-y-auto p-3">
+        <ul className="space-y-1.5">
           {/* 1. Início */}
           {canAccessInicio && <li>
             <NavLink
               to="/inicio"
+              title={collapsed ? 'Início' : undefined}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-[6px] transition-all duration-200 group text-[13px] font-medium border ${
+                `flex min-h-10 items-center gap-3 rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors group ${
                   isActive
-                    ? 'border-[#113240] bg-[#113240] text-white dark:border-[#226380] dark:bg-[#226380] dark:text-white'
-                    : 'border-transparent text-[#474747] dark:text-[#86868b] hover:bg-black/5 dark:hover:bg-white/5 hover:text-[#113240] dark:hover:text-white'}`
+                    ? 'border-[#226380]/10 bg-[#226380] text-white shadow-sm dark:border-[#A3C3C7]/15 dark:bg-[#226380] dark:text-white'
+                    : 'border-transparent text-[#52636a] hover:bg-slate-100 hover:text-[#17333d] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white'}`
               }
             >
               <Home className="w-4 h-4 shrink-0 transition-transform group-hover:scale-105" />
@@ -160,10 +201,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
               <NavLink
                 to="/usuarios"
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-[6px] transition-all duration-200 group text-[13px] font-medium border ${
+                  `flex min-h-10 items-center gap-3 rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors group ${
                     isActive 
-                      ? 'border-[#113240] bg-[#113240] text-white shadow-sm dark:border-[#226380] dark:bg-[#226380] dark:text-white' 
-                      : 'border-transparent text-[#474747] dark:text-[#86868b] hover:bg-black/5 dark:hover:bg-white/5 hover:text-[#113240] dark:hover:text-white'}`
+                      ? 'border-[#226380]/10 bg-[#226380] text-white shadow-sm dark:border-[#A3C3C7]/15 dark:bg-[#226380] dark:text-white'
+                      : 'border-transparent text-[#52636a] hover:bg-slate-100 hover:text-[#17333d] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white'}`
                   }
               >
                 <Users className="w-4 h-4 shrink-0 transition-transform group-hover:scale-105" />
@@ -184,7 +225,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
           </button>
         </div>
       </nav>
-    </aside>
+      </aside>
+    </>
   );
 };
 
@@ -197,7 +239,14 @@ const SidebarGroup: React.FC<{
   children: React.ReactNode;
 }> = ({ label, icon: Icon, open, onToggle, collapsed, children }) => (
   <li>
-    <button type="button" onClick={onToggle} className="flex w-full items-center gap-3 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#474747] transition-all hover:bg-black/5 hover:text-[#113240] dark:text-[#86868b] dark:hover:bg-white/5 dark:hover:text-white cursor-pointer">
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={collapsed ? label : undefined}
+      aria-expanded={open}
+      title={collapsed ? label : undefined}
+      className={`flex min-h-10 w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium text-[#52636a] transition-colors hover:bg-slate-100 hover:text-[#17333d] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white ${open ? 'bg-slate-100/80 dark:bg-white/5' : ''}`}
+    >
       <Icon className="h-4 w-4 shrink-0" />
       {!collapsed && <><span className="flex-1 text-left">{label}</span><ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`} /></>}
     </button>
@@ -216,10 +265,11 @@ const SidebarSubLink: React.FC<{ to: string; label: string; icon: React.ElementT
     <li>
       <NavLink
         to={to}
-        className={`flex items-center gap-2.5 rounded-[6px] px-2.5 py-1.5 text-xs font-medium transition-colors border ${
+        title={collapsed ? label : undefined}
+        className={`flex min-h-9 items-center gap-2.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
           isMatch
-            ? 'border-[#226380]/40 bg-[#226380]/10 text-[#113240] font-semibold dark:border-[#A3C3C7]/30 dark:bg-[#226380]/25 dark:text-[#A3C3C7]'
-            : 'border-transparent text-[#707070] hover:bg-black/5 hover:text-[#113240] dark:text-[#86868b] dark:hover:bg-white/5 dark:hover:text-white'
+            ? 'border-[#226380]/10 bg-[#226380]/10 text-[#17333d] font-semibold dark:border-[#A3C3C7]/20 dark:bg-[#226380]/25 dark:text-[#A3C3C7]'
+            : 'border-transparent text-[#68777d] hover:bg-slate-100 hover:text-[#17333d] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white'
         }`}
       >
         <Icon className="h-3.5 w-3.5 shrink-0" />

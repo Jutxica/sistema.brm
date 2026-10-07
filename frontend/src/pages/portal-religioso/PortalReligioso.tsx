@@ -21,6 +21,7 @@ import { LeitorDocumentoModal } from '../../components/LeitorDocumentoModal';
 import { downloadArquivo } from '../../lib/downloadHelper';
 import type { FormularioSecretaria, RespostaFormulario } from '../SecretariaConfiguracoes';
 import { showToast } from '../../hooks/useFeedback';
+import { getPortalRedirectUrl } from '../../lib/portalUrls';
 
 interface CasaAcolhida {
   id: string;
@@ -97,6 +98,8 @@ export const PortalReligioso: React.FC = () => {
   // Religious Profile Data
   const [religiosoData, setReligiosoData] = useState<any>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
+  const [registrationOpening, setRegistrationOpening] = useState(false);
+  const [registrationError, setRegistrationError] = useState<string | null>(null);
 
   // E2E Preview Mode for Member Portal
   const isE2E = import.meta.env.DEV && typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true';
@@ -130,17 +133,34 @@ export const PortalReligioso: React.FC = () => {
         return;
       }
 
-      const { data: linkedId, error: linkError } = await supabase.rpc('ensure_religious_portal_profile');
-      if (linkError) throw linkError;
+      const [officialResult, profileResult] = await Promise.all([
+        supabase
+          .from('religiosos')
+          .select('*')
+          .eq('auth_user_id', user!.id)
+          .maybeSingle(),
+        supabase
+          .from('portal_perfis_religiosos')
+          .select('*')
+          .eq('auth_user_id', user!.id)
+          .maybeSingle(),
+      ]);
+      if (officialResult.error) throw officialResult.error;
+      if (profileResult.error) throw profileResult.error;
 
-      const { data, error } = await supabase
-        .from('religiosos')
-        .select('*')
-        .eq('id', linkedId)
-        .eq('auth_user_id', user?.id)
-        .single();
-      if (error) throw error;
-
+      const officialData = officialResult.data;
+      const profile = profileResult.data;
+      const profileData = profile ? {
+        nome_civil: profile.nome_civil,
+        nome_religioso: profile.nome_religioso,
+        grau: profile.grau,
+        foto_path: profile.foto_path,
+        comunidade_atual_nome: profile.comunidade_atual_nome,
+        email_institucional: profile.email_institucional,
+        whatsapp: profile.whatsapp,
+        telefone_celular: profile.telefone_celular,
+      } : {};
+      const data = officialData || profile ? { ...(officialData || {}), ...profileData } : null;
       if (data) {
         let fotoUrl = '';
         if (data.foto_path) {
@@ -151,8 +171,10 @@ export const PortalReligioso: React.FC = () => {
           fotoUrl = signedPhoto.signedUrl;
         }
         setReligiosoData({ ...data, foto_url: fotoUrl });
-        await refreshUserProfile?.(user!.id);
+      } else {
+        setReligiosoData(null);
       }
+      setProfileError(null);
     } catch (err) {
       console.error(err);
       setReligiosoData(null);
@@ -161,6 +183,41 @@ export const PortalReligioso: React.FC = () => {
         : 'Não foi possível localizar seu cadastro. Entre em contato com a Secretaria Provincial.');
     } finally {
       setLoadingProfile(false);
+    }
+  };
+
+  const openRegistration = async () => {
+    setActiveSection('inscricao');
+    setRegistrationError(null);
+
+    if (religiosoData?.id || isE2E) return;
+    if (!user?.id) {
+      setRegistrationError('Entre novamente no portal para iniciar o Cadastro BRM.');
+      return;
+    }
+
+    setRegistrationOpening(true);
+    try {
+      const { data: religiosoId, error: linkError } = await supabase.rpc('ensure_religious_portal_profile');
+      if (linkError) throw linkError;
+      if (typeof religiosoId !== 'string' || !religiosoId) {
+        throw new Error('Não foi possível localizar ou iniciar sua ficha. Contate a Secretaria Provincial.');
+      }
+
+      const { data: officialData, error: officialError } = await supabase
+        .from('religiosos')
+        .select('*')
+        .eq('id', religiosoId)
+        .single();
+      if (officialError) throw officialError;
+      setReligiosoData(officialData);
+    } catch (err) {
+      console.error('Erro ao iniciar Cadastro BRM:', err);
+      setRegistrationError(err instanceof Error
+        ? err.message
+        : 'Não foi possível iniciar o Cadastro BRM. Tente novamente ou contate a Secretaria Provincial.');
+    } finally {
+      setRegistrationOpening(false);
     }
   };
 
@@ -454,7 +511,7 @@ export const PortalReligioso: React.FC = () => {
         email: regEmail.trim().toLowerCase(),
         password: regSenha,
         options: {
-          emailRedirectTo: `${window.location.origin}/portal-religioso`,
+          emailRedirectTo: getPortalRedirectUrl(),
           data: {
             nome: regNomeCivil.trim(),
             cpf: cleanCpf,
@@ -473,12 +530,10 @@ export const PortalReligioso: React.FC = () => {
       }
 
       if (authData.session && authData.user) {
-        const { error: linkError } = await supabase.rpc('ensure_religious_portal_profile');
-        if (linkError) throw linkError;
         await refreshUserProfile(authData.user.id);
-        setAuthSuccess('Conta criada e cadastro vinculado. Você já pode acessar o portal.');
+        setAuthSuccess('Conta criada. Seu primeiro passo é abrir Cadastro BRM e preencher a Ficha Cadastral Oficial. Depois, você pode completar seu perfil pessoal.');
       } else {
-        setAuthSuccess('Conta criada. Enviamos um link de confirmação para seu e-mail. Confirme-o e depois entre com seu e-mail e senha. A ficha ficará sujeita à validação da Secretaria Provincial.');
+        setAuthSuccess('Conta criada. Enviamos um link de confirmação para seu e-mail. Confirme-o, entre no portal e comece pelo Cadastro BRM. Depois, você pode completar seu perfil pessoal.');
       }
       setAuthMode('login');
       setIdentificador(regEmail.trim().toLowerCase());
@@ -502,7 +557,7 @@ export const PortalReligioso: React.FC = () => {
     setAuthSuccess(null);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/portal-religioso`,
+        redirectTo: getPortalRedirectUrl(),
       });
       if (error) throw error;
       setAuthSuccess('Se houver uma conta para este e-mail, enviaremos as instruções de recuperação.');
@@ -751,6 +806,9 @@ export const PortalReligioso: React.FC = () => {
                       maxLength={14}
                       className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
                     />
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-[#707070] dark:text-[#a1a1a6]">
+                      Conferimos apenas os dígitos verificadores. A titularidade será revisada pela Secretaria; não consultamos uma base oficial de CPF.
+                    </p>
                   </div>
                   <div>
                     <label className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
@@ -874,7 +932,8 @@ export const PortalReligioso: React.FC = () => {
   }
 
   // USUÁRIO AUTENTICADO: RENDERIZA O SITE DA ÁREA DE MEMBROS (APPLE FORMAT)
-  const displayName = religiosoData?.nome_religioso || religiosoData?.nome_civil || user?.nome || 'Confrade Dehoniano';
+  const displayName = religiosoData?.nome_civil || user?.nome || 'Confrade Dehoniano';
+  const displayReligiousName = religiosoData?.nome_religioso || '';
   const displayGrau = religiosoData?.grau || 'Religioso SCJ';
 
   // Se o confrade estiver preenchendo a ficha oficial de inscrição de um evento (Página Completa - Sem Modal)
@@ -1033,7 +1092,7 @@ export const PortalReligioso: React.FC = () => {
                   {displayName}
                 </span>
                 <span className="text-[10px] text-[#707070] dark:text-[#86868b] leading-tight font-normal">
-                  {displayGrau}
+                  {[displayReligiousName, displayGrau].filter(Boolean).join(' · ')}
                 </span>
               </div>
 
@@ -1060,6 +1119,9 @@ export const PortalReligioso: React.FC = () => {
                     <span className="text-xs font-bold text-[#1d1d1f] dark:text-[#f5f5f7] block truncate">
                       {displayName}
                     </span>
+                    {displayReligiousName && <span className="text-[11px] text-[#707070] dark:text-[#86868b] block truncate">
+                      {displayReligiousName} · {displayGrau}
+                    </span>}
                     <span className="text-[11px] text-[#707070] dark:text-[#86868b] block truncate">
                       {religiosoData?.email_institucional || user?.email}
                     </span>
@@ -1100,8 +1162,8 @@ export const PortalReligioso: React.FC = () => {
                     type="button"
                     data-testid="menu-item-inscricao"
                     onClick={() => {
-                      setActiveSection('inscricao');
-                      setUserMenuOpen(false);
+                     setUserMenuOpen(false);
+                     void openRegistration();
                     }}
                     className="w-full flex items-center gap-3 px-3 py-2 rounded-[14px] text-left text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-[#f5f5f7] dark:hover:bg-[#2c2c2e] transition-colors cursor-pointer group"
                   >
@@ -1181,7 +1243,13 @@ export const PortalReligioso: React.FC = () => {
             <button
               key={section}
               type="button"
-              onClick={() => setActiveSection(section)}
+              onClick={() => {
+                if (section === 'inscricao') {
+                  void openRegistration();
+                  return;
+                }
+                setActiveSection(section);
+              }}
               className={`shrink-0 rounded-full border px-3 py-2 text-xs font-medium transition-colors ${
                 activeSection === section
                   ? 'border-[#226380] bg-[#226380] text-white'
@@ -1212,6 +1280,20 @@ export const PortalReligioso: React.FC = () => {
             >
               <Home className="w-4 h-4" />
               <span>Painel do Confrade</span>
+            </button>
+
+            <button
+              type="button"
+              data-testid="nav-item-inscricao"
+              onClick={() => void openRegistration()}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[12px] text-[13px] font-medium transition-all duration-200 text-left cursor-pointer ${
+                activeSection === 'inscricao'
+                  ? 'bg-white dark:bg-[#161617] text-[#0071e3] dark:text-[#2997ff] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
+                  : 'text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-white/60 dark:hover:bg-[#161617]/60'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              <span>Cadastro BRM</span>
             </button>
 
             <button
@@ -1302,9 +1384,8 @@ export const PortalReligioso: React.FC = () => {
           )}
           {profileError && (
             <div role="alert" className="rounded-[6px] border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-              <p className="font-semibold">Não foi possível vincular uma ficha à sua conta.</p>
+              <p className="font-semibold">Não foi possível carregar os dados da sua conta.</p>
               <p className="mt-1">{profileError}</p>
-              <p className="mt-1">O CPF serve apenas para conferir a ficha e não comprova identidade. Se o e-mail ou os dados estiverem diferentes, solicite a validação da Secretaria Provincial.</p>
             </div>
           )}
           
@@ -1362,10 +1443,12 @@ export const PortalReligioso: React.FC = () => {
                 </div>
 
                 {/* 02 / Cadastro BRM ou Atualizar Dados */}
-                <div 
-                  onClick={() => setActiveSection('inscricao')}
+                <button
+                  type="button"
+                  data-testid="card-item-inscricao"
+                  onClick={() => void openRegistration()}
                   style={staggerStyle(1)}
-                  className="rounded-[24px] bg-white dark:bg-[#161617] p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
+                  className="w-full text-left rounded-[24px] bg-white dark:bg-[#161617] p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
                 >
                   <div>
                     <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#0071e3] mb-3 group-hover:scale-105 transition-transform">
@@ -1382,7 +1465,7 @@ export const PortalReligioso: React.FC = () => {
                     <span>13 etapas oficiais</span>
                     <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
                   </div>
-                </div>
+                </button>
 
                 {/* 03 / Documentos Oficiais */}
                 <div 
@@ -1642,7 +1725,7 @@ export const PortalReligioso: React.FC = () => {
                   <span>Voltar ao Painel do Confrade</span>
                 </button>
               </div>
-              <MeuPerfilReligioso isPortal={true} />
+              <MeuPerfilReligioso isPortal={true} onSaved={loadMemberData} />
             </div>
           )}
 
@@ -1670,7 +1753,27 @@ export const PortalReligioso: React.FC = () => {
                   Preencha ou revise a qualquer momento todos os dados canônicos, histórico de comunidades e anexos comprobatórios.
                 </p>
               </div>
-              {religiosoData?.id ? (
+              {registrationOpening ? (
+                <div role="status" className="flex items-center gap-3 rounded-[6px] border border-[#226380]/20 bg-white p-5 text-sm text-[#40565e] dark:bg-[#161617] dark:text-[#c5c5c7]">
+                  <Loader2 className="h-5 w-5 animate-spin text-[#226380]" />
+                  Preparando sua Ficha Cadastral Oficial...
+                </div>
+              ) : registrationError ? (
+                <div role="alert" className="rounded-[6px] border border-amber-300 bg-amber-50 p-5 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                  <p>{registrationError}</p>
+                  <button
+                    type="button"
+                    onClick={() => void openRegistration()}
+                    className="mt-3 rounded-[6px] border border-amber-500/40 px-3 py-1.5 text-xs font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                  >
+                    Tentar novamente
+                  </button>
+                  <p className="mt-3 text-xs">
+                    Se o problema continuar, contate a Secretaria Provincial pelo e-mail{' '}
+                    <a className="underline" href="mailto:secretaria@brm.org.br">secretaria@brm.org.br</a>.
+                  </p>
+                </div>
+              ) : religiosoData?.id ? (
                 <CadastroReligiosoPublico
                   memberMode
                   religiosoId={religiosoData.id}
@@ -1680,8 +1783,8 @@ export const PortalReligioso: React.FC = () => {
                   }}
                 />
               ) : (
-                <div className="rounded-[6px] border border-amber-300 bg-amber-50 p-5 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-                  Para preencher ou atualizar a ficha pelo portal, primeiro é necessário validar o vínculo com a Secretaria Provincial.
+                <div role="status" className="rounded-[6px] border border-[#d6d6d6]/60 bg-white p-5 text-sm text-[#40565e] dark:bg-[#161617] dark:text-[#c5c5c7]">
+                  Inicie o Cadastro BRM pelo menu do usuário ou pelo cartão correspondente no painel.
                 </div>
               )}
             </div>

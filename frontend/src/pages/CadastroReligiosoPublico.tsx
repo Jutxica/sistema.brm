@@ -471,7 +471,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
     );
   }
 
-  if (!adminMode && !publicConfig.ativo) {
+  if (!adminMode && !memberMode && !publicConfig.ativo) {
     return (
       <PublicShell>
         <div className="max-w-xl mx-auto rounded-[6px] bg-white dark:bg-[#161b22] p-10 text-center border border-slate-200 dark:border-slate-800">
