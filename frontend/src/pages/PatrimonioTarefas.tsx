@@ -109,6 +109,14 @@ const todayKey = () => {
 
 const formatDate = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR');
 
+const getErrorMessage = (cause: unknown, fallback: string) => {
+  if (cause instanceof Error) return cause.message;
+  if (typeof cause === 'object' && cause !== null && 'message' in cause && typeof cause.message === 'string') {
+    return cause.message;
+  }
+  return fallback;
+};
+
 const dueLabel = (date: string | null, status: Task['status']) => {
   if (!date) return 'Sem prazo';
   if (status === 'concluido' || status === 'cancelado') return formatDate(date);
@@ -193,7 +201,7 @@ const PatrimonioTarefas: React.FC = () => {
       }
     } catch (cause) {
       console.error('Falha ao carregar o quadro de tarefas:', cause);
-      setError(cause instanceof Error ? cause.message : 'Não foi possível carregar as tarefas.');
+      setError(getErrorMessage(cause, 'Não foi possível carregar as tarefas.'));
     } finally {
       setLoading(false);
     }
@@ -313,7 +321,7 @@ const PatrimonioTarefas: React.FC = () => {
       await loadData();
     } catch (cause) {
       console.error('Falha ao salvar tarefa:', cause);
-      setError(cause instanceof Error ? cause.message : 'Não foi possível salvar a tarefa.');
+      setError(getErrorMessage(cause, 'Não foi possível salvar a tarefa.'));
     } finally {
       setSaving(false);
     }
@@ -375,7 +383,7 @@ const PatrimonioTarefas: React.FC = () => {
     } catch (cause) {
       console.error('Falha ao mudar etapa da tarefa:', cause);
       setTasks(current => current.map(item => item.id === task.id ? { ...item, status: previousStatus } : item));
-      setError(cause instanceof Error ? cause.message : 'Não foi possível mudar a etapa da tarefa.');
+      setError(getErrorMessage(cause, 'Não foi possível mudar a etapa da tarefa.'));
     } finally {
       setMovingTaskIds(current => {
         const next = new Set(current);
