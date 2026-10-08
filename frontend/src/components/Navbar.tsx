@@ -11,6 +11,8 @@ interface TaskReminder {
   mensagem: string;
   criada_em: string;
   lida_em: string | null;
+  origem: 'patrimonio' | 'religiosos' | 'secretaria';
+  rota: string;
 }
 
 interface NavbarProps {
@@ -31,18 +33,45 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileNavigationOpen, onMobileMe
 
   const loadNotifications = useCallback(async () => {
     if (!user?.id) return;
-    const { data, error } = await supabase
-      .from('patrimonio_tarefas_notificacoes')
-      .select('id, titulo, mensagem, criada_em, lida_em')
-      .order('criada_em', { ascending: false })
-      .limit(10);
-    if (error) {
-      console.error('Falha ao carregar notificações de tarefas:', error);
-      setNotificationError('Não foi possível carregar as notificações.');
-      return;
+    const [taskResult, systemResult] = await Promise.all([
+      supabase
+        .from('patrimonio_tarefas_notificacoes')
+        .select('id, titulo, mensagem, criada_em, lida_em')
+        .order('criada_em', { ascending: false })
+        .limit(15),
+      supabase
+        .from('notificacoes_sistema')
+        .select('id, tipo, titulo, mensagem, rota, criada_em, lida_em')
+        .order('criada_em', { ascending: false })
+        .limit(15),
+    ]);
+
+    const errors: string[] = [];
+    if (taskResult.error) {
+      console.error('Falha ao carregar notificações de tarefas:', taskResult.error);
+      errors.push('lembretes de tarefas');
     }
-    setNotificationError('');
-    setNotifications((data || []) as TaskReminder[]);
+    if (systemResult.error) {
+      console.error('Falha ao carregar notificações do sistema:', systemResult.error);
+      errors.push('notificações do sistema');
+    }
+
+    const taskNotifications: TaskReminder[] = (taskResult.data || []).map(item => ({
+      ...item,
+      origem: 'patrimonio',
+      rota: '/patrimonio/tarefas',
+    }));
+    const systemNotifications: TaskReminder[] = (systemResult.data || []).map(item => ({
+      ...item,
+      origem: item.tipo === 'religioso_inscricao' ? 'religiosos' : 'secretaria',
+    }));
+
+    setNotifications([...taskNotifications, ...systemNotifications]
+      .sort((a, b) => new Date(b.criada_em).getTime() - new Date(a.criada_em).getTime())
+      .slice(0, 20));
+    setNotificationError(errors.length
+      ? `Não foi possível carregar ${errors.join(' e ')}.`
+      : '');
   }, [user?.id]);
 
   useEffect(() => {
@@ -55,26 +84,35 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileNavigationOpen, onMobileMe
   }, [loadNotifications]);
 
   const markAsRead = async (notification: TaskReminder) => {
-    if (!user?.id || notification.lida_em) return;
-    const { error } = await supabase
-      .from('patrimonio_tarefas_notificacoes')
-      .update({ lida_em: new Date().toISOString() })
-      .eq('id', notification.id)
-      .eq('usuario_id', user.id);
+    if (!user?.id || notification.lida_em) return true;
+    const query = notification.origem === 'patrimonio'
+      ? supabase
+        .from('patrimonio_tarefas_notificacoes')
+        .update({ lida_em: new Date().toISOString() })
+        .eq('id', notification.id)
+        .eq('usuario_id', user.id)
+      : supabase
+        .from('notificacoes_sistema')
+        .update({ lida_em: new Date().toISOString() })
+        .eq('id', notification.id);
+    const { error } = await query;
     if (error) {
       console.error('Falha ao marcar notificação como lida:', error);
       setNotificationError('Não foi possível atualizar esta notificação.');
-      return;
+      return false;
     }
     setNotifications(current => current.map(item =>
-      item.id === notification.id ? { ...item, lida_em: new Date().toISOString() } : item,
+      item.id === notification.id && item.origem === notification.origem
+        ? { ...item, lida_em: new Date().toISOString() }
+        : item,
     ));
+    return true;
   };
 
   const openReminder = async (notification: TaskReminder) => {
-    await markAsRead(notification);
+    if (!await markAsRead(notification)) return;
     setNotificationOpen(false);
-    navigate('/patrimonio/tarefas');
+    navigate(notification.rota);
   };
 
   const unreadCount = notifications.filter(notification => !notification.lida_em).length;
@@ -165,18 +203,24 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileNavigationOpen, onMobileMe
               <button aria-label="Fechar notificações" className="fixed inset-0 z-30 cursor-default" onClick={() => setNotificationOpen(false)} />
               <div className="absolute right-0 z-40 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#1c2128]">
                 <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
-                  <p className="text-sm font-semibold text-[#113240] dark:text-white">Lembretes de tarefas</p>
-                  <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Avisos das atividades atribuídas a você</p>
+                  <p className="text-sm font-semibold text-[#113240] dark:text-white">Notificações</p>
+                  <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Inscrições, pendências e atividades</p>
                 </div>
-                {notificationError ? (
-                  <p role="alert" className="p-4 text-xs text-rose-700 dark:text-rose-300">{notificationError}</p>
-                ) : notifications.length ? (
+                {notificationError && (
+                  <p role="alert" className="border-b border-rose-100 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300">{notificationError}</p>
+                )}
+                {notifications.length ? (
                   <ul className="max-h-80 divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800">
                     {notifications.map(notification => (
-                      <li key={notification.id}>
+                      <li key={`${notification.origem}-${notification.id}`}>
                         <button type="button" onClick={() => void openReminder(notification)} className={`w-full px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/70 ${notification.lida_em ? '' : 'bg-[#226380]/5'}`}>
                           <span className="flex items-start justify-between gap-3">
                             <span>
+                              <span className="mb-1 block text-[9px] font-semibold uppercase tracking-wide text-[#947044]">
+                                {notification.origem === 'patrimonio'
+                                  ? 'Patrimônio'
+                                  : notification.origem === 'religiosos' ? 'Religiosos' : 'Secretaria'}
+                              </span>
                               <span className="block text-xs font-semibold text-slate-800 dark:text-slate-100">{notification.titulo}</span>
                               <span className="mt-1 block text-xs text-slate-600 dark:text-slate-300">{notification.mensagem}</span>
                               <span className="mt-1.5 block text-[10px] text-slate-400">{new Date(notification.criada_em).toLocaleString('pt-BR')}</span>
@@ -188,7 +232,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileNavigationOpen, onMobileMe
                     ))}
                   </ul>
                 ) : (
-                  <p className="p-5 text-center text-xs text-slate-500 dark:text-slate-400">Você não tem lembretes de prazo.</p>
+                  <p className="p-5 text-center text-xs text-slate-500 dark:text-slate-400">Nenhuma notificação recente.</p>
                 )}
               </div>
             </>
