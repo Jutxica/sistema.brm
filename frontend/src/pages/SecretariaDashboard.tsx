@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Send,
   ShieldCheck,
+  Users,
 } from 'lucide-react';
 import { hasModuleAccess, useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -234,7 +235,7 @@ export const SecretariaDashboard: React.FC = () => {
         </div>
       )}
 
-      <section className={`grid gap-4 ${canAccessSecretaria ? 'md:grid-cols-3' : 'md:grid-cols-1'}`}>
+      <section className={`grid gap-4 ${canAccessSecretaria ? 'md:grid-cols-2 xl:grid-cols-3' : 'md:grid-cols-1'}`}>
         {canAccessArquivo && (
           <Card
             title="Arquivo confidencial"
@@ -247,6 +248,13 @@ export const SecretariaDashboard: React.FC = () => {
         )}
         {canAccessSecretaria && (
           <>
+            <Card
+              title="Inscritos e contas"
+              description="Conferir fichas canônicas, revisar solicitações e administrar acessos dos usuários."
+              href="/religiosos"
+              icon={Users}
+              label="Abrir gestão de inscritos"
+            />
             <Card
               title="Documentos oficiais"
               description="Publicar, consultar e arquivar atos e documentos da Província."

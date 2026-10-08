@@ -103,6 +103,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileNavigationOpen, onMobileMe
   };
   const pageTitle = routeTitles[location.pathname]
     || (location.pathname.startsWith('/religiosos/editar/') ? 'Editar cadastro' : undefined)
+    || (location.pathname.startsWith('/religiosos/') && location.pathname.endsWith('/dossie') ? 'Dossiê do religioso' : undefined)
     || (location.pathname.startsWith('/obras/editar/') ? 'Editar obra' : undefined)
     || (location.pathname.startsWith('/patrimonio/') ? 'Patrimônio' : undefined)
     || title;

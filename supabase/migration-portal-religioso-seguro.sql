@@ -90,23 +90,6 @@ begin
   end if;
   perform pg_advisory_xact_lock(hashtextextended('email:' || v_email, 0));
 
-  v_meta := coalesce(v_auth_user.raw_user_meta_data, '{}'::jsonb);
-  v_cpf := regexp_replace(coalesce(v_meta->>'cpf', ''), '[^0-9]', '', 'g');
-  v_name := nullif(trim(coalesce(v_meta->>'nome', '')), '');
-  if coalesce(v_meta->>'data_nascimento', '') !~ '^\d{4}-\d{2}-\d{2}$' then
-    raise exception 'Data de nascimento inválida. Atualize os dados da conta ou contate a Secretaria Provincial.';
-  end if;
-  v_birth_date := (v_meta->>'data_nascimento')::date;
-  if v_birth_date >= current_date then
-    raise exception 'Data de nascimento inválida.';
-  end if;
-  if v_cpf = '' or v_name is null or v_meta->>'consentimento_dados' is distinct from 'true' then
-    raise exception 'Os dados necessários ao vínculo não foram encontrados. Contate a Secretaria Provincial.';
-  end if;
-  if not public.portal_cpf_valido(v_cpf) then
-    raise exception 'O CPF informado é inválido. Confira os dígitos.';
-  end if;
-
   select count(*) into v_matches
   from public.religiosos
   where auth_user_id = v_user_id;
@@ -122,6 +105,23 @@ begin
       raise exception 'Esta ficha está arquivada. Contate a Secretaria Provincial.';
     end if;
     return v_religioso.id;
+  end if;
+
+  v_meta := coalesce(v_auth_user.raw_user_meta_data, '{}'::jsonb);
+  v_cpf := regexp_replace(coalesce(v_meta->>'cpf', ''), '[^0-9]', '', 'g');
+  v_name := nullif(trim(coalesce(v_meta->>'nome', '')), '');
+  if coalesce(v_meta->>'data_nascimento', '') !~ '^\d{4}-\d{2}-\d{2}$' then
+    raise exception 'Data de nascimento inválida. Atualize os dados da conta ou contate a Secretaria Provincial.';
+  end if;
+  v_birth_date := (v_meta->>'data_nascimento')::date;
+  if v_birth_date >= current_date then
+    raise exception 'Data de nascimento inválida.';
+  end if;
+  if v_cpf = '' or v_name is null or v_meta->>'consentimento_dados' is distinct from 'true' then
+    raise exception 'Os dados necessários ao vínculo não foram encontrados. Contate a Secretaria Provincial.';
+  end if;
+  if not public.portal_cpf_valido(v_cpf) then
+    raise exception 'O CPF informado é inválido. Confira os dígitos.';
   end if;
 
   perform pg_advisory_xact_lock(hashtextextended('cpf:' || v_cpf, 0));

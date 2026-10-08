@@ -41,22 +41,26 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="brm-auth-page min-h-screen flex flex-col justify-between text-[#203136] dark:text-[#edf2f1] px-4 font-sans transition-colors duration-200">
+    <div className="brm-auth-page relative isolate min-h-screen flex flex-col justify-between overflow-hidden px-4 font-sans text-[#203136] transition-colors duration-200 dark:text-[#edf2f1]">
+      <img
+        src="/rodape-brm.png"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0 h-full w-full scale-[1.02] object-cover object-center opacity-50 blur-[2px]"
+      />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 bg-slate-950/25" />
       
       {/* Top spacing */}
-      <div className="h-12 md:h-16" />
+      <div className="relative z-10 h-12 md:h-16" />
 
       {/* Login Card */}
-      <div className="flex-grow flex items-center justify-center py-6">
-        <div className="brm-auth-card relative w-full max-w-[440px] overflow-hidden bg-white dark:bg-[#17272d] rounded-2xl p-7 sm:p-10 border border-[#dce4e2] dark:border-white/10 transition-all">
+      <div className="relative z-10 flex flex-grow items-center justify-center py-6">
+        <div className="brm-auth-card relative w-full max-w-[440px] overflow-hidden rounded-2xl p-7 transition-all sm:p-10">
           
           {/* Brand & Title */}
           <div className="flex flex-col items-center text-center mb-8">
-            <img
-              src="/logo-branco.png"
-              alt="Província BRM"
-              className="h-12 w-auto object-contain mb-3"
-            />
+            <img src="/logo-sistema.png" alt="Província BRM" className="mb-3 h-12 w-auto object-contain dark:hidden" />
+            <img src="/logo-branco.png" alt="Província BRM" className="mb-3 hidden h-12 w-auto object-contain dark:block" />
             <h1 className="text-[1.5rem] font-semibold tracking-tight text-[#113240] dark:text-white">
               Sistema BRM
             </h1>
@@ -152,7 +156,7 @@ export const Login: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <footer className="w-full py-6 text-center text-xs text-[#66777b] dark:text-[#748487]">
+      <footer className="relative z-10 w-full py-6 text-center text-xs text-white/80 drop-shadow">
         sistema.brm.org - todos os direitos reservados-2026
       </footer>
     </div>

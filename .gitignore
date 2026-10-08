@@ -48,4 +48,4 @@ sql/
 # Versioned Supabase migrations/schema
 !supabase/
 !supabase/*.sql
-
+/supabase/.temp/

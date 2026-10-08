@@ -20,6 +20,7 @@ interface PerfilData {
   nome_civil: string;
   nome_religioso: string;
   grau: string;
+  data_nascimento: string;
   foto_url: string;
   foto_path: string;
   comunidade_atual_nome: string;
@@ -62,6 +63,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
     nome_civil: '',
     nome_religioso: '',
     grau: 'Padre',
+    data_nascimento: '',
     foto_url: '',
     foto_path: '',
     comunidade_atual_nome: '',
@@ -97,6 +99,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
             nome_civil: 'Carlos Eduardo da Silva',
             nome_religioso: 'Pe. Carlos Eduardo, SCJ',
             grau: 'Padre',
+            data_nascimento: '1990-01-15',
             foto_url: '',
             foto_path: '',
             comunidade_atual_nome: 'Sede Provincial BRM • Curitiba/PR',
@@ -133,6 +136,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
           nome_civil: profile?.nome_civil || metadata.nome || user.nome || '',
           nome_religioso: profile?.nome_religioso || '',
           grau: profile?.grau || 'Padre',
+          data_nascimento: profile?.data_nascimento || metadata.data_nascimento || '',
           foto_url: photoUrl,
           foto_path: profile?.foto_path || '',
           comunidade_atual_nome: profile?.comunidade_atual_nome || '',
@@ -249,11 +253,22 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
           nextPhotoUrl = '';
         }
 
+        if (form.data_nascimento) {
+          const { error: metaError } = await supabase.auth.updateUser({
+            data: {
+              nome: form.nome_civil,
+              data_nascimento: form.data_nascimento,
+            },
+          });
+          if (metaError) throw metaError;
+        }
+
         const payload: Record<string, unknown> = {
           auth_user_id: user.id,
           nome_civil: form.nome_civil,
           nome_religioso: form.nome_religioso,
           grau: form.grau,
+          data_nascimento: form.data_nascimento || null,
           comunidade_atual_nome: form.comunidade_atual_nome,
           email_institucional: form.email_institucional,
           whatsapp: form.whatsapp,
@@ -490,6 +505,21 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
             </div>
 
           </div>
+
+          <div className="max-w-sm">
+            <label className={labelClass}>Data de nascimento *</label>
+            <input
+              type="date"
+              required
+              value={form.data_nascimento}
+              onChange={e => setForm({ ...form, data_nascimento: e.target.value })}
+              className={inputClass}
+            />
+            <span className={`text-[11px] ${isPortal ? 'text-[#707070] dark:text-[#86868b]' : 'text-slate-500 font-mono'} mt-1 block`} >
+              Essa data é usada apenas para verificação do vínculo com a Ficha Cadastral Oficial.
+            </span>
+          </div>
+
           <div className="max-w-sm">
             <label className={labelClass}>Categoria de apresentação</label>
             <select

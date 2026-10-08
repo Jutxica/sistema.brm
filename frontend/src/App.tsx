@@ -36,6 +36,7 @@ const PatrimonioDetalhes = lazy(() => import('./pages/PatrimonioDetalhes'));
 const ValidarDocumento = lazy(() => import('./pages/ValidarDocumento'));
 const ArquivoSecretaria = lazy(() => import('./pages/ArquivoSecretaria'));
 const SecretariaDashboard = lazy(() => import('./pages/SecretariaDashboard'));
+const ReligiosoDossie = lazy(() => import('./pages/ReligiosoDossie'));
 
 // Apple Loading Spinner Fallback
 const AppleLoadingFallback: React.FC = () => (
@@ -102,6 +103,17 @@ const ModuleRoute: React.FC<{ children: React.ReactNode; accessKey: string }> = 
     return <Navigate to={getDefaultPath(user)} replace />;
   }
 
+  return <>{children}</>;
+};
+
+const SecretariaReligiososRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading, isAuthenticated } = useAuth();
+
+  if (loading) return <AppleLoadingFallback />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!hasModuleAccess(user, 'secretaria') && !hasModuleAccess(user, 'religiosos')) {
+    return <Navigate to={getDefaultPath(user)} replace />;
+  }
   return <>{children}</>;
 };
 
@@ -176,7 +188,8 @@ export const App: React.FC = () => {
                   <Route path="inicio" element={<ModuleRoute accessKey="inicio"><Inicio /></ModuleRoute>} />
                   <Route path="meu-perfil" element={<ModuleRoute accessKey="religioso"><MeuPerfilReligioso /></ModuleRoute>} />
                   <Route path="anuario" element={<ModuleRoute accessKey="religiosos"><AnuarioBRM /></ModuleRoute>} />
-                  <Route path="religiosos" element={<ModuleRoute accessKey="religiosos"><ReligiososAdmin /></ModuleRoute>} />
+                  <Route path="religiosos" element={<SecretariaReligiososRoute><ReligiososAdmin /></SecretariaReligiososRoute>} />
+                  <Route path="religiosos/:id/dossie" element={<SecretariaReligiososRoute><ReligiosoDossie /></SecretariaReligiososRoute>} />
                   <Route path="estatisticas-brm" element={<ModuleRoute accessKey="religiosos"><EstatisticaBRM /></ModuleRoute>} />
                   <Route path="documentos" element={<ModuleRoute accessKey="secretaria"><DocumentosAdmin /></ModuleRoute>} />
                   <Route path="secretaria" element={<SecretariaDashboardRoute />} />
