@@ -36,6 +36,14 @@ interface CasaAcolhida {
   site?: string;
 }
 
+const getRegistrationErrorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string') {
+    return error.message;
+  }
+  return 'Não foi possível iniciar o Cadastro BRM. Tente novamente ou contate a Secretaria Provincial.';
+};
+
 export const PortalReligioso: React.FC = () => {
   const { user, logout, refreshUserProfile } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -213,9 +221,7 @@ export const PortalReligioso: React.FC = () => {
       setReligiosoData(officialData);
     } catch (err) {
       console.error('Erro ao iniciar Cadastro BRM:', err);
-      setRegistrationError(err instanceof Error
-        ? err.message
-        : 'Não foi possível iniciar o Cadastro BRM. Tente novamente ou contate a Secretaria Provincial.');
+      setRegistrationError(getRegistrationErrorMessage(err));
     } finally {
       setRegistrationOpening(false);
     }
