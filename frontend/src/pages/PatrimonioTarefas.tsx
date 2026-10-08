@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, GripVertical, Link2, ListChecks, MessageSquare, Paperclip, Pencil, Plus, Search, Tag, Trash2, UserRound, X } from 'lucide-react';
 import { useAuth, hasModuleAccess } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
+import { confirmAction, promptText } from '../hooks/useFeedback';
 
 const stages = [
   { value: 'a_fazer', label: 'A fazer' },
@@ -328,7 +329,14 @@ const PatrimonioTarefas: React.FC = () => {
   };
 
   const deleteTask = async (task: Task) => {
-    if (!window.confirm(`Excluir a tarefa "${task.titulo}"?`)) return;
+    const confirmed = await confirmAction({
+      title: 'Excluir tarefa',
+      message: `Deseja excluir a tarefa "${task.titulo}"?`,
+      tone: 'danger',
+      confirmLabel: 'Sim, excluir',
+      icon: 'trash',
+    });
+    if (!confirmed) return;
     setError('');
     const { error: deleteError } = await supabase.rpc('patrimonio_tarefas_excluir', {
       p_tarefa_id: task.id,
@@ -504,9 +512,22 @@ const PatrimonioTarefas: React.FC = () => {
 
   const createLabel = async () => {
     if (!canManage) return;
-    const name = window.prompt('Nome da nova etiqueta (até 40 caracteres):')?.trim();
+    const name = (await promptText({
+      title: 'Nova etiqueta',
+      message: 'Informe o nome da nova etiqueta (até 40 caracteres).',
+      maxLength: 40,
+      placeholder: 'Nome da etiqueta',
+      confirmLabel: 'Continuar',
+    }))?.trim();
     if (!name) return;
-    const color = window.prompt('Cor hexadecimal (por exemplo, #2563eb):', '#2563eb')?.trim() || '#2563eb';
+    const color = (await promptText({
+      title: 'Cor da etiqueta',
+      message: 'Informe uma cor hexadecimal para identificar a etiqueta.',
+      initialValue: '#2563eb',
+      placeholder: '#2563eb',
+      maxLength: 7,
+      confirmLabel: 'Criar etiqueta',
+    }))?.trim() || '#2563eb';
     const { data, error: insertError } = await supabase
       .from('patrimonio_tarefas_etiquetas')
       .insert({ nome: name, cor: color })

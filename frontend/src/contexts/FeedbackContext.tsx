@@ -32,6 +32,17 @@ export interface AlertModalOptions {
   badge?: string;
 }
 
+export interface PromptOptions {
+  title?: string;
+  message: string;
+  initialValue?: string;
+  placeholder?: string;
+  maxLength?: number;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  badge?: string;
+}
+
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 export interface ToastItem {
@@ -45,6 +56,7 @@ export interface ToastItem {
 interface FeedbackContextType {
   confirm: (options: ConfirmOptions | string) => Promise<boolean>;
   alert: (options: AlertModalOptions | string) => Promise<void>;
+  prompt: (options: PromptOptions | string) => Promise<string | null>;
   toast: {
     success: (message: string, title?: string, duration?: number) => void;
     error: (message: string, title?: string, duration?: number) => void;
@@ -55,31 +67,37 @@ interface FeedbackContextType {
 
 const FeedbackContext = createContext<FeedbackContextType | null>(null);
 
+const BrandMark: React.FC<{ className: string }> = ({ className }) => (
+  <>
+    <img src="/logo-sistema.png" alt="" aria-hidden="true" className={`${className} object-contain dark:hidden`} />
+    <img src="/logo-branco.png" alt="" aria-hidden="true" className={`${className} hidden object-contain dark:block`} />
+  </>
+);
+
 // Global standalone emitters for non-hook usage
 type ConfirmFn = (options: ConfirmOptions | string) => Promise<boolean>;
 type AlertFn = (options: AlertModalOptions | string) => Promise<void>;
+type PromptFn = (options: PromptOptions | string) => Promise<string | null>;
 type ToastFn = (type: ToastType, message: string, title?: string, duration?: number) => void;
 
 let globalConfirm: ConfirmFn | null = null;
 let globalAlert: AlertFn | null = null;
+let globalPrompt: PromptFn | null = null;
 let globalToast: ToastFn | null = null;
 
 export const confirmAction = (options: ConfirmOptions | string): Promise<boolean> => {
-  if (globalConfirm) {
-    return globalConfirm(options);
-  }
-  // Fallback to native if provider not mounted yet
-  const message = typeof options === 'string' ? options : options.message;
-  return Promise.resolve(window.confirm(message));
+  if (!globalConfirm) throw new Error('FeedbackProvider ainda não está disponível.');
+  return globalConfirm(options);
 };
 
 export const showAlertModal = (options: AlertModalOptions | string): Promise<void> => {
-  if (globalAlert) {
-    return globalAlert(options);
-  }
-  const message = typeof options === 'string' ? options : options.message;
-  window.alert(message);
-  return Promise.resolve();
+  if (!globalAlert) throw new Error('FeedbackProvider ainda não está disponível.');
+  return globalAlert(options);
+};
+
+export const promptText = (options: PromptOptions | string): Promise<string | null> => {
+  if (!globalPrompt) throw new Error('FeedbackProvider ainda não está disponível.');
+  return globalPrompt(options);
 };
 
 export const showToast = {
@@ -112,11 +130,19 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     resolve: () => void;
   } | null>(null);
 
+  const [promptState, setPromptState] = useState<{
+    isOpen: boolean;
+    options: PromptOptions;
+    value: string;
+    resolve: (value: string | null) => void;
+  } | null>(null);
+
   // Toasts state
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const cancelBtnRef = useRef<HTMLButtonElement | null>(null);
   const confirmBtnRef = useRef<HTMLButtonElement | null>(null);
   const alertBtnRef = useRef<HTMLButtonElement | null>(null);
+  const promptInputRef = useRef<HTMLInputElement | null>(null);
 
   // Toast handler
   const addToast = useCallback((type: ToastType, message: string, title?: string, duration = 4000) => {
@@ -164,17 +190,34 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
   }, []);
 
+  const promptModal = useCallback((options: PromptOptions | string): Promise<string | null> => {
+    const opts: PromptOptions = typeof options === 'string' ? { message: options } : options;
+    return new Promise<string | null>((resolve) => {
+      setPromptState({
+        isOpen: true,
+        options: opts,
+        value: opts.initialValue || '',
+        resolve: (value) => {
+          setPromptState(null);
+          resolve(value);
+        },
+      });
+    });
+  }, []);
+
   // Register globals
   useEffect(() => {
     globalConfirm = confirm;
     globalAlert = alertModal;
+    globalPrompt = promptModal;
     globalToast = (type, msg, title, dur) => addToast(type, msg, title, dur);
     return () => {
       globalConfirm = null;
       globalAlert = null;
+      globalPrompt = null;
       globalToast = null;
     };
-  }, [confirm, alertModal, addToast]);
+  }, [confirm, alertModal, promptModal, addToast]);
 
   // Keyboard accessibility: ESC and Enter
   useEffect(() => {
@@ -189,12 +232,20 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           e.preventDefault();
           alertState.resolve();
         }
+      } else if (promptState?.isOpen) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          promptState.resolve(null);
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          promptState.resolve(promptState.value);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [confirmState, alertState]);
+  }, [confirmState, alertState, promptState]);
 
   // Auto-focus buttons when modal opens
   useEffect(() => {
@@ -220,6 +271,16 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [alertState?.isOpen]);
 
+  useEffect(() => {
+    if (promptState?.isOpen) {
+      const timer = setTimeout(() => {
+        promptInputRef.current?.focus();
+        promptInputRef.current?.select();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [promptState?.isOpen]);
+
   const toastMethods = {
     success: (msg: string, title?: string, dur?: number) => addToast('success', msg, title, dur),
     error: (msg: string, title?: string, dur?: number) => addToast('error', msg, title, dur),
@@ -228,7 +289,7 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   return (
-    <FeedbackContext.Provider value={{ confirm, alert: alertModal, toast: toastMethods }}>
+    <FeedbackContext.Provider value={{ confirm, alert: alertModal, prompt: promptModal, toast: toastMethods }}>
       {children}
 
       {/* CONFIRM MODAL */}
@@ -251,7 +312,8 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 pt-5 pb-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                <BrandMark className="h-8 w-8" />
                 <span className={`text-[10px] font-mono uppercase tracking-[0.16em] font-semibold ${
                   confirmState.options.tone === 'danger'
                     ? 'text-rose-600 dark:text-rose-400'
@@ -342,6 +404,67 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         </div>
       )}
 
+      {/* PROMPT MODAL */}
+      {promptState?.isOpen && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm motion-backdrop animate-in fade-in duration-200"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="brm-prompt-title"
+          onClick={() => promptState.resolve(null)}
+        >
+          <form
+            className="bg-white dark:bg-[#161b22] rounded-[10px] border border-slate-200 dark:border-slate-800 border-t-4 border-t-[#226380] shadow-2xl w-full max-w-md overflow-hidden flex flex-col motion-modal animate-in zoom-in-95 duration-200"
+            onClick={event => event.stopPropagation()}
+            onSubmit={event => {
+              event.preventDefault();
+              promptState.resolve(promptState.value);
+            }}
+          >
+            <div className="flex items-center gap-3 px-6 pt-5 pb-3">
+              <BrandMark className="h-9 w-9" />
+              <span className="text-[10px] font-mono uppercase tracking-[0.16em] font-semibold text-[#226380] dark:text-[#A3C3C7]">
+                {promptState.options.badge || 'Província BRM • Informação'}
+              </span>
+            </div>
+            <div className="px-6 py-3">
+              <h3 id="brm-prompt-title" className="text-base font-bold text-[#113240] dark:text-slate-100 font-cinzel leading-snug">
+                {promptState.options.title || 'Informe os dados'}
+              </h3>
+              <p className="mt-1.5 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                {promptState.options.message}
+              </p>
+              <input
+                ref={promptInputRef}
+                autoComplete="off"
+                maxLength={promptState.options.maxLength}
+                placeholder={promptState.options.placeholder}
+                value={promptState.value}
+                onChange={event => setPromptState(current => current
+                  ? { ...current, value: event.target.value }
+                  : current)}
+                className="mt-4 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#226380] focus:ring-2 focus:ring-[#226380]/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              />
+            </div>
+            <div className="px-6 py-4 mt-2 bg-slate-50/80 dark:bg-[#12161c] border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => promptState.resolve(null)}
+                className="px-4 py-2 text-xs font-semibold rounded-[6px] border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                {promptState.options.cancelLabel || 'Cancelar'}
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 text-xs font-semibold rounded-[6px] bg-[#113240] hover:bg-[#226380] dark:bg-[#226380] text-white transition-all cursor-pointer"
+              >
+                {promptState.options.confirmLabel || 'Continuar'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {/* ALERT MODAL */}
       {alertState?.isOpen && (
         <div 
@@ -362,6 +485,7 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 pt-5 pb-3">
+              <BrandMark className="h-8 w-8" />
               <span className={`text-[10px] font-mono uppercase tracking-[0.16em] font-semibold ${
                 alertState.options.tone === 'danger'
                   ? 'text-rose-600 dark:text-rose-400'
@@ -458,11 +582,10 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
             {/* Content */}
             <div className="flex-1 min-w-0 text-xs">
-              {t.title && (
-                <h4 className="font-semibold text-slate-900 dark:text-white mb-0.5 leading-snug">
-                  {t.title}
-                </h4>
-              )}
+              <div className="mb-0.5 flex items-center gap-1.5">
+                <BrandMark className="h-5 w-5" />
+                <h4 className="font-semibold text-slate-900 dark:text-white leading-snug">{t.title || 'Província BRM'}</h4>
+              </div>
               <p className="text-slate-600 dark:text-slate-300 font-sans leading-relaxed break-words">
                 {t.message}
               </p>
