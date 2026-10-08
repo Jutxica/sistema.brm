@@ -11,6 +11,7 @@ import { staggerStyle } from '../hooks/useMotion';
 import { FormularioTimbrado } from '../components/FormularioTimbrado';
 import { RelatorioInscricoesPrint } from '../components/RelatorioInscricoesPrint';
 import { FichaInscricaoIndividualPrint } from '../components/FichaInscricaoIndividualPrint';
+import { AgendaVisualizacao } from '../components/AgendaVisualizacao';
 import type { FormularioSecretaria, RespostaFormulario } from './SecretariaConfiguracoes';
 import { confirmAction, showToast } from '../hooks/useFeedback';
 
@@ -43,6 +44,7 @@ export interface EventoProvincial {
   formulario_id?: string | null;
   limite_vagas?: number | null;
   prazo_inscricao?: string | null;
+  publicado_portal?: boolean;
   created_at: string;
 }
 
@@ -186,6 +188,7 @@ export const AgendaAdmin: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedTipo, setSelectedTipo] = useState<string>('Todos');
   const [selectedStatus, setSelectedStatus] = useState<string>('Todos');
+  const [modoVisualizacao, setModoVisualizacao] = useState<'lista' | 'calendario' | 'quadro'>('lista');
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -213,6 +216,7 @@ export const AgendaAdmin: React.FC = () => {
   const [formPublico, setFormPublico] = useState('Toda a Província');
   const [formStatus, setFormStatus] = useState<StatusEvento>('Confirmado');
   const [formExigeInscricao, setFormExigeInscricao] = useState(false);
+  const [formPublicadoPortal, setFormPublicadoPortal] = useState(true);
   const [formFormularioId, setFormFormularioId] = useState('');
   const [formLimiteVagas, setFormLimiteVagas] = useState<number | ''>('');
   const [formPrazoInscricao, setFormPrazoInscricao] = useState('');
@@ -316,6 +320,7 @@ export const AgendaAdmin: React.FC = () => {
     setFormPublico('Toda a Província');
     setFormStatus('Confirmado');
     setFormExigeInscricao(false);
+    setFormPublicadoPortal(true);
     setFormFormularioId('');
     setFormLimiteVagas('');
     setFormPrazoInscricao('');
@@ -338,6 +343,7 @@ export const AgendaAdmin: React.FC = () => {
     setFormPublico(evt.publico_alvo || 'Toda a Província');
     setFormStatus(evt.status);
     setFormExigeInscricao(Boolean(evt.exige_inscricao));
+    setFormPublicadoPortal(evt.publicado_portal !== false);
     setFormFormularioId(evt.formulario_id || '');
     setFormLimiteVagas(evt.limite_vagas || '');
     setFormPrazoInscricao(evt.prazo_inscricao || '');
@@ -393,6 +399,7 @@ export const AgendaAdmin: React.FC = () => {
           publico_alvo: formPublico.trim() || null,
           status: formStatus,
           exige_inscricao: formExigeInscricao,
+          publicado_portal: formPublicadoPortal,
           formulario_id: formExigeInscricao ? (formFormularioId || null) : null,
           limite_vagas: formExigeInscricao && formLimiteVagas ? Number(formLimiteVagas) : null,
           prazo_inscricao: formExigeInscricao && formPrazoInscricao ? formPrazoInscricao : null
@@ -426,6 +433,7 @@ export const AgendaAdmin: React.FC = () => {
           publico_alvo: formPublico.trim() || null,
           status: formStatus,
           exige_inscricao: formExigeInscricao,
+          publicado_portal: formPublicadoPortal,
           formulario_id: formExigeInscricao ? (formFormularioId || null) : null,
           limite_vagas: formExigeInscricao && formLimiteVagas ? Number(formLimiteVagas) : null,
           prazo_inscricao: formExigeInscricao && formPrazoInscricao ? formPrazoInscricao : null,
@@ -728,13 +736,31 @@ export const AgendaAdmin: React.FC = () => {
 
       {/* Grid de Eventos — Continuous Ledger */}
       <div className="bg-white dark:bg-[#161b22] rounded-[6px] border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-[0_1px_3px_rgba(17,50,64,0.03)]">
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex flex-col gap-3 mb-4 pb-3 border-b border-slate-200 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400 font-semibold">
             Eventos da Província ({eventosFiltrados.length})
           </span>
-          <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500">
-            SINCRONIZADOS EM TEMPO REAL COM O PORTAL DO CONFRADE
-          </span>
+          <div className="flex flex-wrap items-center gap-1 rounded-md bg-slate-100 p-1 dark:bg-slate-900">
+            {([
+              ['lista', 'Lista'],
+              ['calendario', 'Calendário'],
+              ['quadro', 'Quadro'],
+            ] as const).map(([modo, label]) => (
+              <button
+                key={modo}
+                type="button"
+                onClick={() => setModoVisualizacao(modo)}
+                aria-pressed={modoVisualizacao === modo}
+                className={`rounded px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                  modoVisualizacao === modo
+                    ? 'bg-white text-[#113240] shadow-sm dark:bg-slate-700 dark:text-white'
+                    : 'text-slate-500 hover:text-[#113240] dark:text-slate-400 dark:hover:text-white'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {loading ? (
@@ -752,7 +778,7 @@ export const AgendaAdmin: React.FC = () => {
               Nenhum evento corresponde aos filtros. Clique em "+ Novo Evento Provincial" para cadastrar.
             </p>
           </div>
-        ) : (
+        ) : modoVisualizacao === 'lista' ? (
           <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
             {eventosFiltrados.map((evt, idx) => {
               const [ano, mes, dia] = evt.data_inicio.split('-');
@@ -920,6 +946,29 @@ export const AgendaAdmin: React.FC = () => {
               );
             })}
           </div>
+        ) : (
+          <AgendaVisualizacao
+            modo={modoVisualizacao}
+            eventos={eventosFiltrados}
+            renderAcoes={(evento) => (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleOpenEdit(evento)}
+                  className="rounded border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:border-[#226380] hover:text-[#113240] dark:border-slate-700 dark:text-slate-300"
+                >
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(evento)}
+                  className="rounded border border-rose-200 px-2 py-1 text-[11px] font-medium text-rose-600 hover:bg-rose-50 dark:border-rose-900 dark:hover:bg-rose-950/30"
+                >
+                  Excluir
+                </button>
+              </>
+            )}
+          />
         )}
       </div>
 
@@ -1134,6 +1183,17 @@ export const AgendaAdmin: React.FC = () => {
 
               {/* Inscrição Canônica & Construtor de Formulários */}
               <div className="p-4 rounded-[6px] bg-[#226380]/5 dark:bg-[#226380]/15 border border-[#226380]/30 space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formPublicadoPortal}
+                    onChange={(e) => setFormPublicadoPortal(e.target.checked)}
+                    className="accent-[#226380] w-4 h-4 rounded-[4px] cursor-pointer"
+                  />
+                  <span className="text-xs font-semibold text-[#113240] dark:text-white">
+                    Exibir este evento no calendário dos religiosos
+                  </span>
+                </label>
                 <div className="flex items-center justify-between">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input

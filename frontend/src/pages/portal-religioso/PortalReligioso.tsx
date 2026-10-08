@@ -22,6 +22,7 @@ import { downloadArquivo } from '../../lib/downloadHelper';
 import type { FormularioSecretaria, RespostaFormulario } from '../SecretariaConfiguracoes';
 import { showToast } from '../../hooks/useFeedback';
 import { getPortalRedirectUrl } from '../../lib/portalUrls';
+import { AgendaVisualizacao } from '../../components/AgendaVisualizacao';
 
 interface CasaAcolhida {
   id: string;
@@ -82,6 +83,7 @@ export const PortalReligioso: React.FC = () => {
   const [eventosError, setEventosError] = useState(false);
   const [eventoFiltroTipo, setEventoFiltroTipo] = useState<string>('Todos');
   const [eventoSearch, setEventoSearch] = useState('');
+  const [eventoVisualizacao, setEventoVisualizacao] = useState<'lista' | 'calendario' | 'quadro'>('lista');
 
   // Formulários & Inscrições Canônicas da Secretaria
   const [formulariosSecretaria, setFormulariosSecretaria] = useState<FormularioSecretaria[]>([]);
@@ -290,6 +292,7 @@ export const PortalReligioso: React.FC = () => {
         const { data, error } = await supabase
           .from('eventos_provinciais')
           .select('*')
+          .eq('publicado_portal', true)
           .neq('status', 'Cancelado')
           .order('data_inicio', { ascending: true });
 
@@ -1851,6 +1854,30 @@ export const PortalReligioso: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="mb-4 flex items-center justify-end">
+                  <div className="flex items-center gap-1 rounded-full bg-[#f5f5f7] p-1 dark:bg-[#262628]">
+                    {([
+                      ['lista', 'Lista'],
+                      ['calendario', 'Calendário'],
+                      ['quadro', 'Quadro'],
+                    ] as const).map(([modo, label]) => (
+                      <button
+                        key={modo}
+                        type="button"
+                        onClick={() => setEventoVisualizacao(modo)}
+                        aria-pressed={eventoVisualizacao === modo}
+                        className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                          eventoVisualizacao === modo
+                            ? 'bg-white text-[#113240] shadow-sm dark:bg-[#161617] dark:text-white'
+                            : 'text-[#707070] hover:text-[#113240] dark:text-[#86868b] dark:hover:text-white'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Filtros por Tipo de Evento */}
                 <div className="flex flex-wrap gap-2 pt-4 border-t border-[#d6d6d6]/40 dark:border-white/5 mb-4">
                   {['Todos', 'Assembleia', 'Retiro', 'Reunião', 'Encontro', 'Celebração / Solenidade', 'Visita Canônica', 'Outro'].map((tipo) => {
@@ -1905,7 +1932,7 @@ export const PortalReligioso: React.FC = () => {
                       ? 'Não foi possível carregar a agenda provincial. Tente novamente mais tarde.'
                       : 'Nenhum evento encontrado para o filtro selecionado.'}
                   </div>
-                ) : (
+                ) : eventoVisualizacao === 'lista' ? (
                   <div className="divide-y divide-[#d6d6d6]/40 dark:divide-white/5">
                     {eventosFiltrados.map((evt, idx) => (
                       <div key={evt.id} style={staggerStyle(idx)} className="py-5 px-3 rounded-[18px] flex flex-col md:flex-row justify-between md:items-center gap-4 hover:bg-[#f5f5f7] dark:hover:bg-[#262628] transition-colors motion-stagger-item">
@@ -2018,6 +2045,8 @@ export const PortalReligioso: React.FC = () => {
                       </div>
                     ))}
                   </div>
+                ) : (
+                  <AgendaVisualizacao modo={eventoVisualizacao} eventos={eventosFiltrados} />
                 )}
               </div>
             </div>
