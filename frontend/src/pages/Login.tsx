@@ -41,14 +41,24 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-[#f5f5f7] dark:bg-[#0b0f17] text-[#1d1d1f] dark:text-[#f5f5f7] px-4 font-sans select-none transition-colors duration-300">
+    <div className="relative isolate min-h-screen flex flex-col justify-between overflow-hidden bg-[#0b0f17] px-4 font-sans text-[#1d1d1f] select-none">
+      <img
+        src="/rodape-brm.png"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0 h-full w-full scale-[1.02] object-cover object-center opacity-50 blur-[2px]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0 bg-slate-950/25"
+      />
       
       {/* Top spacing */}
-      <div className="h-12 md:h-16" />
+      <div className="relative z-10 h-12 md:h-16" />
 
       {/* Login Card */}
-      <div className="flex-grow flex items-center justify-center py-6">
-        <div className="w-full max-w-[380px] bg-white dark:bg-[#161b22] rounded-2xl p-8 sm:p-9 border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none transition-all">
+      <div className="relative z-10 flex flex-grow items-center justify-center py-6">
+        <div className="w-full max-w-[380px] rounded-2xl border border-white/60 bg-white/90 p-8 shadow-2xl shadow-slate-950/20 backdrop-blur-xl transition-all dark:border-white/10 dark:bg-[#111820]/90 sm:p-9">
           
           {/* Brand & Title */}
           <div className="flex flex-col items-center text-center mb-8">
@@ -152,7 +162,7 @@ export const Login: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <footer className="w-full py-6 text-center text-xs text-slate-400 dark:text-slate-600">
+      <footer className="relative z-10 w-full py-6 text-center text-xs text-white/80 drop-shadow">
         sistema.brm.org - todos os direitos reservados-2026
       </footer>
     </div>
