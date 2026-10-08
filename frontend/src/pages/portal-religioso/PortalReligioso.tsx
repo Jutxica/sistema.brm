@@ -1271,9 +1271,9 @@ export const PortalReligioso: React.FC = () => {
         </nav>
         
         {/* SIDEBAR APPLE */}
-        <aside className="portal-navigation w-64 shrink-0 hidden md:block space-y-6 rounded-2xl p-3">
+        <aside className="portal-navigation w-64 shrink-0 hidden md:block space-y-8 rounded-2xl p-4">
           
-          <div className="space-y-1">
+          <div className="space-y-2">
             <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#707070] dark:text-[#86868b] px-3 mb-2 block">
               Navegação do Membro
             </span>
@@ -1281,7 +1281,7 @@ export const PortalReligioso: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveSection('inicio')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[12px] text-[13px] font-medium transition-all duration-200 text-left cursor-pointer ${
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-[12px] text-[13px] font-medium transition-all duration-200 text-left cursor-pointer ${
                 activeSection === 'inicio'
                   ? 'bg-white dark:bg-[#161617] text-[#0071e3] dark:text-[#2997ff] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
                   : 'text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-white/60 dark:hover:bg-[#161617]/60'
@@ -1295,7 +1295,7 @@ export const PortalReligioso: React.FC = () => {
               type="button"
               data-testid="nav-item-inscricao"
               onClick={() => void openRegistration()}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[12px] text-[13px] font-medium transition-all duration-200 text-left cursor-pointer ${
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-[12px] text-[13px] font-medium transition-all duration-200 text-left cursor-pointer ${
                 activeSection === 'inscricao'
                   ? 'bg-white dark:bg-[#161617] text-[#0071e3] dark:text-[#2997ff] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
                   : 'text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-white/60 dark:hover:bg-[#161617]/60'
@@ -1308,7 +1308,7 @@ export const PortalReligioso: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveSection('calendario')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[12px] text-[13px] font-medium transition-all duration-200 text-left cursor-pointer ${
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-[12px] text-[13px] font-medium transition-all duration-200 text-left cursor-pointer ${
                 activeSection === 'calendario'
                   ? 'bg-white dark:bg-[#161617] text-[#0071e3] dark:text-[#2997ff] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
                   : 'text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-white/60 dark:hover:bg-[#161617]/60'
@@ -1321,7 +1321,7 @@ export const PortalReligioso: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveSection('documentos')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[12px] text-[13px] font-medium transition-all duration-200 text-left cursor-pointer ${
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-[12px] text-[13px] font-medium transition-all duration-200 text-left cursor-pointer ${
                 activeSection === 'documentos'
                   ? 'bg-white dark:bg-[#161617] text-[#0071e3] dark:text-[#2997ff] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
                   : 'text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-white/60 dark:hover:bg-[#161617]/60'
@@ -1334,7 +1334,7 @@ export const PortalReligioso: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveSection('anuario')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[12px] text-[13px] font-medium transition-all duration-200 text-left cursor-pointer ${
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-[12px] text-[13px] font-medium transition-all duration-200 text-left cursor-pointer ${
                 activeSection === 'anuario'
                   ? 'bg-white dark:bg-[#161617] text-[#0071e3] dark:text-[#2997ff] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
                   : 'text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-white/60 dark:hover:bg-[#161617]/60'
@@ -1347,7 +1347,7 @@ export const PortalReligioso: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveSection('hospedagem')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[12px] text-[13px] font-medium transition-all duration-200 text-left cursor-pointer ${
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-[12px] text-[13px] font-medium transition-all duration-200 text-left cursor-pointer ${
                 activeSection === 'hospedagem'
                   ? 'bg-white dark:bg-[#161617] text-[#0071e3] dark:text-[#2997ff] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
                   : 'text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-white/60 dark:hover:bg-[#161617]/60'
@@ -1358,7 +1358,7 @@ export const PortalReligioso: React.FC = () => {
             </button>
           </div>
 
-          <div className="pt-2">
+          <div>
             <div className="p-4 rounded-[20px] bg-white dark:bg-[#161617] border border-[#d6d6d6]/60 dark:border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
               <span className="text-[11px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
                 Secretaria Provincial
