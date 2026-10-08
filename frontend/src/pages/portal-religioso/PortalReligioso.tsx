@@ -1054,25 +1054,25 @@ export const PortalReligioso: React.FC = () => {
     <div className="religious-portal min-h-screen flex flex-col font-sans transition-colors duration-200">
       
       {/* 1. BARRA SUPERIOR (HEADER APPLE FROSTED GLASS) */}
-      <header className="portal-header sticky top-0 z-40 bg-white border-b border-[#dce4e2] dark:bg-[#1c2427] dark:border-[#354246] px-4 sm:px-8 py-3 flex items-center justify-between">
+      <header className="portal-header sticky top-0 z-40 flex items-center justify-between border-b px-4 py-3 sm:px-8">
         
         {/* Lado Esquerdo: Identidade do Portal */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center shrink-0">
-            <img src="/logo-sistema.png" alt="Província BRM" className="h-8 w-auto object-contain select-none pointer-events-none dark:hidden" />
-            <img src="/logo-branco.png" alt="Província BRM" className="h-8 w-auto object-contain select-none pointer-events-none hidden dark:block" />
+        <div className="portal-header-brand flex min-w-0 items-center gap-3">
+          <div className="portal-brand-seal flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+            <img src="/logo-sistema.png" alt="Província BRM" className="h-8 w-auto select-none object-contain dark:hidden" />
+            <img src="/logo-branco.png" alt="Província BRM" className="hidden h-8 w-auto select-none object-contain dark:block" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              <span className="portal-brand-title text-sm font-semibold tracking-tight">
                 Província BRM
               </span>
-              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#f5f5f7] dark:bg-[#262628] text-[#707070] dark:text-[#86868b]">
-                Área de Membros
+              <span className="portal-brand-badge rounded-full px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]">
+                Área dos Confrades
               </span>
             </div>
-            <span className="text-[11px] text-[#707070] dark:text-[#86868b] block font-normal">
-              Portal do Confrade • Padres Dehonianos
+            <span className="portal-brand-caption mt-0.5 block truncate text-[11px] font-normal">
+              Portal do Confrade <span aria-hidden="true" className="px-1 opacity-50">/</span> Padres Dehonianos
             </span>
           </div>
         </div>
@@ -1084,11 +1084,14 @@ export const PortalReligioso: React.FC = () => {
             <button
               type="button"
               data-testid="persona-menu-button"
+              aria-label={`Menu da conta de ${displayName}`}
+              aria-haspopup="menu"
+              aria-expanded={userMenuOpen}
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="motion-press flex items-center gap-2.5 pl-1.5 pr-3 py-1 rounded-full bg-white dark:bg-[#262628] border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#226380]/40 shadow-sm transition-all cursor-pointer group"
+              className="portal-persona-trigger motion-press flex items-center gap-2.5 rounded-full pl-1.5 pr-3 py-1.5 transition-all cursor-pointer group"
             >
               {/* Avatar do Confrade */}
-              <div className="w-8 h-8 rounded-full bg-[#226380]/10 dark:bg-[#226380]/20 text-[#226380] font-semibold text-xs flex items-center justify-center overflow-hidden border border-[#226380]/20">
+              <div className="portal-persona-avatar flex h-9 w-9 items-center justify-center overflow-hidden rounded-full text-xs font-semibold">
                 {religiosoData?.foto_url ? (
                   <img src={religiosoData.foto_url} alt="Foto" className="w-full h-full object-cover" />
                 ) : (
@@ -1096,16 +1099,16 @@ export const PortalReligioso: React.FC = () => {
                 )}
               </div>
               
-              <div className="hidden sm:flex flex-col text-left">
-                <span className="text-xs font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
+              <div className="hidden max-w-48 flex-col text-left sm:flex">
+                <span className="portal-persona-name truncate text-xs font-semibold leading-tight">
                   {displayName}
                 </span>
-                <span className="text-[10px] text-[#707070] dark:text-[#86868b] leading-tight font-normal">
+                <span className="portal-persona-detail mt-0.5 max-w-48 truncate text-[10px] leading-tight font-normal">
                   {[displayReligiousName, displayGrau].filter(Boolean).join(' · ')}
                 </span>
               </div>
 
-              <ChevronDown className={`w-3.5 h-3.5 text-[#707070] dark:text-[#86868b] transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`portal-persona-chevron h-3.5 w-3.5 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Menu Dropdown Flutuante Apple/SaaS */}
