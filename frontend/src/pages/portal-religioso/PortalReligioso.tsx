@@ -1057,18 +1057,15 @@ export const PortalReligioso: React.FC = () => {
       <header className="portal-header sticky top-0 z-40 flex items-center justify-between border-b px-4 py-3 sm:px-8">
         
         {/* Lado Esquerdo: Identidade do Portal */}
-        <div className="portal-header-brand flex min-w-0 items-center gap-3">
-          <div className="portal-brand-seal flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
-            <img src="/logo-sistema.png" alt="Província BRM" className="h-8 w-auto select-none object-contain dark:hidden" />
-            <img src="/logo-branco.png" alt="Província BRM" className="hidden h-8 w-auto select-none object-contain dark:block" />
+        <div className="portal-header-brand flex min-w-0 items-center gap-4">
+          <div className="flex shrink-0 items-center justify-center">
+            <img src="/logo-sistema.png" alt="Província BRM" className="h-12 w-auto select-none object-contain dark:hidden sm:h-14" />
+            <img src="/logo-branco.png" alt="Província BRM" className="hidden h-12 w-auto select-none object-contain dark:block sm:h-14" />
           </div>
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-              <span className="portal-brand-title text-sm font-semibold tracking-tight">
+            <div className="flex items-center">
+              <span className="portal-brand-title text-lg font-semibold tracking-tight sm:text-xl">
                 Província BRM
-              </span>
-              <span className="portal-brand-badge rounded-full px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]">
-                Área dos Confrades
               </span>
             </div>
             <span className="portal-brand-caption mt-0.5 block truncate text-[11px] font-normal">
