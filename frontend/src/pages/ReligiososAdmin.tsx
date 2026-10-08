@@ -125,6 +125,16 @@ export const ReligiososAdmin: React.FC = () => {
     ].join(' ').toLocaleLowerCase().includes(normalized));
   }, [items, query]);
 
+  const isBlocked = (account: ContaAcesso) => Boolean(
+    account.banned_until && new Date(account.banned_until).getTime() > Date.now(),
+  );
+
+  const accountState = (account: ContaAcesso) => {
+    if (isBlocked(account)) return 'Bloqueada';
+    if (account.ledger?.state === 'convite_enviado' && !account.email_confirmed_at) return 'Convite pendente';
+    return 'Ativa';
+  };
+
   const filteredAccounts = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase();
     return accounts.filter(account => [
@@ -135,16 +145,6 @@ export const ReligiososAdmin: React.FC = () => {
       accountState(account),
     ].join(' ').toLocaleLowerCase().includes(normalized));
   }, [accounts, query]);
-
-  const isBlocked = (account: ContaAcesso) => Boolean(
-    account.banned_until && new Date(account.banned_until).getTime() > Date.now(),
-  );
-
-  const accountState = (account: ContaAcesso) => {
-    if (isBlocked(account)) return 'Bloqueada';
-    if (account.ledger?.state === 'convite_enviado' && !account.email_confirmed_at) return 'Convite pendente';
-    return 'Ativa';
-  };
 
   const totals = useMemo(() => ({
     created: accounts.length,
