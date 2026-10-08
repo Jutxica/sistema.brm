@@ -498,26 +498,30 @@ select:not(.font-mono):not(.font-cinzel) {
   font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
 }
 
-/* Sistema BRM: linguagem institucional comum às áreas administrativas */
+/* Sistema BRM: linguagem institucional comum às áreas administrativas e ao portal */
 :root {
-  --brm-canvas: #f2f2f2;
+  --brm-canvas: #f4f6f5;
   --brm-paper: #ffffff;
-  --brm-ink: #232626;
-  --brm-muted: #707070;
-  --brm-line: #d8dcdd;
+  --brm-ink: #203136;
+  --brm-muted: #66777b;
+  --brm-line: #dce4e2;
   --brm-navy: #113240;
   --brm-petroleum: #226380;
   --brm-petroleum-rgb: 34 99 128;
-  --brm-surface-radius: 10px;
-  --brm-control-radius: 8px;
+  --brm-glacial: #a3c3c7;
+  --brm-gold: #b58a55;
+  --brm-accent: #226380;
+  --brm-surface-radius: 14px;
+  --brm-control-radius: 9px;
 }
 
 .dark {
-  --brm-canvas: #15191c;
-  --brm-paper: #1c2227;
-  --brm-ink: #f1f3f3;
-  --brm-muted: #a3aaad;
-  --brm-line: #343c40;
+  --brm-canvas: #141a1c;
+  --brm-paper: #1c2427;
+  --brm-ink: #edf2f1;
+  --brm-muted: #a0aeaf;
+  --brm-line: #354246;
+  --brm-accent: #a3c3c7;
 }
 
 body {
@@ -525,147 +529,513 @@ body {
   color: var(--brm-ink);
 }
 
-.institutional-app {
+.institutional-app,
+.religious-portal,
+.brm-auth-page {
   background-color: var(--brm-canvas);
   color: var(--brm-ink);
 }
 
-.institutional-app h1 {
+.institutional-app h1,
+.religious-portal h1,
+.brm-auth-page h1 {
   font-family: var(--font-sans);
-  font-weight: 600;
-  letter-spacing: -0.025em;
+  font-weight: 650;
+  letter-spacing: -0.035em;
 }
 
-.institutional-app h2 {
-  letter-spacing: 0.005em;
+.institutional-app h2,
+.religious-portal h2 {
+  letter-spacing: -0.02em;
 }
 
-.institutional-app [class*="rounded-"]:not([class*="rounded-full"]):not([class*="rounded-none"]) {
-  border-radius: var(--brm-surface-radius);
-}
-
-.institutional-app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
-.institutional-app select,
-.institutional-app textarea {
+body input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+body select,
+body textarea {
   border-radius: var(--brm-control-radius);
-}
-
-.institutional-app input:focus-visible,
-.institutional-app select:focus-visible,
-.institutional-app textarea:focus-visible,
-.institutional-app button:focus-visible,
-.institutional-app a:focus-visible {
-  outline-color: var(--brm-petroleum);
-}
-
-.institutional-app table thead {
-  letter-spacing: 0.045em;
-}
-
-.institutional-app table tbody tr {
-  transition: background-color 140ms ease;
-}
-
-.institutional-app table tbody tr:hover {
-  background-color: rgb(var(--brm-petroleum-rgb) / 6%);
-}
-
-.institutional-app ::selection {
-  background: rgb(34 99 128 / 18%);
-  color: var(--brm-ink);
-}
-
-/* Restrained motion shared by administrative pages and their common controls */
-.institutional-content > * {
-  animation: institutional-page-enter 180ms var(--ease-smooth) backwards;
-}
-
-.institutional-app button:not(:disabled),
-.institutional-app a[href],
-.institutional-app summary {
-  transition-property: box-shadow, background-color, border-color, color, opacity;
-  transition-duration: 160ms;
-  transition-timing-function: var(--ease-out);
-}
-
-.institutional-app a[class*="border"][class*="bg-white"]:hover,
-.institutional-app a[class*="border"][class*="bg-slate"]:hover,
-.institutional-app button[class*="border"][class*="bg-white"]:hover,
-.institutional-app button[class*="border"][class*="bg-slate"]:hover,
-.institutional-app .apple-card:hover,
-.institutional-app .card-editorial:hover {
-  transform: translateY(-2px);
-  border-color: rgb(var(--brm-petroleum-rgb) / 42%);
-  box-shadow: 0 8px 20px rgb(17 50 64 / 8%);
-}
-
-.dark .institutional-app a[class*="border"][class*="bg-white"]:hover,
-.dark .institutional-app a[class*="border"][class*="bg-slate"]:hover,
-.dark .institutional-app button[class*="border"][class*="bg-white"]:hover,
-.dark .institutional-app button[class*="border"][class*="bg-slate"]:hover,
-.dark .institutional-app .apple-card:hover,
-.dark .institutional-app .card-editorial:hover {
-  box-shadow: 0 8px 20px rgb(0 0 0 / 28%);
-}
-
-.institutional-app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
-.institutional-app select,
-.institutional-app textarea {
   transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
 }
 
-.institutional-app table tbody tr {
-  transition: background-color 150ms ease;
-}
-
-.institutional-app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
-.institutional-app select:focus,
-.institutional-app textarea:focus {
+body input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+body select:focus,
+body textarea:focus {
   border-color: var(--brm-petroleum);
   box-shadow: 0 0 0 3px rgb(var(--brm-petroleum-rgb) / 12%);
 }
 
+.institutional-app button[class*="rounded-"]:not([class*="rounded-full"]):not([class*="rounded-none"]),
+.institutional-app a[class*="rounded-"]:not([class*="rounded-full"]):not([class*="rounded-none"]),
+.religious-portal button[class*="rounded-"]:not([class*="rounded-full"]):not([class*="rounded-none"]),
+.religious-portal a[class*="rounded-"]:not([class*="rounded-full"]):not([class*="rounded-none"]),
+.brm-auth-page button[class*="rounded-"]:not([class*="rounded-full"]):not([class*="rounded-none"]) {
+  border-radius: var(--brm-control-radius);
+}
+
+body main div[class*="bg-white"][class*="border"],
+body main section[class*="bg-white"][class*="border"],
+body main article[class*="bg-white"][class*="border"] {
+  border-color: var(--brm-line);
+  border-radius: var(--brm-surface-radius);
+  box-shadow: 0 1px 3px rgb(17 50 64 / 4%);
+}
+
+.dark body main div[class*="bg-white"][class*="border"],
+.dark body main section[class*="bg-white"][class*="border"],
+.dark body main article[class*="bg-white"][class*="border"] {
+  border-color: var(--brm-line);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 18%);
+}
+
+.institutional-app table thead,
+.religious-portal table thead {
+  letter-spacing: 0.035em;
+}
+
+.institutional-app table tbody tr,
+.religious-portal table tbody tr {
+  transition: background-color 140ms ease;
+}
+
+.institutional-app table tbody tr:hover,
+.religious-portal table tbody tr:hover {
+  background-color: rgb(var(--brm-petroleum-rgb) / 5%);
+}
+
+.institutional-app button:not(:disabled),
+.institutional-app a[href],
+.religious-portal button:not(:disabled),
+.religious-portal a[href],
+.brm-auth-page button:not(:disabled) {
+  transition-property: box-shadow, background-color, border-color, color, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: var(--ease-out);
+}
+
 .institutional-app button:focus-visible,
 .institutional-app a[href]:focus-visible,
-.institutional-app summary:focus-visible {
-  outline: 3px solid rgb(var(--brm-petroleum-rgb) / 55%);
+.institutional-app summary:focus-visible,
+.religious-portal button:focus-visible,
+.religious-portal a[href]:focus-visible,
+.brm-auth-page button:focus-visible,
+.brm-auth-page a[href]:focus-visible {
+  outline: 3px solid rgb(var(--brm-petroleum-rgb) / 50%);
   outline-offset: 2px;
 }
 
-@keyframes institutional-page-enter {
+.institutional-app ::selection,
+.religious-portal ::selection,
+.brm-auth-page ::selection {
+  background: rgb(var(--brm-petroleum-rgb) / 18%);
+  color: var(--brm-ink);
+}
+
+.institutional-app table,
+.religious-portal table {
+  font-size: 0.8125rem;
+}
+
+.institutional-app table th,
+.institutional-app table td,
+.religious-portal table th,
+.religious-portal table td {
+  line-height: 1.45;
+}
+
+body [class*="text-[#0071e3]"],
+body [class*="text-[#0066cc]"],
+body [class*="text-[#2997ff]"] {
+  color: var(--brm-accent) !important;
+}
+
+body [class*="bg-[#0071e3]"],
+body [class*="hover:bg-[#0077ed]"]:hover {
+  background-color: var(--brm-navy) !important;
+}
+
+.brm-auth-card {
+  color: #edf2f1;
+  border: 1px solid rgb(163 195 199 / 18%) !important;
+  border-radius: 22px !important;
+  background: linear-gradient(145deg, rgb(27 55 66 / 98%), rgb(14 39 49 / 99%)) !important;
+  box-shadow: 0 32px 90px rgb(6 23 31 / 34%), inset 0 1px 0 rgb(255 255 255 / 8%) !important;
+}
+
+.brm-auth-page {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 17% 19%, rgb(54 128 148 / 22%), transparent 37%),
+    radial-gradient(ellipse at 83% 77%, rgb(181 138 85 / 14%), transparent 31%),
+    linear-gradient(135deg, #091923 0%, #102d3a 54%, #0a1d27 100%) !important;
+  color: #edf2f1 !important;
+}
+
+.brm-auth-page::before,
+.brm-auth-page::after {
+  position: fixed;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+  filter: blur(1px);
+}
+
+.brm-auth-page::before {
+  inset: -35%;
+  background: radial-gradient(ellipse at 50% 50%, rgb(97 169 181 / 10%), transparent 44%);
+  animation: brm-atmosphere 18s ease-in-out infinite alternate;
+}
+
+.brm-auth-page::after {
+  inset: 0;
+  opacity: 0.22;
+  background-image: linear-gradient(rgb(210 234 232 / 4%) 1px, transparent 1px), linear-gradient(90deg, rgb(210 234 232 / 4%) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(to bottom, black, transparent 85%);
+}
+
+.brm-auth-card::before {
+  position: absolute;
+  top: -70px;
+  right: -50px;
+  width: 180px;
+  height: 180px;
+  content: "";
+  pointer-events: none;
+  background: radial-gradient(circle, rgb(94 162 174 / 18%), transparent 70%);
+}
+
+.brm-auth-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.brm-auth-card h1,
+.brm-auth-card label,
+.brm-auth-card p,
+.brm-auth-card span {
+  color: inherit;
+}
+
+.brm-auth-card input:not([type="checkbox"]):not([type="radio"]) {
+  border-color: rgb(193 215 216 / 17%) !important;
+  background: rgb(7 25 34 / 42%) !important;
+  color: #f2f7f6 !important;
+}
+
+.brm-auth-card input::placeholder {
+  color: #90a6a9 !important;
+}
+
+.brm-auth-card input:focus {
+  border-color: #82b8bf !important;
+  box-shadow: 0 0 0 3px rgb(130 184 191 / 17%), 0 0 28px rgb(89 151 162 / 13%) !important;
+}
+
+.brm-auth-card .brm-auth-submit {
+  color: #102b35 !important;
+  background: linear-gradient(105deg, #b6d6d5, #8fc1c2) !important;
+  box-shadow: 0 8px 24px rgb(85 156 166 / 19%);
+}
+
+.brm-auth-card .brm-auth-submit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 30px rgb(85 156 166 / 28%);
+}
+
+.brm-auth-card .brm-auth-submit:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.brm-auth-page footer {
+  color: rgb(197 214 214 / 58%) !important;
+}
+
+.brm-sidebar {
+  overflow: hidden;
+  border-color: rgb(195 220 220 / 9%) !important;
+  color: #eaf1f0 !important;
+  background:
+    radial-gradient(ellipse at 0% 0%, rgb(58 125 142 / 19%), transparent 35%),
+    linear-gradient(180deg, #122b36 0%, #0d222d 52%, #0a1c26 100%) !important;
+  box-shadow: 14px 0 44px rgb(9 27 36 / 10%);
+}
+
+.brm-sidebar-brand {
+  border-color: rgb(195 220 220 / 10%) !important;
+}
+
+.brm-sidebar-brand span:first-child {
+  color: #f3f6f4 !important;
+}
+
+.brm-sidebar-brand span:last-child {
+  color: #a6bec0 !important;
+}
+
+.brm-sidebar-collapse {
+  border-color: rgb(195 220 220 / 14%) !important;
+  color: #b7cccd !important;
+  background: rgb(255 255 255 / 3%);
+}
+
+.brm-sidebar-collapse:hover,
+.brm-sidebar .brm-sidebar-group-trigger:hover {
+  color: #fff !important;
+  background: rgb(255 255 255 / 7%) !important;
+}
+
+.brm-sidebar .brm-sidebar-group-trigger {
+  color: #b3c4c5 !important;
+  border: 1px solid transparent;
+}
+
+.brm-sidebar .brm-sidebar-group-trigger[aria-expanded="true"] {
+  color: #f4f7f5 !important;
+  background: rgb(255 255 255 / 5%) !important;
+}
+
+.brm-sidebar .brm-sidebar-link {
+  position: relative;
+  color: #b5c5c6 !important;
+  border-color: transparent !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+}
+
+.brm-sidebar .brm-sidebar-link:hover {
+  color: #f6f8f7 !important;
+  background: rgb(255 255 255 / 7%) !important;
+}
+
+.brm-sidebar .brm-sidebar-link[aria-current="page"] {
+  color: #f7fbfa !important;
+  border-color: rgb(143 193 194 / 17%) !important;
+  background: linear-gradient(100deg, rgb(75 139 153 / 31%), rgb(75 139 153 / 13%)) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%), 0 5px 18px rgb(0 0 0 / 13%);
+}
+
+.brm-sidebar .brm-sidebar-link[aria-current="page"]::before {
+  position: absolute;
+  top: 24%;
+  bottom: 24%;
+  left: -1px;
+  width: 2px;
+  content: "";
+  border-radius: 0 3px 3px 0;
+  background: #b8d7d5;
+  box-shadow: 0 0 12px rgb(184 215 213 / 54%);
+}
+
+.brm-sidebar nav ul ul {
+  border-color: rgb(195 220 220 / 14%) !important;
+}
+
+.brm-sidebar nav ul ul .brm-sidebar-link {
+  color: #9fb3b5 !important;
+}
+
+.brm-sidebar .brm-sidebar-logout {
+  color: #e9b4ad !important;
+  border-top: 1px solid rgb(195 220 220 / 10%);
+  border-radius: 0 !important;
+  padding-top: 1rem;
+}
+
+.brm-sidebar .brm-sidebar-logout:hover {
+  color: #ffd9d3 !important;
+  background: rgb(184 81 68 / 12%) !important;
+}
+
+.portal-navigation {
+  position: relative;
+  overflow: hidden;
+  align-self: flex-start;
+  border: 1px solid rgb(195 220 220 / 10%);
+  background:
+    radial-gradient(ellipse at 0% 0%, rgb(58 125 142 / 20%), transparent 38%),
+    linear-gradient(160deg, #122b36 0%, #0d222d 62%, #0a1c26 100%);
+  box-shadow: 0 16px 42px rgb(9 27 36 / 14%);
+}
+
+.portal-header {
+  border-color: rgb(220 228 226 / 82%) !important;
+  background: rgb(250 251 250 / 88%) !important;
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+.dark .portal-header {
+  border-color: rgb(163 195 199 / 12%) !important;
+  background: rgb(20 31 35 / 86%) !important;
+}
+
+.portal-masthead {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: rgb(163 195 199 / 19%) !important;
+  background:
+    radial-gradient(ellipse at 88% 8%, rgb(91 153 164 / 25%), transparent 34%),
+    radial-gradient(ellipse at 0% 100%, rgb(181 138 85 / 13%), transparent 39%),
+    linear-gradient(125deg, #173944 0%, #102c37 54%, #0c222c 100%) !important;
+  box-shadow: 0 18px 48px rgb(9 27 36 / 12%), inset 0 1px 0 rgb(255 255 255 / 7%) !important;
+}
+
+.portal-masthead::after {
+  position: absolute;
+  z-index: -1;
+  top: -58%;
+  right: -12%;
+  width: min(58vw, 480px);
+  aspect-ratio: 1;
+  content: "";
+  border: 1px solid rgb(195 220 220 / 9%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 28px rgb(195 220 220 / 2%), 0 0 0 58px rgb(195 220 220 / 2%);
+  pointer-events: none;
+}
+
+.portal-masthead > div {
+  position: relative;
+  z-index: 1;
+}
+
+.portal-masthead span,
+.portal-masthead h2,
+.portal-masthead p {
+  color: #edf4f2 !important;
+}
+
+.portal-masthead > div > div:first-child > span {
+  color: #b6d2d0 !important;
+}
+
+.portal-masthead > div > div:last-child > span {
+  border-color: rgb(195 220 220 / 17%) !important;
+  background: rgb(255 255 255 / 7%) !important;
+  color: #e3eeec !important;
+}
+
+.portal-mobile-nav {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+}
+
+.portal-mobile-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.portal-mobile-nav button {
+  scroll-snap-align: start;
+}
+
+.portal-navigation > div:first-child > span {
+  color: #a6bec0 !important;
+}
+
+.portal-navigation > div:first-child > button {
+  position: relative;
+  color: #bdcccd !important;
+  border-color: transparent !important;
+  background: transparent !important;
+}
+
+.portal-navigation > div:first-child > button:hover {
+  color: #fff !important;
+  background: rgb(255 255 255 / 7%) !important;
+}
+
+.portal-navigation > div:first-child > button[class*="bg-white"] {
+  color: #f7fbfa !important;
+  border-color: rgb(143 193 194 / 17%) !important;
+  background: linear-gradient(100deg, rgb(75 139 153 / 34%), rgb(75 139 153 / 14%)) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%), 0 5px 18px rgb(0 0 0 / 13%);
+}
+
+.portal-navigation > div:first-child > button[class*="bg-white"]::before {
+  position: absolute;
+  top: 24%;
+  bottom: 24%;
+  left: -1px;
+  width: 2px;
+  content: "";
+  border-radius: 0 3px 3px 0;
+  background: #b8d7d5;
+  box-shadow: 0 0 12px rgb(184 215 213 / 54%);
+}
+
+.portal-navigation > div:nth-child(2) > div {
+  border-color: rgb(195 220 220 / 11%) !important;
+  background: rgb(255 255 255 / 4%) !important;
+  box-shadow: none !important;
+}
+
+.portal-navigation > div:nth-child(2) span {
+  color: #d9e4e3 !important;
+}
+
+.portal-mobile-nav button[class*="bg-[#226380]"] {
+  border-color: rgb(143 193 194 / 28%) !important;
+  background: linear-gradient(100deg, #1b4b5a, #226380) !important;
+  box-shadow: 0 5px 16px rgb(17 50 64 / 14%);
+}
+
+.portal-mobile-nav button:not([class*="bg-[#226380]"]) {
+  border-color: var(--brm-line) !important;
+  color: var(--brm-ink) !important;
+  background: var(--brm-paper) !important;
+}
+
+@keyframes brm-atmosphere {
   from {
-    opacity: 0;
-    transform: translateY(7px) scale(0.997);
+    transform: translate3d(-1.5%, -1%, 0) scale(0.98);
+    opacity: 0.72;
   }
   to {
+    transform: translate3d(1.5%, 1%, 0) scale(1.04);
     opacity: 1;
-    transform: translateY(0) scale(1);
   }
 }
 
-@keyframes institutional-item-enter {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
+@media (max-width: 640px) {
+  .institutional-content {
+    padding: 1rem;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .institutional-app table {
+    font-size: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .institutional-app *,
+  .religious-portal *,
+  .brm-auth-page * {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+
+  .brm-auth-page::before {
+    animation: none;
   }
 }
 
 @media print {
-  /* Oculta barras de navegação, menus, botões, modais e elementos da interface web */
-  nav, 
-  aside, 
-  header.sticky, 
-  .print\:hidden, 
+  nav,
+  aside,
+  header.sticky,
+  .print\:hidden,
   [role="navigation"],
   button:not(.print-include) {
     display: none !important;
   }
 
-  body, html {
+  body,
+  html {
     background: #ffffff !important;
     color: #000000 !important;
     -webkit-print-color-adjust: exact !important;
@@ -674,7 +1044,6 @@ body {
     padding: 0 !important;
   }
 
-  /* Remove sombras, fundos escuros e contornos de tela web */
   * {
     box-shadow: none !important;
     text-shadow: none !important;

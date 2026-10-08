@@ -77,28 +77,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
       <aside
         id="administrative-sidebar"
         aria-label="Navegação principal"
-        className={`fixed inset-y-0 left-0 z-50 w-[min(18rem,calc(100vw-2.5rem))] border-r border-[#e5e5ea] bg-white text-[#232626] transition-[width,transform] duration-200 dark:border-white/10 dark:bg-[#161b22] dark:text-[#f5f5f7] md:z-30 md:translate-x-0 print:hidden
+        className={`brm-sidebar fixed inset-y-0 left-0 z-50 w-[min(18rem,calc(100vw-2.5rem))] border-r border-[#dce4e2] bg-white text-[#203136] transition-[width,transform] duration-200 dark:border-[#354246] dark:bg-[#1c2427] dark:text-[#edf2f1] md:z-30 md:translate-x-0 print:hidden
           ${collapsed ? 'md:w-20' : 'md:w-64'}
           ${mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}
       >
       {/* Brand Header */}
-      <div className="flex items-center justify-between h-16 px-4 border-b border-[#e5e5ea] dark:border-white/10">
+      <div className="brm-sidebar-brand flex items-center justify-between h-[4.25rem] px-4 border-b border-[#dce4e2] dark:border-[#354246]">
         <div className="flex items-center gap-3 overflow-hidden">
           <div className="flex items-center justify-center shrink-0">
-            <img src="/logo-sistema.png" alt="Sistema BRM" className="h-8 w-auto object-contain dark:hidden" />
-            <img src="/logo-branco.png" alt="Sistema BRM" className="h-8 w-auto object-contain hidden dark:block" />
+            <img src="/logo-branco.png" alt="Sistema BRM" className="h-9 w-auto object-contain" />
           </div>
           {!collapsed && (
             <div className="flex flex-col select-none">
-              <span className="font-cinzel text-xs font-bold tracking-[0.16em] text-[#1d1d1f] dark:text-white uppercase">BRM</span>
-              <span className="font-cinzel text-[10px] tracking-[0.2em] uppercase text-[#707070] dark:text-[#86868b] font-medium">Província</span>
+              <span className="text-[13px] font-semibold tracking-[0.08em] text-[#113240] dark:text-white uppercase">BRM</span>
+              <span className="text-[10px] tracking-[0.11em] uppercase text-[#66777b] dark:text-[#a0aeaf]">Província Meridional</span>
             </div>
           )}
         </div>
         
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-[#707070] transition-colors hover:bg-slate-50 dark:border-white/10 dark:text-[#86868b] dark:hover:bg-white/10"
+          className="brm-sidebar-collapse hidden md:flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-[#707070] transition-colors hover:bg-slate-50 dark:border-white/10 dark:text-[#86868b] dark:hover:bg-white/10"
           aria-label={collapsed ? 'Expandir navegação' : 'Recolher navegação'}
           title={collapsed ? "Expandir barra lateral" : "Recolher barra lateral"}
         >
@@ -115,7 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
       </div>
 
       {/* Nav List */}
-      <nav className="flex h-[calc(100dvh-4rem)] flex-col justify-between overflow-y-auto p-3">
+      <nav className="flex h-[calc(100dvh-4.25rem)] flex-col justify-between overflow-y-auto p-3">
         <ul className="space-y-1.5">
           {/* 1. Início */}
           {canAccessInicio && <li>
@@ -123,7 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
               to="/inicio"
               title={collapsed ? 'Início' : undefined}
               className={({ isActive }) =>
-                `flex min-h-10 items-center gap-3 rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors group ${
+                `brm-sidebar-link flex min-h-10 items-center gap-3 rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors group ${
                   isActive
                     ? 'border-[#226380]/10 bg-[#226380] text-white shadow-sm dark:border-[#A3C3C7]/15 dark:bg-[#226380] dark:text-white'
                     : 'border-transparent text-[#52636a] hover:bg-slate-100 hover:text-[#17333d] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white'}`
@@ -201,7 +200,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
               <NavLink
                 to="/usuarios"
                 className={({ isActive }) =>
-                  `flex min-h-10 items-center gap-3 rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors group ${
+                  `brm-sidebar-link flex min-h-10 items-center gap-3 rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors group ${
                     isActive 
                       ? 'border-[#226380]/10 bg-[#226380] text-white shadow-sm dark:border-[#A3C3C7]/15 dark:bg-[#226380] dark:text-white'
                       : 'border-transparent text-[#52636a] hover:bg-slate-100 hover:text-[#17333d] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white'}`
@@ -215,10 +214,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
         </ul>
 
         {/* Footer actions */}
-        <div className="space-y-1 border-t border-[#e5e5ea] dark:border-white/10 pt-3">
+        <div className="space-y-1 border-t border-[#dce4e2] dark:border-[#354246] pt-3">
           <button
             onClick={logout}
-            className="flex items-center gap-3 w-full px-3 py-2 rounded-[6px] text-[#80282E] hover:bg-[#80282E]/10 transition-all duration-200 text-[13px] font-medium cursor-pointer"
+            className="brm-sidebar-logout flex items-center gap-3 w-full px-3 py-2 rounded-[6px] text-[#80282E] hover:bg-[#80282E]/10 transition-all duration-200 text-[13px] font-medium cursor-pointer"
           >
             <LogOut className="w-4 h-4 shrink-0" />
             {!collapsed && <span>Sair do sistema</span>}
@@ -245,7 +244,7 @@ const SidebarGroup: React.FC<{
       aria-label={collapsed ? label : undefined}
       aria-expanded={open}
       title={collapsed ? label : undefined}
-      className={`flex min-h-10 w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium text-[#52636a] transition-colors hover:bg-slate-100 hover:text-[#17333d] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white ${open ? 'bg-slate-100/80 dark:bg-white/5' : ''}`}
+      className={`brm-sidebar-group-trigger flex min-h-10 w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium text-[#52636a] transition-colors hover:bg-slate-100 hover:text-[#17333d] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white ${open ? 'bg-slate-100/80 dark:bg-white/5' : ''}`}
     >
       <Icon className="h-4 w-4 shrink-0" />
       {!collapsed && <><span className="flex-1 text-left">{label}</span><ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`} /></>}
@@ -266,7 +265,7 @@ const SidebarSubLink: React.FC<{ to: string; label: string; icon: React.ElementT
       <NavLink
         to={to}
         title={collapsed ? label : undefined}
-        className={`flex min-h-9 items-center gap-2.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+        className={`brm-sidebar-link flex min-h-9 items-center gap-2.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
           isMatch
             ? 'border-[#226380]/10 bg-[#226380]/10 text-[#17333d] font-semibold dark:border-[#A3C3C7]/20 dark:bg-[#226380]/25 dark:text-[#A3C3C7]'
             : 'border-transparent text-[#68777d] hover:bg-slate-100 hover:text-[#17333d] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white'

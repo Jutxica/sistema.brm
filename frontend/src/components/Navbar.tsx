@@ -108,7 +108,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileNavigationOpen, onMobileMe
     || title;
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-[#e5e5ea] bg-white/95 px-4 backdrop-blur-sm dark:border-white/10 dark:bg-[#161b22]/95 sm:px-6 print:hidden">
+    <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-[#dce4e2] bg-white/95 px-4 dark:border-[#354246] dark:bg-[#1c2427]/95 sm:px-6 print:hidden">
       {/* Left side */}
       <div className="flex items-center gap-4">
         <button
@@ -122,8 +122,8 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileNavigationOpen, onMobileMe
           <Menu className="h-5 w-5" />
         </button>
         <div className="flex min-w-0 items-center gap-3">
-          <span className="hidden h-7 w-1 shrink-0 rounded-full bg-[#226380] sm:block" />
-          <h1 className="truncate text-[15px] font-semibold tracking-tight text-[#17333d] dark:text-white sm:text-base">
+          <span className="hidden h-6 w-[3px] shrink-0 rounded-full bg-[#b58a55] sm:block" />
+          <h1 className="truncate text-[15px] font-semibold tracking-tight text-[#203136] dark:text-white sm:text-base">
             {pageTitle}
           </h1>
         </div>

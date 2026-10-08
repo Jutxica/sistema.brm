@@ -81,11 +81,11 @@ export const Inicio: React.FC = () => {
         }
       });
       const rawGraus: DonutSegment[] = [
-        { label: 'Padres', value: grauCounts['Padre'] || 0, color: '#0071e3' },
-        { label: 'Fráteres', value: grauCounts['Frater'] || 0, color: '#34c759' },
-        { label: 'Irmãos', value: grauCounts['Irmão'] || 0, color: '#ff9500' },
-        { label: 'Diáconos', value: grauCounts['Diácono'] || 0, color: '#5856d6' },
-        { label: 'Bispos', value: grauCounts['Bispo'] || 0, color: '#ff2d55' },
+        { label: 'Padres', value: grauCounts['Padre'] || 0, color: '#226380' },
+        { label: 'Fráteres', value: grauCounts['Frater'] || 0, color: '#658c75' },
+        { label: 'Irmãos', value: grauCounts['Irmão'] || 0, color: '#b58a55' },
+        { label: 'Diáconos', value: grauCounts['Diácono'] || 0, color: '#77979a' },
+        { label: 'Bispos', value: grauCounts['Bispo'] || 0, color: '#9c5c5b' },
       ];
       const grausDistribution: DonutSegment[] = rawGraus;
 

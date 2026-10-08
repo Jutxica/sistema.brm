@@ -602,7 +602,7 @@ export const PortalReligioso: React.FC = () => {
   // Se o usuário NÃO estiver autenticado (e não em preview): Tela Apple de Entrada do Confrade
   if (!user && !isE2E) {
     return (
-      <div className="min-h-screen flex flex-col justify-between bg-[#f5f5f7] dark:bg-[#000000] text-[#1d1d1f] dark:text-[#f5f5f7] px-4 transition-colors duration-500 font-sans select-none">
+      <div className="religious-portal min-h-screen flex flex-col justify-between text-[#203136] dark:text-[#edf2f1] px-4 transition-colors duration-200 font-sans">
         
         {/* Top spacing */}
         <div className="h-6 md:h-10" />
@@ -948,7 +948,7 @@ export const PortalReligioso: React.FC = () => {
   // Se o confrade estiver preenchendo a ficha oficial de inscrição de um evento (Página Completa - Sem Modal)
   if (eventoInscricaoModal && formularioInscricaoAtivo) {
     return (
-      <div className="min-h-screen bg-[#f5f5f7] dark:bg-[#090d16] text-[#1d1d1f] dark:text-[#f5f5f7] py-6 sm:py-8 px-3 sm:px-6">
+      <div className="religious-portal min-h-screen py-6 sm:py-8 px-3 sm:px-6">
         <div className="max-w-4xl mx-auto space-y-4">
           {/* Barra Superior de Navegação */}
           <div className="bg-white dark:bg-[#161617] p-4 rounded-[12px] border border-[#d6d6d6]/60 dark:border-white/10 shadow-xs flex flex-wrap items-center justify-between gap-3 print:hidden">
@@ -1051,10 +1051,10 @@ export const PortalReligioso: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] dark:bg-[#000000] text-[#1d1d1f] dark:text-[#f5f5f7] flex flex-col font-sans transition-colors duration-300">
+    <div className="religious-portal min-h-screen flex flex-col font-sans transition-colors duration-200">
       
       {/* 1. BARRA SUPERIOR (HEADER APPLE FROSTED GLASS) */}
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#161617]/80 backdrop-blur-xl border-b border-[#d6d6d6]/60 dark:border-white/10 px-4 sm:px-8 py-3 flex items-center justify-between transition-colors">
+      <header className="portal-header sticky top-0 z-40 bg-white border-b border-[#dce4e2] dark:bg-[#1c2427] dark:border-[#354246] px-4 sm:px-8 py-3 flex items-center justify-between">
         
         {/* Lado Esquerdo: Identidade do Portal */}
         <div className="flex items-center gap-3">
@@ -1238,7 +1238,7 @@ export const PortalReligioso: React.FC = () => {
 
       {/* 2. CORPO DO SITE: SIDEBAR + CONTEÚDO PRINCIPAL (APPLE FORMAT) */}
       <div className="flex-1 flex flex-col md:flex-row max-w-[1400px] w-full mx-auto px-4 sm:px-6 py-6 gap-6">
-        <nav aria-label="Navegação do portal" className="md:hidden flex gap-2 overflow-x-auto pb-1">
+        <nav aria-label="Navegação do portal" className="portal-mobile-nav md:hidden flex gap-2 overflow-x-auto pb-1">
           {([
             ['inicio', 'Início'],
             ['perfil', 'Perfil'],
@@ -1271,7 +1271,7 @@ export const PortalReligioso: React.FC = () => {
         </nav>
         
         {/* SIDEBAR APPLE */}
-        <aside className="w-64 shrink-0 hidden md:block space-y-6">
+        <aside className="portal-navigation w-64 shrink-0 hidden md:block space-y-6 rounded-2xl p-3">
           
           <div className="space-y-1">
             <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#707070] dark:text-[#86868b] px-3 mb-2 block">
@@ -1403,7 +1403,7 @@ export const PortalReligioso: React.FC = () => {
             <div className="space-y-6">
               
               {/* Masthead Arquitetural do Confrade (Apple Showcase Card) */}
-              <div className="bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-7 sm:p-9 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+              <div className="portal-masthead bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-7 sm:p-9 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#707070] dark:text-[#86868b] block mb-1">

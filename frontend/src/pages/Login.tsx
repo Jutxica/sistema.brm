@@ -41,33 +41,33 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-[#f5f5f7] dark:bg-[#0b0f17] text-[#1d1d1f] dark:text-[#f5f5f7] px-4 font-sans select-none transition-colors duration-300">
+    <div className="brm-auth-page min-h-screen flex flex-col justify-between text-[#203136] dark:text-[#edf2f1] px-4 font-sans transition-colors duration-200">
       
       {/* Top spacing */}
       <div className="h-12 md:h-16" />
 
       {/* Login Card */}
       <div className="flex-grow flex items-center justify-center py-6">
-        <div className="w-full max-w-[380px] bg-white dark:bg-[#161b22] rounded-2xl p-8 sm:p-9 border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none transition-all">
+        <div className="brm-auth-card relative w-full max-w-[440px] overflow-hidden bg-white dark:bg-[#17272d] rounded-2xl p-7 sm:p-10 border border-[#dce4e2] dark:border-white/10 transition-all">
           
           {/* Brand & Title */}
           <div className="flex flex-col items-center text-center mb-8">
-            <img 
-              src="/logo-sistema.png" 
-              alt="Província BRM" 
-              className="h-12 w-auto object-contain mb-3 dark:hidden"
+            <img
+              src="/logo-branco.png"
+              alt="Província BRM"
+              className="h-12 w-auto object-contain mb-3"
             />
-            <img 
-              src="/logo-branco.png" 
-              alt="Província BRM" 
-              className="h-12 w-auto object-contain mb-3 hidden dark:block"
-            />
-            <h1 className="text-xl font-semibold tracking-tight text-[#113240] dark:text-white">
+            <h1 className="text-[1.5rem] font-semibold tracking-tight text-[#113240] dark:text-white">
               Sistema BRM
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-[13px] text-[#66777b] dark:text-[#a0aeaf] mt-1">
               Província Brasil Meridional
             </p>
+            <span className="mt-4 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#66777b] dark:text-[#a0aeaf]">
+              <span className="h-px w-5 bg-[#b58a55]" />
+              Espaço administrativo
+              <span className="h-px w-5 bg-[#b58a55]" />
+            </span>
           </div>
 
           {/* Alert Message */}
@@ -83,7 +83,7 @@ export const Login: React.FC = () => {
             
             {/* Email Field */}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+              <label className="text-[13px] font-medium text-slate-700 dark:text-slate-200 block">
                 E-mail
               </label>
               <div className="relative">
@@ -103,7 +103,7 @@ export const Login: React.FC = () => {
 
             {/* Password Field */}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block">
+              <label className="text-[13px] font-medium text-slate-700 dark:text-slate-200 block">
                 Senha
               </label>
               <div className="relative">
@@ -133,7 +133,7 @@ export const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 px-4 rounded-lg bg-[#113240] hover:bg-[#1a4b60] dark:bg-white text-white dark:text-slate-900 text-xs font-semibold shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                className="brm-auth-submit w-full py-3 px-4 rounded-lg bg-[#113240] hover:bg-[#1a4b60] dark:bg-[#A3C3C7] dark:hover:bg-white text-white dark:text-[#102b35] text-sm font-semibold shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -152,7 +152,7 @@ export const Login: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <footer className="w-full py-6 text-center text-xs text-slate-400 dark:text-slate-600">
+      <footer className="w-full py-6 text-center text-xs text-[#66777b] dark:text-[#748487]">
         sistema.brm.org - todos os direitos reservados-2026
       </footer>
     </div>
