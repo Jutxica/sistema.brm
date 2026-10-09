@@ -43,6 +43,11 @@ interface FotoItem {
   carregando?: boolean;
 }
 
+interface RascunhoObra {
+  savedAt: string;
+  values: Record<string, unknown>;
+}
+
 const SLOTS_FOTOS_PADRAO = [
   { id: 'fachada', titulo: '1. Fachada Principal da Igreja', desc: 'Vista externa frontal da Matriz ou fachada principal' },
   { id: 'altar', titulo: '2. Altar-Mor e Presbitério', desc: 'Área celebrativa, retábulo, sacrário e presbitério' },
@@ -61,6 +66,10 @@ export const AtualizarObraPublico: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isFinalizado, setIsFinalizado] = useState(false);
   const [ultimoSalvo, setUltimoSalvo] = useState<string | null>(null);
+  const [rascunhoLocalSalvo, setRascunhoLocalSalvo] = useState<string | null>(null);
+  const [rascunhoLocalErro, setRascunhoLocalErro] = useState(false);
+  const [rascunhoPendente, setRascunhoPendente] = useState<RascunhoObra | null>(null);
+  const ignorarProximoSalvamentoLocal = useRef(false);
 
   // Dados da obra
   const [obraId, setObraId] = useState<string>('');
@@ -164,18 +173,38 @@ export const AtualizarObraPublico: React.FC = () => {
           });
         }
 
-        // Se houver rascunho salvo no localStorage para emergências de conexão
+        // Offer any browser backup for recovery without silently overwriting newer server data.
         try {
           const draftKey = `rascunho_obra_${data.id}`;
           const rascunho = localStorage.getItem(draftKey);
           if (rascunho) {
-            const parsed = JSON.parse(rascunho);
-            if (parsed.historia && !data.historia) {
-              setHistoria(parsed.historia);
+            const parsed: unknown = JSON.parse(rascunho);
+            if (typeof parsed === 'object' && parsed !== null) {
+              const record = parsed as Record<string, unknown>;
+              const savedAt = typeof record.savedAt === 'string'
+                ? record.savedAt
+                : typeof record.data === 'string' ? record.data : '';
+              const values = typeof record.values === 'object' && record.values !== null
+                ? record.values as Record<string, unknown>
+                : {
+                  historia: record.historia,
+                  resumoHistorico: record.resumoHistorico,
+                  fotos: record.fotos,
+                };
+              if (
+                Number.isFinite(new Date(savedAt).getTime())
+                && Date.now() - new Date(savedAt).getTime() < 30 * 24 * 60 * 60 * 1000
+                && Object.values(values).some(value => value !== undefined)
+              ) {
+                setRascunhoPendente({ savedAt, values });
+              } else {
+                localStorage.removeItem(draftKey);
+              }
             }
           }
-        } catch {
-          // ignora
+        } catch (draftError) {
+          console.error('Não foi possível recuperar o rascunho local da paróquia:', draftError);
+          setRascunhoLocalErro(true);
         }
 
       } catch (err: any) {
@@ -233,21 +262,18 @@ export const AtualizarObraPublico: React.FC = () => {
       if (error) throw error;
 
       // Salva backup local
-      try {
-        localStorage.setItem(`rascunho_obra_${obraId}`, JSON.stringify({
-          historia,
-          resumoHistorico,
-          fotos: fotosPayload,
-          data: new Date().toISOString()
-        }));
-      } catch {
-        // ignora
-      }
-
       const agora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       setUltimoSalvo(`Salvo às ${agora}`);
 
       if (isFinal) {
+        try {
+          localStorage.removeItem(`rascunho_obra_${obraId}`);
+          setRascunhoPendente(null);
+          setRascunhoLocalSalvo(null);
+        } catch (draftError) {
+          console.error('Formulário enviado, mas não foi possível apagar o rascunho local:', draftError);
+          setRascunhoLocalErro(true);
+        }
         setIsFinalizado(true);
         setSuccessMsg('História e fotos enviadas com sucesso à Província BRM! Agradecemos imensamente pela colaboração.');
       }
@@ -258,7 +284,44 @@ export const AtualizarObraPublico: React.FC = () => {
     }
   }, [obraId, token, telefone, whatsapp, email, site, instagram, facebook, youtube, endereco, diocese, fundacao, assumida, historia, resumoHistorico, fotos]);
 
-  // Autosave suave a cada 4 segundos após digitação na história
+  useEffect(() => {
+    if (isInitialLoad.current || !obraId || rascunhoPendente) return;
+    if (ignorarProximoSalvamentoLocal.current) {
+      ignorarProximoSalvamentoLocal.current = false;
+      return;
+    }
+    const persistLocalDraft = () => {
+      const savedAt = new Date().toISOString();
+      try {
+        localStorage.setItem(`rascunho_obra_${obraId}`, JSON.stringify({
+          savedAt,
+          values: {
+            diocese, fundacao, assumida, endereco, telefone, whatsapp, email,
+            site, instagram, facebook, youtube, historia, resumoHistorico,
+            fotos: fotos.map(({ id, slotIndex, tituloSugerido, url, legenda, nomeArquivo }) => ({
+              id, slotIndex, tituloSugerido, url, legenda, nomeArquivo,
+            })),
+          },
+        }));
+        setRascunhoLocalSalvo(savedAt);
+        setRascunhoLocalErro(false);
+      } catch (draftError) {
+        console.error('Não foi possível salvar o rascunho local da paróquia:', draftError);
+        setRascunhoLocalErro(true);
+      }
+    };
+    const timer = window.setTimeout(persistLocalDraft, 600);
+    window.addEventListener('pagehide', persistLocalDraft);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pagehide', persistLocalDraft);
+    };
+  }, [
+    obraId, rascunhoPendente, diocese, fundacao, assumida, endereco, telefone,
+    whatsapp, email, site, instagram, facebook, youtube, historia, resumoHistorico, fotos,
+  ]);
+
+  // Autosave the historical text to the province after typing.
   useEffect(() => {
     if (isInitialLoad.current || !obraId) return;
 
@@ -274,6 +337,39 @@ export const AtualizarObraPublico: React.FC = () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     };
   }, [historia, resumoHistorico, salvarDados, obraId]);
+
+  const restaurarRascunhoLocal = () => {
+    if (!rascunhoPendente) return;
+    const values = rascunhoPendente.values;
+    const stringFields: Array<[string, React.Dispatch<React.SetStateAction<string>>]> = [
+      ['diocese', setDiocese], ['fundacao', setFundacao], ['assumida', setAssumida],
+      ['endereco', setEndereco], ['telefone', setTelefone], ['whatsapp', setWhatsapp],
+      ['email', setEmail], ['site', setSite], ['instagram', setInstagram],
+      ['facebook', setFacebook], ['youtube', setYoutube], ['historia', setHistoria],
+      ['resumoHistorico', setResumoHistorico],
+    ];
+    stringFields.forEach(([key, setter]) => {
+      if (typeof values[key] === 'string') setter(values[key] as string);
+    });
+    const savedPhotos = Array.isArray(values.fotos) ? values.fotos : null;
+    if (savedPhotos) {
+      setFotos(current => current.map((slot, index) => {
+        const saved = savedPhotos.find((item): item is Record<string, unknown> =>
+          typeof item === 'object' && item !== null
+          && ('slotIndex' in item && item.slotIndex === index || 'id' in item && item.id === slot.id),
+        );
+        if (!saved) return slot;
+        return {
+          ...slot,
+          url: typeof saved.url === 'string' ? saved.url : slot.url,
+          legenda: typeof saved.legenda === 'string' ? saved.legenda : slot.legenda,
+          nomeArquivo: typeof saved.nomeArquivo === 'string' ? saved.nomeArquivo : slot.nomeArquivo,
+        };
+      }));
+    }
+    setRascunhoLocalSalvo(rascunhoPendente.savedAt);
+    setRascunhoPendente(null);
+  };
 
   // Upload de arquivo para um slot específico
   const handleUploadFoto = async (index: number, file: File) => {
@@ -402,9 +498,9 @@ export const AtualizarObraPublico: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-[#090d13] text-slate-800 dark:text-slate-100 font-sans pb-32">
+    <div className="min-h-screen bg-gradient-to-br from-[#f2f6f5] via-[#f8faf9] to-[#e7efed] pb-32 font-sans text-slate-800 dark:from-[#09151b] dark:via-[#0d1820] dark:to-[#10232c] dark:text-slate-100">
       {/* HEADER INSTITUCIONAL */}
-      <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] sticky top-0 z-40">
+      <header className="sticky top-0 z-40 border-b border-white/60 bg-white/90 shadow-sm backdrop-blur-xl dark:border-slate-700/70 dark:bg-[#121d24]/90">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center justify-center shrink-0">
@@ -427,11 +523,21 @@ export const AtualizarObraPublico: React.FC = () => {
                 {ultimoSalvo}
               </span>
             )}
+            {rascunhoLocalErro && (
+              <span role="status" className="hidden text-[11px] text-amber-700 dark:text-amber-300 sm:inline">
+                Rascunho local indisponível
+              </span>
+            )}
+            {rascunhoLocalSalvo && (
+              <span className="hidden text-[11px] text-slate-500 dark:text-slate-400 sm:inline">
+                Cópia neste dispositivo às {new Date(rascunhoLocalSalvo).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
             <button
               type="button"
               onClick={() => salvarDados(false)}
               disabled={saving}
-              className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
               <span>Salvar Rascunho</span>
@@ -442,23 +548,56 @@ export const AtualizarObraPublico: React.FC = () => {
 
       {/* LEAD INSTITUCIONAL DO DOCUMENTO */}
       <div className="max-w-5xl mx-auto px-4 pt-8 pb-2">
-        <div className="border-b border-slate-200 dark:border-slate-800 pb-6 space-y-2.5">
+        <div className="space-y-3 rounded-3xl border border-white/80 bg-white/80 p-6 shadow-sm backdrop-blur dark:border-slate-700/80 dark:bg-[#121d24]/80 sm:p-8">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="px-2 py-0.5 text-[9px] font-mono uppercase tracking-widest bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 font-semibold font-cinzel">
-              Documento Oficial
+            <span className="rounded-full border border-[#cfe2db] bg-[#edf6f2] px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#356b60] dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
+              Atualização oficial da comunidade
             </span>
-            <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
               {tipo.toUpperCase()} • {localidade || 'PROVÍNCIA BRM'}{uf ? ` - ${uf}` : ''}
             </span>
           </div>
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-cinzel">
+          <h1 className="font-cinzel text-2xl font-bold tracking-tight text-[#163642] dark:text-white md:text-3xl">
             {nome}
           </h1>
-          <p className="text-xs text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
-            Formulário oficial para conferência cadastral, redação da memória histórica e acervo de 6 fotografias representativas da comunidade para os arquivos e o portal da Província Brasileira Meridional dos Padres Dehonianos (SCJ).
+          <p className="max-w-3xl text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+            Ajude-nos a manter atualizados os dados da comunidade e a preservar sua história. O formulário salva suas alterações automaticamente; você pode voltar quando quiser pelo mesmo link.
           </p>
         </div>
       </div>
+
+      {rascunhoPendente && (
+        <aside className="mx-auto mt-5 flex max-w-5xl flex-col gap-3 px-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex-1 rounded-2xl border border-sky-200 bg-sky-50/90 p-4 text-sm text-sky-950 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-100">
+            <p className="font-semibold">Encontramos um rascunho deste formulário neste navegador.</p>
+            <p className="mt-1 text-xs opacity-80">
+              Salvo em {new Date(rascunhoPendente.savedAt).toLocaleString('pt-BR')}. Você pode restaurar o preenchimento ou descartá-lo. O rascunho fica neste dispositivo por até 30 dias.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={restaurarRascunhoLocal} className="rounded-xl bg-[#113240] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#226380]">
+              Restaurar rascunho
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  localStorage.removeItem(`rascunho_obra_${obraId}`);
+                  ignorarProximoSalvamentoLocal.current = true;
+                  setRascunhoPendente(null);
+                  setRascunhoLocalErro(false);
+                } catch (draftError) {
+                  console.error('Não foi possível apagar o rascunho local da paróquia:', draftError);
+                  setRascunhoLocalErro(true);
+                }
+              }}
+              className="rounded-xl border border-sky-300 px-4 py-2.5 text-xs font-semibold transition hover:bg-white dark:border-sky-800 dark:hover:bg-sky-900/40"
+            >
+              Descartar
+            </button>
+          </div>
+        </aside>
+      )}
 
       {/* FEEDBACK DE SUCESSO / ERRO */}
       {successMsg && (
@@ -480,13 +619,102 @@ export const AtualizarObraPublico: React.FC = () => {
       )}
 
       {/* CONTEÚDO PRINCIPAL */}
-      <main className="max-w-5xl mx-auto px-4 pt-4 space-y-6">
+      <style>{`
+        .parish-form input:not([type="radio"]):not([type="checkbox"]):not([type="file"]),
+        .parish-form select,
+        .parish-form textarea {
+          border-radius: 0.75rem;
+          padding: 0.75rem;
+          font-size: 0.875rem;
+          transition: border-color 150ms ease, box-shadow 150ms ease;
+        }
+        .parish-form input:focus,
+        .parish-form select:focus,
+        .parish-form textarea:focus {
+          border-color: #226380;
+          box-shadow: 0 0 0 3px rgba(34, 99, 128, 0.13);
+        }
+        .parish-form section > div:first-child h2 {
+          font-size: 1.15rem;
+          letter-spacing: -.02em;
+        }
+        .parish-form section > div:first-child > div > span:first-child {
+          display: inline-flex;
+          align-items: center;
+          gap: .4rem;
+          margin-bottom: .35rem;
+          color: #68858a;
+          font-size: .65rem;
+          font-weight: 750;
+          letter-spacing: .14em;
+        }
+        .parish-form section > div:first-child > div > span:first-child::before {
+          width: 1.25rem;
+          height: 2px;
+          border-radius: 99px;
+          background: #75a99d;
+          content: "";
+        }
+        .parish-form label {
+          color: #405a62 !important;
+          font-family: inherit !important;
+          font-size: .78rem !important;
+          font-weight: 650 !important;
+          letter-spacing: normal !important;
+          text-transform: none !important;
+        }
+        .dark .parish-form label { color: #d4dfdd !important; }
+        .parish-form input::placeholder,
+        .parish-form textarea::placeholder { color: #9aa9a9; }
+        .parish-form textarea { line-height: 1.7; }
+        .parish-form .parish-guidance {
+          border: 1px solid #dfeae7;
+          border-radius: 1rem;
+          background: linear-gradient(135deg, #f3f8f6, #fbfdfc);
+          padding: 1rem 1.15rem;
+        }
+        .parish-form .parish-photo-card {
+          overflow: hidden;
+          border: 1px solid #e2ebe8;
+          border-radius: 1.25rem;
+          background: linear-gradient(155deg, #f8fbfa, #fff);
+          padding: 1rem;
+          box-shadow: 0 8px 22px rgba(17,50,64,.045);
+        }
+        .parish-form .parish-upload-zone {
+          overflow: hidden;
+          border-radius: 1rem;
+          background: #f6faf8;
+        }
+        .dark .parish-form .parish-guidance,
+        .dark .parish-form .parish-photo-card,
+        .dark .parish-form .parish-upload-zone {
+          border-color: #33474e;
+          background: #17252c;
+        }
+        .parish-form .parish-final-actions {
+          position: sticky;
+          bottom: .75rem;
+          z-index: 10;
+          border: 1px solid rgba(220,231,228,.92);
+          border-radius: 1.25rem;
+          background: rgba(255,255,255,.94);
+          padding: 1rem;
+          box-shadow: 0 12px 32px rgba(17,50,64,.11);
+          backdrop-filter: blur(16px);
+        }
+        .dark .parish-form .parish-final-actions {
+          border-color: #33474e;
+          background: rgba(18,29,36,.94);
+        }
+      `}</style>
+      <main className="parish-form mx-auto max-w-5xl space-y-6 px-4 pt-4">
 
         {/* SEÇÃO 1: REVISÃO DE DADOS CADASTRAIS */}
-        <section className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] p-6 space-y-5">
+        <section className="space-y-5 rounded-3xl border border-white/80 bg-white/90 p-5 shadow-sm dark:border-slate-700/80 dark:bg-[#121d24]/90 sm:p-7">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <div className="space-y-0.5">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 block">
+              <span className="text-xs font-semibold uppercase tracking-[.14em] text-[#68858a] block">
                 01 / CONFERÊNCIA CADASTRAL
               </span>
               <h2 className="text-sm font-bold text-slate-900 dark:text-white font-cinzel">
@@ -623,7 +851,7 @@ export const AtualizarObraPublico: React.FC = () => {
         </section>
 
         {/* SEÇÃO 2: HISTÓRIA E MEMÓRIA */}
-        <section className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] p-6 space-y-5">
+        <section className="space-y-5 rounded-3xl border border-white/80 bg-white/90 p-5 shadow-sm dark:border-slate-700/80 dark:bg-[#121d24]/90 sm:p-7">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <div className="space-y-0.5">
               <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 block">
@@ -639,12 +867,12 @@ export const AtualizarObraPublico: React.FC = () => {
           </div>
 
           {/* Diretrizes Editoriais Dignas */}
-          <div className="border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 p-4 space-y-2.5">
+          <div className="parish-guidance space-y-3">
             <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 block font-semibold">
               Roteiro de Registro Histórico Recomendado pela Província:
             </span>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2.5 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              <div className="border-l-2 border-slate-300 dark:border-slate-700 pl-3">
+              <div               className="border-l-2 border-[#b9d3cb] pl-3 dark:border-slate-700">
                 <strong className="text-slate-800 dark:text-slate-100 font-semibold block text-[11px]">1. Origens e Fundação:</strong>
                 Primeiras capelas, povoadores da localidade, data de ereção canônica da paróquia e padroeiro(a).
               </div>
@@ -691,7 +919,7 @@ export const AtualizarObraPublico: React.FC = () => {
         </section>
 
         {/* SEÇÃO 3: AS 6 FOTOS DA IGREJA */}
-        <section className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] p-6 space-y-5">
+        <section className="space-y-5 rounded-3xl border border-white/80 bg-white/90 p-5 shadow-sm dark:border-slate-700/80 dark:bg-[#121d24]/90 sm:p-7">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <div className="space-y-0.5">
               <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 block">
@@ -723,7 +951,7 @@ export const AtualizarObraPublico: React.FC = () => {
               return (
                 <div 
                   key={foto.id || index}
-                  className="border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 p-3.5 flex flex-col justify-between space-y-3"
+                  className="parish-photo-card flex flex-col justify-between space-y-3"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
@@ -746,7 +974,7 @@ export const AtualizarObraPublico: React.FC = () => {
                   </div>
 
                   {/* ÁREA DE PREVIEW OU UPLOAD */}
-                  <div className="relative aspect-4/3 w-full border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] flex items-center justify-center overflow-hidden group">
+                  <div className="parish-upload-zone relative aspect-4/3 w-full border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] flex items-center justify-center overflow-hidden group">
                     {foto.carregando ? (
                       <div className="flex flex-col items-center gap-2 p-4 text-center">
                         <Loader2 className="w-5 h-5 animate-spin text-slate-600" />
@@ -828,8 +1056,8 @@ export const AtualizarObraPublico: React.FC = () => {
         </section>
 
         {/* SEÇÃO 4: AÇÕES FINAIS E ENVIO */}
-        <section className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] p-6 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <section className="space-y-4 rounded-3xl border border-white/80 bg-white/90 p-5 shadow-sm dark:border-slate-700/80 dark:bg-[#121d24]/90 sm:p-7">
+          <div className="parish-final-actions flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 block">
                 04 / TRANSMISSÃO OFICIAL
@@ -847,7 +1075,7 @@ export const AtualizarObraPublico: React.FC = () => {
                 type="button"
                 onClick={() => salvarDados(false)}
                 disabled={saving}
-                className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 px-4 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+                className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
               >
                 Salvar Rascunho
               </button>
@@ -856,7 +1084,7 @@ export const AtualizarObraPublico: React.FC = () => {
                 type="button"
                 onClick={() => salvarDados(true)}
                 disabled={saving}
-                className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-black dark:hover:bg-slate-100 px-5 py-2.5 text-xs font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#163e4b] to-[#226380] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[#163e4b]/15 transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                 <span>Enviar Formulário Oficial</span>

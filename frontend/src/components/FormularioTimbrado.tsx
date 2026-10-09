@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   CheckCircle2, AlertCircle, FileText, Printer, ShieldCheck, 
   Send, Calendar, Clock, MapPin, Download, ArrowLeft, Building2, User 
@@ -27,6 +27,7 @@ export interface FormularioTimbradoProps {
   modo?: 'fill' | 'preview' | 'print';
   orientacao?: OrientacaoDocumento;
   carregando?: boolean;
+  chaveRascunho?: string;
   onVoltar?: () => void;
   nomeEvento?: string;
   dataEvento?: string;
@@ -51,6 +52,7 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
   modo = 'fill',
   orientacao = 'vertical',
   carregando = false,
+  chaveRascunho,
   onVoltar,
   nomeEvento,
   dataEvento,
@@ -61,6 +63,69 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
   const [erros, setErros] = useState<Record<string, string>>({});
   const [enviadoSucesso, setEnviadoSucesso] = useState(false);
   const [protocoloGerado, setProtocoloGerado] = useState(numeroProtocolo || `FORM-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [rascunhoPronto, setRascunhoPronto] = useState(!chaveRascunho || modo !== 'fill');
+  const [rascunhoRestaurado, setRascunhoRestaurado] = useState<string | null>(null);
+  const [rascunhoSalvo, setRascunhoSalvo] = useState<string | null>(null);
+  const [erroRascunho, setErroRascunho] = useState(false);
+  const [rascunhoDesativado, setRascunhoDesativado] = useState(false);
+
+  useEffect(() => {
+    if (!chaveRascunho || modo !== 'fill') {
+      setRascunhoPronto(true);
+      return;
+    }
+
+    try {
+      const saved = localStorage.getItem(chaveRascunho);
+      if (saved) {
+        const parsed: unknown = JSON.parse(saved);
+        if (
+          typeof parsed === 'object' && parsed !== null
+          && 'savedAt' in parsed && typeof parsed.savedAt === 'string'
+          && 'responses' in parsed && typeof parsed.responses === 'object'
+          && parsed.responses !== null && !Array.isArray(parsed.responses)
+          && Date.now() - new Date(parsed.savedAt).getTime() < 30 * 24 * 60 * 60 * 1000
+        ) {
+          const knownFields = new Set(campos.map(campo => campo.id));
+          const restored = Object.fromEntries(
+            Object.entries(parsed.responses).filter(([fieldId]) => knownFields.has(fieldId)),
+          );
+          setRespostas(current => ({ ...current, ...restored }));
+          setRascunhoRestaurado(parsed.savedAt);
+        } else {
+          localStorage.removeItem(chaveRascunho);
+        }
+      }
+    } catch (error) {
+      console.error('Não foi possível recuperar o rascunho deste formulário:', error);
+      setErroRascunho(true);
+    } finally {
+      setRascunhoPronto(true);
+    }
+  }, [chaveRascunho, modo, campos]);
+
+  useEffect(() => {
+    if (!chaveRascunho || modo !== 'fill' || !rascunhoPronto || rascunhoDesativado || enviadoSucesso) return;
+    const persistDraft = () => {
+      try {
+        localStorage.setItem(chaveRascunho, JSON.stringify({
+          savedAt: new Date().toISOString(),
+          responses: respostas,
+        }));
+        setRascunhoSalvo(new Date().toISOString());
+        setErroRascunho(false);
+      } catch (error) {
+        console.error('Não foi possível salvar o rascunho deste formulário:', error);
+        setErroRascunho(true);
+      }
+    };
+    const timer = window.setTimeout(persistDraft, 500);
+    window.addEventListener('pagehide', persistDraft);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pagehide', persistDraft);
+    };
+  }, [chaveRascunho, modo, rascunhoPronto, rascunhoDesativado, enviadoSucesso, respostas]);
 
   // Agrupar campos por categoria mantendo ordem
   const categoriasMap: Record<string, VariavelCampo[]> = {};
@@ -71,6 +136,7 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
   });
 
   const handleChange = (id: string, value: any) => {
+    setRascunhoDesativado(false);
     setRespostas(prev => ({ ...prev, [id]: value }));
     if (erros[id]) {
       setErros(prev => {
@@ -104,6 +170,13 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
     try {
       if (onSubmit) {
         await onSubmit(respostas);
+      }
+      if (chaveRascunho) {
+        try {
+          localStorage.removeItem(chaveRascunho);
+        } catch (error) {
+          console.error('Não foi possível remover o rascunho enviado:', error);
+        }
       }
       setEnviadoSucesso(true);
     } catch (err) {
@@ -181,6 +254,7 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
       subtituloDocumento={subtitulo || 'Instrumento Canônico de Inscrição & Registro'}
       tituloDocumento={titulo}
       mostrarControles={modo !== 'print'}
+      modoFormulario={modo === 'fill'}
       onVoltar={onVoltar}
       className={modo === 'preview' ? 'ring-2 ring-[#226380]/20' : ''}
     >
@@ -214,6 +288,81 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
 
       {/* CORPO DO FORMULÁRIO COM AS VARIÁVEIS SELECIONADAS */}
       <form onSubmit={handleSubmit} className="brm-letterhead-form space-y-8">
+        <style>{`
+          .brm-letterhead-form input:not([type="radio"]):not([type="checkbox"]),
+          .brm-letterhead-form select,
+          .brm-letterhead-form textarea {
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            font-size: 0.875rem;
+            transition: border-color 150ms ease, box-shadow 150ms ease;
+          }
+          .brm-letterhead-form input:focus,
+          .brm-letterhead-form select:focus,
+          .brm-letterhead-form textarea:focus {
+            border-color: #226380;
+            box-shadow: 0 0 0 3px rgba(34, 99, 128, 0.13);
+          }
+          .brm-letterhead-form > section {
+            padding: 1.25rem;
+            border: 1px solid #e5eeeb;
+            border-radius: 1.25rem;
+            background: linear-gradient(145deg, rgba(248, 251, 250, .9), rgba(255, 255, 255, .95));
+          }
+          .brm-letterhead-form > section > div:first-child {
+            padding-bottom: .75rem;
+            border-bottom: 1px solid #e5eeeb;
+          }
+          .brm-letterhead-form label {
+            font-size: .8rem;
+            line-height: 1.4;
+            color: #344f57;
+          }
+          .brm-letterhead-form input::placeholder,
+          .brm-letterhead-form textarea::placeholder {
+            color: #9aa9a9;
+          }
+          .brm-letterhead-form button[type="submit"] {
+            min-height: 3rem;
+            border-radius: 1rem;
+          }
+          @media (max-width: 640px) {
+            .brm-letterhead-form > section { padding: 1rem; }
+          }
+        `}</style>
+        {modo === 'fill' && (rascunhoRestaurado || rascunhoSalvo || erroRascunho) && (
+          <aside className="flex flex-col gap-3 rounded-2xl border border-sky-200 bg-sky-50/80 p-4 text-sm text-sky-950 shadow-sm dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-100 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-semibold">
+                {erroRascunho ? 'Não foi possível acessar o rascunho neste navegador.' :
+                  rascunhoRestaurado ? 'Rascunho recuperado neste dispositivo.' : 'Rascunho salvo automaticamente.'}
+              </p>
+              <p className="mt-1 text-xs opacity-80">
+                O preenchimento é salvo neste navegador e pode ser retomado após fechar a página. Evite usar em computador compartilhado.
+              </p>
+            </div>
+            {chaveRascunho && (rascunhoRestaurado || rascunhoSalvo) && (
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    localStorage.removeItem(chaveRascunho);
+                    setRascunhoRestaurado(null);
+                    setRascunhoSalvo(null);
+                    setRascunhoDesativado(true);
+                    setErroRascunho(false);
+                  } catch (error) {
+                    console.error('Não foi possível apagar o rascunho deste formulário:', error);
+                    setErroRascunho(true);
+                  }
+                }}
+                className="shrink-0 rounded-xl border border-sky-300 px-3 py-2 text-xs font-semibold transition hover:bg-white dark:border-sky-800 dark:hover:bg-sky-900/40"
+              >
+                Apagar rascunho deste dispositivo
+              </button>
+            )}
+          </aside>
+        )}
         {campos.length === 0 ? (
           <div className="py-12 text-center border border-dashed border-slate-300 dark:border-slate-700 rounded-[6px]">
             <FileText className="w-8 h-8 text-slate-400 mx-auto mb-2" />
@@ -406,14 +555,21 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
 
         {/* Botão de Envio no modo preenchimento */}
         {modo === 'fill' && campos.length > 0 && (
-          <div className="pt-6 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden">
-            <span className="text-[11px] text-slate-500 font-mono">
-              * Campos marcados com asterisco são obrigatórios.
-            </span>
+          <div className="pt-6 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden">
+            <div>
+              <span className="text-xs text-slate-500">
+                * Campos marcados com asterisco são obrigatórios.
+              </span>
+              {chaveRascunho && modo === 'fill' && !erroRascunho && (
+                <span className="mt-1 block text-xs text-slate-500">
+                  {rascunhoSalvo ? `Rascunho salvo às ${new Date(rascunhoSalvo).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : 'Salvamento automático neste dispositivo'}
+                </span>
+              )}
+            </div>
             <button
               type="submit"
-              disabled={carregando}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3 text-xs font-mono uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm disabled:opacity-50 motion-press"
+              disabled={carregando || !rascunhoPronto}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-[#113240] bg-[#113240] px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-[#113240]/15 transition-all hover:-translate-y-0.5 hover:bg-[#226380] hover:border-[#226380] disabled:cursor-not-allowed disabled:opacity-50 motion-press"
             >
               {carregando ? (
                 <>

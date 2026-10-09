@@ -13,6 +13,7 @@ export interface PapelTimbradoBRMProps {
   protocolo?: string;
   dataEmissao?: string;
   mostrarControles?: boolean;
+  modoFormulario?: boolean;
   onVoltar?: () => void;
   className?: string;
   marcaDagua?: boolean;
@@ -125,6 +126,7 @@ export const PapelTimbradoBRM: React.FC<PapelTimbradoBRMProps> = ({
   protocolo,
   dataEmissao,
   mostrarControles = true,
+  modoFormulario = false,
   onVoltar,
   className = '',
   marcaDagua = true,
@@ -143,10 +145,83 @@ export const PapelTimbradoBRM: React.FC<PapelTimbradoBRMProps> = ({
   const isPaisagem = orientacaoAtual === 'horizontal';
 
   return (
-    <div className="brm-letterhead-shell w-full py-2 sm:py-6 print:p-0 print:m-0">
+    <div className={`brm-letterhead-shell w-full py-2 sm:py-6 print:p-0 print:m-0 ${modoFormulario ? 'brm-form-shell' : ''}`}>
       {/* Injeção dinâmica de CSS @page para respeitar a orientação selecionada no diálogo de impressão do navegador */}
       <style>
         {`
+          ${modoFormulario ? `
+            .brm-form-shell {
+              min-height: 100vh;
+              padding: 2rem 1rem 4rem !important;
+              background:
+                radial-gradient(ellipse at 12% 5%, rgba(193, 217, 207, .48), transparent 36rem),
+                radial-gradient(ellipse at 92% 18%, rgba(220, 233, 229, .78), transparent 32rem),
+                linear-gradient(145deg, #f2f6f4, #f8faf9 50%, #edf3f1);
+            }
+            .brm-form-shell .brm-letterhead-document {
+              max-width: 900px !important;
+              padding: 2rem 2.5rem !important;
+              border: 1px solid rgba(214, 228, 223, .9) !important;
+              border-radius: 1.75rem !important;
+              background: rgba(255, 255, 255, .96) !important;
+              box-shadow: 0 28px 90px rgba(17, 50, 64, .12) !important;
+              overflow: visible !important;
+            }
+            .brm-form-shell .brm-letterhead-header {
+              padding: .25rem 0 1.5rem !important;
+              border-bottom: 1px solid #e3ece9;
+            }
+            .brm-form-shell .brm-letterhead-system { display: none; }
+            .brm-form-shell .brm-letterhead-emblem { margin-bottom: .8rem !important; }
+            .brm-form-shell .brm-letterhead-emblem img { height: 56px !important; }
+            .brm-form-shell .brm-letterhead-congregation {
+              font-family: Arial, sans-serif !important;
+              font-size: .68rem !important;
+              font-weight: 700 !important;
+              letter-spacing: .13em !important;
+              color: #648087 !important;
+            }
+            .brm-form-shell .brm-letterhead-province {
+              margin-top: .35rem !important;
+              font-size: 1.35rem !important;
+              color: #163642 !important;
+            }
+            .brm-form-shell .brm-letterhead-meta {
+              justify-content: center !important;
+              margin-top: 1rem !important;
+              padding: .7rem 0 0 !important;
+              border-top: 1px solid #e3ece9 !important;
+              font-family: Arial, sans-serif !important;
+            }
+            .brm-form-shell .brm-letterhead-title {
+              margin: 1.75rem 0 !important;
+            }
+            .brm-form-shell .brm-letterhead-title h3 {
+              font-size: clamp(1.5rem, 3vw, 2rem) !important;
+              color: #163642 !important;
+            }
+            .brm-form-shell .brm-letterhead-content {
+              min-height: 0 !important;
+              font-family: Arial, sans-serif !important;
+            }
+            .brm-form-shell .brm-letterhead-footer {
+              margin-top: 2.5rem !important;
+              color: #73858a !important;
+            }
+            .brm-form-shell .brm-letterhead-footer p {
+              font-family: Arial, sans-serif !important;
+              font-size: .7rem !important;
+            }
+            .brm-form-shell .brm-letterhead-watermark { display: none; }
+            @media (max-width: 640px) {
+              .brm-form-shell { padding: 1rem .75rem 2rem !important; }
+              .brm-form-shell .brm-letterhead-document {
+                padding: 1.25rem !important;
+                border-radius: 1.25rem !important;
+              }
+              .brm-form-shell .brm-letterhead-footer { margin-top: 1.5rem !important; }
+            }
+          ` : ''}
           @media print {
             @page {
               size: A4 ${isPaisagem ? 'landscape' : 'portrait'};
@@ -361,8 +436,8 @@ export const PapelTimbradoBRM: React.FC<PapelTimbradoBRMProps> = ({
 
       {/* Barra de Controles Superiores (Oculta na Impressão) */}
       {mostrarControles && (
-        <div className="max-w-5xl mx-auto mb-4 print:hidden px-4">
-          <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-800 rounded-[8px] p-3 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <div className={`mx-auto mb-4 print:hidden px-4 ${modoFormulario ? 'max-w-[900px]' : 'max-w-5xl'}`}>
+          <div className={`flex flex-wrap items-center justify-between gap-3 border p-3 shadow-xs ${modoFormulario ? 'rounded-2xl border-white/70 bg-white/75 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-[#121d24]/80' : 'rounded-[8px] border-slate-200 bg-white dark:border-slate-800 dark:bg-[#161b22]'}`}>
             <div className="flex items-center gap-3">
               {onVoltar && (
                 <button
@@ -375,9 +450,11 @@ export const PapelTimbradoBRM: React.FC<PapelTimbradoBRMProps> = ({
                 </button>
               )}
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#226380]" />
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#eaf2ef] text-[#226380] dark:bg-white/10">
+                  <Shield className="h-4 w-4" />
+                </span>
                 <span className="text-xs font-semibold text-[#113240] dark:text-white">
-                  Papel Timbrado Oficial · Província BRM
+                  {modoFormulario ? 'Formulário oficial · Província BRM' : 'Papel Timbrado Oficial · Província BRM'}
                 </span>
                 <span className="text-[11px] font-mono text-slate-500 uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800">
                   {isPaisagem ? 'Horizontal (Paisagem)' : 'Vertical (Retrato)'}
@@ -386,7 +463,7 @@ export const PapelTimbradoBRM: React.FC<PapelTimbradoBRMProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              {permitirTrocaOrientacao && (
+              {permitirTrocaOrientacao && !modoFormulario && (
                 <button
                   type="button"
                   onClick={alternarOrientacao}

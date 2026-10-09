@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { 
@@ -57,6 +57,13 @@ export const InscricaoPublica: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [registrationId, setRegistrationId] = useState<string | null>(null);
+  const [draftReady, setDraftReady] = useState(false);
+  const [draftRestoredAt, setDraftRestoredAt] = useState<string | null>(null);
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [draftError, setDraftError] = useState(false);
+  const [draftDisabled, setDraftDisabled] = useState(false);
+  const draftWasRestored = useRef(false);
+  const draftKey = `brm_hospedagem_inscricao_rascunho_v1:${new URLSearchParams(window.location.search).get('casa') || 'geral'}`;
 
   // System Settings / Metadata
   const [config, setConfig] = useState<Config | null>(null);
@@ -107,6 +114,66 @@ export const InscricaoPublica: React.FC = () => {
   const [recCepLoading, setRecCepLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(draftKey);
+      if (saved) {
+        const parsed: unknown = JSON.parse(saved);
+        if (
+          typeof parsed === 'object' && parsed !== null
+          && 'savedAt' in parsed && typeof parsed.savedAt === 'string'
+          && Number.isFinite(new Date(parsed.savedAt).getTime())
+          && Date.now() - new Date(parsed.savedAt).getTime() < 30 * 24 * 60 * 60 * 1000
+          && 'formData' in parsed && typeof parsed.formData === 'object'
+          && parsed.formData !== null && !Array.isArray(parsed.formData)
+        ) {
+          const validEntries = Object.entries(parsed.formData).filter(([key, value]) =>
+            key.startsWith('hos_') && typeof value === 'string',
+          );
+          setFormData(current => ({ ...current, ...Object.fromEntries(validEntries) }));
+          if ('step' in parsed && typeof parsed.step === 'number' && parsed.step >= 1 && parsed.step <= 6) {
+            setStep(parsed.step);
+          }
+          draftWasRestored.current = true;
+          setDraftRestoredAt(parsed.savedAt);
+          setDraftSavedAt(parsed.savedAt);
+        } else {
+          localStorage.removeItem(draftKey);
+        }
+      }
+    } catch (error) {
+      console.error('Não foi possível recuperar o rascunho da inscrição:', error);
+      setDraftError(true);
+    } finally {
+      setDraftReady(true);
+    }
+  }, [draftKey]);
+
+  useEffect(() => {
+    if (!draftReady || loading || success || draftDisabled) return;
+    const persistDraft = () => {
+      const savedAt = new Date().toISOString();
+      try {
+        localStorage.setItem(draftKey, JSON.stringify({ savedAt, step, formData }));
+        setDraftSavedAt(savedAt);
+        setDraftError(false);
+      } catch (error) {
+        console.error('Não foi possível salvar o rascunho da inscrição:', error);
+        setDraftError(true);
+      }
+    };
+    const timer = window.setTimeout(persistDraft, 600);
+    window.addEventListener('pagehide', persistDraft);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pagehide', persistDraft);
+    };
+  }, [draftKey, draftReady, draftDisabled, loading, success, step, formData]);
+
+  useEffect(() => {
+    if (draftDisabled) setDraftDisabled(false);
+  }, [formData]);
+
   // Load configuration and lists
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -142,7 +209,7 @@ export const InscricaoPublica: React.FC = () => {
         // Verificar pré-seleção vinda de URL (?casa=...)
         const urlParams = new URLSearchParams(window.location.search);
         const casaParam = urlParams.get('casa');
-        if (casaParam) {
+        if (casaParam && !draftWasRestored.current) {
           const decoded = decodeURIComponent(casaParam);
           setFormData(prev => ({ ...prev, hos_casa_acolhida: decoded }));
         }
@@ -304,6 +371,14 @@ export const InscricaoPublica: React.FC = () => {
       }
 
       setRegistrationId(String(data.idhospedagens));
+      try {
+        localStorage.removeItem(draftKey);
+        setDraftRestoredAt(null);
+        setDraftSavedAt(null);
+      } catch (draftCleanupError) {
+        console.error('Inscrição concluída, mas não foi possível remover o rascunho local:', draftCleanupError);
+        setDraftError(true);
+      }
       void supabase.functions.invoke('send-receipt', {
         body: { id: data.idhospedagens, token: data.recibo_token }
       }).then(({ error: emailError }) => {
@@ -423,48 +498,157 @@ export const InscricaoPublica: React.FC = () => {
   const stepsLabel = [
     "Curso", "Pessoal", "Endereço", "Estadia", "Faturamento", "Termos"
   ];
+  const stepsDescription = [
+    "Escolha o local e o motivo da sua hospedagem.",
+    "Conte-nos quem você é e como podemos entrar em contato.",
+    "Informe o endereço para o cadastro.",
+    "Planeje as datas da sua estadia.",
+    "Revise os dados para emissão do recibo.",
+    "Leia os termos e confirme sua inscrição.",
+  ];
+  const progressPercentage = Math.round((step / stepsLabel.length) * 100);
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] dark:bg-[#0d1117] py-10 md:py-16 px-4 flex items-center justify-center transition-colors">
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_12%_5%,rgba(193,217,207,.48),transparent_36rem),radial-gradient(ellipse_at_92%_18%,rgba(220,233,229,.78),transparent_32rem),linear-gradient(145deg,#f2f6f4,#f8faf9_50%,#edf3f1)] px-4 py-8 transition-colors dark:bg-[radial-gradient(ellipse_at_12%_5%,rgba(34,99,128,.15),transparent_36rem),linear-gradient(145deg,#07151b,#0d1820_50%,#10212a)] sm:py-12">
       {/* Main Container */}
-      <div className="relative w-full max-w-3xl rounded-[6px] bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-800 p-6 sm:p-10 transition-colors">
-        <div className="flex flex-col items-center text-center mb-8">
-          <div className="flex items-center justify-center w-12 h-12 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-white/5 text-slate-800 dark:text-slate-100 mb-3">
+    <div className="relative mx-auto w-full max-w-3xl overflow-hidden rounded-[2rem] border border-white/80 bg-white/95 p-5 shadow-[0_28px_90px_rgba(17,50,64,0.14)] transition-colors dark:border-slate-700/80 dark:bg-[#121d24] sm:p-9">
+      <style>{`
+        .hosting-form input:not([type="radio"]):not([type="checkbox"]):not([type="file"]),
+        .hosting-form select,
+        .hosting-form textarea {
+          width: 100%;
+          min-height: 3rem;
+          border: 1px solid #dce7e4;
+          border-radius: .9rem;
+          background: #fbfdfc;
+          padding: .8rem .95rem;
+          font-size: .9rem;
+          color: #203a42;
+          transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+        }
+        .hosting-form textarea { min-height: 7rem; }
+        .hosting-form input:focus,
+        .hosting-form select:focus,
+        .hosting-form textarea:focus {
+          outline: none;
+          border-color: #226380;
+          background: white;
+          box-shadow: 0 0 0 4px rgba(34, 99, 128, 0.11);
+        }
+        .hosting-form label {
+          display: block;
+          margin-bottom: .4rem;
+          color: #405a62;
+          font-size: .8rem;
+          font-weight: 650;
+          line-height: 1.45;
+        }
+        .hosting-form > div[class*="animate-fade-in"] {
+          border: 1px solid #e3ece9;
+          border-radius: 1.5rem;
+          background: linear-gradient(145deg, #f8fbfa, #fff 72%);
+          padding: 1.25rem;
+          box-shadow: 0 8px 28px rgba(17,50,64,.045);
+        }
+        .hosting-form .hosting-step-actions {
+          position: sticky;
+          bottom: .75rem;
+          z-index: 10;
+          margin: 1.5rem -.25rem -.25rem;
+          padding: .85rem;
+          border: 1px solid rgba(220,231,228,.92);
+          border-radius: 1.25rem;
+          background: rgba(255,255,255,.94);
+          box-shadow: 0 12px 32px rgba(17,50,64,.11);
+          backdrop-filter: blur(16px);
+        }
+        .dark .hosting-form input:not([type="radio"]):not([type="checkbox"]):not([type="file"]),
+        .dark .hosting-form select,
+        .dark .hosting-form textarea {
+          border-color: #33474e;
+          background: #17252c;
+          color: #edf4f2;
+        }
+        .dark .hosting-form label { color: #cedad8; }
+        .dark .hosting-form > div[class*="animate-fade-in"] {
+          border-color: #30444b;
+          background: linear-gradient(145deg, rgba(23,37,44,.95), rgba(18,29,36,.98));
+        }
+        .dark .hosting-form .hosting-step-actions {
+          border-color: #33474e;
+          background: rgba(18,29,36,.94);
+        }
+        @media (max-width: 640px) {
+          .hosting-form > div[class*="animate-fade-in"] { padding: 1rem; }
+          .hosting-form .hosting-step-actions { bottom: .35rem; }
+        }
+      `}</style>
+      <div className="mb-8 flex flex-col items-center text-center">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#113240] to-[#226380] text-white shadow-lg shadow-[#113240]/20">
             <Building className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1d1d1f] dark:text-white font-serif">Ficha de Inscrição</h1>
-          <p className="text-[#707070] dark:text-[#86868b] text-xs uppercase tracking-wider mt-1">Hospedagens · Província BRM</p>
+        <h1 className="font-serif text-2xl font-bold tracking-tight text-[#163642] dark:text-white sm:text-3xl">Vamos preparar sua estadia</h1>
+        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#56808a] dark:text-[#a3c3c7]">Hospedagens · Província BRM</p>
           
           {config?.chos_acolhida && step === 1 && (
-            <div className="mt-4 text-xs text-[#707070] dark:text-[#86868b] max-w-lg leading-relaxed bg-slate-50 dark:bg-white/5 p-4 rounded-[6px] border border-slate-200 dark:border-slate-800">
+            <div className="mt-5 max-w-lg rounded-2xl border border-[#dce8e6] bg-[#f5f9f8] p-4 text-sm leading-relaxed text-slate-600 dark:border-slate-700 dark:bg-white/[0.04] dark:text-slate-300">
               {config.chos_acolhida}
             </div>
           )}
         </div>
 
-        {/* Apple Horizontal Stepper */}
-        <div className="mb-8 max-w-xl mx-auto flex items-center justify-between gap-1 overflow-x-auto pb-2 -mx-2 px-2">
+        {/* Progress indicator */}
+        <div className="mb-7 rounded-2xl border border-[#e2ece9] bg-[#f8fbfa] p-4 dark:border-slate-700 dark:bg-white/[0.035]">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[.14em] text-[#6c898d] dark:text-[#a3c3c7]">
+                Etapa {String(step).padStart(2, '0')} de {stepsLabel.length}
+              </p>
+              <p className="mt-1 text-base font-semibold text-[#163642] dark:text-white">{stepsLabel[step - 1]}</p>
+            </div>
+            <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-[#42656e] shadow-sm dark:bg-white/10 dark:text-slate-200">
+              {progressPercentage}% concluído
+            </span>
+          </div>
+          <div
+            className="h-2 overflow-hidden rounded-full bg-[#e5eeeb] dark:bg-slate-700"
+            role="progressbar"
+            aria-label="Progresso da inscrição"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progressPercentage}
+          >
+            <div className="h-full rounded-full bg-gradient-to-r from-[#226380] to-[#63a79c] transition-all duration-500" style={{ width: `${progressPercentage}%` }} />
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
+            <span className="leading-relaxed">{stepsDescription[step - 1]}</span>
+            <span className="shrink-0">{Math.max(1, Math.ceil((stepsLabel.length - step) * 1.2))} min restantes</span>
+          </div>
+        </div>
+        <div className="mb-7 flex items-center justify-between gap-1 overflow-x-auto pb-1">
           {stepsLabel.map((lbl, idx) => {
             const stepIndex = idx + 1;
             const isCompleted = step > stepIndex;
             const isActive = step === stepIndex;
 
             return (
-              <div key={lbl} className="flex items-center gap-1.5">
+              <div key={lbl} className="flex min-w-0 flex-1 items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => { if (stepIndex < step) setStep(stepIndex); }}
-                  className={`inline-flex items-center gap-1.5 rounded-[6px] px-3 py-1.5 text-xs font-medium transition-all border ${
+                  aria-current={isActive ? 'step' : undefined}
+                  aria-label={`Etapa ${stepIndex}: ${lbl}${isCompleted ? ', concluída' : isActive ? ', atual' : ''}`}
+                  className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold transition-all ${
                     isActive 
-                      ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white' 
+                      ? 'bg-[#163e4b] text-white border-[#163e4b] shadow-md shadow-[#163e4b]/20 dark:bg-[#a3c3c7] dark:text-[#10242b] dark:border-[#a3c3c7]'
                       : isCompleted 
-                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-500/30' 
-                        : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-slate-800 text-[#707070] dark:text-[#86868b]'}`}
+                        ? 'bg-[#e7f2ee] text-[#367164] dark:bg-emerald-950/40 dark:text-emerald-300 border-[#bbd9cf] dark:border-emerald-700/50'
+                        : 'bg-white dark:bg-white/5 border-slate-200 dark:border-slate-700 text-[#809194] dark:text-[#9aa9aa]'}`}
                 >
-                  <span className={`text-[10px] font-bold ${isActive ? 'text-white' : isCompleted ? 'text-emerald-600' : 'text-[#707070]'}`}>{stepIndex}</span>
-                  <span className="hidden sm:inline">{lbl}</span>
+                  {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : stepIndex}
                 </button>
-                {idx < stepsLabel.length - 1 && <span className="text-[#d6d6d6] dark:text-white/10 text-xs">›</span>}
+                <span className={`hidden truncate text-[10px] font-medium xl:inline ${isActive ? 'text-[#163e4b] dark:text-white' : 'text-slate-400'}`}>{lbl}</span>
+                {idx < stepsLabel.length - 1 && <span className={`mx-1 h-px min-w-2 flex-1 ${isCompleted ? 'bg-[#9dc7b9]' : 'bg-[#e0e9e6] dark:bg-slate-700'}`} />}
               </div>
             );
           })}
@@ -477,7 +661,41 @@ export const InscricaoPublica: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {(draftRestoredAt || draftSavedAt || draftError) && (
+          <aside className="mb-5 flex flex-col gap-3 rounded-2xl border border-sky-200 bg-sky-50/80 p-4 text-sm text-sky-950 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-100 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-semibold">
+                {draftError ? 'Não foi possível salvar ou recuperar o rascunho neste navegador.' :
+                  draftRestoredAt ? 'Encontramos seu rascunho e restauramos o preenchimento.' : 'Seu preenchimento está sendo salvo automaticamente.'}
+              </p>
+              <p className="mt-1 text-xs opacity-80">
+                O rascunho fica apenas neste navegador por até 30 dias. Em computador compartilhado, apague-o após concluir.
+              </p>
+            </div>
+            {(draftRestoredAt || draftSavedAt) && (
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    localStorage.removeItem(draftKey);
+                    setDraftRestoredAt(null);
+                    setDraftSavedAt(null);
+                    setDraftDisabled(true);
+                    setDraftError(false);
+                  } catch (error) {
+                    console.error('Não foi possível apagar o rascunho da inscrição:', error);
+                    setDraftError(true);
+                  }
+                }}
+                className="shrink-0 rounded-xl border border-sky-300 px-3 py-2 text-xs font-semibold transition hover:bg-white dark:border-sky-800 dark:hover:bg-sky-900/40"
+              >
+                Apagar rascunho deste dispositivo
+              </button>
+            )}
+          </aside>
+        )}
+
+        <form onSubmit={handleSubmit} className="hosting-form space-y-6">
           {/* STEP 1: CURSO & ESTADIA */}
           {step === 1 && (
             <div className="space-y-5 animate-fade-in">
@@ -1034,13 +1252,13 @@ export const InscricaoPublica: React.FC = () => {
           )}
 
           {/* Apple Pill Action Buttons */}
-          <div className="flex justify-between items-center border-t border-[#e5e5ea] dark:border-white/10 pt-6 mt-8">
+          <div className="hosting-step-actions flex items-center justify-between gap-3 border-t border-[#e5e5ea] pt-4 dark:border-white/10">
             {step > 1 ? (
               <button
                 type="button"
                 onClick={handlePrevStep}
                 disabled={submitting}
-                className="inline-flex items-center gap-1.5 rounded-[6px] border border-slate-200 dark:border-slate-800 px-5 py-2.5 text-xs font-semibold text-[#707070] hover:text-[#1d1d1f] hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition-all hover:bg-slate-50 hover:text-[#1d1d1f] dark:border-slate-700 dark:bg-white/[0.04] dark:text-slate-300 dark:hover:bg-white/10"
               >
                 <ChevronLeft className="w-4 h-4" />
                 <span>Anterior</span>
@@ -1053,7 +1271,7 @@ export const InscricaoPublica: React.FC = () => {
               <button
                 type="button"
                 onClick={handleNextStep}
-                className="inline-flex items-center gap-1.5 rounded-[6px] bg-slate-900 hover:bg-black dark:bg-white dark:text-slate-900 text-white text-xs font-semibold px-7 py-3 transition-all cursor-pointer shadow-none active:scale-[0.98]"
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#163e4b] to-[#226380] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#163e4b]/15 transition-all hover:-translate-y-0.5 hover:shadow-xl"
               >
                 <span>Avançar</span>
                 <ChevronRight className="w-4 h-4" />
@@ -1062,7 +1280,7 @@ export const InscricaoPublica: React.FC = () => {
               <button
                 type="submit"
                 disabled={submitting || formData.hos_termo !== 'Aceito'}
-                className="inline-flex items-center gap-2 rounded-[6px] bg-slate-900 hover:bg-black dark:bg-white dark:text-slate-900 text-white text-xs font-semibold px-8 py-3 transition-all cursor-pointer shadow-none active:scale-[0.98] disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#163e4b] to-[#226380] px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-[#163e4b]/15 transition-all hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting ? (
                   <>

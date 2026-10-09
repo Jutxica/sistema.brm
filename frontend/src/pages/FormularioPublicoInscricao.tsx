@@ -174,6 +174,7 @@ export const FormularioPublicoInscricao: React.FC = () => {
           descricao={form.descricao}
           campos={form.campos}
           carregando={saving}
+          chaveRascunho={`brm_formulario_publico_rascunho_v1:${form.id}`}
           onSubmit={handleSubmit}
         />
       </div>
