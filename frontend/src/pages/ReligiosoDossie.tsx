@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Archive, CheckCircle2, Download, FileText, FolderOpen, Loader2, Printer, ShieldCheck, Upload, UserRound } from 'lucide-react';
+import { ArrowLeft, Archive, CheckCircle2, Download, FileText, FolderClosed, FolderOpen, Loader2, Printer, ShieldCheck, Upload, UserRound } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { showToast } from '../hooks/useFeedback';
@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface ReligiosoDossieData {
   id: string;
+  numero_cadastro: number;
   nome_civil: string;
   nome_religioso: string | null;
   grau: string | null;
@@ -94,6 +95,9 @@ const formatBytes = (bytes?: number | null) => {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
+
+const formatRegistrationNumber = (number: number, createdAt: string | null) =>
+  `BRM-${createdAt ? new Date(createdAt).getFullYear() : '—'}-${String(number).padStart(6, '0')}`;
 
 export const ReligiosoDossie: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -302,6 +306,15 @@ export const ReligiosoDossie: React.FC = () => {
     return grouped;
   }, [documentos]);
 
+  const documentFolders = useMemo(() => {
+    const grouped: Record<string, DocumentoFicha[]> = {};
+    documentos.forEach(documento => {
+      const category = documento.categoria || 'Outro';
+      grouped[category] = [...(grouped[category] || []), documento];
+    });
+    return Object.entries(grouped).sort(([left], [right]) => left.localeCompare(right, 'pt-BR'));
+  }, [documentos]);
+
   const totalContas = allAccounts.length;
   const selectedDocuments = documentos.filter(documento => selectedDocumentIds.has(documento.id));
 
@@ -358,6 +371,9 @@ export const ReligiosoDossie: React.FC = () => {
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Arquivo Provincial</p>
                   <h1 className="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">{religioso.nome_religioso || religioso.nome_civil}</h1>
                   <p className="text-sm text-slate-500 dark:text-slate-400">{religioso.nome_civil} • {religioso.grau || 'Grau pendente'}</p>
+                  <p className="mt-2 inline-flex border border-[#226380]/20 bg-[#226380]/5 px-2.5 py-1 font-mono text-[11px] font-semibold tracking-wide text-[#226380] dark:border-[#A3C3C7]/20 dark:bg-[#A3C3C7]/10 dark:text-[#A3C3C7]">
+                    Cadastro {formatRegistrationNumber(religioso.numero_cadastro, religioso.created_at)}
+                  </p>
                 </div>
               </div>
 
@@ -528,34 +544,47 @@ export const ReligiosoDossie: React.FC = () => {
 
               {documentos.length ? (
                 <div className="space-y-3">
-                  {documentos.map(documento => (
-                    <div key={documento.id} className="flex flex-col gap-3 border border-slate-200 p-3 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex min-w-0 items-start gap-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedDocumentIds.has(documento.id)}
-                          onChange={() => toggleDocumentSelection(documento.id)}
-                          aria-label={`Incluir ${documento.nome_arquivo} no checklist impresso`}
-                          className="dossie-no-print mt-1 h-4 w-4 accent-[#113240]"
-                        />
-                        <div className="min-w-0">
-                        <p className="break-words text-sm font-medium text-slate-900 dark:text-white">{documento.titulo || documento.nome_arquivo}</p>
-                        <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                          {documento.categoria} • {documento.nome_arquivo} • {formatDate(documento.data_cadastro || documento.criado_em)} • {formatBytes(documento.tamanho_bytes)}
-                        </p>
-                        {(documento.quem_cadastrou || documento.enviado_por_nome) && <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">Enviado por {documento.enviado_por_nome || documento.quem_cadastrou}</p>}
-                        </div>
-                      </div>
+                  {documentFolders.map(([category, categoryDocuments]) => (
+                    <details key={category} open className="overflow-hidden border border-slate-200 dark:border-slate-700">
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-slate-50 px-4 py-3 dark:bg-white/[0.03]">
+                        <span className="flex items-center gap-2 text-xs font-semibold text-slate-800 dark:text-slate-200">
+                          <FolderClosed className="h-4 w-4 text-[#226380] dark:text-[#A3C3C7]" />
+                          {category}
+                        </span>
+                        <span className="text-[10px] text-slate-500">{categoryDocuments.length} documento(s)</span>
+                      </summary>
+                      <div className="space-y-2 p-3">
+                        {categoryDocuments.map(documento => (
+                          <div key={documento.id} className="flex flex-col gap-3 border border-slate-200 p-3 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex min-w-0 items-start gap-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedDocumentIds.has(documento.id)}
+                                onChange={() => toggleDocumentSelection(documento.id)}
+                                aria-label={`Incluir ${documento.nome_arquivo} no checklist impresso`}
+                                className="dossie-no-print mt-1 h-4 w-4 accent-[#113240]"
+                              />
+                              <div className="min-w-0">
+                                <p className="break-words text-sm font-medium text-slate-900 dark:text-white">{documento.titulo || documento.nome_arquivo}</p>
+                                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                                  {documento.nome_arquivo} • {formatDate(documento.data_cadastro || documento.criado_em)} • {formatBytes(documento.tamanho_bytes)}
+                                </p>
+                                {(documento.quem_cadastrou || documento.enviado_por_nome) && <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">Enviado por {documento.enviado_por_nome || documento.quem_cadastrou}</p>}
+                              </div>
+                            </div>
 
-                      <button
-                        type="button"
-                        onClick={() => void handleDownload(documento)}
-                        className="dossie-no-print inline-flex shrink-0 items-center justify-center gap-2 border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                        Baixar
-                      </button>
-                    </div>
+                            <button
+                              type="button"
+                              onClick={() => void handleDownload(documento)}
+                              className="dossie-no-print inline-flex shrink-0 items-center justify-center gap-2 border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              Baixar
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
                   ))}
                 </div>
               ) : (

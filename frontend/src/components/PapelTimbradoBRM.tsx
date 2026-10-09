@@ -30,14 +30,14 @@ export const CabecalhoTimbradoBRM: React.FC<{
   subtituloDocumento?: string;
 }> = ({ orgaoEmissor, protocolo, dataEmissao, subtituloDocumento }) => {
   return (
-    <header className="relative w-full pt-4 pb-6 text-center select-none print:pt-0 print:pb-5">
+    <header className="brm-letterhead-header relative w-full pt-4 pb-6 text-center select-none print:pt-0 print:pb-5">
       {/* Identificador Institucional no Canto Superior Direito (Paleta Cinza Discreta) */}
-      <div className="absolute top-0 right-0 text-right text-[7pt] sm:text-[7.5pt] print:text-[6.5pt] font-mono text-slate-400 dark:text-slate-500 print:text-slate-400 opacity-60 tracking-wider pointer-events-none select-none">
-        Província BRM - Sistema de Gestão Institucional
+      <div className="brm-letterhead-system absolute top-0 right-0 text-right text-[7pt] sm:text-[7.5pt] print:text-[6.5pt] font-mono text-slate-400 dark:text-slate-500 print:text-slate-400 opacity-60 tracking-wider pointer-events-none select-none">
+        Secretaria Provincial
       </div>
 
       {/* Brasão / Emblema Dehoniano Oficial Centralizado */}
-      <div className="flex justify-center items-center mb-3">
+      <div className="brm-letterhead-emblem flex justify-center items-center mb-3">
         <img
           src="/logo-timbrado-brm.png"
           alt="Emblema Oficial Dehoniano - Província BRM"
@@ -46,18 +46,18 @@ export const CabecalhoTimbradoBRM: React.FC<{
       </div>
 
       {/* 1ª Linha: Congregação (Cormorant Garamond 13pt Regular) */}
-      <h1 className="font-timbrado text-[16px] sm:text-[18px] print:text-[13pt] font-normal uppercase tracking-[0.04em] text-[#113240] dark:text-slate-100 print:text-black leading-tight">
+      <h1 className="brm-letterhead-congregation font-timbrado text-[16px] sm:text-[18px] print:text-[13pt] font-normal uppercase tracking-[0.04em] text-[#113240] dark:text-slate-100 print:text-black leading-tight">
         CONGREGAÇÃO DOS SACERDOTES DO SAGRADO CORAÇÃO DE JESUS
       </h1>
 
       {/* 2ª Linha: Província (Cormorant Garamond 14pt SemiBold) */}
-      <h2 className="font-timbrado text-[18px] sm:text-[20px] print:text-[14pt] font-semibold text-[#113240] dark:text-white print:text-black mt-1 leading-tight">
+      <h2 className="brm-letterhead-province font-timbrado text-[18px] sm:text-[20px] print:text-[14pt] font-semibold text-[#113240] dark:text-white print:text-black mt-1 leading-tight">
         Província Brasileira Meridional
       </h2>
 
       {/* Faixa de Protocolo / Data se fornecido */}
       {(protocolo || dataEmissao || subtituloDocumento) && (
-        <div className="mt-3 pt-2.5 border-t border-slate-200/80 dark:border-slate-800 print:border-slate-300 flex flex-wrap items-center justify-between text-[11px] sm:text-[12px] print:text-[9pt] font-mono text-slate-500 dark:text-slate-400 print:text-slate-700 px-2">
+        <div className="brm-letterhead-meta mt-3 pt-2.5 border-t border-slate-200/80 dark:border-slate-800 print:border-slate-300 flex flex-wrap items-center justify-between text-[11px] sm:text-[12px] print:text-[9pt] font-mono text-slate-500 dark:text-slate-400 print:text-slate-700 px-2">
           <div>
             {subtituloDocumento && <span className="font-semibold text-slate-700 dark:text-slate-200 print:text-black">{subtituloDocumento}</span>}
           </div>
@@ -87,7 +87,7 @@ export const RodapeTimbradoBRM: React.FC<{
   conteudoAdicional?: React.ReactNode;
 }> = ({ conteudoAdicional }) => {
   return (
-    <footer className="mt-8 pt-4 pb-2 w-full text-center select-none print:mt-6 print:pt-3 print-no-break">
+    <footer className="brm-letterhead-footer mt-8 pt-4 pb-2 w-full text-center select-none print:mt-6 print:pt-3 print-no-break">
       {conteudoAdicional && (
         <div className="mb-4">
           {conteudoAdicional}
@@ -143,7 +143,7 @@ export const PapelTimbradoBRM: React.FC<PapelTimbradoBRMProps> = ({
   const isPaisagem = orientacaoAtual === 'horizontal';
 
   return (
-    <div className="w-full py-2 sm:py-6 print:p-0 print:m-0">
+    <div className="brm-letterhead-shell w-full py-2 sm:py-6 print:p-0 print:m-0">
       {/* Injeção dinâmica de CSS @page para respeitar a orientação selecionada no diálogo de impressão do navegador */}
       <style>
         {`
@@ -151,6 +151,209 @@ export const PapelTimbradoBRM: React.FC<PapelTimbradoBRMProps> = ({
             @page {
               size: A4 ${isPaisagem ? 'landscape' : 'portrait'};
               margin: ${isPaisagem ? '10mm 14mm 12mm 14mm' : '12mm 16mm 14mm 16mm'};
+            }
+            html, body, #root {
+              width: auto !important;
+              min-width: 0 !important;
+              height: auto !important;
+              min-height: 0 !important;
+              background: #fff !important;
+            }
+            #root, .institutional-app {
+              display: block !important;
+            }
+            .institutional-content {
+              width: 100% !important;
+              max-width: none !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            body {
+              margin: 0 !important;
+              color: #202a2e !important;
+              font-family: Georgia, 'Times New Roman', serif !important;
+              font-size: 10.5pt !important;
+              line-height: 1.55 !important;
+            }
+            .brm-letterhead-shell {
+              width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            .brm-letterhead-document {
+              display: flex !important;
+              flex-direction: column !important;
+              width: 100% !important;
+              max-width: none !important;
+              min-height: 0 !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              overflow: visible !important;
+              border: 0 !important;
+              border-radius: 0 !important;
+              background: #fff !important;
+              color: #202a2e !important;
+              box-shadow: none !important;
+              font-family: Georgia, 'Times New Roman', serif !important;
+              font-size: 10.5pt !important;
+              line-height: 1.55 !important;
+            }
+            .brm-letterhead-document > .brm-letterhead-watermark {
+              display: none !important;
+            }
+            .brm-letterhead-header {
+              position: relative !important;
+              display: grid !important;
+              grid-template-columns: 22mm minmax(0, 1fr) !important;
+              grid-template-rows: auto auto auto !important;
+              align-items: center !important;
+              column-gap: 6mm !important;
+              width: 100% !important;
+              margin: 0 0 8mm !important;
+              padding: 0 0 5mm !important;
+              border-bottom: 1.2pt solid #113240 !important;
+              text-align: left !important;
+              color: #113240 !important;
+            }
+            .brm-letterhead-system {
+              top: 0 !important;
+              right: 0 !important;
+              color: #68777d !important;
+              font-family: Arial, sans-serif !important;
+              font-size: 7pt !important;
+              opacity: 1 !important;
+            }
+            .brm-letterhead-emblem {
+              grid-column: 1 !important;
+              grid-row: 1 / span 2 !important;
+              align-self: center !important;
+              margin: 0 !important;
+            }
+            .brm-letterhead-emblem img {
+              width: 20mm !important;
+              height: 20mm !important;
+              max-height: 20mm !important;
+              object-fit: contain !important;
+            }
+            .brm-letterhead-congregation,
+            .brm-letterhead-province {
+              grid-column: 2 !important;
+              margin: 0 !important;
+              color: #113240 !important;
+              text-align: left !important;
+            }
+            .brm-letterhead-congregation {
+              align-self: end !important;
+              padding-top: 4mm !important;
+              font-size: 12pt !important;
+              line-height: 1.25 !important;
+            }
+            .brm-letterhead-province {
+              align-self: start !important;
+              margin-top: 1mm !important;
+              font-size: 14pt !important;
+              line-height: 1.2 !important;
+            }
+            .brm-letterhead-meta {
+              grid-column: 1 / -1 !important;
+              width: 100% !important;
+              margin-top: 4mm !important;
+              padding: 2mm 0 0 !important;
+              border-top: .5pt solid #c5d0d2 !important;
+              color: #46565b !important;
+              font-family: Arial, sans-serif !important;
+              font-size: 8.5pt !important;
+            }
+            .brm-letterhead-meta strong {
+              color: #24383e !important;
+            }
+            .brm-letterhead-title {
+              margin: 0 0 6mm !important;
+              color: #113240 !important;
+              font-family: Georgia, 'Times New Roman', serif !important;
+              font-size: 15pt !important;
+              line-height: 1.25 !important;
+              text-align: center !important;
+              break-after: avoid-page;
+            }
+            .brm-letterhead-content {
+              min-height: 0 !important;
+              width: 100% !important;
+              color: #202a2e !important;
+              font-family: Georgia, 'Times New Roman', serif !important;
+              font-size: 10.5pt !important;
+              line-height: 1.55 !important;
+            }
+            .brm-letterhead-content h1,
+            .brm-letterhead-content h2,
+            .brm-letterhead-content h3 {
+              color: #113240 !important;
+              break-after: avoid-page;
+            }
+            .brm-letterhead-content p {
+              orphans: 3;
+              widows: 3;
+            }
+            .brm-letterhead-content table {
+              width: 100% !important;
+              border-collapse: collapse !important;
+              font-size: 9pt !important;
+              break-inside: auto;
+            }
+            .brm-letterhead-content th,
+            .brm-letterhead-content td {
+              padding: 2mm !important;
+              border: .5pt solid #b8c4c7 !important;
+              color: #202a2e !important;
+              background: transparent !important;
+            }
+            .brm-letterhead-content tr {
+              break-inside: avoid;
+            }
+            .brm-letterhead-form {
+              font-family: Georgia, 'Times New Roman', serif !important;
+            }
+            .brm-letterhead-form section {
+              break-inside: avoid-page;
+            }
+            .brm-letterhead-form section > div:first-child span {
+              border-radius: 0 !important;
+              background: transparent !important;
+              color: #113240 !important;
+              font-family: Arial, sans-serif !important;
+              font-size: 8pt !important;
+            }
+            .brm-letterhead-form input:not([type="radio"]):not([type="checkbox"]),
+            .brm-letterhead-form select,
+            .brm-letterhead-form textarea {
+              min-height: 7mm !important;
+              padding: 1.5mm 0 !important;
+              border: 0 !important;
+              border-bottom: .5pt solid #9cabad !important;
+              border-radius: 0 !important;
+              background: transparent !important;
+              color: #202a2e !important;
+              font-family: Georgia, 'Times New Roman', serif !important;
+              font-size: 10pt !important;
+              box-shadow: none !important;
+              appearance: none !important;
+            }
+            .brm-letterhead-form textarea {
+              min-height: 16mm !important;
+              resize: none !important;
+            }
+            .brm-letterhead-footer {
+              margin-top: 10mm !important;
+              padding-top: 3mm !important;
+              border-top: .5pt solid #b8c4c7 !important;
+              color: #46565b !important;
+              font-family: Arial, sans-serif !important;
+              line-height: 1.4 !important;
+            }
+            .brm-letterhead-footer p {
+              color: #46565b !important;
+              font-family: Arial, sans-serif !important;
+              font-size: 8pt !important;
             }
           }
         `}
@@ -210,7 +413,7 @@ export const PapelTimbradoBRM: React.FC<PapelTimbradoBRMProps> = ({
 
       {/* Folha do Documento (Simula A4 na tela e se ajusta à folha na impressão) */}
       <main
-        className={`mx-auto bg-white dark:bg-[#161b22] print:bg-white text-slate-900 dark:text-slate-100 print:text-black border border-slate-200 dark:border-slate-800 print:border-none shadow-md print:shadow-none print:m-0 print:p-0 transition-all duration-200 relative overflow-hidden ${
+        className={`brm-letterhead-document mx-auto bg-white dark:bg-[#161b22] print:bg-white text-slate-900 dark:text-slate-100 print:text-black border border-slate-200 dark:border-slate-800 print:border-none shadow-md print:shadow-none print:m-0 print:p-0 transition-all duration-200 relative overflow-hidden ${
           isPaisagem
             ? 'max-w-[1140px] px-8 sm:px-14 py-8 sm:py-10 rounded-[6px] print:max-w-none'
             : 'max-w-[850px] px-6 sm:px-12 py-8 sm:py-12 rounded-[6px] print:max-w-none'
@@ -220,7 +423,7 @@ export const PapelTimbradoBRM: React.FC<PapelTimbradoBRMProps> = ({
         {marcaDagua && (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.025] dark:opacity-[0.04] print:opacity-[0.03] select-none"
+            className="brm-letterhead-watermark pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.025] dark:opacity-[0.04] print:hidden select-none"
           >
             <img
               src="/logo-timbrado-brm.png"
@@ -240,7 +443,7 @@ export const PapelTimbradoBRM: React.FC<PapelTimbradoBRMProps> = ({
 
         {/* Título Principal do Documento (se informado) */}
         {tituloDocumento && (
-          <div className="mt-2 mb-6 text-center">
+          <div className="brm-letterhead-title mt-2 mb-6 text-center">
             <h3 className="font-timbrado text-xl sm:text-2xl print:text-[16pt] font-bold text-[#113240] dark:text-white print:text-black tracking-tight">
               {tituloDocumento}
             </h3>
@@ -248,7 +451,7 @@ export const PapelTimbradoBRM: React.FC<PapelTimbradoBRMProps> = ({
         )}
 
         {/* Conteúdo do Documento */}
-        <div className="relative z-10 w-full min-h-[300px]">
+        <div className="brm-letterhead-content relative z-10 w-full min-h-[300px]">
           {children}
         </div>
 

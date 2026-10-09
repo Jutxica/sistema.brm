@@ -22,6 +22,7 @@ import { confirmAction, showToast } from '../hooks/useFeedback';
 
 interface ReligiosoResumo {
   id: string;
+  numero_cadastro: number;
   nome_civil: string;
   nome_religioso: string | null;
   grau: string | null;
@@ -90,7 +91,7 @@ export const ReligiososAdmin: React.FC = () => {
     const [religiososResult, accountsResult] = await Promise.all([
       supabase
         .from('religiosos')
-        .select('id,nome_civil,nome_religioso,grau,status,status_cadastro,origem_cadastro,email_institucional,telefone_celular,created_at,auth_user_id')
+        .select('id,numero_cadastro,nome_civil,nome_religioso,grau,status,status_cadastro,origem_cadastro,email_institucional,telefone_celular,created_at,auth_user_id')
         .order('nome_civil', { ascending: true }),
       supabase.functions.invoke<{ accounts: ContaAcesso[] }>('secretaria-contas', { body: { action: 'list' } }),
     ]);
@@ -366,6 +367,9 @@ export const ReligiososAdmin: React.FC = () => {
                           <div>
                             <p className="font-semibold text-slate-900 dark:text-white">{item.nome_religioso || item.nome_civil}</p>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400">{item.grau || 'Grau pendente'} · {item.nome_civil}</p>
+                            <p className="mt-1 font-mono text-[10px] font-medium tracking-wide text-[#226380] dark:text-[#A3C3C7]">
+                              BRM-{new Date(item.created_at).getFullYear()}-{String(item.numero_cadastro).padStart(6, '0')}
+                            </p>
                           </div>
                         </div>
                       </td>

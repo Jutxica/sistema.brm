@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { 
   Home, ClipboardList, Settings, Users, LogOut, ChevronLeft, ChevronRight, 
   Building, UserRound, ChevronDown, Plus, Church, Landmark, Layers, BarChart3,
-  FileText, Calendar, Car, ShieldCheck, Wrench, History, Archive, Send, LayoutDashboard, X
+  FileText, Calendar, Car, ShieldCheck, Wrench, History, Archive, Send, LayoutDashboard, X, FolderOpen
 } from 'lucide-react';
 import { useAuth as useAuthHook, hasModuleAccess } from '../contexts/AuthContext';
 
@@ -140,9 +140,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
           )}
 
           {/* 2. Religiosos */}
-          {(canAccessReligiosos || canAccessConfiguracoes) && (
+          {(canAccessReligiosos || canAccessSecretaria || canAccessConfiguracoes) && (
             <SidebarGroup label="Religiosos" icon={UserRound} open={religiososOpen} onToggle={toggleReligiososOpen} collapsed={collapsed}>
               {canAccessReligiosos && <SidebarSubLink to="/religiosos" label="Inscritos" icon={Users} collapsed={collapsed} />}
+              {(canAccessReligiosos || canAccessSecretaria) && <SidebarSubLink to="/religiosos/dossies" label="Dossiês pessoais" icon={FolderOpen} collapsed={collapsed} />}
               {canAccessReligiosos && <SidebarSubLink to="/estatisticas-brm" label="Estatística BRM" icon={BarChart3} collapsed={collapsed} />}
               {canAccessReligiosos && <SidebarSubLink to="/religiosos/novo" label="Novo cadastro" icon={Plus} collapsed={collapsed} />}
               {canAccessConfiguracoes && <SidebarSubLink to="/religiosos-configuracoes" label="Configurações" icon={Settings} collapsed={collapsed} />}

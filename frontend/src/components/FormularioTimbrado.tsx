@@ -213,7 +213,7 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
       )}
 
       {/* CORPO DO FORMULÁRIO COM AS VARIÁVEIS SELECIONADAS */}
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="brm-letterhead-form space-y-8">
         {campos.length === 0 ? (
           <div className="py-12 text-center border border-dashed border-slate-300 dark:border-slate-700 rounded-[6px]">
             <FileText className="w-8 h-8 text-slate-400 mx-auto mb-2" />
@@ -406,7 +406,7 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
 
         {/* Botão de Envio no modo preenchimento */}
         {modo === 'fill' && campos.length > 0 && (
-          <div className="pt-6 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="pt-6 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden">
             <span className="text-[11px] text-slate-500 font-mono">
               * Campos marcados com asterisco são obrigatórios.
             </span>

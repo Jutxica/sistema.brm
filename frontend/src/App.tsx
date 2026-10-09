@@ -15,6 +15,7 @@ const HospedagensInscricoes = lazy(() => import('./pages/HospedagensInscricoes')
 const HospedagensConfiguracoes = lazy(() => import('./pages/HospedagensConfiguracoes'));
 const Usuarios = lazy(() => import('./pages/Usuarios'));
 const ReligiososAdmin = lazy(() => import('./pages/ReligiososAdmin'));
+const ReligiososDossies = lazy(() => import('./pages/ReligiososDossies'));
 const ReligiososConfiguracoes = lazy(() => import('./pages/ReligiososConfiguracoes'));
 const ObrasAdmin = lazy(() => import('./pages/ObrasAdmin'));
 const ObraForm = lazy(() => import('./pages/ObraForm'));
@@ -189,6 +190,7 @@ export const App: React.FC = () => {
                   <Route path="meu-perfil" element={<ModuleRoute accessKey="religioso"><MeuPerfilReligioso /></ModuleRoute>} />
                   <Route path="anuario" element={<ModuleRoute accessKey="religiosos"><AnuarioBRM /></ModuleRoute>} />
                   <Route path="religiosos" element={<SecretariaReligiososRoute><ReligiososAdmin /></SecretariaReligiososRoute>} />
+                  <Route path="religiosos/dossies" element={<SecretariaReligiososRoute><ReligiososDossies /></SecretariaReligiososRoute>} />
                   <Route path="religiosos/:id/dossie" element={<SecretariaReligiososRoute><ReligiosoDossie /></SecretariaReligiososRoute>} />
                   <Route path="estatisticas-brm" element={<ModuleRoute accessKey="religiosos"><EstatisticaBRM /></ModuleRoute>} />
                   <Route path="documentos" element={<ModuleRoute accessKey="secretaria"><DocumentosAdmin /></ModuleRoute>} />
