@@ -181,6 +181,20 @@ export const PortalReligioso: React.FC = () => {
           fotoUrl = signedPhoto.signedUrl;
         }
         setReligiosoData({ ...data, foto_url: fotoUrl });
+        if (officialData?.id && user?.id) {
+          const { data: savedDraft, error: draftError } = await supabase
+            .from('religiosos_rascunhos')
+            .select('id')
+            .eq('usuario_id', user.id)
+            .eq('chave', `member:${officialData.id}`)
+            .maybeSingle();
+          if (draftError) {
+            console.error('Não foi possível verificar o rascunho da ficha do Portal do Confrade:', draftError);
+            setRegistrationError('Não foi possível verificar se há um rascunho da ficha. Você ainda pode abrir o Cadastro BRM pelo menu.');
+          } else if (savedDraft) {
+            setActiveSection('inscricao');
+          }
+        }
       } else {
         setReligiosoData(null);
       }

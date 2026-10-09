@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileUp, Loader2, Plus, Trash2, Printer } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { confirmAction, showToast } from '../hooks/useFeedback';
+import { useAuth } from '../contexts/AuthContext';
 import { formatCep, lookupCep } from '../lib/cep';
 
 interface ObraReferencia { id: string; nome: string; localidade: string | null; cidade?: string | null; uf: string | null; diocese?: string | null }
@@ -18,12 +19,50 @@ interface CadastroReligiosoPublicoProps {
   onSaved?: () => void;
 }
 
+interface RegistrationDraft {
+  base: Record<string, string>;
+  familiares: Familiar[];
+  sacramentos: Sacrament[];
+  rows: Record<string, string>[];
+  step: number;
+  savedAt?: string;
+  saved_at?: string;
+}
+
 const DRAFT_KEY = 'brm_rascunho_cadastro_religioso_v1';
 
 const etapas = [
   'Identificação', 'Família', 'Sacramentos', 'Vocação', 'Formação', 'Ministérios',
   'Acadêmica', 'Idiomas', 'Histórico', 'Missões', 'Endereço', 'Saúde', 'Documentos',
 ];
+const OTHER_LOCATION_VALUE = '__outro__';
+const brazilianStates = [
+  { value: 'AC', label: 'Acre' }, { value: 'AL', label: 'Alagoas' }, { value: 'AP', label: 'Amapá' },
+  { value: 'AM', label: 'Amazonas' }, { value: 'BA', label: 'Bahia' }, { value: 'CE', label: 'Ceará' },
+  { value: 'DF', label: 'Distrito Federal' }, { value: 'ES', label: 'Espírito Santo' }, { value: 'GO', label: 'Goiás' },
+  { value: 'MA', label: 'Maranhão' }, { value: 'MT', label: 'Mato Grosso' }, { value: 'MS', label: 'Mato Grosso do Sul' },
+  { value: 'MG', label: 'Minas Gerais' }, { value: 'PA', label: 'Pará' }, { value: 'PB', label: 'Paraíba' },
+  { value: 'PR', label: 'Paraná' }, { value: 'PE', label: 'Pernambuco' }, { value: 'PI', label: 'Piauí' },
+  { value: 'RJ', label: 'Rio de Janeiro' }, { value: 'RN', label: 'Rio Grande do Norte' }, { value: 'RS', label: 'Rio Grande do Sul' },
+  { value: 'RO', label: 'Rondônia' }, { value: 'RR', label: 'Roraima' }, { value: 'SC', label: 'Santa Catarina' },
+  { value: 'SP', label: 'São Paulo' }, { value: 'SE', label: 'Sergipe' }, { value: 'TO', label: 'Tocantins' },
+];
+const degreeOptions = ['Frater', 'Irmão', 'Diácono', 'Padre', 'Bispo'];
+const ministryOptions = [
+  'Ministério da Palavra', 'Ministério do Altar', 'Acolitado', 'Leitorado',
+  'Diaconato', 'Presbiterado', 'Episcopado',
+];
+const dynamicRequiredFields: Record<string, string> = {
+  vocacional: 'titulo',
+  formacao: 'etapa',
+  voto: 'voto_tipo',
+  ministerio: 'ministerio',
+  academica: 'categoria',
+  idioma: 'idioma',
+  competencia: 'competencia',
+  historico: 'instituicao',
+  servico: 'servico_tipo',
+};
 const inputClass = 'w-full px-4 py-2.5 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-[#161b22] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] shadow-none outline-none transition-all duration-200 focus:border-slate-900 dark:focus:border-white font-mono';
 const fieldLabels: Record<string, string> = {
   grau: 'Grau', nome_civil: 'Nome completo', nome_religioso: 'Nome religioso', data_nascimento: 'Data de nascimento',
@@ -46,8 +85,92 @@ const fieldLabels: Record<string, string> = {
   competencia: 'Competência', funcao: 'Função', servico_tipo: 'Tipo de serviço', documento: 'Documento', observacao: 'Observação',
 };
 const getFieldLabel = (field: string) => fieldLabels[field] || field.replaceAll('_', ' ').replace(/^./, character => character.toUpperCase());
-const hasValues = (record: Record<string, string>, fields: string[]) => fields.every(field => record[field]?.trim());
-const requiredRecord = (record: Record<string, string>, fields: string[]) => record && hasValues(record, fields);
+const rowHasValue = (row: Record<string, string>, fields: string[]) => fields.some(field => row[field]?.trim());
+const rowMissingRequiredField = (row: Record<string, string>, type: string) => {
+  if (!rowHasValue(row, Object.keys(row).filter(field => field !== 'tipo'))) return null;
+  const requiredField = dynamicRequiredFields[type];
+  if (requiredField && !row[requiredField]?.trim()) return requiredField;
+  if (type === 'voto' && row.voto_tipo === 'Voto temporário'
+    && (!row.renovacao?.trim() || !Number.isInteger(Number(row.renovacao)) || Number(row.renovacao) < 1)) return 'renovacao';
+  return null;
+};
+const locationOptions = (options: string[], currentValue: string) => [
+  ...options.filter(option => option !== OTHER_LOCATION_VALUE),
+  ...(currentValue && currentValue !== OTHER_LOCATION_VALUE && !options.includes(currentValue) ? [currentValue] : []),
+  { value: OTHER_LOCATION_VALUE, label: 'Outro (informar)' },
+];
+const canonicalDegree = (value: string) => {
+  if (/diácono|diacono/i.test(value)) return 'Diácono';
+  if (/frater/i.test(value)) return 'Frater';
+  if (/bispo/i.test(value)) return 'Bispo';
+  if (/padre|presbítero|presbitero/i.test(value)) return 'Padre';
+  if (/irmão|irmao/i.test(value)) return 'Irmão';
+  return degreeOptions.includes(value) ? value : '';
+};
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+const asText = (value: unknown) => typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+const toTextRecord = (value: Record<string, unknown>) =>
+  Object.fromEntries(Object.entries(value).map(([key, item]) => [key, asText(item)]));
+const parseRegistrationDraft = (value: unknown): RegistrationDraft | null => {
+  if (!isObject(value) || !isObject(value.base)
+    || !Array.isArray(value.familiares)
+    || !Array.isArray(value.sacramentos)
+    || !Array.isArray(value.rows)
+    || !value.familiares.every(row => isObject(row) && typeof row.tipo === 'string')
+    || !value.sacramentos.every(row => isObject(row) && typeof row.tipo === 'string')
+    || !value.rows.every(isObject)
+    || typeof value.step !== 'number'
+    || !Number.isInteger(value.step)
+    || value.step < 1
+    || value.step > etapas.length
+    || !Object.values(value.base).every(item => typeof item === 'string')
+    || (value.savedAt !== undefined && typeof value.savedAt !== 'string')
+    || (value.saved_at !== undefined && typeof value.saved_at !== 'string')) {
+    return null;
+  }
+
+  const familiares: Familiar[] = value.familiares.map(row => {
+    const fields = toTextRecord(row);
+    const tipo: Familiar['tipo'] = row.tipo === 'Pai' || row.tipo === 'Mãe' || row.tipo === 'Irmão'
+      ? row.tipo
+      : 'Irmão';
+    return {
+      tipo,
+      nome: fields.nome || '',
+      data_nascimento: fields.data_nascimento || '',
+      local_nascimento: fields.local_nascimento || '',
+      estado_civil: fields.estado_civil || '',
+      data_evento: fields.data_evento || '',
+    };
+  });
+  const sacramentos: Sacrament[] = value.sacramentos.map(row => {
+    const fields = toTextRecord(row);
+    return {
+      tipo: fields.tipo || 'Sacramento',
+      data: fields.data || '',
+      paroquia: fields.paroquia || '',
+      diocese: fields.diocese || '',
+      cidade: fields.cidade || '',
+      uf: fields.uf || '',
+      livro: fields.livro || '',
+      folha: fields.folha || '',
+      numero_registro: fields.numero_registro || '',
+      celebrante: fields.celebrante || '',
+      observacoes: fields.observacoes || '',
+    };
+  });
+  const rows = value.rows.map(row => toTextRecord(row));
+  return {
+    base: toTextRecord(value.base),
+    familiares,
+    sacramentos,
+    rows,
+    step: value.step,
+    savedAt: typeof value.savedAt === 'string' ? value.savedAt : undefined,
+    saved_at: typeof value.saved_at === 'string' ? value.saved_at : undefined,
+  };
+};
 const emptySacrament = (tipo: string): Sacrament => ({ tipo, data: '', paroquia: '', diocese: '', cidade: '', uf: '', livro: '', folha: '', numero_registro: '', celebrante: '', observacoes: '' });
 const emptyFamiliar = (tipo: Familiar['tipo'] = 'Irmão'): Familiar => ({ tipo, nome: '', data_nascimento: '', local_nascimento: '', estado_civil: '', data_evento: '' });
 const defaultPublicConfig: ReligiososConfigPublica = { ativo: true, titulo: 'Atualização de Dados dos Religiosos', mensagem_abertura: '', mensagem_fechamento: 'As inscrições estão temporariamente fechadas.', mensagem_confirmacao: 'Recebemos seus dados e documentos. A secretaria fará a conferência.', termos: 'Declaro a veracidade das informações e autorizo expressamente a Província BRM a realizar o tratamento dos meus dados pessoais e dados pessoais sensíveis (incluindo dados de saúde, emergência médica e histórico canônico), com a finalidade exclusiva de gestão eclesiástica, assistência à saúde e contato institucional, nos termos da Lei Geral de Proteção de Dados (Lei nº 13.709/2018 - LGPD).', exigir_documentos: true, instrucoes_documentos: '' };
@@ -55,15 +178,8 @@ const defaultPublicConfig: ReligiososConfigPublica = { ativo: true, titulo: 'Atu
 export const requiredStep1 = [
   'grau', 'nome_civil', 'data_nascimento', 'local_nascimento',
   'municipio_nascimento', 'estado_nascimento', 'pais_nascimento',
-  'nacionalidade', 'cpf', 'rg', 'rg_orgao_expedidor', 'rg_data_emissao'
+  'nacionalidade', 'cpf'
 ];
-
-export const optionalFields = new Set([
-  'nome_religioso', 'titulo_eleitor', 'pis', 'cnh', 'cnh_categoria', 'passaporte',
-  'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado',
-  'redes_sociais', 'alergias', 'medicamentos_continuos', 'cirurgias', 'proteses',
-  'observacoes_saude', 'observacoes', 'observacao', 'documento', 'contato_2'
-]);
 
 export const validateCpf = (cpf: string): boolean => {
   const cleaned = (cpf || '').replace(/\D/g, '');
@@ -98,8 +214,12 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   onSaved,
 }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { id: routeReligiosoId } = useParams<{ id: string }>();
   const religiosoId = religiosoIdProp || routeReligiosoId;
+  const serverDraftKey = memberMode && religiosoId
+    ? `member:${religiosoId}`
+    : adminMode && religiosoId ? `admin:edit:${religiosoId}` : 'admin:new';
   const [step, setStep] = useState(1);
   const [invalidFields, setInvalidFields] = useState<string[]>([]);
   const [obras, setObras] = useState<ObraReferencia[]>([]);
@@ -107,10 +227,11 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState<string | null>(null);
   const cepRequest = useRef<AbortController | null>(null);
-  const ufOptions = Array.from(new Set(obras.map(item => item.uf).filter((value): value is string => Boolean(value)))).sort();
+  const pendingDraftRef = useRef<RegistrationDraft | null>(null);
+  const draftSaveInProgressRef = useRef(false);
+  const draftSavePromiseRef = useRef<Promise<void>>(Promise.resolve());
   const localidadeOptions = Array.from(new Set(obras.map(item => item.localidade || item.cidade).filter((value): value is string => Boolean(value)))).sort();
   const dioceseOptions = Array.from(new Set(obras.map(item => item.diocese).filter((value): value is string => Boolean(value)))).sort();
-  const ufFallback = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -120,12 +241,31 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   const [familiares, setFamiliares] = useState<Familiar[]>([emptyFamiliar('Pai'), emptyFamiliar('Mãe')]);
   const [sacramentos, setSacramentos] = useState<Sacrament[]>([emptySacrament('Batismo'), emptySacrament('Primeira Eucaristia'), emptySacrament('Crisma')]);
   const [base, setBase] = useState<Record<string, string>>({
-    grau: 'Padre', nome_civil: '', nome_religioso: '', data_nascimento: '', local_nascimento: '', municipio_nascimento: '', estado_nascimento: '', pais_nascimento: 'Brasil', nacionalidade: 'Brasileira', cpf: '', rg: '', rg_orgao_expedidor: '', rg_data_emissao: '', titulo_eleitor: '', pis: '', cnh: '', cnh_categoria: '', passaporte: '', obra_atual_id: '', comunidade_atual_nome: '', cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', email_institucional: '', email_pessoal: '', telefone_celular: '', whatsapp: '', redes_sociais: '', status: 'Ativo', status_cadastro: 'Aprovado',
+    grau: 'Padre', nome_civil: '', nome_religioso: '', data_nascimento: '', local_nascimento: '', municipio_nascimento: '', estado_nascimento: '', estado_nascimento_outro: '', pais_nascimento: 'Brasil', nacionalidade: 'Brasileira', cpf: '', rg: '', rg_orgao_expedidor: '', rg_data_emissao: '', titulo_eleitor: '', pis: '', cnh: '', cnh_categoria: '', passaporte: '', obra_atual_id: '', comunidade_atual_nome: '', cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', estado_outro: '', email_institucional: '', email_pessoal: '', telefone_celular: '', whatsapp: '', redes_sociais: '', status: 'Ativo', status_cadastro: 'Aprovado',
     contato_nome: '', contato_parentesco: '', contato_1: '', contato_2: '', paroquia_origem: '', diocese_origem: '', grupo_movimento_pastoral: '', promotor_vocacional: '', plano_saude: '', numero_plano_saude: '', local_plano_saude: '', sus: '', tipo_sanguineo: '', fator_rh: '', alergias: '', medicamentos_continuos: '', medico_responsavel: '', contato_emergencia: '', informacoes_clinicas: '', cirurgias: '', proteses: '', observacoes_saude: '', consentimento_dados: '',
   });
   const [rows, setRows] = useState<Record<string, string>[]>([]);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
+  const [draftSaving, setDraftSaving] = useState(false);
+  const [draftSaveError, setDraftSaveError] = useState<string | null>(null);
+
+  const restoreDraft = useCallback((draft: RegistrationDraft, savedAt?: string) => {
+    const restoredDegree = canonicalDegree(draft.base.grau || '');
+    setBase(previous => ({ ...previous, ...draft.base, grau: restoredDegree }));
+    setFamiliares(draft.familiares);
+    setSacramentos(draft.sacramentos);
+    setRows(draft.rows);
+    const isStep1Valid = requiredStep1.every(field => Boolean(draft.base[field]?.trim()))
+      && validateCpf(draft.base.cpf || '');
+    setStep(isStep1Valid ? (restoredDegree === 'Frater' && draft.step === 6 ? 7 : draft.step) : 1);
+    const savedDate = savedAt ? new Date(savedAt) : null;
+    setDraftSavedAt(savedDate && !Number.isNaN(savedDate.getTime())
+      ? savedDate.toLocaleString('pt-BR')
+      : draft.savedAt || savedAt || null);
+    setDraftRestored(true);
+    setDraftSaveError(null);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -137,7 +277,13 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       setObras((obrasData || []) as ObraReferencia[]);
       if (configData) setPublicConfig({ ...defaultPublicConfig, ...configData });
       if (religiosoData) {
-        setBase(previous => ({ ...previous, ...Object.fromEntries(Object.entries(religiosoData).filter(([key]) => key in previous).map(([key, value]) => [key, value == null ? '' : String(value)])), consentimento_dados: religiosoData.consentimento_dados ? 'true' : '' }));
+        setBase(previous => ({
+          ...previous,
+          ...Object.fromEntries(Object.entries(religiosoData)
+            .filter(([key]) => key in previous)
+            .map(([key, value]) => [key, key === 'grau' ? canonicalDegree(String(value ?? '')) : value == null ? '' : String(value)])),
+          consentimento_dados: religiosoData.consentimento_dados ? 'true' : '',
+        }));
         const [familiaData, contatoData, sacramentoData, saudeData, enderecoData, origemData, vocacaoData, formacaoData, votosData, ministeriosData, academicaData, idiomasData, competenciasData, historicoData, servicosData, documentosData] = await Promise.all([
           supabase.from('religiosos_familiares').select('*').eq('religioso_id', religiosoId),
           supabase.from('religiosos_contatos_familiares').select('*').eq('religioso_id', religiosoId).limit(1).maybeSingle(),
@@ -177,68 +323,117 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         const endereco = enderecoData.data;
         setBase(previous => ({ ...previous, ...(contato ? { contato_nome: contato.nome || '', contato_parentesco: contato.parentesco || '', contato_1: contato.contato_1 || '', contato_2: contato.contato_2 || '' } : {}), ...(saude ? Object.fromEntries(Object.entries(saude).filter(([key]) => key in previous).map(([key, value]) => [key, value == null ? '' : String(value)])) : {}), ...(endereco ? { obra_atual_id: endereco.obra_id || previous.obra_atual_id, cep: endereco.cep || '', logradouro: endereco.logradouro || '', numero: endereco.numero || '', complemento: endereco.complemento || '', bairro: endereco.bairro || '', cidade: endereco.cidade || '', estado: endereco.estado || '', telefone_celular: endereco.celular || previous.telefone_celular, email_institucional: endereco.email || previous.email_institucional, whatsapp: endereco.whatsapp || previous.whatsapp, redes_sociais: endereco.redes_sociais || previous.redes_sociais } : {}) }));
       } else if (!adminMode && !religiosoId) {
-        // Restaurar rascunho salvo localmente
         try {
           const savedStr = localStorage.getItem(DRAFT_KEY);
           if (savedStr) {
-            const saved = JSON.parse(savedStr);
-            if (saved && typeof saved === 'object') {
-              if (saved.base) setBase(previous => ({ ...previous, ...saved.base }));
-              if (saved.familiares?.length) setFamiliares(saved.familiares);
-              if (saved.sacramentos?.length) setSacramentos(saved.sacramentos);
-              if (saved.rows?.length) setRows(saved.rows);
-              if (saved.step && typeof saved.step === 'number' && saved.step > 1) {
-                const b = saved.base || {};
-                const isStep1Valid = requiredStep1.every(f => Boolean(b[f]?.trim())) && validateCpf(b.cpf || '');
-                setStep(isStep1Valid ? saved.step : 1);
-              } else {
-                setStep(1);
-              }
-              if (saved.savedAt) setDraftSavedAt(saved.savedAt);
-              setDraftRestored(true);
-            }
+            const parsed = parseRegistrationDraft(JSON.parse(savedStr));
+            if (parsed) restoreDraft(parsed, parsed.saved_at || parsed.savedAt);
           }
         } catch (e) {
           console.warn('Erro ao restaurar rascunho de cadastro:', e);
+          setDraftSaveError('Não foi possível recuperar o rascunho salvo neste navegador.');
+        }
+      }
+
+      if ((adminMode || memberMode) && user?.id) {
+        const { data: savedDraft, error: draftError } = await supabase
+          .from('religiosos_rascunhos')
+          .select('draft_data, updated_at')
+          .eq('usuario_id', user.id)
+          .eq('chave', serverDraftKey)
+          .maybeSingle();
+        if (draftError) {
+          console.error('Falha ao recuperar rascunho do cadastro religioso:', draftError);
+          setDraftSaveError('Não foi possível recuperar o rascunho do sistema. Seus dados atuais não foram substituídos.');
+        } else if (savedDraft) {
+          const parsed = parseRegistrationDraft(savedDraft.draft_data);
+          if (parsed) {
+            restoreDraft(parsed, savedDraft.updated_at);
+          } else {
+            console.error('O rascunho do cadastro religioso está em formato inválido.');
+            setDraftSaveError('O rascunho salvo está inválido. Seus dados atuais foram preservados.');
+          }
         }
       }
       setLoading(false);
     };
     load().catch(error => { console.error('Erro ao carregar cadastro religioso:', error); setLoading(false); });
-  }, [adminMode, religiosoId]);
+  }, [adminMode, memberMode, religiosoId, restoreDraft, serverDraftKey, user?.id]);
 
-  // Auto-save no localStorage com debounce para não sobrecarregar
+  // Save authenticated drafts privately in Supabase and anonymous public drafts in this browser.
   useEffect(() => {
-    if (adminMode || religiosoId || loading) return;
+    if (loading || submitting || success) return;
 
     const hasContent = Boolean(
       base.nome_civil?.trim() ||
       base.cpf?.trim() ||
       base.rg?.trim() ||
-      (rows && rows.length > 0)
+      familiares.some(row => (row.nome || '').trim()) ||
+      sacramentos.some(row => Object.entries(row).some(([key, value]) => key !== 'tipo' && Boolean(value?.trim()))) ||
+      rows.length > 0
     );
     if (!hasContent) return;
 
     const timer = setTimeout(() => {
-      try {
-        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const payload = {
-          base,
-          familiares,
-          sacramentos,
-          rows,
-          step,
-          savedAt: now,
-        };
-        localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
-        setDraftSavedAt(now);
-      } catch (e) {
-        console.warn('Erro ao salvar rascunho de cadastro:', e);
+      pendingDraftRef.current = {
+        base,
+        familiares,
+        sacramentos,
+        rows,
+        step,
+        saved_at: new Date().toISOString(),
+      };
+
+      const persistPendingDraft = async () => {
+        if (draftSaveInProgressRef.current) {
+          await draftSavePromiseRef.current;
+          return;
+        }
+        draftSaveInProgressRef.current = true;
+        setDraftSaving(true);
+        try {
+          while (pendingDraftRef.current) {
+            const draft = pendingDraftRef.current;
+            pendingDraftRef.current = null;
+            if (adminMode || memberMode) {
+              if (!user?.id) throw new Error('Sua sessão expirou. Entre novamente para salvar este rascunho com segurança.');
+              const { error } = await supabase
+                .from('religiosos_rascunhos')
+                .upsert({
+                  usuario_id: user.id,
+                  chave: serverDraftKey,
+                  draft_data: draft,
+                  updated_at: draft.saved_at,
+                }, { onConflict: 'usuario_id,chave' });
+              if (error) throw error;
+            } else {
+              localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+            }
+            setDraftSavedAt(new Date(draft.saved_at || Date.now()).toLocaleString('pt-BR'));
+            setDraftSaveError(null);
+          }
+        } catch (error) {
+          console.error('Falha ao salvar rascunho do cadastro religioso:', error);
+          setDraftSaveError(
+            (adminMode || memberMode)
+              ? error instanceof Error && error.message.includes('sessão expirou')
+                ? error.message
+                : 'Não foi possível salvar no sistema. Verifique a conexão; o último autosave pode não estar atualizado.'
+              : 'Não foi possível salvar neste navegador. Verifique o espaço disponível.',
+          );
+        } finally {
+          draftSaveInProgressRef.current = false;
+          setDraftSaving(false);
+          if (pendingDraftRef.current) {
+            draftSavePromiseRef.current = draftSavePromiseRef.current.then(() => persistPendingDraft());
+          }
+        }
       }
-    }, 1000);
+      draftSavePromiseRef.current = persistPendingDraft();
+    }, 900);
 
     return () => clearTimeout(timer);
-  }, [base, familiares, sacramentos, rows, step, adminMode, religiosoId, loading]);
+  }, [adminMode, base, familiares, memberMode, religiosoId, rows, sacramentos, serverDraftKey, step, submitting, success, user?.id, loading]);
 
   const handleClearDraft = async () => {
     const confirmed = await confirmAction({
@@ -253,13 +448,36 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
     });
     if (!confirmed) return;
 
-    try {
-      localStorage.removeItem(DRAFT_KEY);
-    } catch (e) {
-      console.warn('Erro ao remover rascunho:', e);
+    pendingDraftRef.current = null;
+    await draftSavePromiseRef.current;
+    if ((adminMode || memberMode) && user?.id) {
+      const { error } = await supabase
+        .from('religiosos_rascunhos')
+        .delete()
+        .eq('usuario_id', user.id)
+        .eq('chave', serverDraftKey);
+      if (error) {
+        console.error('Falha ao remover rascunho do cadastro religioso:', error);
+        setDraftSaveError('Não foi possível apagar o rascunho do sistema. Tente novamente.');
+        return;
+      }
+    } else {
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch (error) {
+        console.error('Falha ao remover rascunho local:', error);
+        setDraftSaveError('Não foi possível apagar o rascunho deste navegador.');
+        return;
+      }
     }
+    pendingDraftRef.current = null;
     setDraftSavedAt(null);
     setDraftRestored(false);
+    setDraftSaveError(null);
+    if (religiosoId) {
+      window.location.reload();
+      return;
+    }
     setStep(1);
     setBase({
       grau: 'Padre', nome_civil: '', nome_religioso: '', data_nascimento: '', local_nascimento: '', municipio_nascimento: '', estado_nascimento: '', pais_nascimento: 'Brasil', nacionalidade: 'Brasileira', cpf: '', rg: '', rg_orgao_expedidor: '', rg_data_emissao: '', titulo_eleitor: '', pis: '', cnh: '', cnh_categoria: '', passaporte: '', obra_atual_id: '', comunidade_atual_nome: '', cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', email_institucional: '', email_pessoal: '', telefone_celular: '', whatsapp: '', redes_sociais: '', status: 'Ativo', status_cadastro: 'Aprovado',
@@ -350,14 +568,15 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   };
 
   const validateStep = () => {
-    const family = ['nome', 'data_nascimento', 'local_nascimento', 'estado_civil', 'data_evento'];
-    const sacrament = ['data', 'paroquia', 'diocese', 'cidade', 'uf', 'livro', 'folha', 'numero_registro', 'celebrante', 'observacoes'];
     if (step === 1) {
       const requiredFields = memberMode ? requiredStep1.filter(field => field !== 'grau') : requiredStep1;
       const missing = requiredFields.filter(field => !base[field]?.trim());
+      if (base.estado_nascimento === OTHER_LOCATION_VALUE && !base.estado_nascimento_outro?.trim()) {
+        missing.push('estado_nascimento_outro');
+      }
       if (missing.length > 0) {
         setInvalidFields(missing);
-        const missingLabels = missing.map(f => getFieldLabel(f)).join(', ');
+        const missingLabels = missing.map(f => f === 'estado_nascimento_outro' ? 'Outro estado de nascimento' : getFieldLabel(f)).join(', ');
         return `Por favor, preencha os campos obrigatórios da identificação: ${missingLabels}.`;
       }
       if (!validateCpf(base.cpf)) {
@@ -366,17 +585,44 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       }
       setInvalidFields([]);
     }
-    if (step === 2 && (!familiares.every(row => requiredRecord(row, family)) || !hasValues(base, ['contato_nome', 'contato_parentesco', 'contato_1', 'contato_2']))) return 'Preencha todos os dados familiares e o contato responsável.';
-    if (step === 3 && !sacramentos.every(row => requiredRecord(row, sacrament))) return 'Preencha todos os dados dos três sacramentos.';
-    if (step === 4 && (!hasValues(base, ['paroquia_origem', 'diocese_origem', 'grupo_movimento_pastoral', 'promotor_vocacional']) || !rows.some(row => row.tipo === 'vocacional' && hasValues(row, ['ano', 'data', 'titulo', 'descricao', 'local', 'responsavel'])))) return 'Preencha a origem vocacional e adicione um evento completo ao histórico.';
-    if (step === 5 && (!rows.some(row => row.tipo === 'formacao' && hasValues(row, ['etapa', 'instituicao', 'cidade', 'local', 'inicio', 'fim', 'formador'])) || !rows.some(row => row.tipo === 'voto' && hasValues(row, ['voto_tipo', 'renovacao', 'data', 'local', 'celebrante'])))) return 'Adicione pelo menos uma formação completa e um registro de profissão ou voto.';
-    if (step === 6 && !rows.some(row => row.tipo === 'ministerio' && hasValues(row, ['ministerio', 'data', 'local', 'celebrante', 'bispo_ordenante']))) return 'Adicione pelo menos um ministério ou ordem com todos os dados.';
-    if (step === 7 && !rows.some(row => row.tipo === 'academica' && hasValues(row, ['categoria', 'instituicao', 'periodo', 'cidade', 'estado', 'observacoes']))) return 'Adicione pelo menos uma formação acadêmica completa.';
-    if (step === 8 && (!rows.some(row => row.tipo === 'idioma' && hasValues(row, ['idioma', 'nivel', 'fala', 'audicao', 'leitura', 'escrita', 'observacoes'])) || !rows.some(row => row.tipo === 'competencia' && hasValues(row, ['competencia', 'observacoes'])))) return 'Adicione pelo menos um idioma e uma competência completos.';
-    if (step === 9 && !rows.some(row => row.tipo === 'historico' && hasValues(row, ['inicio', 'fim', 'instituicao', 'funcao', 'local', 'observacoes']))) return 'Adicione pelo menos um histórico de comunidade completo.';
-    if (step === 10 && !rows.some(row => row.tipo === 'servico' && hasValues(row, ['servico_tipo', 'instituicao', 'funcao', 'periodo', 'local', 'documento', 'observacao']))) return 'Adicione pelo menos uma missão ou serviço completo.';
-    if (step === 11 && !hasValues(base, ['obra_atual_id', 'comunidade_atual_nome', 'email_institucional', 'email_pessoal', 'telefone_celular', 'whatsapp', 'redes_sociais'])) return 'Preencha todos os dados do endereço e dos contatos.';
-    if (step === 12 && !hasValues(base, ['plano_saude', 'numero_plano_saude', 'local_plano_saude', 'sus', 'tipo_sanguineo', 'fator_rh', 'alergias', 'medicamentos_continuos', 'medico_responsavel', 'contato_emergencia', 'informacoes_clinicas', 'cirurgias', 'proteses', 'observacoes_saude'])) return 'Preencha todos os dados de saúde.';
+    if (step === 2) {
+      if (familiares.some(row => rowHasValue(row, ['data_nascimento', 'local_nascimento', 'estado_civil', 'data_evento']) && !row.nome.trim())) {
+        return 'Informe o nome do familiar para salvar os dados preenchidos.';
+      }
+      if (rowHasValue(base, ['contato_parentesco', 'contato_1', 'contato_2']) && !base.contato_nome.trim()) {
+        return 'Informe o nome do contato familiar para salvar os demais dados.';
+      }
+    }
+    if (step === 3 && sacramentos.some(row =>
+      (rowHasValue(row, ['data', 'paroquia', 'diocese', 'cidade', 'uf', 'livro', 'folha', 'numero_registro', 'celebrante', 'observacoes'])
+        || row.diocese === OTHER_LOCATION_VALUE || row.cidade === OTHER_LOCATION_VALUE || row.uf === OTHER_LOCATION_VALUE)
+      && ((row.diocese === OTHER_LOCATION_VALUE && !row.diocese_outro?.trim())
+        || (row.cidade === OTHER_LOCATION_VALUE && !row.cidade_outro?.trim())
+        || (row.uf === OTHER_LOCATION_VALUE && !row.uf_outro?.trim())))) {
+      return 'Informe o local correspondente para cada opção “Outro” selecionada nos sacramentos.';
+    }
+    const validateRows = (types: string[]) => rows.find(row => types.includes(row.tipo) && rowMissingRequiredField(row, row.tipo));
+    if (step === 4 && validateRows(['vocacional'])) return 'Informe o título de cada evento vocacional iniciado.';
+    if (step === 5) {
+      if (validateRows(['formacao', 'voto'])) return 'Selecione a etapa formativa ou o tipo de voto de cada registro iniciado. Voto temporário também exige o número da renovação.';
+      if (['Diácono', 'Bispo'].includes(base.grau) && !rows.some(row => row.tipo === 'voto' && row.voto_tipo === 'Voto perpétuo')) {
+        return `${base.grau} exige o registro de profissão perpétua.`;
+      }
+    }
+    if (step === 6) {
+      if (validateRows(['ministerio'])) return 'Selecione o ministério ou a ordem de cada registro iniciado.';
+      const ministries = rows.filter(row => row.tipo === 'ministerio').map(row => row.ministerio);
+      if (base.grau === 'Diácono' && !ministries.includes('Diaconato')) return 'Para o grau de Diácono, registre a ordenação diaconal.';
+      if (base.grau === 'Bispo' && (!ministries.includes('Presbiterado') || !ministries.includes('Episcopado'))) {
+        return 'Para o grau de Bispo, registre o Presbiterado e o Episcopado.';
+      }
+    }
+    if (step === 7 && validateRows(['academica'])) return 'Selecione a categoria de cada formação acadêmica iniciada.';
+    if (step === 8 && validateRows(['idioma', 'competencia'])) return 'Informe o idioma ou a competência de cada registro iniciado.';
+    if (step === 9 && validateRows(['historico'])) return 'Informe a instituição de cada histórico de comunidade iniciado.';
+    if (step === 10 && validateRows(['servico'])) return 'Selecione o tipo de cada missão ou serviço iniciado.';
+    if (step === 11 && base.estado === OTHER_LOCATION_VALUE && !base.estado_outro?.trim()) return 'Informe o outro estado do endereço atual.';
+    if (step === 7 && rows.some(row => row.tipo === 'academica' && row.estado === OTHER_LOCATION_VALUE && !row.estado_outro?.trim())) return 'Informe o estado da formação acadêmica selecionado como “Outro”.';
     if (step === 13 && ((publicConfig.exigir_documentos && !documentos.length) || !base.consentimento_dados)) return `${publicConfig.exigir_documentos ? 'Anexe pelo menos um documento e ' : ''}confirme a autorização.`;
     return null;
   };
@@ -385,12 +631,18 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
     event.preventDefault();
     const validation = validateStep();
     if (validation) { setErrorMessage(validation); return; }
+    if (step < etapas.length) {
+      setErrorMessage(null);
+      setStep(previous => previous === 5 && base.grau === 'Frater' ? 7 : previous + 1);
+      return;
+    }
     setSubmitting(true); setErrorMessage(null);
     try {
       const religiosoPayload = {
         grau: base.grau || null, nome_civil: base.nome_civil, nome_religioso: base.nome_religioso || null,
         data_nascimento: base.data_nascimento || null, local_nascimento: base.local_nascimento || null,
-        municipio_nascimento: base.municipio_nascimento || null, estado_nascimento: base.estado_nascimento || null,
+        municipio_nascimento: base.municipio_nascimento || null,
+        estado_nascimento: base.estado_nascimento === OTHER_LOCATION_VALUE ? base.estado_nascimento_outro || null : base.estado_nascimento || null,
         pais_nascimento: base.pais_nascimento || null, nacionalidade: base.nacionalidade || null,
         cpf: base.cpf || null, rg: base.rg || null, rg_orgao_expedidor: base.rg_orgao_expedidor || null,
         rg_data_emissao: base.rg_data_emissao || null, titulo_eleitor: base.titulo_eleitor || null,
@@ -427,18 +679,54 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       }
       await insertMany('religiosos_familiares', familiares.filter(row => row.nome).map(row => row));
       await insertMany('religiosos_contatos_familiares', [{ nome: base.contato_nome, parentesco: base.contato_parentesco, contato_1: base.contato_1, contato_2: base.contato_2 }]);
-      await insertMany('religiosos_sacramentos', sacramentos.filter(row => Object.values(row).some(value => value && value !== row.tipo)).map(row => row));
+      await insertMany('religiosos_sacramentos', sacramentos
+        .filter(row => rowHasValue(row, ['data', 'paroquia', 'diocese', 'cidade', 'uf', 'livro', 'folha', 'numero_registro', 'celebrante', 'observacoes', 'diocese_outro', 'cidade_outro', 'uf_outro']))
+        .map(row => ({
+          tipo: row.tipo,
+          data: row.data || null,
+          paroquia: row.paroquia,
+          diocese: row.diocese === OTHER_LOCATION_VALUE ? row.diocese_outro : row.diocese,
+          cidade: row.cidade === OTHER_LOCATION_VALUE ? row.cidade_outro : row.cidade,
+          uf: row.uf === OTHER_LOCATION_VALUE ? row.uf_outro : row.uf,
+          livro: row.livro,
+          folha: row.folha,
+          numero_registro: row.numero_registro,
+          celebrante: row.celebrante,
+          observacoes: row.observacoes,
+        })));
       await insertMany('religiosos_origem_vocacional', [{ paroquia_origem: base.paroquia_origem, diocese: base.diocese_origem, grupo_movimento_pastoral: base.grupo_movimento_pastoral, promotor_vocacional: base.promotor_vocacional }]);
       await insertMany('religiosos_historico_vocacional', rows.filter(row => row.tipo === 'vocacional').map(row => ({ data_evento: row.data, ano: row.ano ? Number(row.ano) : null, titulo: row.titulo, descricao: row.descricao, local: row.local, responsavel: row.responsavel })));
       await insertMany('religiosos_formacao_religiosa', rows.filter(row => row.tipo === 'formacao').map(row => ({ etapa: row.etapa, instituicao: row.instituicao, cidade: row.cidade, local: row.local, data_ingresso: row.inicio || null, data_conclusao: row.fim || null, formador: row.formador })));
       await insertMany('religiosos_profissoes_votos', rows.filter(row => row.tipo === 'voto').map(row => ({ tipo: row.voto_tipo, renovacao: row.renovacao ? Number(row.renovacao) : null, data: row.data || null, local: row.local, celebrante: row.celebrante })));
       await insertMany('religiosos_ministerios_ordens', rows.filter(row => row.tipo === 'ministerio').map(row => ({ tipo: row.ministerio, data: row.data || null, local: row.local, celebrante: row.celebrante, bispo_ordenante: row.bispo_ordenante })));
-      await insertMany('religiosos_formacao_academica', rows.filter(row => row.tipo === 'academica').map(row => ({ categoria: row.categoria, instituicao: row.instituicao, periodo: row.periodo, cidade: row.cidade, estado: row.estado, observacoes: row.observacoes })));
+      await insertMany('religiosos_formacao_academica', rows.filter(row => row.tipo === 'academica').map(row => ({
+        categoria: row.categoria,
+        instituicao: row.instituicao,
+        periodo: row.periodo,
+        cidade: row.cidade,
+        estado: row.estado === OTHER_LOCATION_VALUE ? row.estado_outro : row.estado,
+        observacoes: row.observacoes,
+      })));
       await insertMany('religiosos_idiomas', rows.filter(row => row.tipo === 'idioma').map(row => ({ idioma: row.idioma, nivel: row.nivel, fala: row.fala, audicao: row.audicao, leitura: row.leitura, escrita: row.escrita, observacoes: row.observacoes })));
       await insertMany('religiosos_competencias', rows.filter(row => row.tipo === 'competencia').map(row => ({ competencia: row.competencia, observacoes: row.observacoes })));
       await insertMany('religiosos_historico_comunidades', rows.filter(row => row.tipo === 'historico').map(row => ({ periodo_inicio: row.inicio || null, periodo_fim: row.fim || null, instituicao: row.instituicao, funcao: row.funcao, local: row.local, observacoes: row.observacoes })));
       await insertMany('religiosos_missoes_servicos', rows.filter(row => row.tipo === 'servico').map(row => ({ tipo: row.servico_tipo, instituicao: row.instituicao, funcao: row.funcao, periodo: row.periodo, local: row.local, documento: row.documento, observacao: row.observacao })));
-      await insertMany('religiosos_enderecos_contatos', [{ obra_id: base.obra_atual_id || null, celular: base.telefone_celular, email: base.email_institucional || base.email_pessoal, whatsapp: base.whatsapp, redes_sociais: base.redes_sociais }]);
+      await insertMany('religiosos_enderecos_contatos', [{
+        obra_id: base.obra_atual_id || null,
+        cep: base.cep,
+        logradouro: base.logradouro,
+        numero: base.numero,
+        complemento: base.complemento,
+        bairro: base.bairro,
+        cidade: base.cidade,
+        estado: base.estado === OTHER_LOCATION_VALUE ? base.estado_outro : base.estado,
+        pais: base.pais_nascimento || 'Brasil',
+        celular: base.telefone_celular,
+        telefone: base.telefone_celular,
+        email: base.email_institucional || base.email_pessoal,
+        whatsapp: base.whatsapp,
+        redes_sociais: base.redes_sociais,
+      }]);
       await insertMany('religiosos_saude', [{ plano_saude: base.plano_saude, numero_plano_saude: base.numero_plano_saude, local_plano_saude: base.local_plano_saude, sus: base.sus, tipo_sanguineo: base.tipo_sanguineo, fator_rh: base.fator_rh, alergias: base.alergias, medicamentos_continuos: base.medicamentos_continuos, medico_responsavel: base.medico_responsavel, contato_emergencia: base.contato_emergencia, informacoes_clinicas: base.informacoes_clinicas, cirurgias: base.cirurgias, proteses: base.proteses, observacoes: base.observacoes_saude }]);
       for (const documento of documentos) {
         const path = `${id}/${crypto.randomUUID()}-${documento.arquivo.name}`;
@@ -447,11 +735,28 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         const { error } = await supabase.from('religiosos_documentos').insert({ religioso_id: id, categoria: documento.categoria, nome_arquivo: documento.arquivo.name, caminho_storage: path, mime_type: documento.arquivo.type, tamanho_bytes: documento.arquivo.size, quem_cadastrou: 'Religioso - cadastro público' });
         if (error) throw error;
       }
-      try {
-        localStorage.removeItem(DRAFT_KEY);
-      } catch (e) {
-        console.warn('Erro ao limpar rascunho:', e);
+      pendingDraftRef.current = null;
+      await draftSavePromiseRef.current;
+      if ((adminMode || memberMode) && user?.id) {
+        const { error: draftDeleteError } = await supabase
+          .from('religiosos_rascunhos')
+          .delete()
+          .eq('usuario_id', user.id)
+          .eq('chave', serverDraftKey);
+        if (draftDeleteError) {
+          console.error('Cadastro foi enviado, mas o rascunho não pôde ser removido:', draftDeleteError);
+          showToast.warning('Cadastro enviado. Não foi possível remover o rascunho salvo; use “Limpar rascunho” depois.', 'Rascunho preservado');
+        }
+      } else {
+        try {
+          localStorage.removeItem(DRAFT_KEY);
+        } catch (error) {
+          console.error('Cadastro foi enviado, mas o rascunho local não pôde ser removido:', error);
+          showToast.warning('Cadastro enviado, mas o rascunho não pôde ser removido deste navegador.', 'Rascunho preservado');
+        }
       }
+      setDraftSavedAt(null);
+      setDraftRestored(false);
       if (adminMode) navigate('/religiosos');
       else if (memberMode) onSaved?.();
       else setSuccess(true);
@@ -554,30 +859,54 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
           </div>
         </header>
 
-        {/* Auto-save Status Pill for Public Form */}
-        {!adminMode && !religiosoId && draftSavedAt && (
-          <div className="mb-6 flex items-center justify-between px-4 py-2.5 rounded-[6px] bg-[#226380]/5 border border-[#226380]/20 text-xs text-[#226380] dark:text-[#A3C3C7] no-print">
+        {(draftSavedAt || draftRestored || draftSaving || draftSaveError) && (
+          <div className={`mb-6 flex flex-col gap-3 rounded-[6px] border px-4 py-3 text-xs no-print sm:flex-row sm:items-center sm:justify-between ${
+            draftSaveError
+              ? 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200'
+              : 'border-[#226380]/20 bg-[#226380]/5 text-[#226380] dark:text-[#A3C3C7]'
+          }`}>
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-              <span>
-                {draftRestored ? 'Rascunho recuperado. ' : ''}Salvo automaticamente às {draftSavedAt}
-              </span>
+              {draftSaveError
+                ? <AlertCircle className="h-4 w-4 shrink-0" />
+                : draftSaving
+                  ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                  : <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />}
+              <div>
+                <p className="font-semibold">
+                  {draftSaveError || (draftSaving
+                    ? 'Salvando rascunho…'
+                    : `${draftRestored ? 'Rascunho recuperado. ' : ''}Salvo automaticamente${draftSavedAt ? ` em ${draftSavedAt}` : ''}.`)}
+                </p>
+                {!adminMode && !memberMode && (
+                  <p className="mt-1 text-[11px] opacity-80">
+                    Este rascunho fica apenas neste navegador. Por segurança, use um dispositivo confiável.
+                  </p>
+                )}
+                {draftRestored && (
+                  <p className="mt-1 text-[11px] opacity-80">
+                    Os dados do formulário foram recuperados; os arquivos novos não fazem parte do rascunho e precisam ser selecionados novamente.
+                  </p>
+                )}
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={handleClearDraft}
-              className="text-[11px] underline hover:text-[#226380]/80 transition-colors cursor-pointer shrink-0"
-            >
-              Limpar rascunho
-            </button>
+            {(draftSavedAt || draftRestored) && (
+              <button
+                type="button"
+                onClick={handleClearDraft}
+                className="self-start text-[11px] font-semibold underline transition-colors hover:opacity-75 sm:self-center"
+              >
+                {religiosoId ? 'Descartar rascunho e recarregar ficha' : 'Limpar rascunho'}
+              </button>
+            )}
           </div>
         )}
 
         {/* Apple Horizontal Stepper Pill Bar */}
         <div className="mb-8 overflow-x-auto pb-2 -mx-2 px-2">
           <div className="flex items-center gap-2 min-w-max">
-            {etapas.map((label, index) => {
-              const stepIndex = index + 1;
+            {etapas.map((label, index) => ({ label, stepIndex: index + 1 }))
+              .filter(({ stepIndex }) => base.grau !== 'Frater' || stepIndex !== 6)
+              .map(({ label, stepIndex }) => {
               const complete = step > stepIndex;
               const active = step === stepIndex;
               const isPast = stepIndex < step;
@@ -619,7 +948,27 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         {/* Step Contents */}
         {step === 1 && (
           <Section title="1. Identificação Civil e Religiosa">
-            <Fields fields={['grau', 'nome_civil', 'nome_religioso', 'data_nascimento', 'local_nascimento', 'municipio_nascimento', 'estado_nascimento', 'pais_nascimento', 'nacionalidade', 'cpf', 'rg', 'rg_orgao_expedidor', 'rg_data_emissao', 'titulo_eleitor', 'pis', 'cnh', 'cnh_categoria', 'passaporte']} base={base} update={updateBase} invalidFields={invalidFields} readOnlyFields={memberMode ? ['cpf'] : []} optionalOverrides={memberMode ? ['grau'] : []} selects={{ grau: ['Padre', 'Diácono Transitório', 'Frater (Configuração)', 'Frater (Tirocinante)', 'Irmão', 'Bispo'], estado_nascimento: ufFallback }} />
+            <Fields
+              fields={['grau', 'nome_civil', 'nome_religioso', 'data_nascimento', 'local_nascimento', 'municipio_nascimento', 'estado_nascimento', 'pais_nascimento', 'nacionalidade', 'cpf', 'rg', 'rg_orgao_expedidor', 'rg_data_emissao', 'titulo_eleitor', 'pis', 'cnh', 'cnh_categoria', 'passaporte']}
+              base={base}
+              update={updateBase}
+              invalidFields={invalidFields}
+              readOnlyFields={memberMode ? ['cpf'] : []}
+              requiredFields={memberMode ? requiredStep1.filter(field => field !== 'grau') : requiredStep1}
+              selects={{
+                grau: degreeOptions,
+                cnh_categoria: ['A', 'B', 'C', 'D', 'E', 'AB', 'AC', 'AD', 'AE'],
+                estado_nascimento: [
+                  ...brazilianStates,
+                  ...(base.estado_nascimento && !brazilianStates.some(state => state.value === base.estado_nascimento)
+                    && base.estado_nascimento !== OTHER_LOCATION_VALUE
+                    ? [{ value: base.estado_nascimento, label: base.estado_nascimento }]
+                    : []),
+                  { value: OTHER_LOCATION_VALUE, label: 'Outro estado (informar)' },
+                ],
+              }}
+              otherFields={{ estado_nascimento: 'estado_nascimento_outro' }}
+            />
             {adminMode && (
               <div className="mt-6 pt-6 border-t border-[#e5e5ea] dark:border-white/10 grid gap-4 md:grid-cols-2">
                 <Fields fields={['status_cadastro', 'status']} base={base} update={updateBase} selects={{ status_cadastro: ['Em revisão', 'Aprovado', 'Arquivado'], status: ['Ativo', 'Em missão externa', 'Em estudos', 'Emérito (Casa São João)', 'Emérito', 'Falecido', 'Exclaustrado'] }} />
@@ -641,7 +990,17 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                       </button>
                     )}
                   </div>
-                  <Fields fields={['nome', 'data_nascimento', 'local_nascimento', 'estado_civil', 'data_evento']} base={row} update={(field, value) => updateFamiliar(index, field as keyof Familiar, value)} />
+                  <Fields
+                    fields={['nome', 'data_nascimento', 'local_nascimento', 'estado_civil', 'data_evento']}
+                    base={row}
+                    update={(field, value) => updateFamiliar(index, field as keyof Familiar, value)}
+                    requiredFields={rowHasValue(row, ['data_nascimento', 'local_nascimento', 'estado_civil', 'data_evento']) ? ['nome'] : []}
+                    selects={{
+                      estado_civil: row.tipo === 'Mãe'
+                        ? ['Casada', 'Divorciada', 'Viúva', 'Falecida', 'Solteira', 'Outro']
+                        : ['Casado', 'Divorciado', 'Viúvo', 'Falecido', 'Solteiro', 'Outro'],
+                    }}
+                  />
                 </div>
               ))}
             </div>
@@ -650,7 +1009,12 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
             </button>
             <div className="mt-8 pt-6 border-t border-[#e5e5ea] dark:border-white/10">
               <h3 className="text-sm font-semibold text-[#1d1d1f] dark:text-white mb-4 font-serif">Contato Responsável / Familiar</h3>
-              <Fields fields={['contato_nome', 'contato_parentesco', 'contato_1', 'contato_2']} base={base} update={updateBase} />
+              <Fields
+                fields={['contato_nome', 'contato_parentesco', 'contato_1', 'contato_2']}
+                base={base}
+                update={updateBase}
+                requiredFields={rowHasValue(base, ['contato_parentesco', 'contato_1', 'contato_2']) ? ['contato_nome'] : []}
+              />
             </div>
           </Section>
         )}
@@ -663,7 +1027,23 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                   <div className="pb-2 border-b border-slate-200 dark:border-slate-800">
                     <h3 className="text-sm font-semibold text-[#1d1d1f] dark:text-white font-serif">{row.tipo}</h3>
                   </div>
-                  <Fields fields={['data', 'paroquia', 'diocese', 'cidade', 'uf', 'livro', 'folha', 'numero_registro', 'celebrante', 'observacoes']} base={row} update={(field, value) => updateSacrament(index, field as keyof Sacrament, value)} selects={{ diocese: dioceseOptions.length ? dioceseOptions : ['Diocese de Joinville', 'Diocese de Rio do Sul', 'Diocese de Tubarão', 'Arquidiocese de Florianópolis', 'Arquidiocese de Joinville', 'Arquidiocese de Porto Velho'], cidade: localidadeOptions.length ? localidadeOptions : ['Curitiba', 'Joinville', 'Jaraguá do Sul', 'Rio do Sul', 'Brusque', 'Porto Velho'], uf: ufOptions.length ? ufOptions : ufFallback }} />
+                  <Fields
+                    fields={['data', 'paroquia', 'diocese', 'cidade', 'uf', 'livro', 'folha', 'numero_registro', 'celebrante', 'observacoes']}
+                    base={row}
+                    update={(field, value) => updateSacrament(index, field as keyof Sacrament, value)}
+                    selects={{
+                      diocese: locationOptions(dioceseOptions.length ? dioceseOptions : ['Diocese de Joinville', 'Diocese de Rio do Sul', 'Diocese de Tubarão', 'Arquidiocese de Florianópolis', 'Arquidiocese de Joinville', 'Arquidiocese de Porto Velho'], row.diocese),
+                      cidade: locationOptions(localidadeOptions.length ? localidadeOptions : ['Curitiba', 'Joinville', 'Jaraguá do Sul', 'Rio do Sul', 'Brusque', 'Porto Velho'], row.cidade),
+                      uf: [
+                        ...brazilianStates,
+                        ...(row.uf && !brazilianStates.some(state => state.value === row.uf) && row.uf !== OTHER_LOCATION_VALUE
+                          ? [{ value: row.uf, label: row.uf }]
+                          : []),
+                        { value: OTHER_LOCATION_VALUE, label: 'Outro estado (informar)' },
+                      ],
+                    }}
+                    otherFields={{ diocese: 'diocese_outro', cidade: 'cidade_outro', uf: 'uf_outro' }}
+                  />
                 </div>
               ))}
             </div>
@@ -680,23 +1060,54 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         )}
 
         {step === 5 && (
-          <DynamicSection title="5. Etapas de Formação, Profissões e Votos" type="formacao" fields={['etapa', 'instituicao', 'cidade', 'local', 'inicio', 'fim', 'formador']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow}>
+          <DynamicSection title="5. Etapas de Formação, Profissões e Votos" type="formacao" fields={['etapa', 'instituicao', 'cidade', 'local', 'inicio', 'fim', 'formador']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} selects={{ etapa: ['Seminário Menor', 'Propedêutico', 'Postulantado', 'Noviciado'] }}>
             <div className="mt-8 pt-6 border-t border-[#e5e5ea] dark:border-white/10">
-              <DynamicSection title="Profissões e Votos" type="voto" fields={['voto_tipo', 'renovacao', 'data', 'local', 'celebrante']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} />
+              <DynamicSection title="Profissões e Votos" type="voto" fields={['voto_tipo', 'renovacao', 'data', 'local', 'celebrante']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} selects={{ voto_tipo: ['Primeira profissão', 'Voto temporário', 'Voto perpétuo'] }} />
             </div>
           </DynamicSection>
         )}
 
-        {step === 6 && (
-          <DynamicSection title="6. Ministérios e Ordens" type="ministerio" fields={['ministerio', 'data', 'local', 'celebrante', 'bispo_ordenante']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} />
+        {step === 6 && base.grau !== 'Frater' && (
+          <DynamicSection
+            title="6. Ministérios e Ordens"
+            type="ministerio"
+            fields={['ministerio', 'data', 'local', 'celebrante', 'bispo_ordenante']}
+            rows={rows}
+            addRow={addRow}
+            updateRow={updateRow}
+            removeRow={removeRow}
+            selects={{
+              ministerio: base.grau === 'Diácono'
+                ? ministryOptions.filter(option => !['Presbiterado', 'Episcopado'].includes(option))
+                : ministryOptions,
+            }}
+          />
         )}
 
         {step === 7 && (
-          <DynamicSection title="7. Formação Acadêmica" type="academica" fields={['categoria', 'instituicao', 'periodo', 'cidade', 'estado', 'observacoes']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} />
+          <DynamicSection
+            title="7. Formação Acadêmica"
+            type="academica"
+            fields={['categoria', 'instituicao', 'periodo', 'cidade', 'estado', 'observacoes']}
+            rows={rows}
+            addRow={addRow}
+            updateRow={updateRow}
+            removeRow={removeRow}
+            selects={{
+              categoria: ['Ensino médio', 'Filosofia', 'Teologia', 'Graduação', 'Pós-graduação', 'Mestrado', 'Doutorado', 'Especialização', 'Cursos livres', 'Formação permanente'],
+              estado: [
+                ...brazilianStates,
+                ...rows.filter(row => row.tipo === 'academica' && row.estado && row.estado !== OTHER_LOCATION_VALUE && !brazilianStates.some(state => state.value === row.estado))
+                  .map(row => ({ value: row.estado, label: row.estado })),
+                { value: OTHER_LOCATION_VALUE, label: 'Outro estado (informar)' },
+              ],
+            }}
+            otherFields={{ estado: 'estado_outro' }}
+          />
         )}
 
         {step === 8 && (
-          <DynamicSection title="8. Idiomas e Competências" type="idioma" fields={['idioma', 'nivel', 'fala', 'audicao', 'leitura', 'escrita', 'observacoes']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow}>
+          <DynamicSection title="8. Idiomas e Competências" type="idioma" fields={['idioma', 'nivel', 'fala', 'audicao', 'leitura', 'escrita', 'observacoes']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} selects={{ nivel: ['Básico', 'Intermediário', 'Avançado', 'Fluente'], fala: ['Básico', 'Intermediário', 'Avançado', 'Fluente'], audicao: ['Básico', 'Intermediário', 'Avançado', 'Fluente'], leitura: ['Básico', 'Intermediário', 'Avançado', 'Fluente'], escrita: ['Básico', 'Intermediário', 'Avançado', 'Fluente'] }}>
             <div className="mt-8 pt-6 border-t border-[#e5e5ea] dark:border-white/10">
               <DynamicSection title="Competências Especiais" type="competencia" fields={['competencia', 'observacoes']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} />
             </div>
@@ -708,12 +1119,12 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         )}
 
         {step === 10 && (
-          <DynamicSection title="10. Missões e Serviços" type="servico" fields={['servico_tipo', 'instituicao', 'funcao', 'periodo', 'local', 'documento', 'observacao']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} />
+          <DynamicSection title="10. Missões e Serviços" type="servico" fields={['servico_tipo', 'instituicao', 'funcao', 'periodo', 'local', 'documento', 'observacao']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} selects={{ servico_tipo: ['Missão', 'Serviço à Congregação', 'Serviço à Igreja', 'CNBB', 'Diocese', 'Organismo', 'Assessoria', 'Cargo externo'] }} />
         )}
 
         {step === 11 && (
           <Section title="11. Endereço Atual e Contatos">
-            <Fields fields={['obra_atual_id', 'comunidade_atual_nome', 'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado', 'email_institucional', 'email_pessoal', 'telefone_celular', 'whatsapp', 'redes_sociais']} base={base} update={(field, value) => updateBase(field, field === 'cep' ? formatCep(value) : value)} onBlur={field => { if (field === 'cep') void lookupAddress(); }} readOnlyFields={memberMode ? ['email_institucional', 'email_pessoal'] : []} selects={{ obra_atual_id: obras.map(obra => ({ value: obra.id, label: `${obra.nome}${obra.localidade ? ` - ${obra.localidade}/${obra.uf || ''}` : ''}` })), comunidade_atual_nome: localidadeOptions.length ? localidadeOptions : ['Curitiba', 'Joinville', 'Jaraguá do Sul', 'Rio do Sul', 'Brusque', 'Porto Velho'] }} />
+            <Fields fields={['obra_atual_id', 'comunidade_atual_nome', 'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado', 'email_institucional', 'email_pessoal', 'telefone_celular', 'whatsapp', 'redes_sociais']} base={base} update={(field, value) => updateBase(field, field === 'cep' ? formatCep(value) : value)} onBlur={field => { if (field === 'cep') void lookupAddress(); }} readOnlyFields={memberMode ? ['email_institucional', 'email_pessoal'] : []} selects={{ obra_atual_id: obras.map(obra => ({ value: obra.id, label: `${obra.nome}${obra.localidade ? ` - ${obra.localidade}/${obra.uf || ''}` : ''}` })), comunidade_atual_nome: localidadeOptions.length ? localidadeOptions : ['Curitiba', 'Joinville', 'Jaraguá do Sul', 'Rio do Sul', 'Brusque', 'Porto Velho'], estado: [...brazilianStates, ...(base.estado && !brazilianStates.some(state => state.value === base.estado) && base.estado !== OTHER_LOCATION_VALUE ? [{ value: base.estado, label: base.estado }] : []), { value: OTHER_LOCATION_VALUE, label: 'Outro estado (informar)' }] }} otherFields={{ estado: 'estado_outro' }} />
             {memberMode && <p className="mt-2 text-xs text-[#707070] dark:text-[#86868b]">Para alterar CPF ou e-mail associado ao vínculo, solicite a validação da Secretaria Provincial.</p>}
             <p className="mt-2 text-xs text-[#707070] dark:text-[#86868b]">Ao sair do campo CEP, consultamos o ViaCEP para preencher logradouro, bairro, cidade e estado. Você pode revisar e corrigir os dados.</p>
             {cepLoading && <p role="status" className="mt-2 text-xs text-[#226380]">Consultando CEP...</p>}
@@ -724,7 +1135,18 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
 
         {step === 12 && (
           <Section title="12. Informações de Saúde">
-            <Fields fields={['plano_saude', 'numero_plano_saude', 'local_plano_saude', 'sus', 'tipo_sanguineo', 'fator_rh', 'alergias', 'medicamentos_continuos', 'medico_responsavel', 'contato_emergencia', 'informacoes_clinicas', 'cirurgias', 'proteses', 'observacoes_saude']} base={base} update={updateBase} selects={{ fator_rh: ['Positivo', 'Negativo', 'Não informado'] }} />
+            <Fields
+              fields={['plano_saude', 'numero_plano_saude', 'local_plano_saude', 'sus', 'tipo_sanguineo', 'fator_rh', 'alergias', 'medicamentos_continuos', 'medico_responsavel', 'contato_emergencia', 'informacoes_clinicas', 'cirurgias', 'proteses', 'observacoes_saude']}
+              base={base}
+              update={updateBase}
+              selects={{
+                tipo_sanguineo: [
+                  'A', 'B', 'AB', 'O', 'Não informado',
+                  ...(base.tipo_sanguineo && !['A', 'B', 'AB', 'O', 'Não informado'].includes(base.tipo_sanguineo) ? [base.tipo_sanguineo] : []),
+                ],
+                fator_rh: ['Positivo', 'Negativo', 'Não informado', '+', '-'],
+              }}
+            />
           </Section>
         )}
 
@@ -796,7 +1218,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
           <button
             type="button"
             disabled={step === 1}
-            onClick={() => setStep(previous => previous - 1)}
+            onClick={() => setStep(previous => previous === 7 && base.grau === 'Frater' ? 5 : previous - 1)}
             className="inline-flex items-center gap-2 rounded-[6px] border border-slate-200 dark:border-slate-800 px-5 py-2.5 text-xs font-semibold text-[#707070] hover:text-[#1d1d1f] hover:bg-black/5 dark:hover:bg-white/5 transition-all disabled:opacity-30 cursor-pointer"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -811,7 +1233,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                 if (validation) setErrorMessage(validation);
                 else {
                   setErrorMessage(null);
-                  setStep(previous => previous + 1);
+                  setStep(previous => previous === 5 && base.grau === 'Frater' ? 7 : previous + 1);
                 }
               }}
               className="inline-flex items-center gap-2 rounded-[6px] bg-slate-900 hover:bg-black dark:bg-white dark:text-slate-900 text-white px-7 py-3 text-xs font-semibold transition-all cursor-pointer shadow-none active:scale-[0.98]"
@@ -848,37 +1270,37 @@ const Fields: React.FC<{
   fields: string[];
   base: Record<string, string>;
   update: (field: string, value: string) => void;
-  selects?: Record<string, string[] | { value: string; label: string }[]>;
+  selects?: Record<string, (string | { value: string; label: string })[]>;
   invalidFields?: string[];
   readOnlyFields?: string[];
-  optionalOverrides?: string[];
+  requiredFields?: string[];
+  otherFields?: Record<string, string>;
   onBlur?: (field: string) => void;
-}> = ({ fields, base, update, selects = {}, invalidFields = [], readOnlyFields = [], optionalOverrides = [], onBlur }) => (
+}> = ({ fields, base, update, selects = {}, invalidFields = [], readOnlyFields = [], requiredFields = [], otherFields = {}, onBlur }) => (
   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
     {fields.map(field => {
-      const isOptional = optionalFields.has(field) || optionalOverrides.includes(field);
-      const isInvalid = invalidFields.includes(field);
+      const isRequired = requiredFields.includes(field);
+      const isInvalid = invalidFields.includes(field) || Boolean(otherFields[field] && invalidFields.includes(otherFields[field]));
       const isReadOnly = readOnlyFields.includes(field);
       return (
         <label className="space-y-1.5 block" key={field} htmlFor={`input-${field}`}>
           <span className="text-[12px] font-medium text-[#707070] dark:text-[#86868b] flex items-center justify-between">
             <span>
               {getFieldLabel(field)}
-              {!isOptional && <span className="text-rose-500 ml-1 font-bold">*</span>}
+              {isRequired && <span className="text-rose-500 ml-1 font-bold">*</span>}
             </span>
-            {isOptional && <span className="text-[10px] text-[#86868b] font-normal lowercase">(opcional)</span>}
+            {!isRequired && <span className="text-[10px] text-[#86868b] font-normal lowercase">(opcional)</span>}
           </span>
           {selects[field] ? (
             <select
               id={`input-${field}`}
-              required={!isOptional}
               className={`${inputClass} ${isInvalid ? '!border-rose-500 !ring-rose-500/20 ring-4 focus:!border-rose-500' : ''}`}
               value={base[field] || ''}
               disabled={isReadOnly}
               onChange={event => update(field, event.target.value)}
             >
               <option value="">Selecione...</option>
-              {selects[field].map(option =>
+              {selects[field]?.map(option =>
                 typeof option === 'string' ? (
                   <option key={option} value={option}>{option}</option>
                 ) : (
@@ -889,14 +1311,28 @@ const Fields: React.FC<{
           ) : (
             <input
               id={`input-${field}`}
-              required={!isOptional}
               className={`${inputClass} ${isInvalid ? '!border-rose-500 !ring-rose-500/20 ring-4 focus:!border-rose-500' : ''}`}
-              type={field.includes('data') || field === 'inicio' || field === 'fim' ? 'date' : field === 'email' ? 'email' : 'text'}
+              type={field.includes('data') || field === 'inicio' || field === 'fim'
+                ? 'date'
+                : field === 'email' ? 'email' : field === 'ano' || field === 'renovacao' ? 'number' : 'text'}
+              min={field === 'renovacao' ? 1 : undefined}
+              step={field === 'renovacao' || field === 'ano' ? 1 : undefined}
               value={base[field] || ''}
               disabled={isReadOnly}
-              placeholder={field === 'cpf' ? '000.000.000-00' : field === 'cep' ? '00000-000' : isOptional ? 'Opcional' : ''}
+              placeholder={field === 'cpf' ? '000.000.000-00' : field === 'cep' ? '00000-000' : isRequired ? '' : 'Opcional'}
               onChange={event => update(field, field === 'cpf' ? formatCpf(event.target.value) : field === 'cep' ? formatCep(event.target.value) : event.target.value)}
               onBlur={() => onBlur?.(field)}
+            />
+          )}
+          {otherFields[field] && base[field] === OTHER_LOCATION_VALUE && (
+            <input
+              id={`input-${otherFields[field]}`}
+              className={inputClass}
+              type="text"
+              value={base[otherFields[field]] || ''}
+              placeholder={`Informe ${getFieldLabel(field).toLowerCase()}`}
+              aria-label={`Informe ${getFieldLabel(field).toLowerCase()} não listado`}
+              onChange={event => update(otherFields[field], event.target.value)}
             />
           )}
         </label>
@@ -913,8 +1349,10 @@ const DynamicSection: React.FC<{
   addRow: (values?: Record<string, string>) => void;
   updateRow: (index: number, field: string, value: string) => void;
   removeRow: (index: number) => void;
+  selects?: Record<string, (string | { value: string; label: string })[]>;
+  otherFields?: Record<string, string>;
   children?: React.ReactNode;
-}> = ({ title, type, fields, rows, addRow, updateRow, removeRow, children }) => (
+}> = ({ title, type, fields, rows, addRow, updateRow, removeRow, selects = {}, otherFields = {}, children }) => (
   <Section title={title}>
     {children}
     <div className="space-y-4">
@@ -930,7 +1368,17 @@ const DynamicSection: React.FC<{
               <Trash2 className="h-4 w-4" />
             </button>
           </div>
-          <Fields fields={fields} base={row} update={(field, value) => updateRow(index, field, value)} />
+          <Fields
+            fields={fields}
+            base={row}
+            update={(field, value) => updateRow(index, field, value)}
+            selects={selects}
+            otherFields={otherFields}
+            requiredFields={[
+              ...(rowHasValue(row, fields) && dynamicRequiredFields[type] ? [dynamicRequiredFields[type]] : []),
+              ...(rowHasValue(row, fields) && type === 'voto' && row.voto_tipo === 'Voto temporário' ? ['renovacao'] : []),
+            ].filter((field): field is string => Boolean(field))}
+          />
         </div>
       ))}
     </div>
