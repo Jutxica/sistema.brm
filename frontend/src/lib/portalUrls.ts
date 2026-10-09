@@ -7,5 +7,6 @@ export const getPortalRedirectUrl = (): string => {
 export const isPortalPublicHost = (): boolean => {
   const configuredOrigin = import.meta.env.VITE_PORTAL_PUBLIC_URL?.trim();
   if (!configuredOrigin) return false;
-  return new URL(configuredOrigin).hostname === window.location.hostname;
+  const portalHost = new URL(configuredOrigin).hostname;
+  return portalHost === 'portascj.brm.org.br' && window.location.hostname === portalHost;
 };
