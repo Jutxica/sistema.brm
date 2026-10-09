@@ -1,10 +1,11 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth, hasModuleAccess } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { FeedbackProvider } from './contexts/FeedbackContext';
 import Layout from './components/Layout';
 import AppleErrorBoundary from './components/AppleErrorBoundary';
+import { isPortalPublicHost } from './lib/portalUrls';
 
 // Lazy-loaded Pages (Code-Splitting)
 const Login = lazy(() => import('./pages/Login'));
@@ -151,6 +152,12 @@ const DefaultRedirect: React.FC = () => {
   return <Navigate to={isAuthenticated ? getDefaultPath(user) : "/login"} replace />;
 };
 
+const ApplicationRoot: React.FC = () => {
+  const location = useLocation();
+  if (isPortalPublicHost() && location.pathname === '/') return <PortalReligioso />;
+  return <ProtectedRoute><Layout /></ProtectedRoute>;
+};
+
 export const App: React.FC = () => {
   return (
     <AppleErrorBoundary>
@@ -179,11 +186,7 @@ export const App: React.FC = () => {
                 {/* Private Administrative Workspace */}
                 <Route
                   path="/"
-                  element={
-                    <ProtectedRoute>
-                      <Layout />
-                    </ProtectedRoute>
-                  }
+                  element={<ApplicationRoot />}
                 >
                   <Route index element={<DefaultRedirect />} />
                   <Route path="inicio" element={<ModuleRoute accessKey="inicio"><Inicio /></ModuleRoute>} />
