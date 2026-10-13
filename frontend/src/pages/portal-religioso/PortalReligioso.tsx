@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
-import { useTheme } from '../../contexts/ThemeContext';
 import { 
-  User, Lock, Mail, Phone, Calendar, BookOpen, FileText, 
-  Hotel, LogOut, ChevronRight, UserCheck, ShieldCheck, 
-  Loader2, AlertCircle, CheckCircle2, Eye, EyeOff, Building, 
-  Home, Cake, Clock, ExternalLink, ArrowRight, ArrowLeft,
-  ChevronDown, Printer, Share2, MapPin, Download, Search, Tag, Filter, X
+  User, Lock, Mail, Phone, Calendar, BookOpen, FileText,
+  Hotel, LogOut, Loader2, AlertCircle, CheckCircle2, Eye, EyeOff,
+  Home, Clock, ExternalLink, ArrowRight, ArrowLeft,
+  ChevronDown, Printer, MapPin, Download, Search, X
 } from 'lucide-react';
 import MeuPerfilReligioso from '../MeuPerfilReligioso';
 import AnuarioBRM from '../AnuarioBRM';
@@ -38,6 +36,24 @@ interface CasaAcolhida {
   site?: string;
 }
 
+interface ReligiosoPortalData {
+  id?: string;
+  nome_civil?: string | null;
+  nome_religioso?: string | null;
+  grau?: string | null;
+  status_cadastro?: string | null;
+  situacao_elenco?: string | null;
+  comunidade_atual_nome?: string | null;
+  email_institucional?: string | null;
+  telefone_whatsapp?: string | null;
+  telefone_celular?: string | null;
+  cpf?: string | null;
+  data_nascimento?: string | null;
+  cargo_funcao?: string | null;
+  foto_path?: string | null;
+  foto_url?: string | null;
+}
+
 const getRegistrationErrorMessage = (error: unknown) => {
   if (error instanceof Error) return error.message;
   if (typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string') {
@@ -50,7 +66,6 @@ const dataElencoHoje = () => new Date().toLocaleDateString('sv-SE', { timeZone: 
 
 export const PortalReligioso: React.FC = () => {
   const { user, logout, refreshUserProfile } = useAuth();
-  const { theme, toggleTheme } = useTheme();
 
   // Authentication State for Member Portal
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -109,8 +124,7 @@ export const PortalReligioso: React.FC = () => {
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Religious Profile Data
-  const [religiosoData, setReligiosoData] = useState<any>(null);
-  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [religiosoData, setReligiosoData] = useState<ReligiosoPortalData | null>(null);
   const [registrationOpening, setRegistrationOpening] = useState(false);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
 
@@ -127,9 +141,9 @@ export const PortalReligioso: React.FC = () => {
   };
 
   // Carregar perfil do religioso conectado
-  const loadMemberData = async () => {
+  const loadMemberData = React.useCallback(async () => {
     if (!user && !isE2E) return;
-    setLoadingProfile(true);
+    await Promise.resolve();
     setProfileError(null);
 
     try {
@@ -142,7 +156,6 @@ export const PortalReligioso: React.FC = () => {
           comunidade_atual_nome: 'Sede Provincial BRM, Curitiba/PR',
           email_institucional: 'pe.carlos@brm.org.br',
         });
-        setLoadingProfile(false);
         return;
       }
 
@@ -234,10 +247,8 @@ export const PortalReligioso: React.FC = () => {
       setProfileError(err instanceof Error
         ? err.message
         : 'Não foi possível localizar seu cadastro. Entre em contato com a Secretaria Provincial.');
-    } finally {
-      setLoadingProfile(false);
     }
-  };
+  }, [isE2E, user]);
 
   const openRegistration = async () => {
     setActiveSection('inscricao');
@@ -380,9 +391,9 @@ export const PortalReligioso: React.FC = () => {
 
   useEffect(() => {
     if (user || isE2E) {
-      loadMemberData();
+      void Promise.resolve().then(loadMemberData);
     }
-  }, [user?.id]);
+  }, [isE2E, loadMemberData, user]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(event => {
@@ -416,11 +427,11 @@ export const PortalReligioso: React.FC = () => {
     'Outros'
   ];
 
-  const getCategoriaCor = (_cat: CategoriaDocumento) => {
+  const getCategoriaCor = () => {
     return 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
   };
 
-  const getTipoCor = (_tipo: string) => {
+  const getTipoCor = () => {
     return 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
   };
 
@@ -449,7 +460,7 @@ export const PortalReligioso: React.FC = () => {
         return `${diaI} de ${mesNome}, ${anoI}`;
       }
 
-      const [anoF, mesF, diaF] = fim.split('-');
+      const [, mesF, diaF] = fim.split('-');
       if (mesI === mesF) {
         return `${diaI} a ${diaF} de ${mesNome}, ${anoI}`;
       }
@@ -590,7 +601,7 @@ export const PortalReligioso: React.FC = () => {
       setAuthMode('login');
       setIdentificador(regEmail.trim().toLowerCase());
       setSenha('');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setAuthError(err instanceof Error ? err.message : 'Falha ao registrar conta de religioso.');
     } finally {
@@ -1656,7 +1667,7 @@ export const PortalReligioso: React.FC = () => {
                         <div key={doc.id} style={staggerStyle(idx)} className="py-3 flex items-start justify-between gap-3 motion-stagger-item">
                           <div className="space-y-0.5 min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold border ${getCategoriaCor(doc.categoria)}`}>
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold border ${getCategoriaCor()}`}>
                                 {doc.categoria}
                               </span>
                               {doc.numero_referencia && (
@@ -1742,7 +1753,7 @@ export const PortalReligioso: React.FC = () => {
                       className="p-4 rounded-[20px] bg-[#fbfbfd] dark:bg-[#1f1f21] border border-[#d6d6d6]/60 dark:border-white/10 flex flex-col justify-between gap-3 motion-lift motion-press motion-stagger-item"
                     >
                       <div className="space-y-1.5">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getTipoCor(evt.tipo)}`}>
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getTipoCor()}`}>
                           {evt.tipo}
                         </span>
                         <h4 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] leading-snug">
@@ -1981,7 +1992,7 @@ export const PortalReligioso: React.FC = () => {
                       <div key={evt.id} style={staggerStyle(idx)} className="py-5 px-3 rounded-[18px] flex flex-col md:flex-row justify-between md:items-center gap-4 hover:bg-[#f5f5f7] dark:hover:bg-[#262628] transition-colors motion-stagger-item">
                         <div className="space-y-1.5 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${getTipoCor(evt.tipo)}`}>
+                            <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${getTipoCor()}`}>
                               {evt.tipo}
                             </span>
                             {evt.publico_alvo && (
@@ -2223,7 +2234,7 @@ export const PortalReligioso: React.FC = () => {
                     >
                       <div className="space-y-3">
                         <div className="flex items-center justify-between gap-2">
-                          <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${getCategoriaCor(doc.categoria)}`}>
+                          <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${getCategoriaCor()}`}>
                             {doc.categoria}
                           </span>
                           <span className="text-[11px] text-[#707070] dark:text-[#86868b] font-medium">
