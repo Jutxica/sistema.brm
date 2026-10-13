@@ -36,6 +36,8 @@ interface CasaAcolhida {
   site?: string;
 }
 
+const dataElencoHoje = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+
 export const PortalReligioso: React.FC = () => {
   const { user, logout, refreshUserProfile } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -132,7 +134,33 @@ export const PortalReligioso: React.FC = () => {
         .maybeSingle();
 
       if (data) {
-        setReligiosoData(data);
+        let comunidadeAtual = data.situacao_elenco === 'Ausente'
+          ? 'Ausente da Congregação'
+          : data.comunidade_atual_nome || '';
+        if (data.situacao_elenco !== 'Ausente') {
+          const hoje = dataElencoHoje();
+          const { data: designacoes, error: designacoesError } = await supabase
+            .from('religiosos_designacoes')
+            .select('tipo_vinculo,vigencia_inicio,vigencia_fim,comunidades(nome),religiosos_obras_referencia(nome)')
+            .eq('religioso_id', data.id);
+          if (designacoesError) {
+            showToast.error(`Não foi possível carregar a comunidade atual: ${designacoesError.message}`);
+            comunidadeAtual = '';
+          } else if (designacoes?.length) {
+            const atuais = designacoes.filter(item =>
+              (!item.vigencia_inicio || item.vigencia_inicio <= hoje)
+              && (!item.vigencia_fim || item.vigencia_fim >= hoje)
+            );
+            const prioridades = ['residencia', 'estudos', 'juridico'];
+            const designacao = prioridades
+              .map(tipo => atuais.find(item => item.tipo_vinculo === tipo))
+              .find(Boolean) || atuais[0];
+            comunidadeAtual = designacao
+              ? designacao.comunidades?.[0]?.nome || designacao.religiosos_obras_referencia?.[0]?.nome || ''
+              : '';
+          }
+        }
+        setReligiosoData({ ...data, comunidade_atual_nome: comunidadeAtual });
       }
     } catch (err) {
       console.error(err);
@@ -670,7 +698,7 @@ export const PortalReligioso: React.FC = () => {
         .or(`cpf.eq.${cleanCpf},cpf.eq.${regCpf}`)
         .maybeSingle();
 
-      if (existingRel && authUserId) {
+      if (existingRel && authUserId && authData.session) {
         await supabase
           .from('religiosos')
           .update({
@@ -679,11 +707,11 @@ export const PortalReligioso: React.FC = () => {
             telefone_celular: regTelefone || undefined,
           })
           .eq('id', existingRel.id);
-      } else {
+      } else if (!existingRel) {
         await supabase
           .from('religiosos')
           .insert({
-            auth_user_id: authUserId || null,
+            auth_user_id: authData.session ? authUserId || null : null,
             grau: regGrau,
             nome_civil: regNomeCivil.trim(),
             nome_religioso: regNomeReligioso.trim() || null,
@@ -711,7 +739,9 @@ export const PortalReligioso: React.FC = () => {
           }, { onConflict: 'auth_user_id' });
       }
 
-      setAuthSuccess('Conta criada com sucesso! Faça login com seu CPF ou e-mail.');
+      setAuthSuccess(authData.session
+        ? 'Conta criada com sucesso! Faça login com seu CPF ou e-mail.'
+        : 'Conta criada. Confirme seu e-mail; depois, o Portal tentará localizar sua ficha pelo e-mail cadastrado. Cadastros mínimos sem e-mail precisam ser vinculados pela Secretaria.');
       setAuthMode('login');
       setIdentificador(regCpf || regEmail);
       setSenha(regSenha);
@@ -1799,7 +1829,7 @@ export const PortalReligioso: React.FC = () => {
                   Preencha ou revise a qualquer momento todos os dados canônicos, histórico de comunidades e anexos comprobatórios.
                 </p>
               </div>
-              <CadastroReligiosoPublico />
+              <CadastroReligiosoPublico profileReligiosoId={religiosoData?.id} />
             </div>
           )}
 

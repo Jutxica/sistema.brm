@@ -28,18 +28,19 @@ interface PerfilData {
   telefone_celular: string;
 }
 
-interface ComunidadeRef {
-  id: string;
-  nome: string;
-  tipo?: string;
-  localidade?: string;
-  cidade?: string;
-  uf?: string;
-}
-
 interface MeuPerfilProps {
   isPortal?: boolean;
 }
+
+interface DesignacaoPerfil {
+  tipo_vinculo: string;
+  vigencia_inicio: string | null;
+  vigencia_fim: string | null;
+  comunidades: { nome: string }[] | null;
+  religiosos_obras_referencia: { nome: string }[] | null;
+}
+
+const dataLocalISO = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
 
 export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false }) => {
   const { user } = useAuth();
@@ -50,8 +51,8 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [situacaoElenco, setSituacaoElenco] = useState<'Ativo' | 'Ausente'>('Ativo');
 
-  const [comunidades, setComunidades] = useState<ComunidadeRef[]>([]);
   const [form, setForm] = useState<PerfilData>({
     nome_civil: '',
     nome_religioso: '',
@@ -63,22 +64,11 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
     telefone_celular: ''
   });
 
-  // Carregar dados básicos do religioso e comunidades oficiais da Província BRM
+  // Carregar dados do perfil; a alocação é mantida pela Secretaria.
   useEffect(() => {
     const loadProfile = async () => {
       setLoading(true);
       try {
-        // Buscar comunidades e obras ativas do schema oficial
-        const { data: obrasData } = await supabase
-          .from('religiosos_obras_referencia')
-          .select('id, nome, tipo, localidade, cidade, uf')
-          .eq('status', 'Ativa')
-          .order('nome');
-
-        if (obrasData && obrasData.length > 0) {
-          setComunidades(obrasData);
-        }
-
         if (isE2E) {
           setForm({
             nome_civil: 'Carlos Eduardo da Silva',
@@ -90,6 +80,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
             whatsapp: '(41) 99876-5432',
             telefone_celular: '(41) 99876-5432'
           });
+          setSituacaoElenco('Ativo');
           setLoading(false);
           return;
         }
@@ -105,29 +96,45 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
           if (rel) targetId = rel.id;
         }
 
-        if (!targetId && user?.email) {
-          const { data: list } = await supabase
-            .from('religiosos')
-            .select('id')
-            .limit(1);
-          if (list && list.length > 0) targetId = list[0].id;
-        }
-
         if (targetId) {
           const { data: relRecord } = await supabase
             .from('religiosos')
-            .select('id, nome_civil, nome_religioso, grau, foto_url, comunidade_atual_nome, email_institucional, whatsapp, telefone_celular')
+            .select('id, nome_civil, nome_religioso, grau, foto_url, comunidade_atual_nome, situacao_elenco, email_institucional, whatsapp, telefone_celular')
             .eq('id', targetId)
             .maybeSingle();
 
           if (relRecord) {
+            const situacao = relRecord.situacao_elenco === 'Ausente' ? 'Ausente' : 'Ativo';
+            setSituacaoElenco(situacao);
+            let comunidadeAtual = situacao === 'Ausente' ? '' : relRecord.comunidade_atual_nome || '';
+            if (situacao === 'Ativo') {
+              const hoje = dataLocalISO();
+              const { data: designacoes, error: designacoesError } = await supabase
+                .from('religiosos_designacoes')
+                .select('tipo_vinculo,vigencia_inicio,vigencia_fim,comunidades(nome),religiosos_obras_referencia(nome)')
+                .eq('religioso_id', relRecord.id);
+              if (designacoesError) throw designacoesError;
+              const atuais = ((designacoes || []) as DesignacaoPerfil[]).filter(item =>
+                (!item.vigencia_inicio || item.vigencia_inicio <= hoje)
+                && (!item.vigencia_fim || item.vigencia_fim >= hoje)
+              );
+              const prioritarias = ['residencia', 'estudos', 'juridico'];
+              const designacao = prioritarias
+                .map(tipo => atuais.find(item => item.tipo_vinculo === tipo))
+                .find(Boolean) || atuais[0];
+              if (designacao) {
+                comunidadeAtual = designacao.comunidades?.[0]?.nome || designacao.religiosos_obras_referencia?.[0]?.nome || comunidadeAtual;
+              } else if (designacoes?.length) {
+                comunidadeAtual = '';
+              }
+            }
             setForm({
               id: relRecord.id,
               nome_civil: relRecord.nome_civil || '',
               nome_religioso: relRecord.nome_religioso || '',
               grau: relRecord.grau || 'Padre',
               foto_url: relRecord.foto_url || '',
-              comunidade_atual_nome: relRecord.comunidade_atual_nome || '',
+              comunidade_atual_nome: comunidadeAtual,
               email_institucional: relRecord.email_institucional || user?.email || '',
               whatsapp: relRecord.whatsapp || '',
               telefone_celular: relRecord.telefone_celular || ''
@@ -142,6 +149,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
         }
       } catch (err) {
         console.error('Erro ao carregar perfil:', err);
+        setErrorMsg(err instanceof Error ? `Não foi possível carregar o perfil: ${err.message}` : 'Não foi possível carregar o perfil.');
       } finally {
         setLoading(false);
       }
@@ -202,7 +210,6 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
         const payload: any = {
           nome_civil: form.nome_civil,
           nome_religioso: form.nome_religioso,
-          comunidade_atual_nome: form.comunidade_atual_nome,
           email_institucional: form.email_institucional,
           whatsapp: form.whatsapp,
           telefone_celular: form.whatsapp,
@@ -416,26 +423,18 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
 
           {/* Comunidade Religiosa Atual */}
           <div>
-            <label className={labelClass}>Comunidade Religiosa onde Reside *</label>
+            <label className={labelClass}>Comunidade Religiosa onde Reside</label>
             <div className="relative">
               <input
                 type="text"
-                list="comunidades-list"
-                required
-                value={form.comunidade_atual_nome}
-                onChange={e => setForm({ ...form, comunidade_atual_nome: e.target.value })}
-                placeholder="Selecione ou digite sua comunidade/convento"
+                value={situacaoElenco === 'Ausente' ? 'Ausente da Congregação' : form.comunidade_atual_nome}
+                readOnly
+                placeholder="A Secretaria ainda não registrou uma comunidade"
                 className={inputClass}
               />
-              <datalist id="comunidades-list">
-                {comunidades.map(c => {
-                  const label = `${c.nome} • ${c.cidade || c.localidade || ''}/${c.uf || ''}`;
-                  return <option key={c.id} value={label} />;
-                })}
-              </datalist>
             </div>
             <span className={`text-[11px] ${isPortal ? 'text-[#707070] dark:text-[#86868b]' : 'text-slate-500 font-mono'} mt-1 block`}>
-              Comunidade canônica de atribuição ou residência oficial na Província BRM.
+              A Secretaria mantém esta informação no Elenco. Para solicitar uma correção, entre em contato com a Secretaria Provincial.
             </span>
           </div>
 

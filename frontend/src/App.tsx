@@ -28,6 +28,7 @@ const PortalReligioso = lazy(() => import('./pages/portal-religioso/PortalReligi
 const DocumentosAdmin = lazy(() => import('./pages/DocumentosAdmin'));
 const AgendaAdmin = lazy(() => import('./pages/AgendaAdmin'));
 const SecretariaConfiguracoes = lazy(() => import('./pages/SecretariaConfiguracoes'));
+const ElencoSecretaria = lazy(() => import('./pages/ElencoSecretaria'));
 const FormularioPublicoInscricao = lazy(() => import('./pages/FormularioPublicoInscricao'));
 const PatrimonioAdmin = lazy(() => import('./pages/PatrimonioAdmin'));
 const PatrimonioForm = lazy(() => import('./pages/PatrimonioForm'));
@@ -101,6 +102,16 @@ const PatrimonioRoute: React.FC<{ children: React.ReactNode }> = ({ children }) 
   return <>{children}</>;
 };
 
+const SecretariaRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading, isAuthenticated } = useAuth();
+
+  if (loading) return <AppleLoadingFallback />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!hasModuleAccess(user, 'secretaria')) return <Navigate to="/inicio" replace />;
+
+  return <>{children}</>;
+};
+
 const DefaultRedirect: React.FC = () => {
   const { isAuthenticated, loading } = useAuth();
   
@@ -152,6 +163,14 @@ export const App: React.FC = () => {
                   <Route path="documentos" element={<DocumentosAdmin />} />
                   <Route path="agenda" element={<AgendaAdmin />} />
                   <Route path="secretaria-configuracoes" element={<SecretariaConfiguracoes />} />
+                  <Route
+                    path="secretaria/elenco"
+                    element={
+                      <SecretariaRoute>
+                        <ElencoSecretaria />
+                      </SecretariaRoute>
+                    }
+                  />
                   <Route path="religiosos/novo" element={<CadastroReligiosoPublico adminMode />} />
                   <Route path="religiosos/editar/:id" element={<CadastroReligiosoPublico adminMode />} />
                   <Route path="religiosos-configuracoes" element={<ReligiososConfiguracoes />} />

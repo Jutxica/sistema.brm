@@ -411,6 +411,7 @@ create table if not exists public.religiosos_formacao_academica (
   categoria text not null,
   instituicao text,
   periodo text,
+  pais text,
   cidade text,
   estado text,
   observacoes text,

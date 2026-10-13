@@ -42,39 +42,24 @@ for each row execute function public.trg_prevent_audit_mutation();
 
 -- 3. FUNÇÃO AUXILIAR DE VERIFICAÇÃO DE PAPEL INSTITUCIONAL
 create or replace function public.usuario_tem_papel(papel_requerido text)
-returns boolean as $$
-declare
-  v_acessos jsonb;
-begin
-  if auth.uid() is null then
-    return false;
-  end if;
-
-  select 
-    case 
-      when jsonb_typeof(usu_acessos::jsonb) = 'array' then usu_acessos::jsonb
-      else '[]'::jsonb
-    end
-  into v_acessos
-  from public.usuarios
-  where auth_user_id = auth.uid() or id::text = auth.uid()::text
-  limit 1;
-
-  if v_acessos is null then
-    return false;
-  end if;
-
-  -- Administrador possui todas as permissões
-  if v_acessos ? 'admin' then
-    return true;
-  end if;
-
-  -- Verifica papel específico
-  return v_acessos ? papel_requerido;
-exception when others then
-  return false;
-end;
-$$ language plpgsql security definer;
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.usuarios usuario
+    where (usuario.auth_user_id = auth.uid() or usuario.idusuarios = auth.uid())
+      and usuario.usu_status = 'Ativo'
+      and jsonb_typeof(usuario.usu_acessos) = 'array'
+      and (
+        usuario.usu_acessos ? 'admin'
+        or usuario.usu_acessos ? coalesce(papel_requerido, '')
+      )
+  );
+$$;
 
 -- 4. HABILITAÇÃO E REVISÃO DE RLS PARA TABELA DE AUDITORIA
 alter table public.patrimonio_audit_logs enable row level security;

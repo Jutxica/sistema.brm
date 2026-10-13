@@ -6,8 +6,10 @@ import { confirmAction, showToast } from '../hooks/useFeedback';
 
 interface ReligiosoResumo {
   id: string;
-  nome_civil: string;
+  nome_civil: string | null;
   nome_religioso: string | null;
+  nome_elenco: string | null;
+  cadastro_elenco_provisorio: boolean;
   grau: string;
   status: string;
   status_cadastro: string;
@@ -33,7 +35,8 @@ export const ReligiososAdmin: React.FC = () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('religiosos')
-      .select('id,nome_civil,nome_religioso,grau,status,status_cadastro,origem_cadastro,email_institucional,telefone_celular,created_at')
+      .select('id,nome_civil,nome_religioso,nome_elenco,cadastro_elenco_provisorio,grau,status,status_cadastro,origem_cadastro,email_institucional,telefone_celular,created_at')
+      .order('nome_elenco', { ascending: true })
       .order('nome_civil', { ascending: true });
     if (error) console.error('Erro ao carregar religiosos:', error);
     setItems((data || []) as ReligiosoResumo[]);
@@ -44,14 +47,16 @@ export const ReligiososAdmin: React.FC = () => {
 
   const filtered = useMemo(() => {
     const normalized = query.toLocaleLowerCase();
-    return items.filter(item => [item.nome_civil, item.nome_religioso || '', item.grau, item.email_institucional || ''].join(' ').toLocaleLowerCase().includes(normalized));
+    return items.filter(item => [item.nome_elenco || '', item.nome_civil || '', item.nome_religioso || '', item.grau, item.email_institucional || ''].join(' ').toLocaleLowerCase().includes(normalized));
   }, [items, query]);
+
+  const nomeExibido = (item: ReligiosoResumo) => item.nome_elenco || item.nome_religioso || item.nome_civil || 'Nome pendente';
 
   const remove = async (item: ReligiosoResumo) => {
     const confirmed = await confirmAction({
       title: 'Excluir Cadastro de Religioso',
       badge: 'Sede Provincial • Exclusão',
-      message: `Excluir o cadastro de ${item.nome_civil}?`,
+      message: `Excluir o cadastro de ${nomeExibido(item)}?`,
       detail: 'Todos os dados detalhados vinculados e anexos no storage também serão excluídos permanentemente.',
       confirmLabel: 'Excluir Cadastro',
       cancelLabel: 'Cancelar',
@@ -78,7 +83,7 @@ export const ReligiososAdmin: React.FC = () => {
       showToast.error(`Não foi possível excluir: ${error.message}`);
       return;
     }
-    showToast.success(`Cadastro de ${item.nome_civil} excluído com sucesso.`);
+    showToast.success(`Cadastro de ${nomeExibido(item)} excluído com sucesso.`);
     load();
   };
 
@@ -148,10 +153,12 @@ export const ReligiososAdmin: React.FC = () => {
                       </span>
                       <div>
                         <p className="font-semibold text-xs text-slate-900 dark:text-white">
-                          {item.nome_religioso || item.nome_civil}
+                          {nomeExibido(item)}
                         </p>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                          {item.grau} · {item.nome_civil}
+                          {item.grau}
+                          {item.cadastro_elenco_provisorio && ' · Cadastro básico'}
+                          {item.nome_civil && ` · ${item.nome_civil}`}
                         </p>
                       </div>
                     </div>

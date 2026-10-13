@@ -16,7 +16,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
   const { logout, user } = useAuthHook();
   const location = useLocation();
   const [secretariaOpen, setSecretariaOpen] = React.useState(
-    location.pathname.startsWith('/documentos') || location.pathname.startsWith('/agenda') || location.pathname.startsWith('/secretaria-configuracoes')
+    location.pathname.startsWith('/documentos') || location.pathname.startsWith('/agenda') || location.pathname.startsWith('/secretaria-configuracoes') || location.pathname.startsWith('/secretaria')
   );
   const [religiososOpen, setReligiososOpen] = React.useState(
     location.pathname.startsWith('/religiosos') || location.pathname.startsWith('/estatisticas-brm')
@@ -26,7 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
   const [hospedariaOpen, setHospedariaOpen] = React.useState(location.pathname.startsWith('/hospedagens'));
 
   React.useEffect(() => {
-    if (location.pathname.startsWith('/documentos') || location.pathname.startsWith('/agenda') || location.pathname.startsWith('/secretaria-configuracoes')) {
+    if (location.pathname.startsWith('/documentos') || location.pathname.startsWith('/agenda') || location.pathname.startsWith('/secretaria-configuracoes') || location.pathname.startsWith('/secretaria')) {
       setSecretariaOpen(true);
     }
     if (location.pathname.startsWith('/religiosos') || location.pathname.startsWith('/estatisticas-brm')) {
@@ -40,6 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
   // Exibir Usuários apenas para administradores autorizados
   const isAdmin = Boolean(user?.acessos?.includes('admin') || user?.acessos?.includes('usuarios'));
   const canAccessPatrimonio = hasModuleAccess(user, 'patrimonio');
+  const canAccessElenco = hasModuleAccess(user, 'secretaria');
 
   return (
     <aside
@@ -100,6 +101,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
 
           {/* 3. Secretaria & Atos */}
           <SidebarGroup label="Secretaria & Atos" icon={FileText} open={secretariaOpen} onToggle={() => setSecretariaOpen(previous => !previous)} collapsed={collapsed}>
+            {canAccessElenco && <SidebarSubLink to="/secretaria/elenco" label="Elenco & Transferências" icon={Users} collapsed={collapsed} />}
             <SidebarSubLink to="/documentos" label="Documentos Oficiais" icon={FileText} collapsed={collapsed} />
             <SidebarSubLink to="/agenda" label="Agenda & Eventos" icon={Calendar} collapsed={collapsed} />
             <SidebarSubLink to="/secretaria-configuracoes" label="Configurações & Formulários" icon={Settings} collapsed={collapsed} />
