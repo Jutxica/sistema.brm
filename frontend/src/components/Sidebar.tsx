@@ -44,6 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
   const canAccessHospedagens = hasModuleAccess(user, 'hospedagens');
   const canAccessConfiguracoes = hasModuleAccess(user, 'configuracoes');
   const canAccessUsuarios = hasModuleAccess(user, 'usuarios');
+  const canAccessElenco = hasModuleAccess(user, 'secretaria');
   const canAccessArquivoSecretaria = Boolean(user?.acessos.some(access => access === 'arquivo_secretaria' || access === 'arquivo_substituto'));
 
   React.useEffect(() => {
@@ -154,6 +155,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
           {(canAccessSecretaria || canAccessConfiguracoes || canAccessArquivoSecretaria) && (
             <SidebarGroup label="Secretaria & Atos" icon={FileText} open={secretariaOpen} onToggle={toggleSecretariaOpen} collapsed={collapsed}>
               {(canAccessSecretaria || canAccessArquivoSecretaria) && <SidebarSubLink to="/secretaria" label="Painel da Secretaria" icon={LayoutDashboard} collapsed={collapsed} />}
+              {canAccessElenco && <SidebarSubLink to="/secretaria/elenco" label="Elenco & Transferências" icon={Users} collapsed={collapsed} />}
               {canAccessSecretaria && <SidebarSubLink to="/religiosos" label="Inscritos e contas" icon={Users} collapsed={collapsed} />}
               {canAccessSecretaria && <SidebarSubLink to="/documentos" label="Documentos Oficiais" icon={FileText} collapsed={collapsed} />}
               {canAccessSecretaria && <SidebarSubLink to="/agenda" label="Agenda & Eventos" icon={Calendar} collapsed={collapsed} />}

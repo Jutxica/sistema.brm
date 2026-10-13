@@ -53,9 +53,12 @@ set search_path = pg_catalog
 as $$
   select coalesce((
     select jsonb_typeof(u.usu_acessos) = 'array'
-      and (u.usu_acessos ? 'admin' or u.usu_acessos ? papel_requerido)
+      and (
+        u.usu_acessos ? 'admin'
+        or u.usu_acessos ? coalesce(papel_requerido, '')
+      )
     from public.usuarios u
-    where u.auth_user_id = auth.uid()
+    where (u.auth_user_id = auth.uid() or u.idusuarios = auth.uid())
       and u.usu_status = 'Ativo'
     limit 1
   ), false);

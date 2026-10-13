@@ -54,6 +54,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [situacaoElenco, setSituacaoElenco] = useState<'Ativo' | 'Ausente'>('Ativo');
 
   const [comunidades, setComunidades] = useState<ComunidadeRef[]>([]);
   const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
@@ -83,17 +84,6 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
     const loadProfile = async () => {
       setLoading(true);
       try {
-        // Buscar comunidades e obras ativas do schema oficial
-        const { data: obrasData } = await supabase
-          .from('religiosos_obras_referencia')
-          .select('id, nome, tipo, localidade, cidade, uf')
-          .eq('status', 'Ativa')
-          .order('nome');
-
-        if (obrasData && obrasData.length > 0) {
-          setComunidades(obrasData);
-        }
-
         if (isE2E) {
           setForm({
             nome_civil: 'Carlos Eduardo da Silva',
@@ -107,6 +97,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
             whatsapp: '(41) 99876-5432',
             telefone_celular: '(41) 99876-5432'
           });
+          setSituacaoElenco('Ativo');
           setLoading(false);
           return;
         }
@@ -538,7 +529,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
 
           {/* Comunidade Religiosa Atual */}
           <div>
-            <label className={labelClass}>Comunidade Religiosa onde Reside *</label>
+            <label className={labelClass}>Comunidade Religiosa onde Reside</label>
             <div className="relative">
               <input
                 type="text"
@@ -550,15 +541,9 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
                 placeholder="Selecione ou digite sua comunidade/convento"
                 className={inputClass}
               />
-              <datalist id="comunidades-list">
-                {comunidades.map(c => {
-                  const label = `${c.nome} • ${c.cidade || c.localidade || ''}/${c.uf || ''}`;
-                  return <option key={c.id} value={label} />;
-                })}
-              </datalist>
             </div>
             <span className={`text-[11px] ${isPortal ? 'text-[#707070] dark:text-[#86868b]' : 'text-slate-500 font-mono'} mt-1 block`}>
-              Comunidade canônica de atribuição ou residência oficial na Província BRM.
+              A Secretaria mantém esta informação no Elenco. Para solicitar uma correção, entre em contato com a Secretaria Provincial.
             </span>
           </div>
 

@@ -23,8 +23,10 @@ import { confirmAction, showToast } from '../hooks/useFeedback';
 interface ReligiosoResumo {
   id: string;
   numero_cadastro: number;
-  nome_civil: string;
+  nome_civil: string | null;
   nome_religioso: string | null;
+  nome_elenco: string | null;
+  cadastro_elenco_provisorio: boolean;
   grau: string | null;
   status: string;
   status_cadastro: string;
@@ -91,7 +93,8 @@ export const ReligiososAdmin: React.FC = () => {
     const [religiososResult, accountsResult] = await Promise.all([
       supabase
         .from('religiosos')
-        .select('id,numero_cadastro,nome_civil,nome_religioso,grau,status,status_cadastro,origem_cadastro,email_institucional,telefone_celular,created_at,auth_user_id')
+        .select('id,numero_cadastro,nome_civil,nome_religioso,nome_elenco,cadastro_elenco_provisorio,grau,status,status_cadastro,origem_cadastro,email_institucional,telefone_celular,created_at,auth_user_id')
+        .order('nome_elenco', { ascending: true, nullsFirst: false })
         .order('nome_civil', { ascending: true }),
       supabase.functions.invoke<{ accounts: ContaAcesso[] }>('secretaria-contas', { body: { action: 'list' } }),
     ]);
@@ -118,13 +121,17 @@ export const ReligiososAdmin: React.FC = () => {
   const filtered = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase();
     return items.filter(item => [
-      item.nome_civil,
+      item.nome_elenco || '',
+      item.nome_civil || '',
       item.nome_religioso || '',
       item.grau || '',
       item.email_institucional || '',
       item.status_cadastro || '',
     ].join(' ').toLocaleLowerCase().includes(normalized));
   }, [items, query]);
+
+  const nomeExibido = (item: ReligiosoResumo) =>
+    item.nome_elenco?.trim() || item.nome_religioso?.trim() || item.nome_civil?.trim() || 'Nome pendente';
 
   const isBlocked = (account: ContaAcesso) => Boolean(
     account.banned_until && new Date(account.banned_until).getTime() > Date.now(),
@@ -194,7 +201,7 @@ export const ReligiososAdmin: React.FC = () => {
     const confirmed = await confirmAction({
       title: 'Excluir Cadastro de Religioso',
       badge: 'Sede Provincial • Exclusão',
-      message: `Excluir o cadastro de ${item.nome_civil}?`,
+      message: `Excluir o cadastro de ${nomeExibido(item)}?`,
       detail: 'Todos os dados detalhados vinculados e anexos no storage também serão excluídos permanentemente.',
       confirmLabel: 'Excluir Cadastro',
       cancelLabel: 'Cancelar',
@@ -224,7 +231,7 @@ export const ReligiososAdmin: React.FC = () => {
       showToast.error(`Não foi possível excluir: ${error.message}`);
       return;
     }
-    showToast.success(`Cadastro de ${item.nome_civil} excluído com sucesso.`);
+    showToast.success(`Cadastro de ${nomeExibido(item)} excluído com sucesso.`);
     await load();
   };
 
@@ -365,8 +372,8 @@ export const ReligiososAdmin: React.FC = () => {
                         <div className="flex items-center gap-3">
                           <span className="flex h-8 w-8 shrink-0 items-center justify-center border border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-white/5 dark:text-slate-300"><UserRound className="h-4 w-4" /></span>
                           <div>
-                            <p className="font-semibold text-slate-900 dark:text-white">{item.nome_religioso || item.nome_civil}</p>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400">{item.grau || 'Grau pendente'} · {item.nome_civil}</p>
+                            <p className="font-semibold text-slate-900 dark:text-white">{nomeExibido(item)}</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">{item.grau || 'Grau pendente'} · {item.nome_civil || 'Nome civil pendente'}</p>
                             <p className="mt-1 font-mono text-[10px] font-medium tracking-wide text-[#226380] dark:text-[#A3C3C7]">
                               BRM-{new Date(item.created_at).getFullYear()}-{String(item.numero_cadastro).padStart(6, '0')}
                             </p>

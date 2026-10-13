@@ -50,8 +50,12 @@ interface Estadia {
   main_remetente: string | null;
 }
 
+function sanitizeText(value: string | null | undefined): string {
+  return String(value ?? "").replace(/[\r\n\t]+/g, " ").trim();
+}
+
 function replacePlaceholders(template: string, map: Record<string, string>): string {
-  return template.replace(/\[\[([a-zA-Z_]+)\]\]/g, (_, key) => map[key] ?? "");
+  return template.replace(/\[\[([a-zA-Z_]+)\]\]/g, (_, key) => sanitizeText(map[key] ?? ""));
 }
 
 async function fetchInscrito(id: number, token: string): Promise<Inscrito | null> {
@@ -72,7 +76,7 @@ async function fetchInscrito(id: number, token: string): Promise<Inscrito | null
 async function fetchEstadia(estadiaMotivoId: number | null): Promise<Estadia | null> {
   if (estadiaMotivoId == null) return null;
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/mainhospedagem?select=*&idmainhospedagem=eq.${estadiaMotivoId}&limit=1`,
+    `${SUPABASE_URL}/rest/v1/mainhospedagem?select=idmainhospedagem,main_motivo,main_mensagememail,main_email,main_senha,main_host,main_porta,main_seguranca,main_remetente&idmainhospedagem=eq.${estadiaMotivoId}&limit=1`,
     {
       headers: {
         apikey: SUPABASE_SERVICE_KEY,
@@ -125,14 +129,14 @@ Deno.serve(async (req: Request) => {
     "[[hos_nome]]": inscrito.hos_nome || "",
     "[[hos_estadiamotivo]]": estadia.main_motivo || String(inscrito.hos_estadiamotivo ?? ""),
   };
-  const subject = `Confirmação de Inscrição: ${estadia.main_motivo || 'Hospedaria'}`;
+  const subject = `Confirmação de Inscrição: ${sanitizeText(estadia.main_motivo || 'Hospedaria')}`;
   const htmlBody = replacePlaceholders(template, map);
 
-  const host = estadia.main_host;
+  const host = sanitizeText(estadia.main_host);
   const port = estadia.main_porta ? Number(estadia.main_porta) : 587;
-  const user = estadia.main_email;
-  const pass = estadia.main_senha;
-  const fromName = estadia.main_remetente || "Província BRM";
+  const user = sanitizeText(estadia.main_email);
+  const pass = sanitizeText(estadia.main_senha);
+  const fromName = sanitizeText(estadia.main_remetente || "Província BRM");
   const fromAddress = user;
 
   if (!host || !user || !pass) {

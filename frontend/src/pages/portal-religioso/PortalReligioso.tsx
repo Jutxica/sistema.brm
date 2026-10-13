@@ -11,7 +11,8 @@ import {
 } from 'lucide-react';
 import MeuPerfilReligioso from '../MeuPerfilReligioso';
 import AnuarioBRM from '../AnuarioBRM';
-import CadastroReligiosoPublico, { validateCpf } from '../CadastroReligiosoPublico';
+import CadastroReligiosoPublico from '../CadastroReligiosoPublico';
+import { validateCpf } from '../../lib/cpf';
 import FichaCanonicaPDF from './FichaCanonicaPDF';
 import type { DocumentoProvincial, CategoriaDocumento } from '../DocumentosAdmin';
 import type { EventoProvincial } from '../AgendaAdmin';
@@ -44,6 +45,8 @@ const getRegistrationErrorMessage = (error: unknown) => {
   }
   return 'Não foi possível iniciar o Cadastro BRM. Tente novamente ou contate a Secretaria Provincial.';
 };
+
+const dataElencoHoje = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
 
 export const PortalReligioso: React.FC = () => {
   const { user, logout, refreshUserProfile } = useAuth();
@@ -172,6 +175,32 @@ export const PortalReligioso: React.FC = () => {
       } : {};
       const data = officialData || profile ? { ...(officialData || {}), ...profileData } : null;
       if (data) {
+        let comunidadeAtual = data.comunidade_atual_nome || '';
+        if (officialData?.situacao_elenco === 'Ausente') {
+          comunidadeAtual = 'Ausente da Congregação';
+        } else if (officialData?.id) {
+          const { data: designacoes, error: designacoesError } = await supabase
+            .from('religiosos_designacoes')
+            .select('tipo_vinculo,vigencia_inicio,vigencia_fim,comunidades(nome),religiosos_obras_referencia(nome)')
+            .eq('religioso_id', officialData.id);
+          if (designacoesError) {
+            console.error('Não foi possível carregar as designações atuais do Elenco:', designacoesError);
+          } else if (designacoes?.length) {
+            const hoje = dataElencoHoje();
+            const atuais = designacoes.filter(item =>
+              (!item.vigencia_inicio || item.vigencia_inicio <= hoje)
+              && (!item.vigencia_fim || item.vigencia_fim >= hoje)
+            );
+            const designacao = ['residencia', 'estudos', 'juridico']
+              .map(tipo => atuais.find(item => item.tipo_vinculo === tipo))
+              .find(Boolean) || atuais[0];
+            comunidadeAtual = designacao
+              ? designacao.comunidades?.[0]?.nome || designacao.religiosos_obras_referencia?.[0]?.nome || ''
+              : '';
+          } else {
+            comunidadeAtual = '';
+          }
+        }
         let fotoUrl = '';
         if (data.foto_path) {
           const { data: signedPhoto, error: photoError } = await supabase.storage
@@ -180,7 +209,7 @@ export const PortalReligioso: React.FC = () => {
           if (photoError) throw photoError;
           fotoUrl = signedPhoto.signedUrl;
         }
-        setReligiosoData({ ...data, foto_url: fotoUrl });
+        setReligiosoData({ ...data, comunidade_atual_nome: comunidadeAtual, foto_url: fotoUrl });
         if (officialData?.id && user?.id) {
           const { data: savedDraft, error: draftError } = await supabase
             .from('religiosos_rascunhos')
