@@ -1134,6 +1134,44 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               invalidFields={invalidFields}
               requiredFields={memberMode ? requiredStep1.filter(field => field !== 'grau') : requiredStep1}
               readOnlyFields={memberMode ? ['cpf'] : []}
+              afterField={!(memberMode || profileReligiosoId) ? {
+                grau: (
+                  <label className="block space-y-1.5" htmlFor="input-obra_atual_id">
+                    <span className="flex items-center justify-between text-[12px] font-medium text-[#707070] dark:text-[#86868b]">
+                      <span>Obra / comunidade vinculada</span>
+                      <span className="text-[10px] font-normal lowercase text-[#86868b]">(opcional)</span>
+                    </span>
+                    <select
+                      id="input-obra_atual_id"
+                      className={inputClass}
+                      value={base.obra_atual_id || ''}
+                      onChange={event => {
+                        const selectedObra = obras.find(obra => obra.id === event.target.value);
+                        setBase(previous => ({
+                          ...previous,
+                          obra_atual_id: selectedObra?.id || '',
+                          comunidade_atual_nome: selectedObra?.nome || '',
+                          cep: selectedObra?.cep || '',
+                          logradouro: selectedObra?.logradouro || '',
+                          numero: selectedObra?.numero || '',
+                          complemento: selectedObra?.complemento || '',
+                          bairro: selectedObra?.bairro || '',
+                          cidade: selectedObra?.localidade || selectedObra?.cidade || '',
+                          estado: selectedObra?.uf || selectedObra?.estado || '',
+                          estado_outro: '',
+                        }));
+                        setErrorMessage(null);
+                      }}
+                    >
+                      <option value="">Selecione...</option>
+                      {obras.map(obra => <option key={obra.id} value={obra.id}>{obra.nome}</option>)}
+                    </select>
+                    <span className="block text-[11px] text-[#707070] dark:text-[#a1a1aa]">
+                      O endereço da obra será preenchido no passo 5.
+                    </span>
+                  </label>
+                ),
+              } : undefined}
               selects={{
                 grau: degreeOptions,
                 estado_nascimento: [
@@ -1298,32 +1336,14 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               {profileReligiosoId || memberMode ? (
                 <p className="text-sm text-[#707070] dark:text-[#a1a1aa]">A Secretaria mantém atualizados a obra, a comunidade e o endereço do Elenco.</p>
               ) : (
-                <>
-                  <p className="mb-4 text-sm text-[#707070] dark:text-[#a1a1aa]">Selecione a obra da Província à qual está vinculado. Os dados de localização serão exibidos a partir do cadastro da obra.</p>
-                  <Fields
-                    fields={['obra_atual_id']}
-                    base={base}
-                    update={(_, value) => {
-                      const obra = obras.find(item => item.id === value);
-                      setBase(previous => ({ ...previous, obra_atual_id: value, comunidade_atual_nome: obra?.nome || '' }));
-                      setErrorMessage(null);
-                    }}
-                    selects={{ obra_atual_id: obras.map(obra => ({ value: obra.id, label: obra.nome })) }}
-                  />
-                  {(() => {
-                    const obra = obras.find(item => item.id === base.obra_atual_id);
-                    if (!obra) return null;
-                    const endereco = [obra.logradouro, obra.numero, obra.complemento, obra.bairro].filter(Boolean).join(', ');
-                    const localidade = [obra.localidade || obra.cidade, obra.uf || obra.estado].filter(Boolean).join(' - ');
-                    return (
-                      <div className="mt-4 rounded-[6px] border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-800 dark:bg-white/[0.03]">
-                        <p className="font-semibold text-[#1d1d1f] dark:text-white">{obra.nome}</p>
-                        {endereco && <p className="mt-1 text-[#707070] dark:text-[#a1a1aa]">{endereco}</p>}
-                        {localidade && <p className="mt-1 text-[#707070] dark:text-[#a1a1aa]">{localidade}{obra.cep ? ` · CEP ${obra.cep}` : ''}</p>}
-                      </div>
-                    );
-                  })()}
-                </>
+                <div className="rounded-[6px] border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-800 dark:bg-white/[0.03]">
+                  <p className="font-semibold text-[#1d1d1f] dark:text-white">
+                    {base.comunidade_atual_nome || 'Nenhuma obra ou comunidade selecionada'}
+                  </p>
+                  <p className="mt-1 text-[#707070] dark:text-[#a1a1aa]">
+                    O endereço abaixo foi preenchido a partir da seleção feita no passo 1 e pode ser conferido ou ajustado.
+                  </p>
+                </div>
               )}
               <div className="mt-6 border-t border-[#e5e5ea] pt-6 dark:border-white/10">
                 <h3 className="mb-4 text-sm font-semibold text-[#1d1d1f] dark:text-white font-serif">Endereço e contatos</h3>
@@ -1500,7 +1520,8 @@ const Fields: React.FC<{
   otherFields?: Record<string, string>;
   onBlur?: (field: string) => void;
   idPrefix?: string;
-}> = ({ fields, base, update, selects = {}, invalidFields = [], readOnlyFields = [], requiredFields = [], otherFields = {}, onBlur, idPrefix = '' }) => (
+  afterField?: Record<string, React.ReactNode>;
+}> = ({ fields, base, update, selects = {}, invalidFields = [], readOnlyFields = [], requiredFields = [], otherFields = {}, onBlur, idPrefix = '', afterField = {} }) => (
   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
     {fields.map(field => {
       const isRequired = requiredFields.includes(field);
@@ -1508,64 +1529,67 @@ const Fields: React.FC<{
       const isReadOnly = readOnlyFields.includes(field);
       const fieldId = `${idPrefix}input-${field}`;
       return (
-        <label className="space-y-1.5 block" key={field} htmlFor={fieldId}>
-          <span className="text-[12px] font-medium text-[#707070] dark:text-[#86868b] flex items-center justify-between">
-            <span>
-              {getFieldLabel(field)}
-              {isRequired && <span className="text-rose-500 ml-1 font-bold">*</span>}
+        <React.Fragment key={field}>
+          <label className="space-y-1.5 block" htmlFor={fieldId}>
+            <span className="text-[12px] font-medium text-[#707070] dark:text-[#86868b] flex items-center justify-between">
+              <span>
+                {getFieldLabel(field)}
+                {isRequired && <span className="text-rose-500 ml-1 font-bold">*</span>}
+              </span>
+              {!isRequired && <span className="text-[10px] text-[#86868b] font-normal lowercase">(opcional)</span>}
             </span>
-            {!isRequired && <span className="text-[10px] text-[#86868b] font-normal lowercase">(opcional)</span>}
-          </span>
-          {selects[field] ? (
-            <select
-              id={fieldId}
-              required={isRequired}
-              className={`${inputClass} ${isInvalid ? '!border-rose-500 !ring-rose-500/20 ring-4 focus:!border-rose-500' : ''}`}
-              value={base[field] || ''}
-              disabled={isReadOnly}
-              onChange={event => update(field, event.target.value)}
-            >
-              <option value="">Selecione...</option>
-              {base[field] && !selects[field].some(option => typeof option === 'string' ? option === base[field] : option.value === base[field]) && (
-                <option value={base[field]}>{base[field]} (atual)</option>
-              )}
-              {selects[field]?.map(option =>
-                typeof option === 'string' ? (
-                  <option key={option} value={option}>{option}</option>
-                ) : (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                )
-              )}
-            </select>
-          ) : (
-            <input
-              id={fieldId}
-              required={isRequired}
-              className={`${inputClass} ${isInvalid ? '!border-rose-500 !ring-rose-500/20 ring-4 focus:!border-rose-500' : ''}`}
-              type={field.includes('data') || field === 'inicio' || field === 'fim'
-                ? 'date'
-                : field.includes('email') ? 'email' : field === 'ano' || field === 'renovacao' ? 'number' : 'text'}
-              min={field === 'renovacao' ? 1 : undefined}
-              step={field === 'renovacao' || field === 'ano' ? 1 : undefined}
-              value={base[field] || ''}
-              disabled={isReadOnly}
-              placeholder={field === 'cpf' ? '000.000.000-00' : field === 'cep' ? '00000-000' : isRequired ? '' : 'Opcional'}
-              onChange={event => update(field, field === 'cpf' ? formatCpf(event.target.value) : field === 'cep' ? formatCep(event.target.value) : event.target.value)}
-              onBlur={() => onBlur?.(field)}
-            />
-          )}
-          {otherFields[field] && base[field] === OTHER_LOCATION_VALUE && (
-            <input
-              id={`input-${otherFields[field]}`}
-              className={inputClass}
-              type="text"
-              value={base[otherFields[field]] || ''}
-              placeholder={`Informe ${getFieldLabel(field).toLowerCase()}`}
-              aria-label={`Informe ${getFieldLabel(field).toLowerCase()} não listado`}
-              onChange={event => update(otherFields[field], event.target.value)}
-            />
-          )}
-        </label>
+            {selects[field] ? (
+              <select
+                id={fieldId}
+                required={isRequired}
+                className={`${inputClass} ${isInvalid ? '!border-rose-500 !ring-rose-500/20 ring-4 focus:!border-rose-500' : ''}`}
+                value={base[field] || ''}
+                disabled={isReadOnly}
+                onChange={event => update(field, event.target.value)}
+              >
+                <option value="">Selecione...</option>
+                {base[field] && !selects[field].some(option => typeof option === 'string' ? option === base[field] : option.value === base[field]) && (
+                  <option value={base[field]}>{base[field]} (atual)</option>
+                )}
+                {selects[field]?.map(option =>
+                  typeof option === 'string' ? (
+                    <option key={option} value={option}>{option}</option>
+                  ) : (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  )
+                )}
+              </select>
+            ) : (
+              <input
+                id={fieldId}
+                required={isRequired}
+                className={`${inputClass} ${isInvalid ? '!border-rose-500 !ring-rose-500/20 ring-4 focus:!border-rose-500' : ''}`}
+                type={field.includes('data') || field === 'inicio' || field === 'fim'
+                  ? 'date'
+                  : field.includes('email') ? 'email' : field === 'ano' || field === 'renovacao' ? 'number' : 'text'}
+                min={field === 'renovacao' ? 1 : undefined}
+                step={field === 'renovacao' || field === 'ano' ? 1 : undefined}
+                value={base[field] || ''}
+                disabled={isReadOnly}
+                placeholder={field === 'cpf' ? '000.000.000-00' : field === 'cep' ? '00000-000' : isRequired ? '' : 'Opcional'}
+                onChange={event => update(field, field === 'cpf' ? formatCpf(event.target.value) : field === 'cep' ? formatCep(event.target.value) : event.target.value)}
+                onBlur={() => onBlur?.(field)}
+              />
+            )}
+            {otherFields[field] && base[field] === OTHER_LOCATION_VALUE && (
+              <input
+                id={`input-${otherFields[field]}`}
+                className={inputClass}
+                type="text"
+                value={base[otherFields[field]] || ''}
+                placeholder={`Informe ${getFieldLabel(field).toLowerCase()}`}
+                aria-label={`Informe ${getFieldLabel(field).toLowerCase()} não listado`}
+                onChange={event => update(otherFields[field], event.target.value)}
+              />
+            )}
+          </label>
+          {afterField[field]}
+        </React.Fragment>
       );
     })}
   </div>
