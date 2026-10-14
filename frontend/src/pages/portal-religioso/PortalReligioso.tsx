@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
-import { useTheme } from '../../contexts/ThemeContext';
 import { 
   User, Lock, Mail, Phone, Calendar, BookOpen, FileText, 
-  Hotel, LogOut, ChevronRight, UserCheck, ShieldCheck, 
-  Loader2, AlertCircle, CheckCircle2, Eye, EyeOff, Building, 
-  Home, Cake, Clock, ExternalLink, ArrowRight, ArrowLeft,
-  ChevronDown, Printer, Share2, MapPin, Download, Search, Tag, Filter, X
+  Hotel, LogOut, Loader2, AlertCircle, CheckCircle2, Eye, EyeOff,
+  Home, Clock, ExternalLink, ArrowRight, ArrowLeft,
+  ChevronDown, Printer, MapPin, Download, Search, X, Menu
 } from 'lucide-react';
 import MeuPerfilReligioso from '../MeuPerfilReligioso';
 import AnuarioBRM from '../AnuarioBRM';
@@ -36,11 +34,30 @@ interface CasaAcolhida {
   site?: string;
 }
 
+interface ReligiosoPortalData {
+  id?: string;
+  nome_religioso?: string | null;
+  nome_civil?: string | null;
+  grau?: string | null;
+  status_cadastro?: string | null;
+  comunidade_atual_nome?: string | null;
+  email_institucional?: string | null;
+  email_pessoal?: string | null;
+  telefone_whatsapp?: string | null;
+  telefone_celular?: string | null;
+  cpf?: string | null;
+  data_nascimento?: string | null;
+  foto_url?: string | null;
+  cargo_funcao?: string | null;
+}
+
+type PortalSection = 'inicio' | 'perfil' | 'inscricao' | 'ficha-pdf' | 'calendario' | 'documentos' | 'anuario' | 'hospedagem';
+
 const dataElencoHoje = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
 
 export const PortalReligioso: React.FC = () => {
   const { user, logout, refreshUserProfile } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const isE2E = import.meta.env.DEV && typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true';
 
   // Authentication State for Member Portal
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -52,7 +69,7 @@ export const PortalReligioso: React.FC = () => {
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
 
   // Active View inside Member Area: 'inicio' | 'perfil' | 'inscricao' | 'ficha-pdf' | 'calendario' | 'documentos' | 'anuario' | 'hospedagem'
-  const [activeSection, setActiveSection] = useState<'inicio' | 'perfil' | 'inscricao' | 'ficha-pdf' | 'calendario' | 'documentos' | 'anuario' | 'hospedagem'>('inicio');
+  const [activeSection, setActiveSection] = useState<PortalSection>('inicio');
 
   // Casas e Obras da Província BRM para Hospedagem
   const [casasAcolhida, setCasasAcolhida] = useState<CasaAcolhida[]>([]);
@@ -90,14 +107,19 @@ export const PortalReligioso: React.FC = () => {
 
   // Dropdown de Persona / Perfil SaaS
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+  const mobileMoreCloseRef = useRef<HTMLButtonElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Religious Profile Data
-  const [religiosoData, setReligiosoData] = useState<any>(null);
-  const [loadingProfile, setLoadingProfile] = useState(false);
-
-  // E2E Preview Mode for Member Portal
-  const isE2E = import.meta.env.DEV && typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true';
+  const [religiosoData, setReligiosoData] = useState<ReligiosoPortalData | null>(() => isE2E ? {
+    nome_religioso: 'Pe. Carlos Eduardo, SCJ',
+    nome_civil: 'Carlos Eduardo da Silva',
+    grau: 'Padre',
+    status_cadastro: 'Em revisão',
+    comunidade_atual_nome: 'Sede Provincial BRM, Curitiba/PR',
+    email_institucional: 'pe.carlos@brm.org.br',
+  } : null);
 
   // Helper CPF
   const formatCpf = (val: string) => {
@@ -106,67 +128,6 @@ export const PortalReligioso: React.FC = () => {
     if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
     if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
     return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
-  };
-
-  // Carregar perfil do religioso conectado
-  const loadMemberData = async () => {
-    if (!user && !isE2E) return;
-    setLoadingProfile(true);
-
-    try {
-      if (isE2E) {
-        setReligiosoData({
-          nome_religioso: 'Pe. Carlos Eduardo, SCJ',
-          nome_civil: 'Carlos Eduardo da Silva',
-          grau: 'Padre',
-          status_cadastro: 'Em revisão',
-          comunidade_atual_nome: 'Sede Provincial BRM, Curitiba/PR',
-          email_institucional: 'pe.carlos@brm.org.br',
-        });
-        setLoadingProfile(false);
-        return;
-      }
-
-      const { data } = await supabase
-        .from('religiosos')
-        .select('*')
-        .or(`auth_user_id.eq.${user?.id},email_institucional.eq.${user?.email},email_pessoal.eq.${user?.email}`)
-        .maybeSingle();
-
-      if (data) {
-        let comunidadeAtual = data.situacao_elenco === 'Ausente'
-          ? 'Ausente da Congregação'
-          : data.comunidade_atual_nome || '';
-        if (data.situacao_elenco !== 'Ausente') {
-          const hoje = dataElencoHoje();
-          const { data: designacoes, error: designacoesError } = await supabase
-            .from('religiosos_designacoes')
-            .select('tipo_vinculo,vigencia_inicio,vigencia_fim,comunidades(nome),religiosos_obras_referencia(nome)')
-            .eq('religioso_id', data.id);
-          if (designacoesError) {
-            showToast.error(`Não foi possível carregar a comunidade atual: ${designacoesError.message}`);
-            comunidadeAtual = '';
-          } else if (designacoes?.length) {
-            const atuais = designacoes.filter(item =>
-              (!item.vigencia_inicio || item.vigencia_inicio <= hoje)
-              && (!item.vigencia_fim || item.vigencia_fim >= hoje)
-            );
-            const prioridades = ['residencia', 'estudos', 'juridico'];
-            const designacao = prioridades
-              .map(tipo => atuais.find(item => item.tipo_vinculo === tipo))
-              .find(Boolean) || atuais[0];
-            comunidadeAtual = designacao
-              ? designacao.comunidades?.[0]?.nome || designacao.religiosos_obras_referencia?.[0]?.nome || ''
-              : '';
-          }
-        }
-        setReligiosoData({ ...data, comunidade_atual_nome: comunidadeAtual });
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingProfile(false);
-    }
   };
 
   // Carregar Casas e Obras oficiais da Província BRM para Hospedagem
@@ -217,8 +178,8 @@ export const PortalReligioso: React.FC = () => {
         if (error || !data || data.length === 0) {
           const saved = localStorage.getItem('brm_documentos_provinciais_v1');
           if (saved) {
-            const parsed = JSON.parse(saved).filter((d: any) => d.status === 'Ativo');
-            setDocumentos(parsed);
+            const parsed: DocumentoProvincial[] = JSON.parse(saved);
+            setDocumentos(parsed.filter(d => d.status === 'Ativo'));
           } else {
             setDocumentos([
               {
@@ -491,10 +452,57 @@ export const PortalReligioso: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (user || isE2E) {
-      loadMemberData();
-    }
-  }, [user]);
+    if (!user || isE2E) return;
+    let cancelled = false;
+
+    const loadMemberData = async () => {
+      try {
+        const { data } = await supabase
+          .from('religiosos')
+          .select('*')
+          .or(`auth_user_id.eq.${user.id},email_institucional.eq.${user.email},email_pessoal.eq.${user.email}`)
+          .maybeSingle();
+
+        if (!data || cancelled) return;
+
+        let comunidadeAtual = data.situacao_elenco === 'Ausente'
+          ? 'Ausente da Congregação'
+          : data.comunidade_atual_nome || '';
+        if (data.situacao_elenco !== 'Ausente') {
+          const hoje = dataElencoHoje();
+          const { data: designacoes, error: designacoesError } = await supabase
+            .from('religiosos_designacoes')
+            .select('tipo_vinculo,vigencia_inicio,vigencia_fim,comunidades(nome),religiosos_obras_referencia(nome)')
+            .eq('religioso_id', data.id);
+          if (cancelled) return;
+          if (designacoesError) {
+            showToast.error(`Não foi possível carregar a comunidade atual: ${designacoesError.message}`);
+            comunidadeAtual = '';
+          } else if (designacoes?.length) {
+            const atuais = designacoes.filter(item =>
+              (!item.vigencia_inicio || item.vigencia_inicio <= hoje)
+              && (!item.vigencia_fim || item.vigencia_fim >= hoje)
+            );
+            const prioridades = ['residencia', 'estudos', 'juridico'];
+            const designacao = prioridades
+              .map(tipo => atuais.find(item => item.tipo_vinculo === tipo))
+              .find(Boolean) || atuais[0];
+            comunidadeAtual = designacao
+              ? designacao.comunidades?.[0]?.nome || designacao.religiosos_obras_referencia?.[0]?.nome || ''
+              : '';
+          }
+        }
+        if (!cancelled) setReligiosoData({ ...data, comunidade_atual_nome: comunidadeAtual });
+      } catch (err) {
+        if (!cancelled) console.error(err);
+      }
+    };
+
+    void loadMemberData();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, isE2E]);
 
   // Fechar dropdown ao clicar fora
   useEffect(() => {
@@ -525,11 +533,11 @@ export const PortalReligioso: React.FC = () => {
     'Outros'
   ];
 
-  const getCategoriaCor = (_cat: CategoriaDocumento) => {
+  const getCategoriaCor = () => {
     return 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
   };
 
-  const getTipoCor = (_tipo: string) => {
+  const getTipoCor = () => {
     return 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
   };
 
@@ -558,7 +566,7 @@ export const PortalReligioso: React.FC = () => {
         return `${diaI} de ${mesNome}, ${anoI}`;
       }
 
-      const [anoF, mesF, diaF] = fim.split('-');
+      const [, mesF, diaF] = fim.split('-');
       if (mesI === mesF) {
         return `${diaI} a ${diaF} de ${mesNome}, ${anoI}`;
       }
@@ -593,6 +601,34 @@ export const PortalReligioso: React.FC = () => {
       (evt.publico_alvo && evt.publico_alvo.toLowerCase().includes(q));
     return matchTipo && matchSearch;
   });
+  const hoje = dataElencoHoje();
+  const proximoEvento = eventos
+    .filter(evt => !['Concluído', 'Cancelado'].includes(evt.status) && (evt.data_fim || evt.data_inicio) >= hoje)
+    .sort((a, b) => a.data_inicio.localeCompare(b.data_inicio))[0];
+  const documentoRecente = [...documentos].sort((a, b) => b.data_documento.localeCompare(a.data_documento))[0];
+
+  const navigateToSection = (section: PortalSection) => {
+    setActiveSection(section);
+    setMobileMoreOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    if (!mobileMoreOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    mobileMoreCloseRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileMoreOpen(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [mobileMoreOpen]);
 
   // Login Handler
   const handleLogin = async (e: React.FormEvent) => {
@@ -745,9 +781,9 @@ export const PortalReligioso: React.FC = () => {
       setAuthMode('login');
       setIdentificador(regCpf || regEmail);
       setSenha(regSenha);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setAuthError(err.message || 'Falha ao registrar conta de religioso.');
+      setAuthError(err instanceof Error ? err.message : 'Falha ao registrar conta de religioso.');
     } finally {
       setAuthLoading(false);
     }
@@ -1199,38 +1235,39 @@ export const PortalReligioso: React.FC = () => {
     <div className="min-h-screen bg-[#f5f5f7] dark:bg-[#000000] text-[#1d1d1f] dark:text-[#f5f5f7] flex flex-col font-sans transition-colors duration-300">
       
       {/* 1. BARRA SUPERIOR (HEADER APPLE FROSTED GLASS) */}
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#161617]/80 backdrop-blur-xl border-b border-[#d6d6d6]/60 dark:border-white/10 px-4 sm:px-8 py-3 flex items-center justify-between transition-colors">
+      <header className="sticky top-0 z-40 bg-white/90 dark:bg-[#161617]/90 backdrop-blur-xl border-b border-[#d6d6d6]/60 dark:border-white/10 px-3.5 sm:px-8 py-2.5 sm:py-3 flex items-center justify-between transition-colors">
         
         {/* Lado Esquerdo: Identidade do Portal */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           <div className="flex items-center shrink-0">
-            <img src="/logo-sistema.png" alt="Província BRM" className="h-8 w-auto object-contain select-none pointer-events-none dark:hidden" />
-            <img src="/logo-branco.png" alt="Província BRM" className="h-8 w-auto object-contain select-none pointer-events-none hidden dark:block" />
+            <img src="/logo-sistema.png" alt="Província BRM" className="h-7 sm:h-8 w-auto object-contain select-none pointer-events-none dark:hidden" />
+            <img src="/logo-branco.png" alt="Província BRM" className="h-7 sm:h-8 w-auto object-contain select-none pointer-events-none hidden dark:block" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
                 Província BRM
               </span>
-              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#f5f5f7] dark:bg-[#262628] text-[#707070] dark:text-[#86868b]">
+              <span className="hidden sm:inline text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#f5f5f7] dark:bg-[#262628] text-[#707070] dark:text-[#86868b]">
                 Área de Membros
               </span>
             </div>
-            <span className="text-[11px] text-[#707070] dark:text-[#86868b] block font-normal">
+            <span className="hidden sm:block text-[11px] text-[#707070] dark:text-[#86868b] font-normal">
               Portal do Confrade • Padres Dehonianos
             </span>
           </div>
         </div>
 
         {/* Lado Direito: Botão de Persona / Avatar Dropdown (SaaS Profissional) */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           
           <div className="relative" ref={userMenuRef}>
             <button
               type="button"
               data-testid="persona-menu-button"
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="motion-press flex items-center gap-2.5 pl-1.5 pr-3 py-1 rounded-full bg-white dark:bg-[#262628] border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#226380]/40 shadow-sm transition-all cursor-pointer group"
+              aria-label={`Menu da conta de ${displayName}`}
+              className="motion-press flex items-center gap-2 sm:gap-2.5 pl-1 pr-2 sm:pl-1.5 sm:pr-3 py-1.5 sm:py-1 rounded-full bg-white dark:bg-[#262628] border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#226380]/40 shadow-sm transition-all cursor-pointer group"
             >
               {/* Avatar do Confrade */}
               <div className="w-8 h-8 rounded-full bg-[#226380]/10 dark:bg-[#226380]/20 text-[#226380] font-semibold text-xs flex items-center justify-center overflow-hidden border border-[#226380]/20">
@@ -1324,7 +1361,7 @@ export const PortalReligioso: React.FC = () => {
                     <div>
                       <span className="font-semibold block">{registrationMenuLabel}</span>
                       <span className="text-[10px] text-[#707070] dark:text-[#86868b] block font-normal">
-                        Ficha oficial de 13 etapas da Província
+                        Ficha oficial em 6 etapas
                       </span>
                     </div>
                   </button>
@@ -1379,7 +1416,7 @@ export const PortalReligioso: React.FC = () => {
       </header>
 
       {/* 2. CORPO DO SITE: SIDEBAR + CONTEÚDO PRINCIPAL (APPLE FORMAT) */}
-      <div className="flex-1 flex max-w-[1400px] w-full mx-auto px-4 sm:px-6 py-6 gap-6">
+      <div className="flex-1 flex max-w-[1400px] w-full mx-auto px-3.5 sm:px-6 pt-4 sm:pt-6 pb-28 md:pb-6 gap-6">
         
         {/* SIDEBAR APPLE */}
         <aside className="w-64 shrink-0 hidden md:block space-y-6">
@@ -1473,39 +1510,207 @@ export const PortalReligioso: React.FC = () => {
           
           {/* SEÇÃO: INÍCIO / PAINEL DO CONFRADE */}
           {activeSection === 'inicio' && (
-            <div className="space-y-6">
+            <>
+            <div className="space-y-4 md:hidden">
+              <section className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-[#16485a] to-[#113240] p-4 text-white shadow-[0_8px_24px_rgba(17,50,64,0.16)]">
+                <div className="pointer-events-none absolute -right-10 -top-16 h-36 w-36 rounded-full border border-white/[0.08]" />
+                <div className="relative">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65">
+                      Portal do Confrade
+                    </span>
+                    {religiosoData?.comunidade_atual_nome && (
+                      <span className="flex min-w-0 items-center gap-1 text-[10px] text-white/70">
+                        <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
+                        <span className="max-w-[145px] truncate">{religiosoData.comunidade_atual_nome}</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <h2 className="mt-1.5 text-[20px] font-semibold leading-tight tracking-[-0.03em]">
+                    Olá, {displayName}
+                  </h2>
+
+                  <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/15 pt-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="text-[11px] text-white/65">Cadastro</span>
+                      <span className="truncate rounded-full bg-white/12 px-2.5 py-1 text-[11px] font-semibold">
+                        {religiosoData?.status_cadastro || 'Em revisão'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigateToSection('inscricao')}
+                      className="inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-full bg-white px-3.5 text-xs font-semibold text-[#113240] transition-colors hover:bg-white/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    >
+                      <span>{hasCompletedRegistration ? 'Revisar dados' : 'Completar cadastro'}</span>
+                      <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              <section aria-labelledby="mobile-next-event-title" className="rounded-[24px] border border-[#d6d6d6]/60 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:border-white/10 dark:bg-[#161617]">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#226380] dark:text-[#A3C3C7]">
+                      Fique por dentro
+                    </span>
+                    <h3 id="mobile-next-event-title" className="mt-1 text-base font-semibold text-[#1d1d1f] dark:text-white">
+                      Próximo compromisso
+                    </h3>
+                  </div>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7]">
+                    <Calendar className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                </div>
+                {proximoEvento ? (
+                  <>
+                    <p className="mt-4 text-sm font-semibold leading-snug text-[#1d1d1f] dark:text-white">
+                      {proximoEvento.titulo}
+                    </p>
+                    <p className="mt-1 text-xs text-[#707070] dark:text-[#a1a1a6]">
+                      {formatPeriodo(proximoEvento.data_inicio, proximoEvento.data_fim)}
+                      {proximoEvento.horario ? ` · ${proximoEvento.horario}` : ''}
+                    </p>
+                    {proximoEvento.local && (
+                      <p className="mt-1 flex items-center gap-1.5 text-xs text-[#707070] dark:text-[#a1a1a6]">
+                        <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        <span>{[proximoEvento.local, proximoEvento.cidade, proximoEvento.uf].filter(Boolean).join(' · ')}</span>
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="mt-3 text-sm leading-relaxed text-[#707070] dark:text-[#a1a1a6]">
+                    Não há próximos compromissos publicados. Quando houver novidades, elas aparecerão aqui.
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => navigateToSection('calendario')}
+                  className="mt-4 inline-flex min-h-11 w-full items-center justify-between rounded-xl bg-[#f5f5f7] px-4 text-sm font-semibold text-[#226380] transition-colors hover:bg-[#e9eef0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380] dark:bg-[#262628] dark:text-[#A3C3C7] dark:hover:bg-[#303033]"
+                >
+                  <span>Ver agenda completa</span>
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </section>
+
+              {documentoRecente && (
+                <section aria-labelledby="mobile-recent-document-title" className="rounded-[24px] border border-[#d6d6d6]/60 bg-white p-5 dark:border-white/10 dark:bg-[#161617]">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#707070] dark:text-[#a1a1a6]">
+                        Publicação recente
+                      </span>
+                      <h3 id="mobile-recent-document-title" className="mt-1 text-base font-semibold text-[#1d1d1f] dark:text-white">
+                        Documento oficial
+                      </h3>
+                    </div>
+                    <FileText className="h-5 w-5 shrink-0 text-[#226380] dark:text-[#A3C3C7]" aria-hidden="true" />
+                  </div>
+                  <p className="mt-3 text-sm font-medium leading-snug text-[#1d1d1f] dark:text-white">
+                    {documentoRecente.titulo}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigateToSection('documentos')}
+                    className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#226380] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380] dark:text-[#A3C3C7]"
+                  >
+                    Explorar documentos
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </section>
+              )}
+
+              <section aria-labelledby="mobile-services-title" className="space-y-3 pb-1">
+                <div className="px-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#707070] dark:text-[#a1a1a6]">
+                    Para você
+                  </span>
+                  <h3 id="mobile-services-title" className="mt-1 text-lg font-semibold text-[#1d1d1f] dark:text-white">
+                    Acessos rápidos
+                  </h3>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {([
+                    { id: 'documentos', label: 'Documentos', detail: `${documentos.length} publicações`, icon: FileText },
+                    { id: 'hospedagem', label: 'Hospedagem', detail: 'Casas da Província', icon: Hotel },
+                  ] as const).map(item => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => navigateToSection(item.id)}
+                        className="flex min-h-32 flex-col items-start justify-between rounded-[22px] border border-[#d6d6d6]/60 bg-white p-4 text-left transition-colors hover:border-[#226380]/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380] dark:border-white/10 dark:bg-[#161617]"
+                      >
+                        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7]">
+                          <Icon className="h-5 w-5" aria-hidden="true" />
+                        </span>
+                        <span>
+                          <span className="block text-sm font-semibold text-[#1d1d1f] dark:text-white">{item.label}</span>
+                          <span className="mt-0.5 block text-[11px] text-[#707070] dark:text-[#a1a1a6]">{item.detail}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            </div>
+
+            <div className="hidden space-y-4 sm:space-y-6 md:block">
               
               {/* Masthead Arquitetural do Confrade (Apple Showcase Card) */}
-              <div className="bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-7 sm:p-9 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+              <div className="bg-white dark:bg-[#161617] rounded-[24px] sm:rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-5 sm:p-9 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#707070] dark:text-[#86868b] block mb-1">
                       Sint Unum • Padres Dehonianos
                     </span>
-                    <h2 className="text-2xl sm:text-[30px] font-semibold tracking-[-0.03em] text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    <h2 className="text-xl sm:text-[30px] font-semibold tracking-[-0.03em] text-[#1d1d1f] dark:text-[#f5f5f7]">
                       Saudação fraterna, {displayName}
                     </h2>
-                    <p className="text-xs sm:text-sm text-[#707070] dark:text-[#86868b] font-normal mt-1">
+                    <p className="text-xs sm:text-sm text-[#707070] dark:text-[#86868b] font-normal mt-1 leading-relaxed">
                       Bem-vindo ao espaço digital de comunhão, serviços e acompanhamento canônico da Província BRM.
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+                  <div className="hidden sm:flex items-center gap-2 self-start md:self-auto shrink-0">
                     <span className="px-4 py-1.5 rounded-full text-xs font-medium bg-[#f5f5f7] dark:bg-[#262628] text-[#1d1d1f] dark:text-[#f5f5f7] border border-[#d6d6d6]/60 dark:border-white/10">
                       Status: {religiosoData?.status_cadastro || 'Em revisão'}
                     </span>
                   </div>
                 </div>
+                <div className="mt-5 flex flex-col gap-3 border-t border-[#d6d6d6]/40 dark:border-white/5 pt-4 sm:hidden">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs text-[#707070] dark:text-[#86868b]">Situação do cadastro</span>
+                    <span className="rounded-full bg-[#f5f5f7] dark:bg-[#262628] px-3 py-1 text-[11px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
+                      {religiosoData?.status_cadastro || 'Em revisão'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSection('inscricao')}
+                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#226380] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#113240] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#226380]"
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span>{hasCompletedRegistration ? 'Revisar meus dados' : 'Completar meu cadastro'}</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                  <p className="text-[11px] leading-relaxed text-[#707070] dark:text-[#86868b]">
+                    Confira seus dados e envie correções à Secretaria Provincial. Comunidade e designações oficiais são mantidas pela Secretaria.
+                  </p>
+                </div>
               </div>
 
               {/* 5 Cards de Acesso Rápido (Apple Showcase Cards) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
                 
                 {/* 01 / Meu Perfil */}
                 <div 
                   onClick={() => setActiveSection('perfil')}
                   style={staggerStyle(0)}
-                  className="rounded-[24px] bg-white dark:bg-[#161617] p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
+                  className="rounded-[20px] sm:rounded-[24px] bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
                 >
                   <div>
                     <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#0071e3] mb-3 group-hover:scale-105 transition-transform">
@@ -1528,7 +1733,7 @@ export const PortalReligioso: React.FC = () => {
                 <div 
                   onClick={() => setActiveSection('inscricao')}
                   style={staggerStyle(1)}
-                  className="rounded-[24px] bg-white dark:bg-[#161617] p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
+                  className="rounded-[20px] sm:rounded-[24px] bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
                 >
                   <div>
                     <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#0071e3] mb-3 group-hover:scale-105 transition-transform">
@@ -1542,7 +1747,7 @@ export const PortalReligioso: React.FC = () => {
                     </h3>
                   </div>
                   <div className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs font-medium text-[#0066cc] dark:text-[#2997ff]">
-                    <span>13 etapas oficiais</span>
+                    <span>6 etapas • revisar dados</span>
                     <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
                   </div>
                 </div>
@@ -1551,7 +1756,7 @@ export const PortalReligioso: React.FC = () => {
                 <div 
                   onClick={() => setActiveSection('documentos')}
                   style={staggerStyle(2)}
-                  className="rounded-[24px] bg-white dark:bg-[#161617] p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
+                  className="rounded-[20px] sm:rounded-[24px] bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
                 >
                   <div>
                     <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#0071e3] mb-3 group-hover:scale-105 transition-transform">
@@ -1574,7 +1779,7 @@ export const PortalReligioso: React.FC = () => {
                 <div 
                   onClick={() => setActiveSection('ficha-pdf')}
                   style={staggerStyle(3)}
-                  className="rounded-[24px] bg-white dark:bg-[#161617] p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
+                  className="rounded-[20px] sm:rounded-[24px] bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
                 >
                   <div>
                     <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#0071e3] mb-3 group-hover:scale-105 transition-transform">
@@ -1597,16 +1802,16 @@ export const PortalReligioso: React.FC = () => {
                 <div 
                   onClick={() => setActiveSection('anuario')}
                   style={staggerStyle(4)}
-                  className="rounded-[24px] bg-white dark:bg-[#161617] p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
+                  className="rounded-[20px] sm:rounded-[24px] bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
                 >
                   <div>
                     <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#0071e3] mb-3 group-hover:scale-105 transition-transform">
                       <BookOpen className="w-5 h-5" />
                     </div>
-                    <span className="text-[10px] font-semibold tracking-wider text-[#707070] dark:text-[#86868b] block mb-1">
+                    <span className="text-[9px] sm:text-[10px] font-semibold tracking-wider text-[#707070] dark:text-[#86868b] block mb-1">
                       05 / DIRETÓRIO
                     </span>
-                    <h3 className="text-[15px] font-semibold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    <h3 className="text-[13px] sm:text-[15px] font-semibold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
                       Anuário BRM
                     </h3>
                   </div>
@@ -1680,7 +1885,7 @@ export const PortalReligioso: React.FC = () => {
                         <div key={doc.id} style={staggerStyle(idx)} className="py-3 flex items-start justify-between gap-3 motion-stagger-item">
                           <div className="space-y-0.5 min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold border ${getCategoriaCor(doc.categoria)}`}>
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold border ${getCategoriaCor()}`}>
                                 {doc.categoria}
                               </span>
                               {doc.numero_referencia && (
@@ -1766,7 +1971,7 @@ export const PortalReligioso: React.FC = () => {
                       className="p-4 rounded-[20px] bg-[#fbfbfd] dark:bg-[#1f1f21] border border-[#d6d6d6]/60 dark:border-white/10 flex flex-col justify-between gap-3 motion-lift motion-press motion-stagger-item"
                     >
                       <div className="space-y-1.5">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getTipoCor(evt.tipo)}`}>
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getTipoCor()}`}>
                           {evt.tipo}
                         </span>
                         <h4 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] leading-snug">
@@ -1786,6 +1991,7 @@ export const PortalReligioso: React.FC = () => {
               </div>
 
             </div>
+            </>
           )}
 
           {/* SEÇÃO: MEU PERFIL */}
@@ -1869,13 +2075,13 @@ export const PortalReligioso: React.FC = () => {
                 </button>
               </div>
 
-              <div className="bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-7 sm:p-9 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+              <div className="bg-white dark:bg-[#161617] rounded-[24px] sm:rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-5 sm:p-9 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                   <div>
                     <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#707070] dark:text-[#86868b] block mb-1">
                       Província BRM • Calendário Litúrgico e Provincial
                     </span>
-                    <h2 className="text-2xl font-semibold tracking-[-0.03em] text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    <h2 className="text-xl sm:text-2xl font-semibold tracking-[-0.03em] text-[#1d1d1f] dark:text-[#f5f5f7]">
                       Agenda Provincial 2026
                     </h2>
                     <p className="text-xs sm:text-sm text-[#707070] dark:text-[#86868b] font-normal mt-1 leading-relaxed max-w-2xl">
@@ -1888,8 +2094,26 @@ export const PortalReligioso: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Filtros por Tipo de Evento */}
-                <div className="flex flex-wrap gap-2 pt-4 border-t border-[#d6d6d6]/40 dark:border-white/5 mb-4">
+                {/* Filtro compacto para celular */}
+                <div className="border-t border-[#d6d6d6]/40 pt-4 dark:border-white/5 sm:hidden">
+                  <label htmlFor="mobile-event-filter" className="mb-1.5 block text-xs font-medium text-[#707070] dark:text-[#a1a1a6]">
+                    Filtrar por tipo de evento
+                  </label>
+                  <select
+                    id="mobile-event-filter"
+                    value={eventoFiltroTipo}
+                    onChange={event => setEventoFiltroTipo(event.target.value)}
+                    className="min-h-12 w-full rounded-xl border border-[#d6d6d6]/60 bg-[#f5f5f7] px-3 text-base text-[#1d1d1f] outline-none focus:border-[#226380] dark:border-white/10 dark:bg-[#262628] dark:text-white"
+                  >
+                    {['Todos', 'Assembleia', 'Retiro', 'Reunião', 'Encontro', 'Celebração / Solenidade', 'Visita Canônica', 'Outro'].map(tipo => {
+                      const count = tipo === 'Todos' ? eventos.length : eventos.filter(evento => evento.tipo === tipo).length;
+                      return <option key={tipo} value={tipo}>{tipo} ({count})</option>;
+                    })}
+                  </select>
+                </div>
+
+                {/* Filtros por Tipo de Evento para telas maiores */}
+                <div className="mb-4 hidden flex-wrap gap-2 border-t border-[#d6d6d6]/40 pt-4 dark:border-white/5 sm:flex">
                   {['Todos', 'Assembleia', 'Retiro', 'Reunião', 'Encontro', 'Celebração / Solenidade', 'Visita Canônica', 'Outro'].map((tipo) => {
                     const count = tipo === 'Todos' ? eventos.length : eventos.filter(e => e.tipo === tipo).length;
                     return (
@@ -1910,14 +2134,14 @@ export const PortalReligioso: React.FC = () => {
                 </div>
 
                 {/* Barra de Busca de Eventos */}
-                <div className="relative mb-6">
+                <div className="relative mb-5 mt-4 sm:mt-0 sm:mb-6">
                   <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#707070] dark:text-[#86868b]" />
                   <input
                     type="text"
                     value={eventoSearch}
                     onChange={(e) => setEventoSearch(e.target.value)}
-                    placeholder="Filtrar eventos por título, localidade, cidade ou público..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#161617] rounded-full text-xs sm:text-sm text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#707070] dark:placeholder-[#86868b] transition-all outline-none"
+                    placeholder="Buscar evento, local ou cidade"
+                    className="min-h-12 w-full pl-10 pr-10 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#161617] rounded-xl sm:rounded-full text-base sm:text-sm text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#707070] dark:placeholder-[#86868b] transition-all outline-none"
                   />
                   {eventoSearch && (
                     <button
@@ -1943,10 +2167,10 @@ export const PortalReligioso: React.FC = () => {
                 ) : (
                   <div className="divide-y divide-[#d6d6d6]/40 dark:divide-white/5">
                     {eventosFiltrados.map((evt, idx) => (
-                      <div key={evt.id} style={staggerStyle(idx)} className="py-5 px-3 rounded-[18px] flex flex-col md:flex-row justify-between md:items-center gap-4 hover:bg-[#f5f5f7] dark:hover:bg-[#262628] transition-colors motion-stagger-item">
+                      <div key={evt.id} style={staggerStyle(idx)} className="my-2 rounded-[20px] border border-[#d6d6d6]/50 bg-white p-4 flex flex-col md:flex-row md:justify-between md:items-center gap-4 hover:bg-[#f5f5f7] dark:border-white/10 dark:bg-[#1f1f21] dark:hover:bg-[#262628] transition-colors motion-stagger-item sm:border-0 sm:bg-transparent sm:px-3 sm:py-5 sm:dark:bg-transparent">
                         <div className="space-y-1.5 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${getTipoCor(evt.tipo)}`}>
+                            <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${getTipoCor()}`}>
                               {evt.tipo}
                             </span>
                             {evt.publico_alvo && (
@@ -1993,8 +2217,8 @@ export const PortalReligioso: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="self-start md:self-auto shrink-0 flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                          <span className="inline-flex items-center gap-1.5 rounded-[6px] px-3.5 py-1.5 text-xs font-semibold bg-[#f5f5f7] dark:bg-[#1d1d1f] text-[#1d1d1f] dark:text-[#f5f5f7] border border-[#d6d6d6]/60 dark:border-white/10 whitespace-nowrap shadow-sm">
+                        <div className="w-full shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 md:w-auto">
+                          <span className="inline-flex min-h-10 items-center gap-1.5 self-start rounded-[6px] px-3.5 py-1.5 text-xs font-semibold bg-[#f5f5f7] dark:bg-[#1d1d1f] text-[#1d1d1f] dark:text-[#f5f5f7] border border-[#d6d6d6]/60 dark:border-white/10 whitespace-nowrap shadow-sm">
                             <Calendar className="w-3.5 h-3.5 text-[#226380]" />
                             {formatPeriodo(evt.data_inicio, evt.data_fim)}
                           </span>
@@ -2019,7 +2243,7 @@ export const PortalReligioso: React.FC = () => {
                                       setFormularioInscricaoAtivo(formVinculado);
                                     }
                                   }}
-                                  className="inline-flex items-center gap-1.5 rounded-[6px] px-4 py-2 text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-[#113240] dark:text-white border border-slate-300 dark:border-slate-700 whitespace-nowrap cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                                  className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-1.5 rounded-[6px] px-4 py-2 text-sm sm:text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-[#113240] dark:text-white border border-slate-300 dark:border-slate-700 sm:whitespace-nowrap cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                                 >
                                   <CheckCircle2 className="w-3.5 h-3.5 text-[#226380]" />
                                   <span>Inscrição ({jaInscrito.protocolo})</span>
@@ -2038,7 +2262,7 @@ export const PortalReligioso: React.FC = () => {
                                     showToast.info('O formulário para este evento está em fase de homologação pela Secretaria.');
                                   }
                                 }}
-                                className="inline-flex items-center gap-1.5 rounded-[6px] px-4 py-2 text-xs font-semibold bg-[#113240] text-white hover:bg-[#226380] whitespace-nowrap shadow-sm cursor-pointer transition-all active:scale-95"
+                                className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-1.5 rounded-[6px] px-4 py-2 text-sm sm:text-xs font-semibold bg-[#113240] text-white hover:bg-[#226380] sm:whitespace-nowrap shadow-sm cursor-pointer transition-all active:scale-95"
                               >
                                 <FileText className="w-3.5 h-3.5" />
                                 <span>Inscrever-se no Evento</span>
@@ -2069,13 +2293,13 @@ export const PortalReligioso: React.FC = () => {
               </div>
 
               {/* Header Apple Style */}
-              <div className="bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-7 sm:p-9 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+              <div className="bg-white dark:bg-[#161617] rounded-[24px] sm:rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-5 sm:p-9 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#707070] dark:text-[#86868b] block mb-1">
                       Secretaria Provincial • Atos Oficiais & Decretos
                     </span>
-                    <h2 className="text-2xl font-semibold tracking-[-0.03em] text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    <h2 className="text-xl sm:text-2xl font-semibold tracking-[-0.03em] text-[#1d1d1f] dark:text-[#f5f5f7]">
                       Documentos Oficiais da Província BRM
                     </h2>
                     <p className="text-xs sm:text-sm text-[#707070] dark:text-[#86868b] font-normal mt-1 leading-relaxed max-w-2xl">
@@ -2089,11 +2313,11 @@ export const PortalReligioso: React.FC = () => {
                 </div>
 
                 {/* Categorias Pills Filter */}
-                <div className="flex flex-wrap gap-2 pt-6 mt-6 border-t border-[#d6d6d6]/40 dark:border-white/5">
+                <div className="mt-5 flex snap-x snap-mandatory gap-2 overflow-x-auto border-t border-[#d6d6d6]/40 pt-4 pb-1 dark:border-white/5 sm:mt-6 sm:flex-wrap sm:overflow-visible sm:pt-6">
                   <button
                     type="button"
                     onClick={() => setDocCategoria('Todas')}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    className={`min-h-10 shrink-0 snap-start px-3.5 py-2 rounded-full text-xs font-medium transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380] ${
                       docCategoria === 'Todas'
                         ? 'bg-[#1d1d1f] dark:bg-white text-white dark:text-[#1d1d1f]'
                         : 'bg-[#f5f5f7] dark:bg-[#262628] text-[#707070] dark:text-[#86868b] hover:bg-[#e8e8ed] dark:hover:bg-[#333336]'
@@ -2108,7 +2332,7 @@ export const PortalReligioso: React.FC = () => {
                         key={cat}
                         type="button"
                         onClick={() => setDocCategoria(cat)}
-                        className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        className={`min-h-10 shrink-0 snap-start px-3.5 py-2 rounded-full text-xs font-medium transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380] ${
                           docCategoria === cat
                             ? 'bg-[#0071e3] text-white shadow-sm'
                             : 'bg-[#f5f5f7] dark:bg-[#262628] text-[#707070] dark:text-[#86868b] hover:bg-[#e8e8ed] dark:hover:bg-[#333336]'
@@ -2121,19 +2345,21 @@ export const PortalReligioso: React.FC = () => {
                 </div>
 
                 {/* Barra de Busca de Documentos */}
-                <div className="mt-4 relative">
+                <div className="relative mt-4">
                   <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#707070] dark:text-[#86868b]" />
                   <input
                     type="text"
                     value={docSearch}
                     onChange={(e) => setDocSearch(e.target.value)}
-                    placeholder="Buscar por título, assunto, número de protocolo ou referência..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#161617] rounded-full text-xs sm:text-sm text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#707070] dark:placeholder-[#86868b] transition-all outline-none"
+                    aria-label="Buscar documentos oficiais"
+                    placeholder="Buscar título, assunto ou referência"
+                    className="min-h-12 w-full rounded-xl bg-[#f5f5f7] py-2.5 pl-10 pr-12 text-base text-[#1d1d1f] outline-none transition-all placeholder:text-[#707070] focus:border-[#0071e3] focus:bg-white dark:bg-[#262628] dark:text-[#f5f5f7] dark:placeholder:text-[#86868b] dark:focus:bg-[#161617] sm:rounded-full sm:text-sm"
                   />
                   {docSearch && (
                     <button
                       type="button"
                       onClick={() => setDocSearch('')}
+                      aria-label="Limpar busca de documentos"
                       className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#707070] hover:text-[#1d1d1f] dark:hover:text-white"
                     >
                       <X className="w-4 h-4" />
@@ -2176,11 +2402,11 @@ export const PortalReligioso: React.FC = () => {
                     <div
                       key={doc.id}
                       style={staggerStyle(idx)}
-                      className="bg-white dark:bg-[#161617] rounded-[24px] border border-[#d6d6d6]/60 dark:border-white/10 p-6 flex flex-col justify-between hover:border-[#0071e3]/40 dark:hover:border-[#2997ff]/40 transition-all shadow-[0_2px_12px_rgba(0,0,0,0.02)] motion-stagger-item motion-lift"
+                      className="bg-white dark:bg-[#161617] rounded-[22px] sm:rounded-[24px] border border-[#d6d6d6]/60 dark:border-white/10 p-4 sm:p-6 flex flex-col justify-between hover:border-[#0071e3]/40 dark:hover:border-[#2997ff]/40 transition-all shadow-[0_2px_12px_rgba(0,0,0,0.02)] motion-stagger-item motion-lift"
                     >
                       <div className="space-y-3">
                         <div className="flex items-center justify-between gap-2">
-                          <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${getCategoriaCor(doc.categoria)}`}>
+                          <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${getCategoriaCor()}`}>
                             {doc.categoria}
                           </span>
                           <span className="text-[11px] text-[#707070] dark:text-[#86868b] font-medium">
@@ -2188,9 +2414,11 @@ export const PortalReligioso: React.FC = () => {
                           </span>
                         </div>
 
-                        <div 
-                          className="cursor-pointer group/title"
+                        <button
+                          type="button"
+                          className="w-full cursor-pointer text-left group/title focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380]"
                           onClick={() => setDocumentoLeitura(doc)}
+                          aria-label={`Ler ${doc.titulo}`}
                         >
                           {doc.numero_referencia && (
                             <span className="text-[11px] font-mono text-[#226380] dark:text-[#64b5f6] block mb-1">
@@ -2200,7 +2428,7 @@ export const PortalReligioso: React.FC = () => {
                           <h3 className="text-[16px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] group-hover/title:text-[#226380] dark:group-hover/title:text-[#64b5f6] transition-colors leading-snug font-cinzel">
                             {doc.titulo}
                           </h3>
-                        </div>
+                        </button>
 
                         {doc.descricao && (
                           <p className="text-xs text-[#707070] dark:text-[#86868b] leading-relaxed line-clamp-2">
@@ -2208,25 +2436,24 @@ export const PortalReligioso: React.FC = () => {
                           </p>
                         )}
 
-                        <div className="flex items-center gap-3 text-[11px] text-[#707070] dark:text-[#86868b] pt-1">
-                          <span className="truncate max-w-[220px]" title={doc.arquivo_nome}>
-                            📄 {doc.arquivo_nome}
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[#707070] dark:text-[#86868b] pt-1">
+                          <span className="min-w-0 max-w-full truncate sm:max-w-[220px]" title={doc.arquivo_nome}>
+                            {doc.arquivo_nome}
                           </span>
-                          <span>•</span>
-                          <span>{formatFileSize(doc.arquivo_tamanho_bytes)}</span>
+                          <span className="shrink-0">· {formatFileSize(doc.arquivo_tamanho_bytes)}</span>
                         </div>
                       </div>
 
-                      <div className="pt-5 mt-4 border-t border-[#d6d6d6]/40 dark:border-white/5 flex flex-wrap items-center justify-between gap-3">
-                        <span className="text-[11px] text-[#707070] dark:text-[#86868b] font-mono">
+                      <div className="mt-4 flex flex-col gap-3 border-t border-[#d6d6d6]/40 pt-4 dark:border-white/5 sm:mt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:pt-5">
+                        <span className="text-[11px] text-[#707070] dark:text-[#86868b]">
                           {doc.publicado_por || 'Secretaria Provincial'}
                         </span>
 
-                        <div className="flex items-center gap-2">
+                        <div className="grid grid-cols-[1fr_auto] gap-2">
                           <button
                             type="button"
                             onClick={() => setDocumentoLeitura(doc)}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#113240] hover:bg-[#1a4a5e] dark:bg-[#226380] dark:hover:bg-[#1b526b] text-white text-xs font-medium transition-all shadow-sm active:scale-[0.99] cursor-pointer motion-press"
+                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#113240] px-3 sm:px-4 text-sm sm:text-xs font-medium text-white shadow-sm transition-all hover:bg-[#1a4a5e] active:scale-[0.99] cursor-pointer motion-press dark:bg-[#226380] dark:hover:bg-[#1b526b]"
                           >
                             <BookOpen className="w-3.5 h-3.5" />
                             <span>Ler Documento</span>
@@ -2235,7 +2462,7 @@ export const PortalReligioso: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => downloadArquivo(doc.arquivo_url, doc.arquivo_nome)}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#161617] hover:bg-slate-50 dark:hover:bg-[#262628] text-slate-700 dark:text-slate-300 text-xs font-medium transition-all shadow-xs cursor-pointer motion-press"
+                            className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 shadow-xs transition-all hover:bg-slate-50 cursor-pointer motion-press dark:border-slate-700 dark:bg-[#161617] dark:text-slate-300 dark:hover:bg-[#262628]"
                             title="Baixar arquivo original"
                           >
                             <Download className="w-3.5 h-3.5" />
@@ -2264,12 +2491,12 @@ export const PortalReligioso: React.FC = () => {
                 </button>
               </div>
 
-              <div className="bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-8 sm:p-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+              <div className="bg-white dark:bg-[#161617] rounded-[24px] sm:rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-5 sm:p-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 sm:gap-6 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
                 <div>
                   <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#707070] dark:text-[#86868b] block mb-1">
                     Acolhida Fraterna • Província BRM
                   </span>
-                  <h2 className="text-2xl font-semibold tracking-[-0.03em] text-[#1d1d1f] dark:text-[#f5f5f7]">
+                  <h2 className="text-xl sm:text-2xl font-semibold tracking-[-0.03em] text-[#1d1d1f] dark:text-[#f5f5f7]">
                     Hospedagem & Acolhida Fraterna
                   </h2>
                   <p className="text-xs sm:text-sm text-[#707070] dark:text-[#86868b] font-normal mt-1 leading-relaxed max-w-2xl">
@@ -2281,7 +2508,7 @@ export const PortalReligioso: React.FC = () => {
                   href="/inscricao"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-6 py-3.5 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white text-[14px] font-medium transition-all flex items-center gap-2 cursor-pointer self-start sm:self-auto shrink-0 shadow-sm active:scale-[0.99]"
+                  className="inline-flex min-h-12 w-full sm:w-auto justify-center px-5 sm:px-6 py-3 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-sm font-semibold transition-all items-center gap-2 cursor-pointer self-start sm:self-auto shrink-0 shadow-sm active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0071e3]"
                 >
                   <span>Ficha Geral de Inscrição</span>
                   <ExternalLink className="w-4 h-4" />
@@ -2292,7 +2519,7 @@ export const PortalReligioso: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-[17px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight">
+                    <h3 className="text-base sm:text-[17px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight">
                       Casas e Obras de Acolhida da Província BRM
                     </h3>
                     <p className="text-xs text-[#707070] dark:text-[#86868b] mt-0.5">
@@ -2310,20 +2537,20 @@ export const PortalReligioso: React.FC = () => {
                         <div
                           key={casa.id}
                           style={staggerStyle(idx)}
-                          className="bg-white dark:bg-[#161617] rounded-[24px] border border-[#d6d6d6]/60 dark:border-white/10 p-6 flex flex-col justify-between hover:border-[#0071e3]/40 dark:hover:border-[#2997ff]/40 transition-all shadow-[0_2px_12px_rgba(0,0,0,0.02)] motion-stagger-item motion-lift"
+                          className="bg-white dark:bg-[#161617] rounded-[22px] sm:rounded-[24px] border border-[#d6d6d6]/60 dark:border-white/10 p-4 sm:p-6 flex flex-col justify-between hover:border-[#0071e3]/40 dark:hover:border-[#2997ff]/40 transition-all shadow-[0_2px_12px_rgba(0,0,0,0.02)] motion-stagger-item motion-lift"
                         >
                           <div>
-                            <div className="flex items-center justify-between gap-2 mb-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                               <span className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#f5f5f7] dark:bg-[#262628] text-[#1d1d1f] dark:text-[#f5f5f7] border border-[#d6d6d6]/60 dark:border-white/10">
                                 {casa.tipo || 'Casa / Obra'}
                               </span>
-                              <span className="text-xs text-[#707070] dark:text-[#86868b] font-medium flex items-center gap-1">
+                              <span className="max-w-full text-xs text-[#707070] dark:text-[#86868b] font-medium flex items-center gap-1">
                                 <MapPin className="w-3.5 h-3.5 text-[#0071e3]" />
                                 {loc}
                               </span>
                             </div>
 
-                            <h4 className="text-[16px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight mb-2">
+                            <h4 className="text-[15px] sm:text-[16px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight mb-2">
                               {casa.nome}
                             </h4>
 
@@ -2335,26 +2562,26 @@ export const PortalReligioso: React.FC = () => {
 
                             <div className="space-y-1 text-[11px] text-[#707070] dark:text-[#86868b]">
                               {casa.telefone && (
-                                <div className="flex items-center gap-1.5">
+                                <a href={`tel:${casa.telefone.replace(/[^\d+]/g, '')}`} className="flex min-h-10 items-center gap-2 break-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380]">
                                   <Phone className="w-3 h-3 text-[#707070]" />
                                   <span>{casa.telefone}</span>
-                                </div>
+                                </a>
                               )}
                               {casa.email && (
-                                <div className="flex items-center gap-1.5 truncate">
+                                <a href={`mailto:${casa.email}`} className="flex min-h-10 min-w-0 items-center gap-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380]">
                                   <Mail className="w-3 h-3 text-[#707070] shrink-0" />
                                   <span className="truncate">{casa.email}</span>
-                                </div>
+                                </a>
                               )}
                             </div>
                           </div>
 
-                          <div className="pt-5 mt-4 border-t border-[#d6d6d6]/40 dark:border-white/5">
+                          <div className="pt-4 mt-4 border-t border-[#d6d6d6]/40 dark:border-white/5">
                             <a
                               href={`/inscricao?casa=${encodeURIComponent(casa.nome)}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="w-full py-2.5 px-4 rounded-full bg-[#f5f5f7] dark:bg-[#262628] hover:bg-[#0071e3] hover:text-white dark:hover:bg-[#0071e3] text-[#1d1d1f] dark:text-[#f5f5f7] text-[13px] font-medium transition-all flex items-center justify-center gap-2 cursor-pointer border border-[#d6d6d6]/60 dark:border-white/10 group"
+                              className="w-full min-h-12 py-3 px-3 sm:px-4 rounded-full bg-[#f5f5f7] dark:bg-[#262628] hover:bg-[#0071e3] hover:text-white dark:hover:bg-[#0071e3] text-[#1d1d1f] dark:text-[#f5f5f7] text-sm font-medium transition-all flex items-center justify-center gap-2 cursor-pointer border border-[#d6d6d6]/60 dark:border-white/10 group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0071e3]"
                             >
                               <span>Solicitar Estadia Nesta Casa</span>
                               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -2374,6 +2601,116 @@ export const PortalReligioso: React.FC = () => {
           )}
         </main>
       </div>
+
+      <nav
+        aria-label="Navegação principal"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-[#d6d6d6]/70 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(0,0,0,0.06)] backdrop-blur-xl dark:border-white/10 dark:bg-[#161617]/95 md:hidden"
+      >
+        <div className="mx-auto grid max-w-lg grid-cols-4">
+          {([
+            { id: 'inicio', label: 'Início', icon: Home },
+            { id: 'inscricao', label: 'Meu cadastro', icon: FileText },
+            { id: 'calendario', label: 'Agenda', icon: Calendar },
+          ] as const).map(item => {
+            const Icon = item.icon;
+            const active = activeSection === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                aria-current={active ? 'page' : undefined}
+                onClick={() => navigateToSection(item.id)}
+                className={`flex min-h-16 flex-col items-center justify-center gap-1 px-1 text-[10px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[#226380] ${
+                  active ? 'text-[#226380] dark:text-[#A3C3C7]' : 'text-[#707070] dark:text-[#a1a1a6]'
+                }`}
+              >
+                <Icon className="h-5 w-5" aria-hidden="true" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            aria-expanded={mobileMoreOpen}
+            aria-haspopup="dialog"
+            aria-label="Abrir mais opções do portal"
+            onClick={() => setMobileMoreOpen(true)}
+            className={`flex min-h-16 flex-col items-center justify-center gap-1 px-1 text-[10px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[#226380] ${
+              mobileMoreOpen || ['perfil', 'ficha-pdf', 'documentos', 'anuario', 'hospedagem'].includes(activeSection)
+                ? 'text-[#226380] dark:text-[#A3C3C7]'
+                : 'text-[#707070] dark:text-[#a1a1a6]'
+            }`}
+          >
+            <Menu className="h-5 w-5" aria-hidden="true" />
+            <span>Mais</span>
+          </button>
+        </div>
+      </nav>
+
+      {mobileMoreOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end bg-black/35 md:hidden"
+          onClick={() => setMobileMoreOpen(false)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mobile-more-title"
+            className="max-h-[85dvh] w-full overflow-y-auto overscroll-contain rounded-t-[28px] border border-[#d6d6d6]/70 bg-[#f5f5f7] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl dark:border-white/10 dark:bg-[#1c1c1e]"
+            onClick={event => event.stopPropagation()}
+          >
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[#c7c7cc] dark:bg-white/20" />
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 id="mobile-more-title" className="text-base font-semibold text-[#1d1d1f] dark:text-white">Mais opções</h2>
+                <p className="mt-0.5 text-xs text-[#707070] dark:text-[#a1a1a6]">Serviços e informações da Província</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Fechar menu"
+                ref={mobileMoreCloseRef}
+                onClick={() => setMobileMoreOpen(false)}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-[#707070] hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380] dark:text-[#a1a1a6] dark:hover:bg-white/10"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                { id: 'perfil', label: 'Meu perfil', icon: User },
+                { id: 'documentos', label: 'Documentos', icon: FileText },
+                { id: 'ficha-pdf', label: 'Minha ficha', icon: Printer },
+                { id: 'anuario', label: 'Anuário BRM', icon: BookOpen },
+                { id: 'hospedagem', label: 'Hospedagem', icon: Hotel },
+              ] as const).map(item => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => navigateToSection(item.id)}
+                    className="flex min-h-14 items-center gap-3 rounded-2xl border border-[#d6d6d6]/60 bg-white px-3 text-left text-sm font-medium text-[#1d1d1f] transition-colors hover:border-[#226380]/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380] dark:border-white/10 dark:bg-[#262628] dark:text-white"
+                  >
+                    <Icon className="h-4 w-4 shrink-0 text-[#226380] dark:text-[#A3C3C7]" aria-hidden="true" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMoreOpen(false);
+                logout();
+              }}
+              className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-600 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-300"
+            >
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+              Sair da conta
+            </button>
+          </section>
+        </div>
+      )}
 
       {/* Leitor Oficial de Documentos Provinciais */}
       {documentoLeitura && (

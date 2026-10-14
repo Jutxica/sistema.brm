@@ -54,13 +54,18 @@ const votoTypeFromDatabase: Record<string, string> = Object.fromEntries(
   Object.entries(votoTypeToDatabase).map(([formValue, databaseValue]) => [databaseValue, formValue])
 );
 const renewalOptions = Array.from({ length: 9 }, (_, index) => String(index + 1));
-const ministryOptions = ['Leitorado', 'Acolitado'];
-const orderOptions = ['Diaconato', 'Presbiterado', 'Episcopado'];
+const ministryOptions = ['Leitorado', 'Acolitado', 'Diaconado', 'Presbiterado', 'Episcopado'];
+const ministryTypeFromDatabase: Record<string, string> = {
+  'Ministério da Palavra': 'Leitorado',
+  'Ministério do Leitorado': 'Leitorado',
+  'Ministério do Altar': 'Acolitado',
+  Diaconato: 'Diaconado',
+};
 const academicOptions = ['Filosofia', 'Teologia', 'Bacharelado', 'Mestrado', 'Doutorado', 'Graduação', 'Pós-graduação', 'Especialização', 'Cursos livres', 'Formação permanente', 'Ensino médio'];
 const languageLevels = ['A1 - Iniciante', 'A2 - Básico', 'B1 - Intermediário', 'B2 - Intermediário avançado', 'C1 - Avançado', 'C2 - Proficiente'];
 const relationshipOptions = ['Pai', 'Mãe', 'Irmão(ã)', 'Tio(a)', 'Sobrinho(a)', 'Primo(a)', 'Amigo(a)'];
 const maritalStatusOptions = ['Casado', 'Divorciado', 'Viúvo', 'Falecido'];
-const inputClass = 'w-full px-4 py-2.5 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-[#161b22] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] shadow-none outline-none transition-all duration-200 focus:border-slate-900 dark:focus:border-white font-mono';
+const inputClass = 'w-full px-4 py-2.5 text-base sm:text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-[#161b22] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] shadow-none outline-none transition-all duration-200 focus:border-slate-900 dark:focus:border-white font-mono';
 const fieldLabels: Record<string, string> = {
   grau: 'Grau', nome_civil: 'Nome completo', nome_religioso: 'Nome religioso', data_nascimento: 'Data de nascimento',
   local_nascimento: 'Local de nascimento', municipio_nascimento: 'Município', estado_nascimento: 'Estado', pais_nascimento: 'País',
@@ -229,7 +234,11 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
             voto_tipo: votoTypeFromDatabase[row.tipo] || row.tipo,
             renovacao: row.renovacao ? String(row.renovacao) : '',
           })),
-          ...(ministeriosData.data || []).map(row => ({ ...row, tipo: orderOptions.includes(row.tipo) ? 'ordem' : 'ministerio', ministerio: row.tipo })),
+          ...(ministeriosData.data || []).map(row => ({
+            ...row,
+            tipo: ['Diaconato', 'Diaconado', 'Presbiterado', 'Episcopado'].includes(row.tipo) ? 'ordem' : 'ministerio',
+            ministerio: ministryTypeFromDatabase[row.tipo] || row.tipo,
+          })),
           ...(academicaData.data || []).map(row => ({ ...row, tipo: 'academica' })),
           ...(idiomasData.data || []).map(row => ({ ...row, tipo: 'idioma' })),
           ...(competenciasData.data || []).map(row => ({ ...row, tipo: 'competencia' })),
@@ -650,7 +659,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
 
   return (
     <PublicShell>
-      <form onSubmit={submit} className="w-full max-w-6xl mx-auto rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] p-6 sm:p-10 transition-colors">
+      <form onSubmit={submit} className="w-full max-w-6xl mx-auto rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] p-4 sm:p-10 transition-colors">
         {/* Apple Cathedral Header */}
         <header className="mb-8 pb-6 border-b border-[#e5e5ea] dark:border-white/10">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -717,8 +726,37 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
           </div>
         )}
 
-        {/* Apple Horizontal Stepper Pill Bar */}
-        <div className="mb-8 overflow-x-auto pb-2 -mx-2 px-2">
+        <div className="mb-6 rounded-[6px] border border-[#226380]/15 bg-[#226380]/[0.04] p-4 sm:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#707070] dark:text-[#a1a1a6]">
+                Etapa {step} de {etapas.length}
+              </span>
+              <p className="mt-0.5 text-sm font-semibold text-[#1d1d1f] dark:text-white">
+                {etapas[step - 1]}
+              </p>
+            </div>
+            <span className="shrink-0 text-xs font-semibold text-[#226380] dark:text-[#A3C3C7]">
+              {Math.round((step / etapas.length) * 100)}%
+            </span>
+          </div>
+          <div
+            className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#226380]/10"
+            role="progressbar"
+            aria-label="Progresso do cadastro"
+            aria-valuemin={1}
+            aria-valuemax={etapas.length}
+            aria-valuenow={step}
+          >
+            <div
+              className="h-full rounded-full bg-[#226380] transition-[width] duration-300"
+              style={{ width: `${(step / etapas.length) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Stepper detalhado para telas maiores */}
+        <div className="mb-8 hidden overflow-x-auto pb-2 -mx-2 px-2 sm:block">
           <div className="flex items-center gap-2 min-w-max">
             {etapas.map((label, index) => {
               const stepIndex = index + 1;
@@ -897,12 +935,20 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
 
         {step === 4 && (
           <Section title="4. Ministérios e Ordens, Formação Acadêmica e Idiomas">
-            <DynamicSection title="Ministérios" type="ministerio" fields={['ministerio', 'data', 'local', 'celebrante']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} selects={{ ministerio: ministryOptions }} />
-            {base.grau !== 'Frater' && (
-              <div className="mt-8 border-t border-[#e5e5ea] pt-6 dark:border-white/10">
-                <DynamicSection title="Sacramento da Ordem" type="ordem" fields={['ministerio', 'data', 'local', 'celebrante', 'bispo_ordenante']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} selects={{ ministerio: orderOptions }} />
-              </div>
-            )}
+            <DynamicSection
+              title="Ministérios e Ordens"
+              type="ministerio"
+              rowTypes={base.grau === 'Frater' ? ['ministerio'] : ['ministerio', 'ordem']}
+              fields={['ministerio', 'data', 'local', 'celebrante']}
+              rows={rows}
+              addRow={addRow}
+              updateRow={updateRow}
+              removeRow={removeRow}
+              selects={{ ministerio: base.grau === 'Frater' ? ministryOptions.slice(0, 2) : ministryOptions }}
+              visibleFields={row => ['Diaconado', 'Presbiterado', 'Episcopado'].includes(row.ministerio)
+                ? ['ministerio', 'data', 'local', 'celebrante', 'bispo_ordenante']
+                : ['ministerio', 'data', 'local', 'celebrante']}
+            />
             <div className="mt-8 border-t border-[#e5e5ea] pt-6 dark:border-white/10">
               <p className="mb-4 text-sm text-[#707070] dark:text-[#a1a1aa]">Inclua Filosofia, Teologia e outras formações anteriores ou posteriores ao seminário.</p>
               <DynamicSection title="Formação Acadêmica" type="academica" fields={['categoria', 'instituicao', 'periodo', 'pais', 'estado', 'cidade', 'observacoes']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} selects={{ categoria: academicOptions }} />
@@ -1031,7 +1077,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                 {documentos.map((documento, index) => (
                   <div className="flex items-center gap-2 rounded-[6px] bg-slate-50 dark:bg-white/5 p-3 text-xs border border-slate-200 dark:border-slate-800" key={`${documento.arquivo.name}-${index}`}>
                     <select className="px-3 py-1.5 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] text-xs outline-none" value={documento.categoria} onChange={event => setDocumentos(previous => previous.map((item, itemIndex) => itemIndex === index ? { ...item, categoria: event.target.value } : item))}>
-                      {['RG', 'CPF', 'CNH', 'Passaporte', 'Título de eleitor', 'Certidão de nascimento', 'Batismo', 'Primeira Eucaristia', 'Crisma', 'Admissão ao Postulantado', 'Admissão ao Noviciado', 'Primeira Profissão Religiosa', 'Renovações', 'Votos perpétuos', 'Diaconato', 'Presbiterado', 'Episcopado', 'Histórico escolar', 'Diplomas', 'Certificados', 'Decretos', 'Licenças', 'Dispensas', 'Indultos', 'Contratos', 'Procurações', 'Outros'].map(option => <option key={option}>{option}</option>)}
+                      {['RG', 'CPF', 'CNH', 'Passaporte', 'Título de eleitor', 'Certidão de nascimento', 'Batismo', 'Primeira Eucaristia', 'Crisma', 'Admissão ao Postulantado', 'Admissão ao Noviciado', 'Primeira Profissão Religiosa', 'Renovações', 'Votos perpétuos', 'Diaconado', 'Presbiterado', 'Episcopado', 'Histórico escolar', 'Diplomas', 'Certificados', 'Decretos', 'Licenças', 'Dispensas', 'Indultos', 'Contratos', 'Procurações', 'Outros'].map(option => <option key={option}>{option}</option>)}
                     </select>
                     <span className="flex-1 truncate text-[#1d1d1f] dark:text-white font-medium">{documento.arquivo.name}</span>
                     <button type="button" onClick={() => setDocumentos(previous => previous.filter((_, itemIndex) => itemIndex !== index))} className="text-rose-500 hover:text-rose-600 transition-colors cursor-pointer">
@@ -1061,12 +1107,12 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         )}
 
         {/* Footer Navigation Buttons */}
-        <footer className="mt-10 flex items-center justify-between border-t border-[#e5e5ea] dark:border-white/10 pt-6">
+        <footer className="mt-8 flex items-center justify-between gap-3 border-t border-[#e5e5ea] dark:border-white/10 pt-5 sm:mt-10 sm:pt-6">
           <button
             type="button"
             disabled={step === 1}
             onClick={() => setStep(previous => previous - 1)}
-            className="inline-flex items-center gap-2 rounded-[6px] border border-slate-200 dark:border-slate-800 px-5 py-2.5 text-xs font-semibold text-[#707070] hover:text-[#1d1d1f] hover:bg-black/5 dark:hover:bg-white/5 transition-all disabled:opacity-30 cursor-pointer"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[6px] border border-slate-200 dark:border-slate-800 px-4 sm:px-5 py-2.5 text-sm sm:text-xs font-semibold text-[#707070] hover:text-[#1d1d1f] hover:bg-black/5 dark:hover:bg-white/5 transition-all disabled:opacity-30 cursor-pointer"
           >
             <ChevronLeft className="h-4 w-4" />
             Voltar
@@ -1083,7 +1129,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                   setStep(previous => previous + 1);
                 }
               }}
-              className="inline-flex items-center gap-2 rounded-[6px] bg-slate-900 hover:bg-black dark:bg-white dark:text-slate-900 text-white px-7 py-3 text-xs font-semibold transition-all cursor-pointer shadow-none active:scale-[0.98]"
+              className="inline-flex min-h-12 flex-1 sm:flex-none items-center justify-center gap-2 rounded-[6px] bg-slate-900 hover:bg-black dark:bg-white dark:text-slate-900 text-white px-5 sm:px-7 py-3 text-sm sm:text-xs font-semibold transition-all cursor-pointer shadow-none active:scale-[0.98]"
             >
               <span>Avançar</span>
               <ChevronRight className="h-4 w-4" />
@@ -1092,7 +1138,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
             <button
               type="submit"
               disabled={submitting || profileUnavailable}
-              className="inline-flex items-center gap-2 rounded-[6px] bg-slate-900 hover:bg-black dark:bg-white dark:text-slate-900 text-white px-8 py-3 text-xs font-semibold transition-all cursor-pointer shadow-none active:scale-[0.98] disabled:opacity-50"
+              className="inline-flex min-h-12 flex-1 sm:flex-none items-center justify-center gap-2 rounded-[6px] bg-slate-900 hover:bg-black dark:bg-white dark:text-slate-900 text-white px-5 sm:px-8 py-3 text-sm sm:text-xs font-semibold transition-all cursor-pointer shadow-none active:scale-[0.98] disabled:opacity-50"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
               <span>Enviar cadastro</span>
@@ -1177,6 +1223,7 @@ const Fields: React.FC<{
 const DynamicSection: React.FC<{
   title: string;
   type: string;
+  rowTypes?: string[];
   fields: string[];
   rows: Record<string, string>[];
   addRow: (values?: Record<string, string>) => void;
@@ -1185,11 +1232,11 @@ const DynamicSection: React.FC<{
   selects?: Record<string, string[] | { value: string; label: string }[]>;
   visibleFields?: (row: Record<string, string>) => string[];
   children?: React.ReactNode;
-}> = ({ title, type, fields, rows, addRow, updateRow, removeRow, selects = {}, visibleFields, children }) => (
+}> = ({ title, type, rowTypes = [type], fields, rows, addRow, updateRow, removeRow, selects = {}, visibleFields, children }) => (
   <Section title={title}>
     {children}
     <div className="space-y-4">
-      {rows.map((row, index) => row.tipo === type && (
+      {rows.map((row, index) => rowTypes.includes(row.tipo) && (
         <div className="rounded-[6px] border border-slate-200 dark:border-slate-800 p-5 bg-white dark:bg-[#161b22] space-y-3" key={`${type}-${index}`}>
           <div className="flex justify-end">
             <button

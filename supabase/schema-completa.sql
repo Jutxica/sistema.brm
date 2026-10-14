@@ -405,6 +405,18 @@ create table if not exists public.religiosos_documentos (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.religiosos_ministerios_ordens (
+  id uuid primary key default gen_random_uuid(),
+  religioso_id uuid not null references public.religiosos(id) on delete cascade,
+  tipo text not null check (tipo in ('Leitorado', 'Acolitado', 'Diaconado', 'Presbiterado', 'Episcopado')),
+  data date,
+  local text,
+  celebrante text,
+  bispo_ordenante text,
+  observacoes text,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.religiosos_formacao_academica (
   id uuid primary key default gen_random_uuid(),
   religioso_id uuid not null references public.religiosos(id) on delete cascade,

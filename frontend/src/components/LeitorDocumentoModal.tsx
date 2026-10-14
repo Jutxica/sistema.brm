@@ -194,18 +194,21 @@ CREATE POLICY "religiosos_docs_anon_insert" ON storage.objects FOR INSERT TO ano
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm transition-all motion-backdrop">
-      <div 
-        className={`bg-white dark:bg-[#161b22] rounded-[10px] border border-slate-300 dark:border-slate-700 shadow-2xl flex flex-col overflow-hidden transition-all duration-200 border-t-2 border-t-[#226380] motion-modal ${
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all motion-backdrop sm:p-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="document-reader-title"
+        className={`h-[100dvh] w-full bg-white dark:bg-[#161b22] rounded-none border-0 shadow-2xl flex flex-col overflow-hidden transition-all duration-200 border-t-2 border-t-[#226380] motion-modal sm:h-[90vh] sm:max-h-[96vh] sm:w-full sm:max-w-5xl sm:rounded-[10px] sm:border sm:border-slate-300 sm:dark:border-slate-700 ${
           isFullscreen 
-            ? 'w-full h-full rounded-none border-0' 
-            : 'w-full max-w-5xl h-[90vh] max-h-[96vh]'
+            ? 'sm:h-full sm:max-h-none sm:w-full sm:max-w-none sm:rounded-none sm:border-0'
+            : ''
         }`}
       >
         {/* Top Header Institucional */}
-        <div className="px-5 py-3.5 bg-slate-50 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
+        <div className="px-3 pt-[calc(0.625rem+env(safe-area-inset-top))] pb-2.5 sm:px-5 sm:py-3.5 bg-slate-50 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 sm:gap-3 shrink-0">
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2 mb-1">
+            <div className="hidden sm:flex flex-wrap items-center gap-2 mb-1">
               <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-[#226380] dark:text-[#64b5f6] font-semibold">
                 Secretaria Provincial • Província BRM
               </span>
@@ -224,13 +227,13 @@ CREATE POLICY "religiosos_docs_anon_insert" ON storage.objects FOR INSERT TO ano
               </span>
             </div>
 
-            <h2 className="text-sm sm:text-base font-bold text-[#113240] dark:text-white font-cinzel truncate leading-snug" title={documento.titulo}>
+            <h2 id="document-reader-title" className="text-sm sm:text-base font-bold text-[#113240] dark:text-white font-cinzel line-clamp-2 leading-snug sm:truncate" title={documento.titulo}>
               {documento.titulo}
             </h2>
           </div>
 
           {/* Botões de Ação na Barra Superior */}
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             {/* Imprimir */}
             <button
               type="button"
@@ -246,7 +249,8 @@ CREATE POLICY "religiosos_docs_anon_insert" ON storage.objects FOR INSERT TO ano
             <button
               type="button"
               onClick={() => downloadArquivo(documento.arquivo_url, documento.arquivo_nome)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium transition-colors cursor-pointer motion-press"
+              aria-label="Baixar documento original"
+              className="inline-flex min-h-10 min-w-10 items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium transition-colors cursor-pointer motion-press"
               title="Baixar arquivo original"
             >
               <Download className="w-3.5 h-3.5 text-[#226380]" />
@@ -258,7 +262,8 @@ CREATE POLICY "religiosos_docs_anon_insert" ON storage.objects FOR INSERT TO ano
               href={documento.arquivo_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-1.5 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-[#113240] transition-colors motion-press"
+              aria-label="Abrir documento em nova aba"
+              className="min-h-10 min-w-10 flex items-center justify-center p-1.5 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-[#113240] transition-colors motion-press"
               title="Abrir em nova aba"
             >
               <ExternalLink className="w-3.5 h-3.5" />
@@ -278,7 +283,8 @@ CREATE POLICY "religiosos_docs_anon_insert" ON storage.objects FOR INSERT TO ano
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-600 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 transition-colors cursor-pointer motion-press ml-1"
+              aria-label="Fechar leitor"
+              className="min-h-10 min-w-10 flex items-center justify-center p-1.5 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-600 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 transition-colors cursor-pointer motion-press ml-0.5"
               title="Fechar leitor (Esc)"
             >
               <X className="w-4 h-4" />
@@ -414,7 +420,7 @@ CREATE POLICY "religiosos_docs_anon_insert" ON storage.objects FOR INSERT TO ano
         </div>
 
         {/* Rodapé Informativo */}
-        <div className="px-5 py-2.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400 shrink-0 font-mono">
+        <div className="px-3 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] sm:px-5 sm:py-2.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400 shrink-0 font-mono">
           <div className="flex items-center gap-3 truncate">
             <span className="truncate">
               📄 {documento.arquivo_nome}

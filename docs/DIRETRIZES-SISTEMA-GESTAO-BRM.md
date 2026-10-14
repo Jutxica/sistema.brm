@@ -61,7 +61,7 @@ O **Sistema Integrado BRM** é a plataforma SaaS unificada da Província Brasil 
   4. Histórico Vocacional & Paróquia de Origem
   5. Etapas de Formação Religiosa (Seminário Menor, Propedêutico, Postulantado, Noviciado)
   6. Profissões Religiosas & Votos (Primeira Profissão, Renovações, Perpétua)
-  7. Ministérios & Ordens Sacras (Leitorado, Acolitado, Diaconato, Presbiterado, Episcopado)
+  7. Ministérios & Ordens Sacras (Leitorado, Acolitado, Diaconado, Presbiterado, Episcopado)
   8. Formação Acadêmica & Superior (Filosofia, Teologia, Pós-graduações, Mestrados)
   9. Idiomas & Competências Especiais
   10. Histórico de Comunidades & Nomeações

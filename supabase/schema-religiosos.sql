@@ -197,7 +197,7 @@ create table if not exists public.religiosos_profissoes_votos (
 create table if not exists public.religiosos_ministerios_ordens (
   id uuid primary key default gen_random_uuid(),
   religioso_id uuid not null references public.religiosos(id) on delete cascade,
-  tipo text not null check (tipo in ('Ministério da Palavra', 'Ministério do Altar', 'Acolitado', 'Leitorado', 'Diaconato', 'Presbiterado', 'Episcopado')),
+  tipo text not null check (tipo in ('Leitorado', 'Acolitado', 'Diaconado', 'Presbiterado', 'Episcopado')),
   data date,
   local text,
   celebrante text,

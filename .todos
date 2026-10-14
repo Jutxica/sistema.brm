@@ -23,3 +23,4 @@
 - [ ] Documentar deploy e manutenção
 - [ ] Revisar dados finais e consistência de registros
 - [ ] Fechar pendências operacionais e de UX
+- [ ] Resolver a dívida global de lint do frontend: corrigir erros e avisos remanescentes e validar o ESLint completo.

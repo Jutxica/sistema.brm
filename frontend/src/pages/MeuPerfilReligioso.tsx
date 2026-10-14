@@ -259,7 +259,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
   }
 
   const inputClass = isPortal
-    ? "w-full rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] border border-transparent focus:border-[#226380] dark:focus:border-[#A3C3C7] focus:bg-white dark:focus:bg-[#161617] px-4 py-3 text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none transition-all placeholder:text-[#86868b]"
+    ? "w-full min-h-12 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] border border-transparent focus:border-[#226380] dark:focus:border-[#A3C3C7] focus:bg-white dark:focus:bg-[#161617] px-4 py-3 text-base sm:text-sm text-[#1d1d1f] dark:text-[#f5f5f7] outline-none transition-all placeholder:text-[#86868b]"
     : "w-full rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] px-3.5 py-2.5 text-xs text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-400 font-mono";
 
   const labelClass = isPortal
@@ -272,16 +272,16 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
       {/* CABEÇALHO DO PERFIL */}
       <div className={
         isPortal
-          ? "bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-6 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.03)]"
+          ? "bg-white dark:bg-[#161617] rounded-[24px] sm:rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-4 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.03)]"
           : "bg-white dark:bg-[#161b22] rounded-[6px] border border-slate-200 dark:border-slate-800 border-t-2 border-t-[#226380] p-6 sm:p-8 shadow-[0_1px_3px_rgba(17,50,64,0.03)]"
       }>
         
-        <div className={`flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-6 border-b ${isPortal ? 'border-[#d6d6d6]/40 dark:border-white/5' : 'border-slate-200 dark:border-slate-800'}`}>
+        <div className={`flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 pb-5 sm:pb-6 border-b ${isPortal ? 'border-[#d6d6d6]/40 dark:border-white/5' : 'border-slate-200 dark:border-slate-800'}`}>
           {/* FOTO / AVATAR COM GESTÃO DE UPLOAD */}
           <div className="relative group shrink-0">
             <div className={
               isPortal
-                ? "w-24 h-24 rounded-[22px] bg-[#f5f5f7] dark:bg-[#262628] border-2 border-[#d6d6d6]/80 dark:border-white/10 overflow-hidden flex items-center justify-center shadow-inner"
+                ? "w-20 h-20 sm:w-24 sm:h-24 rounded-[22px] bg-[#f5f5f7] dark:bg-[#262628] border-2 border-[#d6d6d6]/80 dark:border-white/10 overflow-hidden flex items-center justify-center shadow-inner"
                 : "w-24 h-24 rounded-[6px] bg-[#113240]/5 dark:bg-slate-800 border border-[#A3C3C7]/40 dark:border-slate-700 overflow-hidden flex items-center justify-center"
             }>
               {form.foto_url ? (
@@ -301,10 +301,11 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
               onClick={() => fileInputRef.current?.click()}
               className={
                 isPortal
-                  ? "absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-[#226380] hover:bg-[#113240] text-white flex items-center justify-center shadow-md transition-transform group-hover:scale-105 cursor-pointer"
+                  ? "absolute -bottom-2 -right-2 w-11 h-11 rounded-full bg-[#226380] hover:bg-[#113240] text-white flex items-center justify-center shadow-md transition-transform group-hover:scale-105 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#226380]"
                   : "absolute -bottom-2 -right-2 w-7 h-7 rounded-[6px] bg-[#113240] hover:bg-[#226380] dark:bg-white text-white dark:text-slate-900 border border-[#113240] flex items-center justify-center cursor-pointer shadow-sm transition-colors"
               }
               title="Alterar foto de perfil"
+              aria-label="Alterar foto de perfil"
             >
               <Camera className="w-3.5 h-3.5" />
             </button>
@@ -317,7 +318,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
             />
           </div>
 
-          <div className="flex-1 text-center sm:text-left space-y-1">
+          <div className="min-w-0 flex-1 text-center sm:text-left space-y-1">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
               <span className={
                 isPortal
@@ -337,7 +338,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
 
             <h1 className={
               isPortal
-                ? "text-2xl font-bold tracking-tight text-[#113240] dark:text-[#f5f5f7]"
+                ? "text-xl sm:text-2xl font-bold tracking-tight text-[#113240] dark:text-[#f5f5f7] break-words"
                 : "text-2xl md:text-3xl font-bold tracking-tight text-[#113240] dark:text-white font-cinzel"
             }>
               {form.nome_religioso || form.nome_civil || 'Meu Perfil'}
@@ -494,13 +495,13 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false 
           </div>
 
           {/* BOTÃO DE SALVAMENTO */}
-          <div className="pt-4 flex justify-end">
+          <div className="pt-2 sm:pt-4 flex justify-end">
             <button
               type="submit"
               disabled={saving}
               className={
                 isPortal
-                  ? "px-6 py-3 rounded-full bg-[#226380] hover:bg-[#113240] text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  ? "min-h-12 w-full sm:w-auto justify-center px-6 py-3 rounded-full bg-[#226380] hover:bg-[#113240] text-sm sm:text-xs font-semibold shadow-sm transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#226380]"
                   : "inline-flex items-center gap-2 px-5 py-2.5 text-xs font-mono uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm disabled:opacity-50"
               }
             >
