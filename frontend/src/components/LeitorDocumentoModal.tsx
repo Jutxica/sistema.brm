@@ -159,33 +159,47 @@ export const LeitorDocumentoModal: React.FC<LeitorDocumentoModalProps> = ({
   };
 
   const copyBucketSql = () => {
-    const sql = `-- Script Oficial para Criar Buckets e Permissões no Supabase Storage
-INSERT INTO storage.buckets (id, name, public)
+    const sql = `-- Execute depois de instalar usuario_tem_papel e migration-portal-religioso-seguro.sql.
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES 
-  ('documentos-provincia', 'documentos-provincia', true),
-  ('religiosos-documentos', 'religiosos-documentos', true),
-  ('obras-fotos', 'obras-fotos', true)
-ON CONFLICT (id) DO UPDATE SET public = true;
+  ('documentos-provincia', 'documentos-provincia', true, 52428800, array['application/pdf', 'image/jpeg', 'image/png', 'image/tiff', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']),
+  ('religiosos-documentos', 'religiosos-documentos', false, 52428800, array['application/pdf', 'image/jpeg', 'image/png', 'image/tiff']),
+  ('obras-fotos', 'obras-fotos', true, 10485760, array['image/jpeg', 'image/png', 'image/webp'])
+ON CONFLICT (id) DO UPDATE
+  SET public = excluded.public,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
 
 -- Políticas para documentos-provincia
 DROP POLICY IF EXISTS "documentos_provincia_public_read" ON storage.objects;
 CREATE POLICY "documentos_provincia_public_read" ON storage.objects FOR SELECT TO public USING (bucket_id = 'documentos-provincia');
 
 DROP POLICY IF EXISTS "documentos_provincia_anon_insert" ON storage.objects;
-CREATE POLICY "documentos_provincia_anon_insert" ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'documentos-provincia');
+DROP POLICY IF EXISTS "documentos_provincia_secretaria_insert" ON storage.objects;
+CREATE POLICY "documentos_provincia_secretaria_insert" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'documentos-provincia' AND public.usuario_tem_papel('secretaria'));
 
 DROP POLICY IF EXISTS "documentos_provincia_anon_update" ON storage.objects;
-CREATE POLICY "documentos_provincia_anon_update" ON storage.objects FOR UPDATE TO anon, authenticated USING (bucket_id = 'documentos-provincia') WITH CHECK (bucket_id = 'documentos-provincia');
+DROP POLICY IF EXISTS "documentos_provincia_secretaria_update" ON storage.objects;
+CREATE POLICY "documentos_provincia_secretaria_update" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'documentos-provincia' AND public.usuario_tem_papel('secretaria')) WITH CHECK (bucket_id = 'documentos-provincia' AND public.usuario_tem_papel('secretaria'));
 
 DROP POLICY IF EXISTS "documentos_provincia_anon_delete" ON storage.objects;
-CREATE POLICY "documentos_provincia_anon_delete" ON storage.objects FOR DELETE TO anon, authenticated USING (bucket_id = 'documentos-provincia');
+DROP POLICY IF EXISTS "documentos_provincia_secretaria_delete" ON storage.objects;
+CREATE POLICY "documentos_provincia_secretaria_delete" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'documentos-provincia' AND public.usuario_tem_papel('secretaria'));
 
 -- Políticas para religiosos-documentos
+UPDATE storage.buckets SET public = false WHERE id = 'religiosos-documentos';
 DROP POLICY IF EXISTS "religiosos_docs_public_read" ON storage.objects;
-CREATE POLICY "religiosos_docs_public_read" ON storage.objects FOR SELECT TO public USING (bucket_id = 'religiosos-documentos');
-
 DROP POLICY IF EXISTS "religiosos_docs_anon_insert" ON storage.objects;
-CREATE POLICY "religiosos_docs_anon_insert" ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'religiosos-documentos');`;
+DROP POLICY IF EXISTS "religiosos_docs_anon_update" ON storage.objects;
+DROP POLICY IF EXISTS "religiosos_docs_anon_delete" ON storage.objects;
+
+-- Fotos públicas de obras: leitura pública e apenas inclusão; sem atualização ou exclusão anônima.
+DROP POLICY IF EXISTS "obras_fotos_public_read" ON storage.objects;
+CREATE POLICY "obras_fotos_public_read" ON storage.objects FOR SELECT TO public USING (bucket_id = 'obras-fotos');
+DROP POLICY IF EXISTS "obras_fotos_anon_insert" ON storage.objects;
+CREATE POLICY "obras_fotos_anon_insert" ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'obras-fotos');
+DROP POLICY IF EXISTS "obras_fotos_anon_update" ON storage.objects;
+DROP POLICY IF EXISTS "obras_fotos_anon_delete" ON storage.objects;`;
 
     navigator.clipboard.writeText(sql);
     setCopiedSql(true);

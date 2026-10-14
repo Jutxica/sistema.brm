@@ -1,6 +1,7 @@
 -- ====================================================================
 -- MIGRAÇÃO: LINK MÁGICO PARA HISTÓRIA E 6 FOTOS DAS PARÓQUIAS E OBRAS
--- Executar no Supabase SQL Editor
+-- Preparação de schema. Depois, aplique migration-hardening-links-formularios.sql
+-- para instalar leitura/edição por token e upload vinculado ao link.
 -- ====================================================================
 
 -- 1. Adicionar colunas de controle do Link Mágico, História e Fotos
@@ -33,27 +34,13 @@ for select to public
 using (bucket_id = 'obras-fotos');
 
 drop policy if exists obras_fotos_anon_insert on storage.objects;
-create policy obras_fotos_anon_insert on storage.objects
-for insert to anon, authenticated
-with check (bucket_id = 'obras-fotos');
-
 drop policy if exists obras_fotos_anon_update on storage.objects;
-create policy obras_fotos_anon_update on storage.objects
-for update to anon, authenticated
-using (bucket_id = 'obras-fotos')
-with check (bucket_id = 'obras-fotos');
-
+drop policy if exists obras_fotos_anon_delete on storage.objects;
 drop policy if exists obras_fotos_auth_delete on storage.objects;
-create policy obras_fotos_auth_delete on storage.objects
-for delete to authenticated
-using (bucket_id = 'obras-fotos');
 
--- 4. Garantir que atualizações pelo Link Mágico sejam aceitas
+-- 4. Remover a antiga política irrestrita. A migração de hardening instala RPCs
+-- que validam o token e limitam os campos que o link pode alterar.
 drop policy if exists religiosos_obras_anon_update_token on public.religiosos_obras_referencia;
-create policy religiosos_obras_anon_update_token on public.religiosos_obras_referencia
-for update to anon, authenticated
-using (true)
-with check (true);
 
 -- Notificação de sucesso
 select 'Migração de Link Mágico, História e Fotos concluída com sucesso!' as status;

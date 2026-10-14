@@ -9,7 +9,7 @@ interface Confrade {
   id: string;
   nome_civil: string;
   nome_religioso: string | null;
-  grau: string;
+  grau: string | null;
   comunidade_atual_nome: string | null;
   email_institucional: string | null;
   email_pessoal: string | null;
@@ -42,6 +42,7 @@ export const AnuarioBRM: React.FC = () => {
         .from('religiosos')
         .select('id, nome_civil, nome_religioso, grau, comunidade_atual_nome, email_institucional, email_pessoal, telefone_celular, whatsapp, data_nascimento, status')
         .eq('status', 'Ativo')
+        .eq('status_cadastro', 'Aprovado')
         .order('grau', { ascending: true })
         .order('nome_civil', { ascending: true });
 
@@ -71,7 +72,7 @@ export const AnuarioBRM: React.FC = () => {
     const matchesGrau = grauFilter === 'Todos'
       ? true
       : grauFilter === 'Diácono (Transitório)'
-        ? (c.grau.includes('Diácono') || c.grau.includes('Diacono'))
+        ? ((c.grau || '').includes('Diácono') || (c.grau || '').includes('Diacono'))
         : c.grau === grauFilter;
 
     return matchesSearch && matchesGrau;
@@ -250,7 +251,7 @@ export const AnuarioBRM: React.FC = () => {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <span className="px-2 py-0.5 text-[9px] font-mono uppercase font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                          {c.grau}
+                          {c.grau || 'Grau não informado'}
                         </span>
                         {c.data_nascimento && (
                           <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
@@ -351,7 +352,7 @@ export const AnuarioBRM: React.FC = () => {
                         <span className="font-bold text-slate-900 dark:text-white block">
                           {m.nome_religioso || m.nome_civil}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-500">{m.grau}</span>
+                        <span className="text-[10px] font-mono text-slate-500">{m.grau || 'Grau não informado'}</span>
                       </div>
                       <div className="font-mono text-[11px] text-slate-600 dark:text-slate-400">
                         {m.telefone_celular || m.whatsapp || m.email_institucional || ''}
@@ -391,7 +392,7 @@ export const AnuarioBRM: React.FC = () => {
                         {a.nome_religioso || a.nome_civil}
                       </span>
                       <span className="text-slate-500 text-[11px] font-sans">
-                        {a.grau} • {a.comunidade_atual_nome || 'Província BRM'}
+                        {a.grau || 'Grau não informado'} • {a.comunidade_atual_nome || 'Província BRM'}
                       </span>
                     </div>
                   </div>

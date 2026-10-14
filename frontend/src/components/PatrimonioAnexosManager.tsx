@@ -4,7 +4,7 @@ import {
   Trash2, Plus, X, Check, AlertCircle, File, Loader2, Maximize2
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
-import { showToast } from '../hooks/useFeedback';
+import { confirmAction, showToast } from '../hooks/useFeedback';
 import { downloadArquivo } from '../lib/downloadHelper';
 import type { 
   PatrimonioAnexo, 
@@ -169,12 +169,19 @@ export const PatrimonioAnexosManager: React.FC<PatrimonioAnexosManagerProps> = (
     }
   };
 
-  const handleRemoverAnexo = (id: string, nome: string) => {
-    if (window.confirm(`Deseja remover o anexo "${nome}"?`)) {
-      const atualizados = anexos.filter(a => a.id !== id);
-      onChange(atualizados);
-      showToast.success('Documento removido da ficha.', 'Anexo Removido');
-    }
+  const handleRemoverAnexo = async (id: string, nome: string) => {
+    const confirmed = await confirmAction({
+      title: 'Remover anexo',
+      message: `Deseja remover o anexo "${nome}"?`,
+      tone: 'danger',
+      confirmLabel: 'Remover anexo',
+      icon: 'trash',
+    });
+    if (!confirmed) return;
+
+    const atualizados = anexos.filter(a => a.id !== id);
+    onChange(atualizados);
+    showToast.success('Documento removido da ficha.', 'Anexo removido');
   };
 
   const handleDownload = async (anexo: PatrimonioAnexo) => {

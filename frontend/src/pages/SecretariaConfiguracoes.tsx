@@ -287,12 +287,18 @@ export const SecretariaConfiguracoes: React.FC = () => {
 
   // Atualizar status de uma inscrição
   const handleAtualizarStatusResposta = async (id: string, novoStatus: 'Confirmada' | 'Pendente' | 'Cancelada') => {
-    setRespostas(prev => prev.map(r => r.id === id ? { ...r, status: novoStatus } : r));
     try {
-      await supabase.from('secretaria_respostas_formulario').update({ status: novoStatus }).eq('id', id);
+      const { error } = await supabase
+        .from('secretaria_respostas_formulario')
+        .update({ status: novoStatus })
+        .eq('id', id);
+      if (error) throw error;
     } catch (e) {
       console.warn('Erro ao atualizar status no supabase:', e);
+      setFeedbackMsg({ tipo: 'erro', texto: 'Não foi possível atualizar a inscrição no servidor.' });
+      return;
     }
+    setRespostas(prev => prev.map(r => r.id === id ? { ...r, status: novoStatus } : r));
     const saved = localStorage.getItem(LOCAL_STORAGE_RESPOSTAS);
     if (saved) {
       const list: RespostaFormulario[] = JSON.parse(saved);
@@ -577,12 +583,15 @@ export const SecretariaConfiguracoes: React.FC = () => {
       };
 
       try {
-        await supabase
+        const { error } = await supabase
           .from('secretaria_formularios')
           .update(atualizado)
           .eq('id', editingFormId);
+        if (error) throw error;
       } catch (e) {
-        console.warn('Atualizando formulário localmente:', e);
+        console.error('Erro ao atualizar formulário:', e);
+        mostrarAlerta('erro', 'Não foi possível atualizar o formulário no servidor.');
+        return;
       }
 
       const lista = formularios.map(f => f.id === editingFormId ? atualizado : f);
@@ -606,11 +615,14 @@ export const SecretariaConfiguracoes: React.FC = () => {
       };
 
       try {
-        await supabase
+        const { error } = await supabase
           .from('secretaria_formularios')
           .insert([novoForm]);
+        if (error) throw error;
       } catch (e) {
-        console.warn('Inserindo formulário localmente:', e);
+        console.error('Erro ao criar formulário:', e);
+        mostrarAlerta('erro', 'Não foi possível criar o formulário no servidor.');
+        return;
       }
 
       const lista = [novoForm, ...formularios];
@@ -636,9 +648,12 @@ export const SecretariaConfiguracoes: React.FC = () => {
     if (!confirmed) return;
 
     try {
-      await supabase.from('secretaria_formularios').delete().eq('id', f.id);
+      const { error } = await supabase.from('secretaria_formularios').delete().eq('id', f.id);
+      if (error) throw error;
     } catch (e) {
-      console.warn('Excluindo formulário localmente:', e);
+      console.error('Erro ao excluir formulário:', e);
+      mostrarAlerta('erro', 'Não foi possível excluir o formulário no servidor.');
+      return;
     }
 
     const lista = formularios.filter(item => item.id !== f.id);
@@ -659,11 +674,14 @@ export const SecretariaConfiguracoes: React.FC = () => {
   const handleSalvarConfiguracoes = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await supabase
+      const { error } = await supabase
         .from('secretaria_configuracoes')
         .upsert([{ id: configuracao.id || 'default-secretaria-cfg', ...configuracao }]);
+      if (error) throw error;
     } catch (err) {
-      console.warn('Salvando configurações localmente:', err);
+      console.error('Erro ao salvar configurações institucionais:', err);
+      mostrarAlerta('erro', 'Não foi possível salvar as configurações no servidor.');
+      return;
     }
 
     persistirConfiguracao(configuracao);

@@ -9,11 +9,17 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ title = 'Sistema BRM' }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] dark:bg-[#0d1117] flex transition-colors duration-300 relative">
+    <div className="institutional-app min-h-screen bg-[#f4f6f5] dark:bg-[#141a1c] flex transition-colors duration-200 relative">
       {/* Sidebar navigation */}
-      <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        setCollapsed={setSidebarCollapsed}
+        mobileOpen={mobileNavigationOpen}
+        setMobileOpen={setMobileNavigationOpen}
+      />
 
       {/* Main viewport */}
       <div 
@@ -22,20 +28,23 @@ export const Layout: React.FC<LayoutProps> = ({ title = 'Sistema BRM' }) => {
       >
         {/* Header toolbar */}
         <Navbar 
-          sidebarCollapsed={sidebarCollapsed} 
-          setSidebarCollapsed={setSidebarCollapsed} 
+          mobileNavigationOpen={mobileNavigationOpen}
+          onMobileMenuToggle={() => {
+            setSidebarCollapsed(false);
+            setMobileNavigationOpen(open => !open);
+          }}
           title={title} 
         />
 
         {/* Dynamic page contents - Apple cathedral of space */}
-        <main className="flex-1 px-5 py-6 md:px-8 md:py-8 lg:px-10 lg:py-10 max-w-[1400px] w-full mx-auto print:p-0 print:m-0 print:max-w-none">
+        <main className="institutional-content flex-1 px-4 py-5 sm:px-6 md:px-8 md:py-6 lg:px-9 max-w-[1520px] w-full mx-auto print:p-0 print:m-0 print:max-w-none">
           <Outlet />
         </main>
 
         {/* Rodapé Centralizado Oficial */}
-        <footer className="w-full py-6 mt-auto border-t border-slate-200/80 dark:border-slate-800 text-center select-none print:hidden">
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-sans tracking-wide">
-            sistema.brm.org - todos os direitos reservados-2026
+        <footer className="w-full py-4 mt-auto border-t border-[#dce4e2] dark:border-[#354246] text-center print:hidden">
+          <p className="text-[11px] text-[#66777b] dark:text-[#a0aeaf] font-sans">
+            Sistema BRM · Província Brasil Meridional · © 2026
           </p>
         </footer>
       </div>

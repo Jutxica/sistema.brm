@@ -2,6 +2,13 @@
 -- SISTEMA BRM (PROVÍNCIA BRASIL MERIDIONAL - SCJ)
 -- SCRIPT SQL UNIFICADO COMPLETO PARA SUPABASE (BANCO DE DADOS)
 -- =====================================================================
+-- LEGADO: este script instala políticas permissivas de compatibilidade e NÃO
+-- deve ser considerado configuração segura de produção nem aplicado isoladamente.
+-- Depois dele, aplique migration-portal-religioso-seguro.sql e as migrações
+-- migration-hardening-usuarios.sql, migration-hardening-acessos-publicos.sql
+-- migration-hardening-patrimonio.sql e migration-hardening-links-formularios.sql,
+-- nesta ordem, antes de liberar o sistema. Nunca deixe este script isolado em
+-- produção: ele contém políticas permissivas legadas para compatibilidade.
 -- Instruções:
 -- 1. Acesse o painel do Supabase (https://app.supabase.com)
 -- 2. Selecione o seu projeto -> Clique em "SQL Editor" na barra lateral.

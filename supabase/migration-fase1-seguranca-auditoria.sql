@@ -29,11 +29,14 @@ create index if not exists idx_pat_audit_created on public.patrimonio_audit_logs
 
 -- 2. GATILHO DE PROTEÇÃO APPEND-ONLY: IMPEDE QUALQUER UPDATE OU DELETE
 create or replace function public.trg_prevent_audit_mutation()
-returns trigger as $$
+returns trigger
+language plpgsql
+set search_path = pg_catalog
+as $$
 begin
   raise exception 'Violação de Governança Canônica: A tabela de logs de auditoria do Patrimônio BRM é estritamente append-only. Operações de UPDATE ou DELETE são proibidas.';
 end;
-$$ language plpgsql;
+$$;
 
 drop trigger if exists trg_audit_no_update_delete on public.patrimonio_audit_logs;
 create trigger trg_audit_no_update_delete
@@ -46,19 +49,19 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public
+set search_path = pg_catalog
 as $$
-  select exists (
-    select 1
-    from public.usuarios usuario
-    where (usuario.auth_user_id = auth.uid() or usuario.idusuarios = auth.uid())
-      and usuario.usu_status = 'Ativo'
-      and jsonb_typeof(usuario.usu_acessos) = 'array'
+  select coalesce((
+    select jsonb_typeof(u.usu_acessos) = 'array'
       and (
-        usuario.usu_acessos ? 'admin'
-        or usuario.usu_acessos ? coalesce(papel_requerido, '')
+        u.usu_acessos ? 'admin'
+        or u.usu_acessos ? coalesce(papel_requerido, '')
       )
-  );
+    from public.usuarios u
+    where (u.auth_user_id = auth.uid() or u.idusuarios = auth.uid())
+      and u.usu_status = 'Ativo'
+    limit 1
+  ), false);
 $$;
 
 -- 4. HABILITAÇÃO E REVISÃO DE RLS PARA TABELA DE AUDITORIA

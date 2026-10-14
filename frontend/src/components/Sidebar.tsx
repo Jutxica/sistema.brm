@@ -3,148 +3,211 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { 
   Home, ClipboardList, Settings, Users, LogOut, ChevronLeft, ChevronRight, 
   Building, UserRound, ChevronDown, Plus, Church, Landmark, Layers, BarChart3,
-  FileText, Calendar, Car, ShieldCheck, Wrench, History
+  FileText, Calendar, Car, ShieldCheck, Wrench, History, Archive, Send, LayoutDashboard, X, FolderOpen
 } from 'lucide-react';
 import { useAuth as useAuthHook, hasModuleAccess } from '../contexts/AuthContext';
 
 interface SidebarProps {
   collapsed: boolean;
   setCollapsed: (collapsed: boolean) => void;
+  mobileOpen: boolean;
+  setMobileOpen: (open: boolean) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
+const useRouteExpanded = (routeIsActive: boolean): [boolean, () => void] => {
+  const [override, setOverride] = React.useState<boolean | null>(null);
+  return [
+    override ?? routeIsActive,
+    () => setOverride(previous => !(previous ?? routeIsActive)),
+  ];
+};
+
+export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) => {
   const { logout, user } = useAuthHook();
   const location = useLocation();
-  const [secretariaOpen, setSecretariaOpen] = React.useState(
-    location.pathname.startsWith('/documentos') || location.pathname.startsWith('/agenda') || location.pathname.startsWith('/secretaria-configuracoes') || location.pathname.startsWith('/secretaria')
+  const secretariaRouteActive = location.pathname.startsWith('/secretaria')
+    || location.pathname.startsWith('/documentos')
+    || location.pathname.startsWith('/agenda');
+  const [secretariaOpen, toggleSecretariaOpen] = useRouteExpanded(secretariaRouteActive);
+  const [religiososOpen, toggleReligiososOpen] = useRouteExpanded(
+    location.pathname.startsWith('/religiosos') || location.pathname.startsWith('/estatisticas-brm'),
   );
-  const [religiososOpen, setReligiososOpen] = React.useState(
-    location.pathname.startsWith('/religiosos') || location.pathname.startsWith('/estatisticas-brm')
-  );
-  const [obrasOpen, setObrasOpen] = React.useState(location.pathname.startsWith('/obras'));
-  const [patrimonioOpen, setPatrimonioOpen] = React.useState(location.pathname.startsWith('/patrimonio'));
-  const [hospedariaOpen, setHospedariaOpen] = React.useState(location.pathname.startsWith('/hospedagens'));
+  const [obrasOpen, toggleObrasOpen] = useRouteExpanded(location.pathname.startsWith('/obras'));
+  const [patrimonioOpen, togglePatrimonioOpen] = useRouteExpanded(location.pathname.startsWith('/patrimonio'));
+  const [hospedariaOpen, toggleHospedariaOpen] = useRouteExpanded(location.pathname.startsWith('/hospedagens'));
+
+  const canAccessInicio = hasModuleAccess(user, 'inicio');
+  const canAccessReligiosos = hasModuleAccess(user, 'religiosos');
+  const canAccessSecretaria = hasModuleAccess(user, 'secretaria');
+  const canAccessObras = hasModuleAccess(user, 'obras');
+  const canAccessPatrimonio = hasModuleAccess(user, 'patrimonio');
+  const canAccessHospedagens = hasModuleAccess(user, 'hospedagens');
+  const canAccessConfiguracoes = hasModuleAccess(user, 'configuracoes');
+  const canAccessUsuarios = hasModuleAccess(user, 'usuarios');
+  const canAccessElenco = hasModuleAccess(user, 'secretaria');
+  const canAccessArquivoSecretaria = Boolean(user?.acessos.some(access => access === 'arquivo_secretaria' || access === 'arquivo_substituto'));
 
   React.useEffect(() => {
-    if (location.pathname.startsWith('/documentos') || location.pathname.startsWith('/agenda') || location.pathname.startsWith('/secretaria-configuracoes') || location.pathname.startsWith('/secretaria')) {
-      setSecretariaOpen(true);
-    }
-    if (location.pathname.startsWith('/religiosos') || location.pathname.startsWith('/estatisticas-brm')) {
-      setReligiososOpen(true);
-    }
-    if (location.pathname.startsWith('/patrimonio')) {
-      setPatrimonioOpen(true);
-    }
-  }, [location.pathname]);
+    setMobileOpen(false);
+  }, [location.pathname, location.search, setMobileOpen]);
 
-  // Exibir Usuários apenas para administradores autorizados
-  const isAdmin = Boolean(user?.acessos?.includes('admin') || user?.acessos?.includes('usuarios'));
-  const canAccessPatrimonio = hasModuleAccess(user, 'patrimonio');
-  const canAccessElenco = hasModuleAccess(user, 'secretaria');
+  React.useEffect(() => {
+    if (!mobileOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileOpen(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [mobileOpen, setMobileOpen]);
 
   return (
-    <aside
-      className={`fixed top-0 left-0 z-30 h-screen transition-all duration-300 border-r border-[#e5e5ea] dark:border-white/10
-        ${collapsed ? 'w-20' : 'w-64'} 
-        bg-[#fbfbfd]/80 dark:bg-[#161b22]/80 backdrop-blur-xl text-[#1d1d1f] dark:text-[#f5f5f7] print:hidden`}
-    >
+    <>
+      {mobileOpen && (
+        <button
+          type="button"
+          aria-label="Fechar navegação"
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-[1px] md:hidden print:hidden"
+        />
+      )}
+      <aside
+        id="administrative-sidebar"
+        aria-label="Navegação principal"
+        className={`brm-sidebar fixed inset-y-0 left-0 z-50 w-[min(18rem,calc(100vw-2.5rem))] border-r border-[#dce4e2] bg-white text-[#203136] transition-[width,transform] duration-200 dark:border-[#354246] dark:bg-[#1c2427] dark:text-[#edf2f1] md:z-30 md:translate-x-0 print:hidden
+          ${collapsed ? 'md:w-20' : 'md:w-64'}
+          ${mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}
+      >
       {/* Brand Header */}
-      <div className="flex items-center justify-between h-16 px-4 border-b border-[#e5e5ea] dark:border-white/10">
+      <div className="brm-sidebar-brand flex items-center justify-between h-[4.25rem] px-4 border-b border-[#dce4e2] dark:border-[#354246]">
         <div className="flex items-center gap-3 overflow-hidden">
           <div className="flex items-center justify-center shrink-0">
-            <img src="/logo-sistema.png" alt="Sistema BRM" className="h-8 w-auto object-contain dark:hidden" />
-            <img src="/logo-branco.png" alt="Sistema BRM" className="h-8 w-auto object-contain hidden dark:block" />
+            <img src="/logo-branco.png" alt="Sistema BRM" className="h-9 w-auto object-contain" />
           </div>
           {!collapsed && (
             <div className="flex flex-col select-none">
-              <span className="font-cinzel text-xs font-bold tracking-[0.16em] text-[#1d1d1f] dark:text-white uppercase">BRM</span>
-              <span className="font-cinzel text-[10px] tracking-[0.2em] uppercase text-[#707070] dark:text-[#86868b] font-medium">Província</span>
+              <span className="text-[13px] font-semibold tracking-[0.08em] text-[#113240] dark:text-white uppercase">BRM</span>
+              <span className="text-[10px] tracking-[0.11em] uppercase text-[#66777b] dark:text-[#a0aeaf]">Província Meridional</span>
             </div>
           )}
         </div>
         
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="hidden md:flex items-center justify-center w-7 h-7 rounded-[6px] border border-slate-200 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 text-[#707070] dark:text-[#86868b] transition-colors cursor-pointer"
+          className="brm-sidebar-collapse hidden md:flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-[#707070] transition-colors hover:bg-slate-50 dark:border-white/10 dark:text-[#86868b] dark:hover:bg-white/10"
+          aria-label={collapsed ? 'Expandir navegação' : 'Recolher navegação'}
           title={collapsed ? "Expandir barra lateral" : "Recolher barra lateral"}
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
+        <button
+          type="button"
+          onClick={() => setMobileOpen(false)}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-[#707070] transition-colors hover:bg-slate-100 dark:text-[#a3aaad] dark:hover:bg-white/10 md:hidden"
+          aria-label="Fechar navegação"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       {/* Nav List */}
-      <nav className="flex flex-col justify-between h-[calc(100vh-4rem)] p-3">
-        <ul className="space-y-1">
+      <nav className="flex h-[calc(100dvh-4.25rem)] flex-col justify-between overflow-y-auto p-3">
+        <ul className="space-y-1.5">
           {/* 1. Início */}
-          <li>
+          {canAccessInicio && <li>
             <NavLink
               to="/inicio"
+              title={collapsed ? 'Início' : undefined}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-[6px] transition-all duration-200 group text-[13px] font-medium border ${
-                  isActive 
-                    ? 'border-[#113240] bg-[#113240] text-white shadow-sm dark:border-[#226380] dark:bg-[#226380] dark:text-white' 
-                    : 'border-transparent text-[#474747] dark:text-[#86868b] hover:bg-black/5 dark:hover:bg-white/5 hover:text-[#113240] dark:hover:text-white'}`
+                `brm-sidebar-link flex min-h-10 items-center gap-3 rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors group ${
+                  isActive
+                    ? 'border-[#226380]/10 bg-[#226380] text-white shadow-sm dark:border-[#A3C3C7]/15 dark:bg-[#226380] dark:text-white'
+                    : 'border-transparent text-[#52636a] hover:bg-slate-100 hover:text-[#17333d] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white'}`
               }
             >
               <Home className="w-4 h-4 shrink-0 transition-transform group-hover:scale-105" />
               {!collapsed && <span className="truncate">Início</span>}
             </NavLink>
-          </li>
+          </li>}
+
+          {user && !canAccessPatrimonio && (
+            <li>
+              <SidebarSubLink to="/patrimonio/tarefas" label="Minhas tarefas" icon={ClipboardList} collapsed={collapsed} />
+            </li>
+          )}
 
           {/* 2. Religiosos */}
-          <SidebarGroup label="Religiosos" icon={UserRound} open={religiososOpen} onToggle={() => setReligiososOpen(previous => !previous)} collapsed={collapsed}>
-            <SidebarSubLink to="/religiosos" label="Inscritos" icon={Users} collapsed={collapsed} />
-            <SidebarSubLink to="/estatisticas-brm" label="Estatística BRM" icon={BarChart3} collapsed={collapsed} />
-            <SidebarSubLink to="/religiosos/novo" label="Novo cadastro" icon={Plus} collapsed={collapsed} />
-            <SidebarSubLink to="/religiosos-configuracoes" label="Configurações" icon={Settings} collapsed={collapsed} />
-          </SidebarGroup>
+          {(canAccessReligiosos || canAccessSecretaria || canAccessConfiguracoes) && (
+            <SidebarGroup label="Religiosos" icon={UserRound} open={religiososOpen} onToggle={toggleReligiososOpen} collapsed={collapsed}>
+              {canAccessReligiosos && <SidebarSubLink to="/religiosos" label="Inscritos" icon={Users} collapsed={collapsed} />}
+              {(canAccessReligiosos || canAccessSecretaria) && <SidebarSubLink to="/religiosos/dossies" label="Dossiês pessoais" icon={FolderOpen} collapsed={collapsed} />}
+              {canAccessReligiosos && <SidebarSubLink to="/estatisticas-brm" label="Estatística BRM" icon={BarChart3} collapsed={collapsed} />}
+              {canAccessReligiosos && <SidebarSubLink to="/religiosos/novo" label="Novo cadastro" icon={Plus} collapsed={collapsed} />}
+              {canAccessConfiguracoes && <SidebarSubLink to="/religiosos-configuracoes" label="Configurações" icon={Settings} collapsed={collapsed} />}
+            </SidebarGroup>
+          )}
 
           {/* 3. Secretaria & Atos */}
-          <SidebarGroup label="Secretaria & Atos" icon={FileText} open={secretariaOpen} onToggle={() => setSecretariaOpen(previous => !previous)} collapsed={collapsed}>
-            {canAccessElenco && <SidebarSubLink to="/secretaria/elenco" label="Elenco & Transferências" icon={Users} collapsed={collapsed} />}
-            <SidebarSubLink to="/documentos" label="Documentos Oficiais" icon={FileText} collapsed={collapsed} />
-            <SidebarSubLink to="/agenda" label="Agenda & Eventos" icon={Calendar} collapsed={collapsed} />
-            <SidebarSubLink to="/secretaria-configuracoes" label="Configurações & Formulários" icon={Settings} collapsed={collapsed} />
-          </SidebarGroup>
+          {(canAccessSecretaria || canAccessConfiguracoes || canAccessArquivoSecretaria) && (
+            <SidebarGroup label="Secretaria & Atos" icon={FileText} open={secretariaOpen} onToggle={toggleSecretariaOpen} collapsed={collapsed}>
+              {(canAccessSecretaria || canAccessArquivoSecretaria) && <SidebarSubLink to="/secretaria" label="Painel da Secretaria" icon={LayoutDashboard} collapsed={collapsed} />}
+              {canAccessElenco && <SidebarSubLink to="/secretaria/elenco" label="Elenco & Transferências" icon={Users} collapsed={collapsed} />}
+              {canAccessSecretaria && <SidebarSubLink to="/religiosos" label="Inscritos e contas" icon={Users} collapsed={collapsed} />}
+              {canAccessSecretaria && <SidebarSubLink to="/documentos" label="Documentos Oficiais" icon={FileText} collapsed={collapsed} />}
+              {canAccessSecretaria && <SidebarSubLink to="/agenda" label="Agenda & Eventos" icon={Calendar} collapsed={collapsed} />}
+              {canAccessArquivoSecretaria && <SidebarSubLink to="/secretaria/arquivo" label="Arquivo Confidencial" icon={Archive} collapsed={collapsed} />}
+              {canAccessConfiguracoes && <SidebarSubLink to="/secretaria-configuracoes" label="Configurações & Formulários" icon={Settings} collapsed={collapsed} />}
+            </SidebarGroup>
+          )}
 
           {/* 4. Comunidades & Obras */}
-          <SidebarGroup label="Comunidades & Obras" icon={Building} open={obrasOpen} onToggle={() => setObrasOpen(previous => !previous)} collapsed={collapsed}>
-            <SidebarSubLink to="/obras" label="Todas as Obras" icon={Layers} collapsed={collapsed} />
-            <SidebarSubLink to="/obras?tipo=Paroquia" label="Paróquias" icon={Church} collapsed={collapsed} />
-            <SidebarSubLink to="/obras?tipo=Casa" label="Casas Religiosas" icon={Home} collapsed={collapsed} />
-            <SidebarSubLink to="/obras?tipo=Obra" label="Obras & Institutos" icon={Landmark} collapsed={collapsed} />
-            <SidebarSubLink to="/obras/nova" label="Nova Obra" icon={Plus} collapsed={collapsed} />
-          </SidebarGroup>
+          {canAccessObras && (
+            <SidebarGroup label="Comunidades & Obras" icon={Building} open={obrasOpen} onToggle={toggleObrasOpen} collapsed={collapsed}>
+              <SidebarSubLink to="/obras" label="Todas as Obras" icon={Layers} collapsed={collapsed} />
+              <SidebarSubLink to="/obras?tipo=Paroquia" label="Paróquias" icon={Church} collapsed={collapsed} />
+              <SidebarSubLink to="/obras?tipo=Casa" label="Casas Religiosas" icon={Home} collapsed={collapsed} />
+              <SidebarSubLink to="/obras?tipo=Obra" label="Obras & Institutos" icon={Landmark} collapsed={collapsed} />
+              <SidebarSubLink to="/obras/nova" label="Nova Obra" icon={Plus} collapsed={collapsed} />
+            </SidebarGroup>
+          )}
 
           {/* 5. Patrimônio Provincial */}
           {canAccessPatrimonio && (
-            <SidebarGroup label="Patrimônio" icon={Landmark} open={patrimonioOpen} onToggle={() => setPatrimonioOpen(previous => !previous)} collapsed={collapsed}>
+            <SidebarGroup label="Patrimônio" icon={Landmark} open={patrimonioOpen} onToggle={togglePatrimonioOpen} collapsed={collapsed}>
               <SidebarSubLink to="/patrimonio" label="Visão Geral & Alertas" icon={Layers} collapsed={collapsed} />
               <SidebarSubLink to="/patrimonio?tab=imoveis" label="Imóveis & Terrenos" icon={Building} collapsed={collapsed} />
               <SidebarSubLink to="/patrimonio?tab=veiculos" label="Frota de Veículos" icon={Car} collapsed={collapsed} />
               <SidebarSubLink to="/patrimonio?tab=inventario" label="Inventário & Arte Sacra" icon={Church} collapsed={collapsed} />
               <SidebarSubLink to="/patrimonio?tab=contratos" label="Contratos & Seguros" icon={ShieldCheck} collapsed={collapsed} />
               <SidebarSubLink to="/patrimonio?tab=manutencoes" label="Vistorias & Obras" icon={Wrench} collapsed={collapsed} />
+              <SidebarSubLink to="/patrimonio/tarefas" label="Agenda de atividades" icon={ClipboardList} collapsed={collapsed} />
               <SidebarSubLink to="/patrimonio?tab=auditoria" label="Logs de Auditoria" icon={History} collapsed={collapsed} />
+              <SidebarSubLink to="/patrimonio/envios-secretaria" label="Enviar documentos à Secretaria" icon={Send} collapsed={collapsed} />
             </SidebarGroup>
           )}
 
           {/* 6. Hospedaria */}
-          <SidebarGroup label="Hospedaria" icon={Building} open={hospedariaOpen} onToggle={() => setHospedariaOpen(previous => !previous)} collapsed={collapsed}>
-            <SidebarSubLink to="/hospedagens-inscricoes" label="Inscrições" icon={ClipboardList} collapsed={collapsed} />
-            <SidebarSubLink to="/hospedagens-configuracoes" label="Configurações" icon={Settings} collapsed={collapsed} />
-          </SidebarGroup>
+          {(canAccessHospedagens || canAccessConfiguracoes) && (
+            <SidebarGroup label="Hospedaria" icon={Building} open={hospedariaOpen} onToggle={toggleHospedariaOpen} collapsed={collapsed}>
+              {canAccessHospedagens && <SidebarSubLink to="/hospedagens-inscricoes" label="Inscrições" icon={ClipboardList} collapsed={collapsed} />}
+              {canAccessConfiguracoes && <SidebarSubLink to="/hospedagens-configuracoes" label="Configurações" icon={Settings} collapsed={collapsed} />}
+            </SidebarGroup>
+          )}
 
           {/* 5. Usuários */}
-          {isAdmin && (
+          {canAccessUsuarios && (
             <li>
               <NavLink
                 to="/usuarios"
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-[6px] transition-all duration-200 group text-[13px] font-medium border ${
+                  `brm-sidebar-link flex min-h-10 items-center gap-3 rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors group ${
                     isActive 
-                      ? 'border-[#113240] bg-[#113240] text-white shadow-sm dark:border-[#226380] dark:bg-[#226380] dark:text-white' 
-                      : 'border-transparent text-[#474747] dark:text-[#86868b] hover:bg-black/5 dark:hover:bg-white/5 hover:text-[#113240] dark:hover:text-white'}`
+                      ? 'border-[#226380]/10 bg-[#226380] text-white shadow-sm dark:border-[#A3C3C7]/15 dark:bg-[#226380] dark:text-white'
+                      : 'border-transparent text-[#52636a] hover:bg-slate-100 hover:text-[#17333d] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white'}`
                   }
               >
                 <Users className="w-4 h-4 shrink-0 transition-transform group-hover:scale-105" />
@@ -155,17 +218,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
         </ul>
 
         {/* Footer actions */}
-        <div className="space-y-1 border-t border-[#e5e5ea] dark:border-white/10 pt-3">
+        <div className="space-y-1 border-t border-[#dce4e2] dark:border-[#354246] pt-3">
           <button
             onClick={logout}
-            className="flex items-center gap-3 w-full px-3 py-2 rounded-[6px] text-[#80282E] hover:bg-[#80282E]/10 transition-all duration-200 text-[13px] font-medium cursor-pointer"
+            className="brm-sidebar-logout flex items-center gap-3 w-full px-3 py-2 rounded-[6px] text-[#80282E] hover:bg-[#80282E]/10 transition-all duration-200 text-[13px] font-medium cursor-pointer"
           >
             <LogOut className="w-4 h-4 shrink-0" />
             {!collapsed && <span>Sair do sistema</span>}
           </button>
         </div>
       </nav>
-    </aside>
+      </aside>
+    </>
   );
 };
 
@@ -178,7 +242,14 @@ const SidebarGroup: React.FC<{
   children: React.ReactNode;
 }> = ({ label, icon: Icon, open, onToggle, collapsed, children }) => (
   <li>
-    <button type="button" onClick={onToggle} className="flex w-full items-center gap-3 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#474747] transition-all hover:bg-black/5 hover:text-[#113240] dark:text-[#86868b] dark:hover:bg-white/5 dark:hover:text-white cursor-pointer">
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={collapsed ? label : undefined}
+      aria-expanded={open}
+      title={collapsed ? label : undefined}
+      className={`brm-sidebar-group-trigger flex min-h-10 w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium text-[#52636a] transition-colors hover:bg-slate-100 hover:text-[#17333d] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white ${open ? 'bg-slate-100/80 dark:bg-white/5' : ''}`}
+    >
       <Icon className="h-4 w-4 shrink-0" />
       {!collapsed && <><span className="flex-1 text-left">{label}</span><ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`} /></>}
     </button>
@@ -197,10 +268,11 @@ const SidebarSubLink: React.FC<{ to: string; label: string; icon: React.ElementT
     <li>
       <NavLink
         to={to}
-        className={`flex items-center gap-2.5 rounded-[6px] px-2.5 py-1.5 text-xs font-medium transition-colors border ${
+        title={collapsed ? label : undefined}
+        className={`brm-sidebar-link flex min-h-9 items-center gap-2.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
           isMatch
-            ? 'border-[#226380]/40 bg-[#226380]/10 text-[#113240] font-semibold dark:border-[#A3C3C7]/30 dark:bg-[#226380]/25 dark:text-[#A3C3C7]'
-            : 'border-transparent text-[#707070] hover:bg-black/5 hover:text-[#113240] dark:text-[#86868b] dark:hover:bg-white/5 dark:hover:text-white'
+            ? 'border-[#226380]/10 bg-[#226380]/10 text-[#17333d] font-semibold dark:border-[#A3C3C7]/20 dark:bg-[#226380]/25 dark:text-[#A3C3C7]'
+            : 'border-transparent text-[#68777d] hover:bg-slate-100 hover:text-[#17333d] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white'
         }`}
       >
         <Icon className="h-3.5 w-3.5 shrink-0" />

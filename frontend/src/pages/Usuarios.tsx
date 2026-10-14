@@ -11,7 +11,7 @@ interface SystemUser {
   usu_email: string;
   usu_nome: string;
   usu_status: 'Ativo' | 'Inativo';
-  usu_acessos: string; // JSON string or array
+  usu_acessos: string[] | string;
   auth_user_id: string;
   usu_pref_opensidebar?: string;
 }
@@ -149,7 +149,7 @@ export const Usuarios: React.FC = () => {
       usu_nome: editingUser.usu_nome,
       usu_email: editingUser.usu_email,
       usu_status: editingUser.usu_status,
-      usu_acessos: JSON.stringify(selectedAcessos),
+      usu_acessos: selectedAcessos,
       auth_user_id: editingUser.auth_user_id || null,
       usu_pref_opensidebar: editingUser.usu_pref_opensidebar || null
     };
@@ -197,6 +197,9 @@ export const Usuarios: React.FC = () => {
     { key: 'religiosos', name: 'Módulo Religiosos', desc: 'Fichas canônicas, histórico vocacional e dados sacramentais' },
     { key: 'obras', name: 'Comunidades & Obras', desc: 'Gestão de paróquias, casas religiosas e presenças da Província' },
     { key: 'patrimonio', name: 'Módulo Patrimônio', desc: 'Gestão de imóveis, veículos, inventário, contratos e manutenção patrimonial' },
+    { key: 'secretaria', name: 'Secretaria & Atos', desc: 'Acesso a documentos oficiais, agenda e eventos provinciais' },
+    { key: 'arquivo_secretaria', name: 'Arquivo confidencial — Secretaria', desc: 'Acesso restrito a protocolos, documentos pessoais recebidos, classificação e arquivamento; atribuir somente ao secretário responsável' },
+    { key: 'arquivo_substituto', name: 'Arquivo confidencial — Substituto', desc: 'Acesso restrito ao acervo para o substituto formalmente designado pelo secretário' },
     { key: 'hospedagens', name: 'Módulo Hospedagens', desc: 'Inscrições, quartos, check-in e relatórios de hóspedes' },
     { key: 'configuracoes', name: 'Configurações do Sistema', desc: 'Regras de formulários, motivos de estadia e parâmetros' },
     { key: 'usuarios', name: 'Gestão de Usuários', desc: 'Controle de contas administrativas e permissões de acesso' },
@@ -396,7 +399,9 @@ export const Usuarios: React.FC = () => {
                   {users.map(u => {
                     let parsedAcessos: string[] = [];
                     try {
-                      parsedAcessos = JSON.parse(u.usu_acessos || '[]');
+                      parsedAcessos = typeof u.usu_acessos === 'string'
+                        ? JSON.parse(u.usu_acessos)
+                        : u.usu_acessos || [];
                     } catch {
                       parsedAcessos = [];
                     }
@@ -495,4 +500,3 @@ export const Usuarios: React.FC = () => {
 };
 
 export default Usuarios;
-

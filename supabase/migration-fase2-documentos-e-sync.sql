@@ -32,28 +32,35 @@ create index if not exists idx_pat_docs_vencimento on public.patrimonio_document
 alter table public.patrimonio_documentos enable row level security;
 
 create policy "Leitura institucional documentos" on public.patrimonio_documentos
-  for select using (true);
+  for select to authenticated using (
+    public.usuario_tem_papel('patrimonio')
+    or public.usuario_tem_papel('economo')
+    or public.usuario_tem_papel('secretaria')
+  );
 
 create policy "Insercao documentos autorizada" on public.patrimonio_documentos
-  for insert with check (
-    auth.role() = 'service_role' or
-    public.usuario_tem_papel('admin') or
+  for insert to authenticated with check (
+    public.usuario_tem_papel('patrimonio') or
     public.usuario_tem_papel('economo') or
     public.usuario_tem_papel('secretaria') or
-    auth.uid() is not null
+    public.usuario_tem_papel('admin')
   );
 
 create policy "Atualizacao documentos autorizada" on public.patrimonio_documentos
-  for update using (
-    auth.role() = 'service_role' or
+  for update to authenticated using (
+    public.usuario_tem_papel('patrimonio') or
+    public.usuario_tem_papel('admin') or
+    public.usuario_tem_papel('economo') or
+    public.usuario_tem_papel('secretaria')
+  ) with check (
+    public.usuario_tem_papel('patrimonio') or
     public.usuario_tem_papel('admin') or
     public.usuario_tem_papel('economo') or
     public.usuario_tem_papel('secretaria')
   );
 
 create policy "Exclusao documentos admin_economo" on public.patrimonio_documentos
-  for delete using (
-    auth.role() = 'service_role' or
+  for delete to authenticated using (
     public.usuario_tem_papel('admin') or
     public.usuario_tem_papel('economo') or
     public.usuario_tem_papel('secretaria')
@@ -75,22 +82,53 @@ on conflict (id) do update set
 
 -- Políticas de Storage para o bucket patrimonio-documentos
 create policy "Acesso leitura storage patrimonio autenticado"
-  on storage.objects for select
+  on storage.objects for select to authenticated
   using (
     bucket_id = 'patrimonio-documentos' and
-    (auth.role() = 'service_role' or auth.role() = 'authenticated' or true)
+    (
+      public.usuario_tem_papel('patrimonio')
+      or public.usuario_tem_papel('economo')
+      or public.usuario_tem_papel('secretaria')
+    )
   );
 
 create policy "Upload storage patrimonio autorizado"
-  on storage.objects for insert
+  on storage.objects for insert to authenticated
   with check (
     bucket_id = 'patrimonio-documentos' and
-    (auth.role() = 'service_role' or auth.role() = 'authenticated' or true)
+    (
+      public.usuario_tem_papel('patrimonio')
+      or public.usuario_tem_papel('economo')
+      or public.usuario_tem_papel('secretaria')
+    )
+  );
+
+create policy "Atualizacao storage patrimonio autorizada"
+  on storage.objects for update to authenticated
+  using (
+    bucket_id = 'patrimonio-documentos' and
+    (
+      public.usuario_tem_papel('patrimonio')
+      or public.usuario_tem_papel('economo')
+      or public.usuario_tem_papel('secretaria')
+    )
+  )
+  with check (
+    bucket_id = 'patrimonio-documentos' and
+    (
+      public.usuario_tem_papel('patrimonio')
+      or public.usuario_tem_papel('economo')
+      or public.usuario_tem_papel('secretaria')
+    )
   );
 
 create policy "Exclusao storage patrimonio autorizado"
-  on storage.objects for delete
+  on storage.objects for delete to authenticated
   using (
     bucket_id = 'patrimonio-documentos' and
-    (auth.role() = 'service_role' or auth.role() = 'authenticated' or true)
+    (
+      public.usuario_tem_papel('patrimonio')
+      or public.usuario_tem_papel('economo')
+      or public.usuario_tem_papel('secretaria')
+    )
   );

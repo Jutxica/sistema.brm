@@ -120,6 +120,15 @@ Para permitir autenticação e chamadas sem bloqueio:
    - **Site URL**: `https://seu-dominio-no-easypanel.com`
    - **Additional Redirect URLs**: Adicione `https://seu-dominio-no-easypanel.com/**`
 
+### 6. Publicar o Portal do Religioso em um subdomínio próprio
+
+O portal pode usar um domínio adicional no mesmo serviço frontend, sem duplicar a aplicação:
+
+1. No Easypanel, mantenha os domínios existentes e adicione `portascj.brm.org.br` ao serviço frontend.
+2. Em **Build > Build Args**, configure `VITE_PORTAL_PUBLIC_URL` com `https://portascj.brm.org.br`. Como essa variável é incorporada pelo Vite durante a compilação, faça um novo build/deploy após configurá-la.
+3. Em **Authentication > URL Configuration** do Supabase, adicione `https://portascj.brm.org.br/**` em **Additional Redirect URLs**. Mantenha o domínio atual como **Site URL**.
+4. Após o deploy, teste `https://portascj.brm.org.br`: a raiz do subdomínio deve abrir o Portal do Religioso. Os caminhos antigos `/portal-religioso` e `/area-religioso` continuam disponíveis no domínio principal.
+
 ---
 
 ## 🛠️ Resolução de Problemas Comuns (Troubleshooting)

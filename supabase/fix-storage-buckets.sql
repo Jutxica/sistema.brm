@@ -9,13 +9,17 @@
 -- 4. Clique em "New Query" (+), cole todo este script e clique em "Run" (Executar)
 -- ==============================================================================
 
--- 1. CRIAR OU ATUALIZAR OS BUCKETS COMO PÚBLICOS
-INSERT INTO storage.buckets (id, name, public)
+-- 1. Buckets públicos para documentos publicados e fotos de obras.
+-- Documentos pessoais religiosos permanecem em bucket privado.
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES 
-  ('documentos-provincia', 'documentos-provincia', true),
-  ('religiosos-documentos', 'religiosos-documentos', true),
-  ('obras-fotos', 'obras-fotos', true)
-ON CONFLICT (id) DO UPDATE SET public = true;
+  ('documentos-provincia', 'documentos-provincia', true, 52428800, array['application/pdf', 'image/jpeg', 'image/png', 'image/tiff', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']),
+  ('religiosos-documentos', 'religiosos-documentos', false, 52428800, array['application/pdf', 'image/jpeg', 'image/png', 'image/tiff']),
+  ('obras-fotos', 'obras-fotos', true, 10485760, array['image/jpeg', 'image/png', 'image/webp'])
+ON CONFLICT (id) DO UPDATE
+  SET public = excluded.public,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
 
 -- ------------------------------------------------------------------------------
 -- 2. POLÍTICAS DE ACESSO PARA 'documentos-provincia'
@@ -27,41 +31,37 @@ CREATE POLICY "documentos_provincia_public_read" ON storage.objects
 
 DROP POLICY IF EXISTS "documentos_provincia_anon_insert" ON storage.objects;
 DROP POLICY IF EXISTS "documentos_provincia_public_insert" ON storage.objects;
-CREATE POLICY "documentos_provincia_anon_insert" ON storage.objects 
-  FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'documentos-provincia');
+DROP POLICY IF EXISTS "documentos_provincia_secretaria_insert" ON storage.objects;
+CREATE POLICY "documentos_provincia_secretaria_insert" ON storage.objects
+  FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'documentos-provincia' AND public.usuario_tem_papel('secretaria'));
 
 DROP POLICY IF EXISTS "documentos_provincia_anon_update" ON storage.objects;
 DROP POLICY IF EXISTS "documentos_provincia_public_update" ON storage.objects;
-CREATE POLICY "documentos_provincia_anon_update" ON storage.objects 
-  FOR UPDATE TO anon, authenticated USING (bucket_id = 'documentos-provincia') WITH CHECK (bucket_id = 'documentos-provincia');
+DROP POLICY IF EXISTS "documentos_provincia_secretaria_update" ON storage.objects;
+CREATE POLICY "documentos_provincia_secretaria_update" ON storage.objects
+  FOR UPDATE TO authenticated
+  USING (bucket_id = 'documentos-provincia' AND public.usuario_tem_papel('secretaria'))
+  WITH CHECK (bucket_id = 'documentos-provincia' AND public.usuario_tem_papel('secretaria'));
 
 DROP POLICY IF EXISTS "documentos_provincia_anon_delete" ON storage.objects;
 DROP POLICY IF EXISTS "documentos_provincia_public_delete" ON storage.objects;
-CREATE POLICY "documentos_provincia_anon_delete" ON storage.objects 
-  FOR DELETE TO anon, authenticated USING (bucket_id = 'documentos-provincia');
+DROP POLICY IF EXISTS "documentos_provincia_secretaria_delete" ON storage.objects;
+CREATE POLICY "documentos_provincia_secretaria_delete" ON storage.objects
+  FOR DELETE TO authenticated
+  USING (bucket_id = 'documentos-provincia' AND public.usuario_tem_papel('secretaria'));
 
 -- ------------------------------------------------------------------------------
 -- 3. POLÍTICAS DE ACESSO PARA 'religiosos-documentos'
 -- ------------------------------------------------------------------------------
-DROP POLICY IF EXISTS "religiosos_documentos_read" ON storage.objects;
 DROP POLICY IF EXISTS "religiosos_docs_public_read" ON storage.objects;
-CREATE POLICY "religiosos_docs_public_read" ON storage.objects 
-  FOR SELECT TO public USING (bucket_id = 'religiosos-documentos');
+-- Policies per record are installed by migration-portal-religioso-seguro.sql.
 
-DROP POLICY IF EXISTS "religiosos_documentos_upload" ON storage.objects;
 DROP POLICY IF EXISTS "religiosos_docs_anon_insert" ON storage.objects;
-CREATE POLICY "religiosos_docs_anon_insert" ON storage.objects 
-  FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'religiosos-documentos');
 
-DROP POLICY IF EXISTS "religiosos_documentos_update" ON storage.objects;
 DROP POLICY IF EXISTS "religiosos_docs_anon_update" ON storage.objects;
-CREATE POLICY "religiosos_docs_anon_update" ON storage.objects 
-  FOR UPDATE TO anon, authenticated USING (bucket_id = 'religiosos-documentos') WITH CHECK (bucket_id = 'religiosos-documentos');
 
-DROP POLICY IF EXISTS "religiosos_documentos_delete" ON storage.objects;
 DROP POLICY IF EXISTS "religiosos_docs_anon_delete" ON storage.objects;
-CREATE POLICY "religiosos_docs_anon_delete" ON storage.objects 
-  FOR DELETE TO anon, authenticated USING (bucket_id = 'religiosos-documentos');
 
 -- ------------------------------------------------------------------------------
 -- 4. POLÍTICAS DE ACESSO PARA 'obras-fotos'
@@ -75,9 +75,7 @@ CREATE POLICY "obras_fotos_anon_insert" ON storage.objects
   FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'obras-fotos');
 
 DROP POLICY IF EXISTS "obras_fotos_anon_update" ON storage.objects;
-CREATE POLICY "obras_fotos_anon_update" ON storage.objects 
-  FOR UPDATE TO anon, authenticated USING (bucket_id = 'obras-fotos') WITH CHECK (bucket_id = 'obras-fotos');
+DROP POLICY IF EXISTS "obras_fotos_public_update" ON storage.objects;
 
 DROP POLICY IF EXISTS "obras_fotos_anon_delete" ON storage.objects;
-CREATE POLICY "obras_fotos_anon_delete" ON storage.objects 
-  FOR DELETE TO anon, authenticated USING (bucket_id = 'obras-fotos');
+DROP POLICY IF EXISTS "obras_fotos_public_delete" ON storage.objects;
