@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  CheckCircle2, AlertCircle, FileText, Printer, ShieldCheck, 
+  CheckCircle2, AlertCircle, FileText, Printer,
   Send, Calendar, Clock, MapPin, Download, ArrowLeft, Building2, User 
 } from 'lucide-react';
 import { PapelTimbradoBRM, type OrientacaoDocumento } from './PapelTimbradoBRM';
@@ -16,6 +16,10 @@ export interface VariavelCampo {
   ajuda?: string;
 }
 
+export interface ResultadoEnvioFormulario {
+  protocolo: string;
+}
+
 export interface FormularioTimbradoProps {
   titulo: string;
   subtitulo?: string;
@@ -23,7 +27,7 @@ export interface FormularioTimbradoProps {
   numeroProtocolo?: string;
   campos: VariavelCampo[];
   valoresIniciais?: Record<string, any>;
-  onSubmit?: (respostas: Record<string, any>) => Promise<void> | void;
+  onSubmit?: (respostas: Record<string, any>) => Promise<void | ResultadoEnvioFormulario> | void | ResultadoEnvioFormulario;
   modo?: 'fill' | 'preview' | 'print';
   orientacao?: OrientacaoDocumento;
   carregando?: boolean;
@@ -61,8 +65,9 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
 }) => {
   const [respostas, setRespostas] = useState<Record<string, any>>(valoresIniciais);
   const [erros, setErros] = useState<Record<string, string>>({});
+  const [erroEnvio, setErroEnvio] = useState<string | null>(null);
   const [enviadoSucesso, setEnviadoSucesso] = useState(false);
-  const [protocoloGerado, setProtocoloGerado] = useState(numeroProtocolo || `FORM-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [protocoloGerado, setProtocoloGerado] = useState(numeroProtocolo || '');
   const [rascunhoPronto, setRascunhoPronto] = useState(!chaveRascunho || modo !== 'fill');
   const [rascunhoRestaurado, setRascunhoRestaurado] = useState<string | null>(null);
   const [rascunhoSalvo, setRascunhoSalvo] = useState<string | null>(null);
@@ -150,6 +155,7 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (modo === 'preview') return;
+    setErroEnvio(null);
 
     // Validar campos obrigatórios
     const novosErros: Record<string, string> = {};
@@ -169,7 +175,8 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
 
     try {
       if (onSubmit) {
-        await onSubmit(respostas);
+        const resultado = await onSubmit(respostas);
+        if (resultado?.protocolo) setProtocoloGerado(resultado.protocolo);
       }
       if (chaveRascunho) {
         try {
@@ -181,6 +188,12 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
       setEnviadoSucesso(true);
     } catch (err) {
       console.error('Erro ao enviar formulário:', err);
+      const message = err instanceof Error
+        ? err.message
+        : typeof err === 'object' && err !== null && 'message' in err && typeof err.message === 'string'
+          ? err.message
+          : 'Não foi possível enviar sua inscrição. Tente novamente ou contate a Secretaria Provincial.';
+      setErroEnvio(message);
     }
   };
 
@@ -201,10 +214,12 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
         </p>
 
         <div className="p-4 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 max-w-sm mx-auto text-left font-mono text-xs space-y-1.5">
-          <div className="flex justify-between">
-            <span className="text-slate-500">Protocolo:</span>
-            <span className="font-bold text-[#113240] dark:text-white">{protocoloGerado}</span>
-          </div>
+          {protocoloGerado && (
+            <div className="flex justify-between">
+              <span className="text-slate-500">Protocolo:</span>
+              <span className="font-bold text-[#113240] dark:text-white">{protocoloGerado}</span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span className="text-slate-500">Data & Hora:</span>
             <span className="text-slate-700 dark:text-slate-300">{new Date().toLocaleString('pt-BR')}</span>
@@ -330,6 +345,15 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
             .brm-letterhead-form > section { padding: 1rem; }
           }
         `}</style>
+        {erroEnvio && (
+          <div role="alert" className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <p className="font-semibold">Não foi possível enviar a inscrição.</p>
+              <p className="mt-1 break-words text-xs leading-relaxed">{erroEnvio}</p>
+            </div>
+          </div>
+        )}
         {modo === 'fill' && (rascunhoRestaurado || rascunhoSalvo || erroRascunho) && (
           <aside className="flex flex-col gap-3 rounded-2xl border border-sky-200 bg-sky-50/80 p-4 text-sm text-sky-950 shadow-sm dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-100 sm:flex-row sm:items-center sm:justify-between">
             <div>

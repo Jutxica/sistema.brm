@@ -367,7 +367,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       }
       if (religiosoData) {
         setBase(previous => ({ ...previous, ...Object.fromEntries(Object.entries(religiosoData).filter(([key]) => key in previous).map(([key, value]) => [key, value == null ? '' : String(value)])), consentimento_dados: religiosoData.consentimento_dados ? 'true' : '' }));
-        if (profileReligiosoId || memberMode) {
+        if ((profileReligiosoId || memberMode) && religiosoData.status_cadastro === 'Aprovado') {
           const { data: designacoes, error: designacoesError } = await supabase
             .from('religiosos_designacoes')
             .select('id,tipo_vinculo,funcao,vigencia_inicio,vigencia_fim,ano_referencia,comunidades(nome),religiosos_obras_referencia(nome)')
@@ -1157,8 +1157,12 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                   );
                 })}
               {!erroDesignacoesElenco && !designacoesAtuais.length && (
-                <p className="text-xs text-[#707070] dark:text-[#a1a1a6]">A Secretaria ainda não registrou uma designação vigente para este cadastro.</p>
-              )}
+                  <p className="text-xs text-[#707070] dark:text-[#a1a1a6]">
+                    {base.status_cadastro === 'Aprovado'
+                      ? 'A Secretaria ainda não registrou uma designação vigente para este cadastro.'
+                      : 'As designações do Elenco serão exibidas após a aprovação do Cadastro BRM.'}
+                  </p>
+                )}
             </div>
           </section>
         )}

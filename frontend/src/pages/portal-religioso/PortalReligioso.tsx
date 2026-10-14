@@ -65,7 +65,7 @@ const getRegistrationErrorMessage = (error: unknown) => {
 const dataElencoHoje = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
 
 export const PortalReligioso: React.FC = () => {
-  const { user, logout, refreshUserProfile } = useAuth();
+  const { user, loading: authLoadingProfile, logout, refreshUserProfile } = useAuth();
 
   // Authentication State for Member Portal
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -130,6 +130,9 @@ export const PortalReligioso: React.FC = () => {
 
   // E2E Preview Mode for Member Portal
   const isE2E = import.meta.env.DEV && typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true';
+  const canAccessPortal = Boolean(
+    isE2E || (user?.status === 'Ativo' && (user.isAdmin || user.religiosoStatusCadastro === 'Aprovado')),
+  );
 
   // Helper CPF
   const formatCpf = (val: string) => {
@@ -254,7 +257,7 @@ export const PortalReligioso: React.FC = () => {
     setActiveSection('inscricao');
     setRegistrationError(null);
 
-    if (religiosoData?.id || isE2E) return;
+    if (isE2E) return;
     if (!user?.id) {
       setRegistrationError('Entre novamente no portal para iniciar o Cadastro BRM.');
       return;
@@ -262,19 +265,22 @@ export const PortalReligioso: React.FC = () => {
 
     setRegistrationOpening(true);
     try {
-      const { data: religiosoId, error: linkError } = await supabase.rpc('ensure_religious_portal_profile');
-      if (linkError) throw linkError;
-      if (typeof religiosoId !== 'string' || !religiosoId) {
-        throw new Error('Não foi possível localizar ou iniciar sua ficha. Contate a Secretaria Provincial.');
-      }
+      if (!religiosoData?.id) {
+        const { data: religiosoId, error: linkError } = await supabase.rpc('ensure_religious_portal_profile');
+        if (linkError) throw linkError;
+        if (typeof religiosoId !== 'string' || !religiosoId) {
+          throw new Error('Não foi possível localizar ou iniciar sua ficha. Contate a Secretaria Provincial.');
+        }
 
-      const { data: officialData, error: officialError } = await supabase
-        .from('religiosos')
-        .select('*')
-        .eq('id', religiosoId)
-        .single();
-      if (officialError) throw officialError;
-      setReligiosoData(officialData);
+        const { data: officialData, error: officialError } = await supabase
+          .from('religiosos')
+          .select('*')
+          .eq('id', religiosoId)
+          .single();
+        if (officialError) throw officialError;
+        setReligiosoData(officialData);
+      }
+      await refreshUserProfile(user.id);
     } catch (err) {
       console.error('Erro ao iniciar Cadastro BRM:', err);
       setRegistrationError(getRegistrationErrorMessage(err));
@@ -285,6 +291,8 @@ export const PortalReligioso: React.FC = () => {
 
   // Carregar Casas e Obras oficiais da Província BRM para Hospedagem
   useEffect(() => {
+    if (!canAccessPortal) return;
+
     const fetchCasas = async () => {
       setLoadingCasas(true);
       try {
@@ -315,10 +323,12 @@ export const PortalReligioso: React.FC = () => {
     };
 
     fetchCasas();
-  }, []);
+  }, [canAccessPortal]);
 
   // Carregar Documentos Oficiais e Agenda da Província BRM
   useEffect(() => {
+    if (!canAccessPortal) return;
+
     const fetchDocumentos = async () => {
       setLoadingDocumentos(true);
       try {
@@ -387,7 +397,7 @@ export const PortalReligioso: React.FC = () => {
     fetchDocumentos();
     fetchEventos();
     fetchFormulariosERespostas();
-  }, []);
+  }, [canAccessPortal]);
 
   useEffect(() => {
     if (user || isE2E) {
@@ -653,52 +663,103 @@ export const PortalReligioso: React.FC = () => {
     }
   };
 
+  if (user && authLoadingProfile && !isE2E) {
+    return (
+      <div className="religious-portal flex min-h-screen items-center justify-center">
+        <div className="flex items-center gap-3 text-sm text-[#707070] dark:text-[#a1a1a6]">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span>Verificando autorização do portal...</span>
+        </div>
+      </div>
+    );
+  }
+
   // Se o usuário NÃO estiver autenticado (e não em preview): Tela Apple de Entrada do Confrade
   if (!user && !isE2E) {
     return (
-      <div className="religious-portal min-h-screen flex flex-col justify-between text-[#203136] dark:text-[#edf2f1] px-4 transition-colors duration-200 font-sans">
-        
-        {/* Top spacing */}
-        <div className="h-6 md:h-10" />
-
-        {/* Apple Showcase Card */}
-        <div className="flex-grow flex items-center justify-center py-6">
-          <div className="w-full max-w-[500px] bg-white dark:bg-[#161617] rounded-[28px] p-8 sm:p-11 border border-[#d6d6d6]/60 dark:border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.03)] dark:shadow-none transition-all duration-300">
-            
-            {/* Header & Brand */}
-            <div className="flex flex-col items-center text-center mb-6">
-              <div className="mb-4">
-                <img 
-                  src="/logo-sistema.png" 
-                  alt="Província BRM" 
-                  className="h-16 w-auto object-contain select-none pointer-events-none dark:hidden"
+      <div className="religious-portal flex min-h-[100svh] flex-col items-center justify-center px-4 py-5 font-sans text-[#203136] transition-colors duration-200 dark:text-[#edf2f1] sm:px-6 sm:py-8">
+        <main className="flex w-full max-w-5xl items-center justify-center">
+          <div className="grid w-full overflow-hidden rounded-[24px] border border-[#d6d6d6]/70 bg-white shadow-[0_24px_80px_rgba(17,50,64,0.10)] dark:border-white/10 dark:bg-[#161617] dark:shadow-[0_24px_80px_rgba(0,0,0,0.22)] md:grid-cols-[0.82fr_1.18fr] md:rounded-[30px]">
+            <aside className="relative hidden flex-col justify-between overflow-hidden bg-[#113240] p-10 text-white md:flex lg:p-12">
+              <div aria-hidden="true" className="absolute -right-24 -top-24 h-72 w-72 rounded-full border border-white/10" />
+              <div aria-hidden="true" className="absolute -right-12 -top-12 h-48 w-48 rounded-full border border-white/10" />
+              <div className="relative">
+                <img
+                  src="/logo-branco.png"
+                  alt="Província BRM"
+                  className="mb-10 h-14 w-auto max-w-full object-contain object-left"
                 />
-                <img 
-                  src="/logo-branco.png" 
-                  alt="Província BRM" 
-                  className="h-16 w-auto object-contain select-none pointer-events-none hidden dark:block"
-                />
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#a3c3c7]">
+                  Província Brasil Meridional
+                </span>
+                <h2 className="mt-3 text-3xl font-semibold leading-tight tracking-[-0.03em] lg:text-[34px]">
+                  Comunhão que aproxima.
+                </h2>
+                <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/75">
+                  Um espaço seguro para acompanhar a vida provincial, cuidar do seu perfil e acessar os serviços da Província.
+                </p>
               </div>
-              
-              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#707070] dark:text-[#86868b] block">
-                Província Brasil Meridional • Área do Confrade
-              </span>
-              <h1 className="text-3xl sm:text-[32px] font-semibold tracking-[-0.03em] text-[#1d1d1f] dark:text-[#f5f5f7] mt-1">
-                Portal do Religioso
-              </h1>
-              <p className="text-sm text-[#707070] dark:text-[#86868b] font-normal mt-1 leading-relaxed">
-                Comunhão fraterna, diretório & vida provincial
-              </p>
-            </div>
+              <div className="relative rounded-2xl border border-white/15 bg-white/[0.06] p-5">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#a3c3c7]">
+                  Sint Unum
+                </span>
+                <p className="mt-2 text-sm leading-relaxed text-white/85">
+                  Acesso reservado aos religiosos da Província Brasil Meridional.
+                </p>
+              </div>
+            </aside>
+
+            <section className="min-w-0 p-5 sm:p-8 md:p-10 lg:p-12">
+              <div className="mb-7 flex items-center gap-3 md:hidden">
+                <img
+                  src="/logo-sistema.png"
+                  alt="Província BRM"
+                  className="h-10 w-auto max-w-[5rem] object-contain dark:hidden"
+                />
+                <img
+                  src="/logo-branco.png"
+                  alt="Província BRM"
+                  className="hidden h-10 w-auto max-w-[5rem] object-contain dark:block"
+                />
+                <div className="min-w-0 border-l border-[#d6d6d6] pl-3 dark:border-white/15">
+                  <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-[#707070] dark:text-[#a1a1a6]">
+                    Província Brasil Meridional
+                  </span>
+                  <span className="mt-0.5 block text-xs font-medium text-[#203136] dark:text-[#edf2f1]">
+                    Área do Confrade
+                  </span>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#226380] dark:text-[#a3c3c7]">
+                  {recoveryMode ? 'Recuperação de acesso' : authMode === 'login' ? 'Área do Confrade' : 'Novo acesso'}
+                </span>
+                <h1 className="mt-2 text-[26px] font-semibold leading-tight tracking-[-0.035em] text-[#1d1d1f] dark:text-[#f5f5f7] sm:text-3xl">
+                  {recoveryMode
+                    ? 'Defina uma nova senha'
+                    : authMode === 'login'
+                      ? 'Bem-vindo de volta'
+                      : 'Crie seu acesso ao portal'}
+                </h1>
+                <p className="mt-2 max-w-lg text-[13px] leading-relaxed text-[#707070] dark:text-[#a1a1a6]">
+                  {recoveryMode
+                    ? 'Escolha uma senha segura para voltar a acessar sua conta.'
+                    : authMode === 'login'
+                      ? 'Entre para acompanhar sua vida provincial e acessar os serviços do confrade.'
+                      : 'Informe seus dados para localizar sua ficha. A Secretaria confirma o vínculo antes de validar o cadastro.'}
+                </p>
+              </div>
 
             {/* Apple Segmented Control */}
-            <div className="flex bg-[#f5f5f7] dark:bg-[#262628] p-1 rounded-full mb-6 border border-[#d6d6d6]/40 dark:border-white/5">
+            {!recoveryMode && <div className="mb-6 flex rounded-[14px] border border-[#d6d6d6]/60 bg-[#f5f5f7] p-1 dark:border-white/10 dark:bg-[#262628]">
               <button
                 type="button"
-                onClick={() => { setAuthMode('login'); setAuthError(null); }}
-                className={`flex-1 py-2 text-[13px] font-medium rounded-full transition-all duration-200 cursor-pointer ${
+                aria-pressed={authMode === 'login'}
+                onClick={() => { setAuthMode('login'); setAuthError(null); setAuthSuccess(null); }}
+                className={`min-h-11 flex-1 rounded-[10px] px-3 py-2 text-[13px] font-semibold transition-all duration-200 cursor-pointer ${
                   authMode === 'login'
-                    ? 'bg-white dark:bg-[#323236] text-[#1d1d1f] dark:text-white shadow-[0_2px_8px_rgba(0,0,0,0.06)]'
+                    ? 'bg-white text-[#1d1d1f] shadow-[0_2px_8px_rgba(0,0,0,0.06)] dark:bg-[#323236] dark:text-white'
                     : 'text-[#707070] dark:text-[#86868b] hover:text-[#1d1d1f] dark:hover:text-white'
                 }`}
               >
@@ -706,27 +767,28 @@ export const PortalReligioso: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => { setAuthMode('register'); setAuthError(null); }}
-                className={`flex-1 py-2 text-[13px] font-medium rounded-full transition-all duration-200 cursor-pointer ${
+                aria-pressed={authMode === 'register'}
+                onClick={() => { setAuthMode('register'); setAuthError(null); setAuthSuccess(null); }}
+                className={`min-h-11 flex-1 rounded-[10px] px-3 py-2 text-[13px] font-semibold transition-all duration-200 cursor-pointer ${
                   authMode === 'register'
-                    ? 'bg-white dark:bg-[#323236] text-[#1d1d1f] dark:text-white shadow-[0_2px_8px_rgba(0,0,0,0.06)]'
+                    ? 'bg-white text-[#1d1d1f] shadow-[0_2px_8px_rgba(0,0,0,0.06)] dark:bg-[#323236] dark:text-white'
                     : 'text-[#707070] dark:text-[#86868b] hover:text-[#1d1d1f] dark:hover:text-white'
                 }`}
               >
                 Criar Conta
               </button>
-            </div>
+            </div>}
 
             {/* Alertas */}
             {authError && (
-              <div className="flex items-start gap-3 p-3.5 rounded-[14px] bg-[#fff2f2] dark:bg-[#321417] text-[#c92a2a] dark:text-[#ff8787] text-xs mb-5 border border-[#ffc9c9] dark:border-[#5c1c24] animate-shake">
+              <div role="alert" className="mb-5 flex items-start gap-3 rounded-[14px] border border-[#ffc9c9] bg-[#fff2f2] p-3.5 text-xs text-[#c92a2a] animate-shake dark:border-[#5c1c24] dark:bg-[#321417] dark:text-[#ff8787]">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span className="leading-relaxed">{authError}</span>
               </div>
             )}
 
             {authSuccess && (
-              <div className="flex items-start gap-3 p-3.5 rounded-[14px] bg-[#e8f5e9] dark:bg-[#152a1b] text-[#2e7d32] dark:text-[#81c784] text-xs mb-5 border border-[#c8e6c9] dark:border-[#2e5e39]">
+              <div role="status" aria-live="polite" className="mb-5 flex items-start gap-3 rounded-[14px] border border-[#c8e6c9] bg-[#e8f5e9] p-3.5 text-xs text-[#2e7d32] dark:border-[#2e5e39] dark:bg-[#152a1b] dark:text-[#81c784]">
                 <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-[#2e7d32]" />
                 <span className="leading-relaxed">{authSuccess}</span>
               </div>
@@ -738,22 +800,31 @@ export const PortalReligioso: React.FC = () => {
                 <label className="block text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
                   Nova senha
                   <input
+                    id="portal-recovery-password"
                     type="password"
                     minLength={6}
                     required
                     value={recoveryPassword}
                     onChange={event => setRecoveryPassword(event.target.value)}
-                    className="mt-2 w-full px-4 py-3 bg-[#f5f5f7] dark:bg-[#262628] rounded-[14px] border border-transparent focus:border-[#0071e3] outline-none"
+                    autoComplete="new-password"
+                    className="mt-2 w-full min-h-11 rounded-[12px] border border-transparent bg-[#f5f5f7] px-4 py-3 outline-none focus:border-[#226380] dark:bg-[#262628]"
                   />
                 </label>
-                <button type="submit" disabled={authLoading} className="w-full py-3 rounded-full bg-[#0071e3] text-white font-medium disabled:opacity-50">
+                <button type="submit" disabled={authLoading} className="w-full min-h-12 rounded-[14px] bg-[#113240] py-3 font-semibold text-white disabled:opacity-50 dark:bg-[#226380]">
                   Atualizar senha
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setRecoveryMode(false); setAuthError(null); }}
+                  className="w-full min-h-11 text-sm font-medium text-[#226380] hover:underline dark:text-[#a3c3c7]"
+                >
+                  Voltar ao acesso
                 </button>
               </form>
             ) : authMode === 'login' ? (
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block">
+                  <label htmlFor="portal-login-email" className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block">
                     E-mail da conta
                   </label>
                   <div className="relative">
@@ -761,25 +832,27 @@ export const PortalReligioso: React.FC = () => {
                       <User className="w-4 h-4" />
                     </span>
                     <input
-                      type="text"
+                      id="portal-login-email"
+                      type="email"
                       required
                       value={identificador}
                       onChange={(e) => setIdentificador(e.target.value)}
+                      autoComplete="email"
                       placeholder="confrade@brm.org.br"
-                      className="w-full pl-10 pr-4 py-3 bg-[#f5f5f7] dark:bg-[#262628] hover:bg-[#efeff2] dark:hover:bg-[#2d2d30] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
+                      className="w-full min-h-11 rounded-[12px] border border-transparent bg-[#f5f5f7] py-3 pl-10 pr-4 text-[14px] text-[#1d1d1f] outline-none transition-all placeholder:text-[#86868b] hover:bg-[#efeff2] focus:border-[#226380] focus:bg-white dark:bg-[#262628] dark:text-[#f5f5f7] dark:hover:bg-[#2d2d30] dark:focus:bg-[#1d1d1f]"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5 pt-1">
                   <div className="flex justify-between items-center">
-                    <label className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block">
+                    <label htmlFor="portal-login-password" className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block">
                       Senha
                     </label>
                     <button
                       type="button"
                       onClick={() => void handlePasswordRecovery()}
-                      className="text-[13px] text-[#0066cc] dark:text-[#2997ff] hover:underline font-normal transition-colors"
+                      className="inline-flex min-h-11 items-center text-[12px] font-medium text-[#226380] transition-colors hover:underline dark:text-[#a3c3c7]"
                     >
                       Esqueceu a senha?
                     </button>
@@ -789,17 +862,20 @@ export const PortalReligioso: React.FC = () => {
                       <Lock className="w-4 h-4" />
                     </span>
                     <input
+                      id="portal-login-password"
                       type={showPassword ? "text" : "password"}
                       required
                       value={senha}
                       onChange={(e) => setSenha(e.target.value)}
                       placeholder="Digite sua senha"
-                      className="w-full pl-10 pr-11 py-3 bg-[#f5f5f7] dark:bg-[#262628] hover:bg-[#efeff2] dark:hover:bg-[#2d2d30] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
+                      className="w-full min-h-11 rounded-[12px] border border-transparent bg-[#f5f5f7] py-3 pl-10 pr-11 text-[14px] text-[#1d1d1f] outline-none transition-all placeholder:text-[#86868b] hover:bg-[#efeff2] focus:border-[#226380] focus:bg-white dark:bg-[#262628] dark:text-[#f5f5f7] dark:hover:bg-[#2d2d30] dark:focus:bg-[#1d1d1f]"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-[#707070] hover:text-[#1d1d1f] dark:text-[#86868b] dark:hover:text-[#f5f5f7] transition-colors cursor-pointer"
+                      aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                      aria-pressed={showPassword}
+                      className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-[#707070] transition-colors hover:text-[#1d1d1f] dark:text-[#86868b] dark:hover:text-[#f5f5f7] cursor-pointer"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -810,7 +886,7 @@ export const PortalReligioso: React.FC = () => {
                   <button
                     type="submit"
                     disabled={authLoading}
-                    className="w-full py-3.5 px-6 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white text-[15px] font-medium transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 active:scale-[0.99]"
+                    className="w-full min-h-12 rounded-[14px] bg-[#113240] px-6 py-3.5 text-[15px] font-semibold text-white transition-all duration-200 hover:bg-[#174657] cursor-pointer disabled:pointer-events-none disabled:opacity-50 flex items-center justify-center gap-2 active:scale-[0.99] dark:bg-[#226380] dark:hover:bg-[#2b7897]"
                   >
                     {authLoading ? (
                       <>
@@ -830,7 +906,7 @@ export const PortalReligioso: React.FC = () => {
                         localStorage.setItem('brm_e2e_role', 'religioso');
                         window.location.reload();
                       }}
-                      className="w-full mt-2.5 py-2.5 px-4 rounded-full bg-[#f5f5f7] dark:bg-[#262628] hover:bg-[#ebebed] dark:hover:bg-[#303033] text-[#0071e3] dark:text-[#2997ff] text-xs font-semibold transition-all cursor-pointer border border-[#0071e3]/30 flex items-center justify-center gap-2"
+                      className="mt-2.5 flex min-h-11 w-full items-center justify-center gap-2 rounded-[14px] border border-[#226380]/30 bg-[#f5f5f7] px-4 py-2.5 text-xs font-semibold text-[#226380] transition-all hover:bg-[#ebebed] dark:bg-[#262628] dark:text-[#a3c3c7] dark:hover:bg-[#303033] cursor-pointer"
                     >
                       <span>Acesso Rápido de Confrade (Demonstração)</span>
                     </button>
@@ -841,58 +917,62 @@ export const PortalReligioso: React.FC = () => {
               /* FORM REGISTRO */
               <form onSubmit={handleRegister} className="space-y-3.5">
                 <div>
-                  <label className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
+                  <label htmlFor="portal-register-name" className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
                     Nome completo *
                   </label>
                   <input
+                    id="portal-register-name"
                     type="text"
                     required
                     value={regNomeCivil}
                     onChange={(e) => setRegNomeCivil(e.target.value)}
                     autoComplete="name"
                     placeholder="Seu nome completo"
-                    className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
+                    className="w-full min-h-11 px-4 py-3 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[12px] border border-transparent focus:border-[#226380] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
+                    <label htmlFor="portal-register-cpf" className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
                       CPF *
                     </label>
                     <input
+                      id="portal-register-cpf"
                       type="text"
                       required
                       value={regCpf}
                       onChange={(e) => setRegCpf(formatCpf(e.target.value))}
                       placeholder="000.000.000-00"
                       maxLength={14}
-                      className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
+                      className="w-full min-h-11 px-4 py-3 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[12px] border border-transparent focus:border-[#226380] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
                     />
                     <p className="mt-1.5 text-[11px] leading-relaxed text-[#707070] dark:text-[#a1a1a6]">
                       Conferimos apenas os dígitos verificadores. A titularidade será revisada pela Secretaria; não consultamos uma base oficial de CPF.
                     </p>
                   </div>
                   <div>
-                    <label className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
+                    <label htmlFor="portal-register-birthdate" className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
                       Data de nascimento *
                     </label>
                     <input
+                      id="portal-register-birthdate"
                       type="date"
                       required
                       max={new Date().toISOString().slice(0, 10)}
                       value={regDataNascimento}
                       onChange={(e) => setRegDataNascimento(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
+                      className="w-full min-h-11 px-4 py-3 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[12px] border border-transparent focus:border-[#226380] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
+                  <label htmlFor="portal-register-email" className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
                     E-mail *
                   </label>
                   <input
+                    id="portal-register-email"
                     type="email"
                     required
                     value={regEmail}
@@ -905,25 +985,27 @@ export const PortalReligioso: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
+                    <label htmlFor="portal-register-password" className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
                       Senha *
                     </label>
                     <input
+                      id="portal-register-password"
                       type="password"
                       required
                         minLength={6}
                         autoComplete="new-password"
                         value={regSenha}
                       onChange={(e) => setRegSenha(e.target.value)}
-                      placeholder="Mínimo 6 dígitos"
+                      placeholder="Mínimo 6 caracteres"
                       className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
                     />
                   </div>
                   <div>
-                    <label className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
+                    <label htmlFor="portal-register-password-confirm" className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
                       Confirmar Senha *
                     </label>
                     <input
+                      id="portal-register-password-confirm"
                       type="password"
                       required
                         minLength={6}
@@ -941,7 +1023,7 @@ export const PortalReligioso: React.FC = () => {
                     type="checkbox"
                     checked={consentAccepted}
                     onChange={event => setConsentAccepted(event.target.checked)}
-                    className="mt-0.5 accent-[#226380]"
+                    className="mt-0.5 size-4 shrink-0 accent-[#226380]"
                   />
                   <span>Autorizo o uso destes dados para localizar e manter minha ficha institucional, conforme a Política de Privacidade e a LGPD. O CPF não é prova de identidade.</span>
                 </label>
@@ -954,7 +1036,7 @@ export const PortalReligioso: React.FC = () => {
                   <button
                     type="submit"
                     disabled={authLoading}
-                    className="w-full py-3.5 px-6 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white text-[15px] font-medium transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 active:scale-[0.99]"
+                    className="w-full min-h-12 px-6 py-3.5 rounded-[14px] bg-[#113240] hover:bg-[#174657] text-white text-[15px] font-semibold transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 active:scale-[0.99] dark:bg-[#226380] dark:hover:bg-[#2b7897]"
                   >
                     {authLoading ? (
                       <>
@@ -970,23 +1052,24 @@ export const PortalReligioso: React.FC = () => {
             )}
 
             {/* Link para Ficha Pública Avulsa */}
-            <div className="mt-8 pt-6 border-t border-[#e5e5ea] dark:border-white/10 text-center">
+            <div className="mt-7 border-t border-[#e5e5ea] pt-5 text-center dark:border-white/10">
               <a
                 href="/cadastro-religiosos"
-                className="text-[13px] text-[#0066cc] dark:text-[#2997ff] hover:underline font-normal inline-flex items-center gap-1.5 transition-colors"
+                className="inline-flex min-h-11 items-center justify-center gap-1.5 text-[12px] font-medium text-[#226380] transition-colors hover:underline dark:text-[#a3c3c7]"
               >
-                <span>Apenas preencher a ficha cadastral pública avulsa</span>
+                <span>Prefere preencher apenas a ficha pública?</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </a>
             </div>
 
+            </section>
           </div>
-        </div>
+        </main>
 
         {/* Centralized Footer */}
-        <footer className="w-full max-w-[980px] mx-auto py-6 border-t border-[#d6d6d6]/60 dark:border-white/10 text-center text-xs text-[#707070] dark:text-[#86868b] select-none print:hidden">
+        <footer className="mt-5 w-full max-w-5xl py-2 text-center text-[11px] text-[#707070] dark:text-[#86868b] select-none print:hidden">
           <p className="tracking-wide">
-            sistema.brm.org - todos os direitos reservados-2026
+            Sistema BRM · Província Brasil Meridional
           </p>
         </footer>
 
@@ -998,6 +1081,145 @@ export const PortalReligioso: React.FC = () => {
   const displayName = religiosoData?.nome_civil || user?.nome || 'Confrade Dehoniano';
   const displayReligiousName = religiosoData?.nome_religioso || '';
   const displayGrau = religiosoData?.grau || 'Religioso SCJ';
+  const registrationStatus = religiosoData?.status_cadastro || user?.religiosoStatusCadastro;
+  const canContinueRegistration = [
+    'Em revisão',
+    'Em verificação',
+    'Aguardando complementação',
+  ].includes(registrationStatus || '');
+
+  if (user && !canAccessPortal) {
+    const refreshPortalAccess = async () => {
+      setRegistrationOpening(true);
+      setRegistrationError(null);
+      try {
+        await loadMemberData();
+        await refreshUserProfile(user.id);
+      } finally {
+        setRegistrationOpening(false);
+      }
+    };
+
+    if (
+      activeSection === 'inscricao'
+      && religiosoData?.id
+      && canContinueRegistration
+    ) {
+      return (
+        <div className="religious-portal min-h-screen px-3 py-6 sm:px-6 sm:py-8">
+          <main className="mx-auto max-w-5xl space-y-4">
+            <button
+              type="button"
+              onClick={() => setActiveSection('inicio')}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#d6d6d6] bg-white px-4 text-sm font-medium text-[#203136] transition-colors hover:bg-[#f5f5f7] dark:border-white/10 dark:bg-[#161617] dark:text-[#edf2f1] dark:hover:bg-[#262628]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Voltar ao status do cadastro
+            </button>
+            <CadastroReligiosoPublico
+              memberMode
+              religiosoId={religiosoData.id}
+              onSaved={async () => {
+                await Promise.all([
+                  loadMemberData(),
+                  refreshUserProfile(user.id),
+                ]);
+                setActiveSection('inicio');
+              }}
+            />
+          </main>
+        </div>
+      );
+    }
+
+    return (
+      <div className="religious-portal flex min-h-screen flex-col font-sans text-[#203136] dark:text-[#edf2f1]">
+        <header className="portal-header flex items-center justify-between border-b px-4 py-3 sm:px-8">
+          <div className="flex items-center gap-3">
+            <img src="/logo-sistema.png" alt="Província BRM" className="h-10 w-auto dark:hidden" />
+            <img src="/logo-branco.png" alt="Província BRM" className="hidden h-10 w-auto dark:block" />
+            <div>
+              <p className="text-sm font-semibold">Portal do Confrade</p>
+              <p className="text-xs text-[#707070] dark:text-[#a1a1a6]">{displayName}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => void logout()}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#d6d6d6] px-4 text-sm font-medium text-[#203136] transition-colors hover:bg-[#f5f5f7] dark:border-white/10 dark:text-[#edf2f1] dark:hover:bg-[#262628]"
+          >
+            <LogOut className="h-4 w-4" />
+            Sair
+          </button>
+        </header>
+
+        <main className="mx-auto flex w-full max-w-2xl flex-1 items-center px-4 py-10">
+          <section className="w-full rounded-[24px] border border-[#d6d6d6]/70 bg-white p-6 shadow-[0_16px_48px_rgba(17,50,64,0.08)] dark:border-white/10 dark:bg-[#161617] sm:p-9">
+            <span className="inline-flex items-center gap-2 rounded-full bg-[#f5f5f7] px-3 py-1.5 text-xs font-semibold text-[#226380] dark:bg-[#262628] dark:text-[#a3c3c7]">
+              {registrationStatus === 'Aprovado' ? (
+                <CheckCircle2 className="h-4 w-4" />
+              ) : (
+                <Clock className="h-4 w-4" />
+              )}
+              {registrationStatus || 'Vínculo não localizado'}
+            </span>
+            <h1 className="mt-5 text-2xl font-semibold tracking-tight sm:text-3xl">
+              {registrationStatus === 'Aprovado'
+                ? 'Seu cadastro foi aprovado'
+                : 'Acesso reservado aos religiosos aprovados'}
+            </h1>
+            <p className="mt-3 text-sm leading-relaxed text-[#62666a] dark:text-[#a1a1a6]">
+              {canContinueRegistration
+                ? 'Enquanto a Secretaria confere sua ficha, você pode completar ou corrigir o Cadastro BRM. As demais áreas do portal serão liberadas após a aprovação.'
+                : registrationStatus === 'Aprovado'
+                  ? 'Atualize a autorização da sua conta para carregar as áreas liberadas do portal.'
+                  : registrationStatus
+                    ? 'Para esclarecer ou regularizar o status da ficha, entre em contato com a Secretaria Provincial.'
+                    : 'Sua conta foi autenticada, mas ainda não há uma ficha religiosa vinculada. Inicie o Cadastro BRM para que a Secretaria possa conferir seu vínculo.'}
+            </p>
+
+            {(profileError || registrationError) && (
+              <div role="alert" className="mt-5 flex items-start gap-2 rounded-xl border border-[#ffc9c9] bg-[#fff2f2] p-3 text-sm text-[#c92a2a] dark:border-[#5c1c24] dark:bg-[#321417] dark:text-[#ff8787]">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{registrationError || profileError}</span>
+              </div>
+            )}
+
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              {canContinueRegistration || !registrationStatus ? (
+                <button
+                  type="button"
+                  disabled={registrationOpening}
+                  onClick={() => {
+                    if (religiosoData?.id && canContinueRegistration) {
+                      setActiveSection('inscricao');
+                    } else {
+                      void openRegistration();
+                    }
+                  }}
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#113240] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#174657] disabled:cursor-wait disabled:opacity-60 dark:bg-[#226380] dark:hover:bg-[#2b7897]"
+                >
+                  {registrationOpening
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <FileText className="h-4 w-4" />}
+                  {religiosoData?.id ? 'Continuar Cadastro BRM' : 'Iniciar Cadastro BRM'}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                disabled={registrationOpening}
+                onClick={() => void refreshPortalAccess()}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-[#d6d6d6] px-5 text-sm font-semibold text-[#203136] transition-colors hover:bg-[#f5f5f7] disabled:cursor-wait disabled:opacity-60 dark:border-white/10 dark:text-[#edf2f1] dark:hover:bg-[#262628]"
+              >
+                {registrationOpening && <Loader2 className="h-4 w-4 animate-spin" />}
+                Verificar status novamente
+              </button>
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
 
   // Se o confrade estiver preenchendo a ficha oficial de inscrição de um evento (Página Completa - Sem Modal)
   if (eventoInscricaoModal && formularioInscricaoAtivo) {
@@ -1087,6 +1309,7 @@ export const PortalReligioso: React.FC = () => {
                 setRespostasInscricoes(prev => [novaResp, ...prev]);
                 setEventoInscricaoModal(null);
                 setFormularioInscricaoAtivo(null);
+                return { protocolo: savedResponse.protocolo };
               } catch (error) {
                 console.error('Erro ao enviar inscrição:', error);
                 showToast.error(error instanceof Error ? error.message : 'Não foi possível enviar a inscrição.');
