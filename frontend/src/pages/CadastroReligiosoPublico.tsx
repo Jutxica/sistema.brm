@@ -97,7 +97,26 @@ const orderOptions = ['Diaconato', 'Presbiterado', 'Episcopado'];
 const academicOptions = ['Filosofia', 'Teologia', 'Bacharelado', 'Mestrado', 'Doutorado', 'Graduação', 'Pós-graduação', 'Especialização', 'Cursos livres', 'Formação permanente', 'Ensino médio'];
 const languageLevels = ['A1 - Iniciante', 'A2 - Básico', 'B1 - Intermediário', 'B2 - Intermediário avançado', 'C1 - Avançado', 'C2 - Proficiente'];
 const relationshipOptions = ['Pai', 'Mãe', 'Irmão(ã)', 'Tio(a)', 'Sobrinho(a)', 'Primo(a)', 'Amigo(a)'];
-const maritalStatusOptions = ['Casado', 'Divorciado', 'Viúvo', 'Falecido'];
+const maritalStatusOptions: Record<Familiar['tipo'], string[]> = {
+  Pai: ['Solteiro', 'Casado', 'Divorciado', 'Viúvo', 'Falecido', 'Outro'],
+  Mãe: ['Solteira', 'Casada', 'Divorciada', 'Viúva', 'Falecida', 'Outro'],
+  Irmão: ['Casado', 'Divorciado', 'Viúvo', 'Falecido'],
+};
+const normalizeMaritalStatus = (tipo: Familiar['tipo'], status: string) => {
+  if (tipo === 'Irmão') return status;
+  const feminine = tipo === 'Mãe';
+  const forms: Record<string, [string, string]> = {
+    Solteiro: ['Solteiro', 'Solteira'],
+    Casado: ['Casado', 'Casada'],
+    Divorciado: ['Divorciado', 'Divorciada'],
+    Viúvo: ['Viúvo', 'Viúva'],
+    Falecido: ['Falecido', 'Falecida'],
+  };
+  const matchingForm = Object.values(forms).find(([masculine, feminineForm]) =>
+    status === masculine || status === feminineForm
+  );
+  return matchingForm ? matchingForm[feminine ? 1 : 0] : status;
+};
 const dynamicRequiredFields: Record<string, string> = {
   vocacional: 'titulo',
   formacao: 'etapa',
@@ -301,7 +320,10 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   const restoreDraft = useCallback((draft: RegistrationDraft, savedAt?: string) => {
     const restoredDegree = canonicalDegree(draft.base.grau || '');
     setBase(previous => ({ ...previous, ...draft.base, grau: restoredDegree }));
-    setFamiliares(draft.familiares);
+    setFamiliares(draft.familiares.map(row => ({
+      ...row,
+      estado_civil: normalizeMaritalStatus(row.tipo, row.estado_civil || ''),
+    })));
     setContatosFamiliares(draft.contatosFamiliares?.length ? draft.contatosFamiliares : (
       hasAnyValues(draft.base, ['contato_nome', 'contato_parentesco', 'contato_1', 'contato_2'])
         ? [{
@@ -376,7 +398,10 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
           supabase.from('religiosos_missoes_servicos').select('*').eq('religioso_id', religiosoId),
           supabase.from('religiosos_documentos').select('id,categoria,nome_arquivo,caminho_storage,data_cadastro').eq('religioso_id', religiosoId).eq('status', 'Ativo'),
         ]);
-        if (familiaData.data?.length) setFamiliares(familiaData.data as Familiar[]);
+        if (familiaData.data?.length) setFamiliares((familiaData.data as Familiar[]).map(row => ({
+          ...row,
+          estado_civil: normalizeMaritalStatus(row.tipo, row.estado_civil || ''),
+        })));
         if (contatoData.data?.length) setContatosFamiliares(contatoData.data.map(row => ({
           nome: row.nome || '',
           parentesco: row.parentesco || '',
@@ -388,7 +413,13 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         if (origem) setBase(previous => ({ ...previous, paroquia_origem: origem.paroquia_origem || '', diocese_origem: origem.diocese || '', grupo_movimento_pastoral: origem.grupo_movimento_pastoral || '', promotor_vocacional: origem.promotor_vocacional || '' }));
         setRows([
           ...(vocacaoData.data || []).map(row => ({ ...row, tipo: 'vocacional' })),
-          ...(formacaoData.data || []).map(row => ({ ...row, tipo: 'formacao', inicio: row.data_ingresso || '', fim: row.data_conclusao || '' })),
+          ...(formacaoData.data || []).map(row => ({
+            ...row,
+            cidade: row.cidade || row.local || '',
+            tipo: 'formacao',
+            inicio: row.data_ingresso || '',
+            fim: row.data_conclusao || '',
+          })),
           ...(votosData.data || []).map(row => ({
             ...row,
             tipo: 'voto',
@@ -839,7 +870,15 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       })));
       await insertMany('religiosos_origem_vocacional', [{ paroquia_origem: base.paroquia_origem, diocese: base.diocese_origem, grupo_movimento_pastoral: base.grupo_movimento_pastoral, promotor_vocacional: base.promotor_vocacional }]);
       await insertMany('religiosos_historico_vocacional', rows.filter(row => row.tipo === 'vocacional').map(row => ({ data_evento: row.data, ano: row.ano ? Number(row.ano) : null, titulo: row.titulo, descricao: row.descricao, local: row.local, responsavel: row.responsavel })));
-      await insertMany('religiosos_formacao_religiosa', rows.filter(row => row.tipo === 'formacao').map(row => ({ etapa: row.etapa, instituicao: row.instituicao, cidade: row.cidade, local: row.local, data_ingresso: row.inicio || null, data_conclusao: row.fim || null, formador: row.formador })));
+      await insertMany('religiosos_formacao_religiosa', rows.filter(row => row.tipo === 'formacao').map(row => ({
+        etapa: row.etapa,
+        instituicao: row.instituicao,
+        cidade: row.cidade || row.local,
+        local: row.local || row.cidade,
+        data_ingresso: row.inicio || null,
+        data_conclusao: row.fim || null,
+        formador: row.formador,
+      })));
       await insertMany('religiosos_profissoes_votos', rows.filter(row => row.tipo === 'voto').map(row => ({
         tipo: votoTypeToDatabase[row.voto_tipo] || row.voto_tipo,
         renovacao: row.voto_tipo === 'Renovação de Votos' && row.renovacao ? Number(row.renovacao) : null,
@@ -1208,7 +1247,13 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                       </button>
                     )}
                   </div>
-                  <Fields fields={['nome', 'data_nascimento', 'local_nascimento', 'estado_civil']} base={row} update={(field, value) => updateFamiliar(index, field as keyof Familiar, value)} selects={{ estado_civil: maritalStatusOptions }} idPrefix={`familiar-${index}-`} />
+                  <Fields
+                    fields={['nome', 'data_nascimento', 'local_nascimento', 'estado_civil']}
+                    base={row}
+                    update={(field, value) => updateFamiliar(index, field as keyof Familiar, value)}
+                    selects={{ estado_civil: maritalStatusOptions[row.tipo] }}
+                    idPrefix={`familiar-${index}-`}
+                  />
                   {row.estado_civil?.startsWith('Falecid') && (
                     <div className="max-w-sm">
                       <Fields fields={['data_evento']} base={row} update={(field, value) => updateFamiliar(index, field as keyof Familiar, value)} idPrefix={`familiar-${index}-`} />
@@ -1263,7 +1308,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
             <DynamicSection title="Histórico Vocacional" type="vocacional" fields={['ano', 'data', 'titulo', 'descricao', 'local', 'responsavel']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} />
             <div className="mt-8 border-t border-[#e5e5ea] pt-6 dark:border-white/10">
               <p className="mb-4 text-sm text-[#707070] dark:text-[#a1a1aa]">Adicione somente as etapas que realizou, na ordem que corresponde à sua trajetória.</p>
-              <DynamicSection title="Etapas da Formação" type="formacao" fields={['etapa', 'instituicao', 'cidade', 'local', 'inicio', 'fim', 'formador']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} selects={{ etapa: formationOptions }} />
+              <DynamicSection title="Etapas da Formação" type="formacao" fields={['etapa', 'instituicao', 'cidade', 'inicio', 'fim', 'formador']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} selects={{ etapa: formationOptions }} />
             </div>
             <div className="mt-8 pt-6 border-t border-[#e5e5ea] dark:border-white/10">
               <DynamicSection
