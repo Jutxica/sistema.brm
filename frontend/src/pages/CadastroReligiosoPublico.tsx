@@ -16,11 +16,15 @@ interface ObraReferencia {
   diocese?: string | null;
   cep?: string | null;
   logradouro?: string | null;
+  endereco?: string | null;
   numero?: string | null;
   complemento?: string | null;
   bairro?: string | null;
   estado?: string | null;
   pais?: string | null;
+  telefone?: string | null;
+  whatsapp?: string | null;
+  email?: string | null;
 }
 interface Familiar extends Record<string, string> { tipo: 'Pai' | 'Mãe' | 'Irmão'; nome: string; data_nascimento: string; local_nascimento: string; estado_civil: string; data_evento: string }
 interface ContatoFamiliar extends Record<string, string> { nome: string; parentesco: string; contato_1: string; contato_2: string }
@@ -374,12 +378,10 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
     ));
     setSacramentos(draft.sacramentos);
     setRows(draft.rows);
-    const isStep1Valid = requiredStep1.every(field => Boolean(draft.base[field]?.trim()))
-      && validateCpf(draft.base.cpf || '');
     const restoredStep = draft.draftVersion === 2
-      ? Math.min(draft.step, etapas.length)
+      ? Math.min(Math.max(1, draft.step), etapas.length)
       : oldStepToNewStep(draft.step);
-    setStep(isStep1Valid ? restoredStep : 1);
+    setStep(restoredStep);
     const savedDate = savedAt ? new Date(savedAt) : null;
     setDraftSavedAt(savedDate && !Number.isNaN(savedDate.getTime())
       ? savedDate.toLocaleString('pt-BR')
@@ -391,7 +393,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   useEffect(() => {
     const load = async () => {
       const [{ data: obrasData }, { data: religiosoData }, { data: configData }] = await Promise.all([
-        supabase.from('religiosos_obras_referencia').select('id,nome,localidade,cidade,uf,diocese,cep,logradouro,numero,complemento,bairro,estado,pais').eq('status', 'Ativa').order('nome'),
+        supabase.from('religiosos_obras_referencia').select('id,nome,localidade,cidade,uf,diocese,cep,logradouro,endereco,numero,complemento,bairro,estado,pais,telefone,whatsapp,email').eq('status', 'Ativa').order('nome'),
         religiosoId && (adminMode || memberMode || profileReligiosoId) ? supabase.from('religiosos').select('*').eq('id', religiosoId).maybeSingle() : Promise.resolve({ data: null }),
         supabase.from('religiosos_configuracoes').select('ativo,titulo,mensagem_abertura,mensagem_fechamento,mensagem_confirmacao,termos,exigir_documentos,instrucoes_documentos').limit(1).maybeSingle(),
       ]);
@@ -493,6 +495,18 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       }
 
       if ((adminMode || memberMode) && user?.id) {
+        let restoredFromLocal = false;
+        try {
+          const syncLocal = localStorage.getItem(`brm_rascunho_sync_${serverDraftKey}`);
+          if (syncLocal) {
+            const parsedLocal = parseRegistrationDraft(JSON.parse(syncLocal));
+            if (parsedLocal) {
+              restoreDraft(parsedLocal, parsedLocal.saved_at || parsedLocal.savedAt);
+              restoredFromLocal = true;
+            }
+          }
+        } catch (_) {}
+
         const { data: savedDraft, error: draftError } = await supabase
           .from('religiosos_rascunhos')
           .select('draft_data, updated_at')
@@ -501,12 +515,15 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
           .maybeSingle();
         if (draftError) {
           console.error('Falha ao recuperar rascunho do cadastro religioso:', draftError);
-          setDraftSaveError('Não foi possível recuperar o rascunho do sistema. Seus dados atuais não foram substituídos.');
+          if (!restoredFromLocal) {
+            setDraftSaveError('Não foi possível recuperar o rascunho do sistema. Seus dados atuais não foram substituídos.');
+          }
         } else if (savedDraft) {
           const parsed = parseRegistrationDraft(savedDraft.draft_data);
           if (parsed) {
+            // Se o rascunho do servidor for igual ou mais recente, ou se não restaurou local
             restoreDraft(parsed, savedDraft.updated_at);
-          } else {
+          } else if (!restoredFromLocal) {
             console.error('O rascunho do cadastro religioso está em formato inválido.');
             setDraftSaveError('O rascunho salvo está inválido. Seus dados atuais foram preservados.');
           }
@@ -522,15 +539,34 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
     if (loading || submitting || success) return;
 
     const hasContent = Boolean(
-      base.nome_civil?.trim() ||
-      base.cpf?.trim() ||
-      base.rg?.trim() ||
+      Object.entries(base).some(([key, val]) => val?.trim() && key !== 'grau' && key !== 'pais_nascimento' && key !== 'nacionalidade' && key !== 'situacao_elenco' && key !== 'status' && key !== 'status_cadastro') ||
       contatosFamiliares.some(row => hasAnyValues(row, ['nome', 'parentesco', 'contato_1', 'contato_2'])) ||
       familiares.some(row => hasAnyValues(row, ['nome', 'data_nascimento', 'local_nascimento', 'estado_civil', 'data_evento'])) ||
       sacramentos.some(row => hasAnyValues(row, ['data', 'paroquia', 'diocese', 'cidade', 'uf', 'livro', 'folha', 'numero_registro', 'celebrante', 'observacoes'])) ||
       rows.some(row => hasAnyValues(row, Object.keys(row).filter(key => key !== 'tipo')))
     );
     if (!hasContent) return;
+
+    // Salvar imediatamente no localStorage como proteção síncrona contra hibernação / refresh da página
+    try {
+      const immediateDraft: RegistrationDraft = {
+        base,
+        familiares,
+        contatosFamiliares,
+        sacramentos,
+        rows,
+        step,
+        draftVersion: 2,
+        saved_at: new Date().toISOString(),
+      };
+      if (adminMode || memberMode) {
+        localStorage.setItem(`brm_rascunho_sync_${serverDraftKey}`, JSON.stringify(immediateDraft));
+      } else {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(immediateDraft));
+      }
+    } catch (e) {
+      // Ignora erro de cota local
+    }
 
     const timer = setTimeout(() => {
       pendingDraftRef.current = {
@@ -590,7 +626,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         }
       }
       draftSavePromiseRef.current = persistPendingDraft();
-    }, 900);
+    }, 600);
 
     return () => clearTimeout(timer);
   }, [adminMode, base, contatosFamiliares, familiares, memberMode, religiosoId, rows, sacramentos, serverDraftKey, step, submitting, success, user?.id, loading]);
@@ -611,6 +647,9 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
     pendingDraftRef.current = null;
     await draftSavePromiseRef.current;
     if ((adminMode || memberMode) && user?.id) {
+      try {
+        localStorage.removeItem(`brm_rascunho_sync_${serverDraftKey}`);
+      } catch (_) {}
       const { error } = await supabase
         .from('religiosos_rascunhos')
         .delete()
@@ -1395,11 +1434,11 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               invalidFields={invalidFields}
               requiredFields={memberMode ? requiredStep1.filter(field => field !== 'grau') : requiredStep1}
               readOnlyFields={memberMode ? ['cpf'] : []}
-              afterField={!(memberMode || profileReligiosoId) ? {
+              afterField={{
                 grau: (
                   <label className="block space-y-1.5" htmlFor="input-obra_atual_id">
                     <span className="flex items-center justify-between text-[12px] font-medium text-[#707070] dark:text-[#86868b]">
-                      <span>Obra / comunidade vinculada</span>
+                      <span>Comunidade / Obra atual</span>
                       <span className="text-[10px] font-normal lowercase text-[#86868b]">(opcional)</span>
                     </span>
                     <select
@@ -1412,27 +1451,30 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                           ...previous,
                           obra_atual_id: selectedObra?.id || '',
                           comunidade_atual_nome: selectedObra?.nome || '',
-                          cep: selectedObra?.cep || '',
-                          logradouro: selectedObra?.logradouro || '',
-                          numero: selectedObra?.numero || '',
-                          complemento: selectedObra?.complemento || '',
-                          bairro: selectedObra?.bairro || '',
-                          cidade: selectedObra?.localidade || selectedObra?.cidade || '',
-                          estado: selectedObra?.uf || selectedObra?.estado || '',
+                          cep: selectedObra?.cep || previous.cep,
+                          logradouro: selectedObra?.logradouro || selectedObra?.endereco || previous.logradouro,
+                          numero: selectedObra?.numero || previous.numero,
+                          complemento: selectedObra?.complemento || previous.complemento,
+                          bairro: selectedObra?.bairro || previous.bairro,
+                          cidade: selectedObra?.localidade || selectedObra?.cidade || previous.cidade,
+                          estado: selectedObra?.uf || selectedObra?.estado || previous.estado,
                           estado_outro: '',
+                          telefone_celular: previous.telefone_celular || selectedObra?.telefone || '',
+                          whatsapp: previous.whatsapp || selectedObra?.whatsapp || selectedObra?.telefone || '',
+                          email_institucional: previous.email_institucional || selectedObra?.email || '',
                         }));
                         setErrorMessage(null);
                       }}
                     >
-                      <option value="">Selecione...</option>
+                      <option value="">Selecione a comunidade...</option>
                       {obras.map(obra => <option key={obra.id} value={obra.id}>{obra.nome}</option>)}
                     </select>
                     <span className="block text-[11px] text-[#707070] dark:text-[#a1a1aa]">
-                      O endereço da obra será preenchido no passo 5.
+                      Ao selecionar, o endereço e dados da comunidade são preenchidos automaticamente.
                     </span>
                   </label>
                 ),
-              } : undefined}
+              }}
               selects={{
                 grau: degreeOptions,
                 estado_nascimento: [
@@ -1621,13 +1663,12 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                 </div>
               )}
               <div className="mt-6 border-t border-[#e5e5ea] pt-6 dark:border-white/10">
-                <h3 className="mb-4 text-sm font-semibold text-[#1d1d1f] dark:text-white font-serif">Endereço e contatos</h3>
+                <h3 className="mb-4 text-sm font-semibold text-[#1d1d1f] dark:text-white font-serif">Endereço da residência atual</h3>
                 <Fields
-                  fields={['cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado', 'email_institucional', 'email_pessoal', 'telefone_celular', 'whatsapp', 'redes_sociais']}
+                  fields={['cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado']}
                   base={base}
                   update={updateBase}
-                  onBlur={field => { if (field === 'cep' && !memberMode && !profileReligiosoId) void lookupAddress(); }}
-                  readOnlyFields={memberMode || profileReligiosoId ? ['cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado', 'email_institucional', 'email_pessoal', 'telefone_celular', 'whatsapp', 'redes_sociais'] : []}
+                  onBlur={field => { if (field === 'cep') void lookupAddress(); }}
                   selects={{
                     estado: [
                       ...brazilianStates,
