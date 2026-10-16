@@ -2,6 +2,44 @@
 -- Garante atomicidade (ACID): todas as tabelas filhas são atualizadas dentro de uma única transação no PostgreSQL.
 begin;
 
+-- Garantir que as colunas necessárias existam na tabela public.religiosos
+alter table public.religiosos
+  add column if not exists nome_elenco text,
+  add column if not exists cadastro_elenco_provisorio boolean not null default false,
+  add column if not exists situacao_elenco text not null default 'Ativo',
+  add column if not exists consentimento_em timestamptz;
+
+-- Atualizar trigger de proteção para permitir que staff (admin, secretaria ou religiosos) edite sem bloqueio
+create or replace function public.religiosos_proteger_campos_de_aprovacao()
+returns trigger
+language plpgsql
+security definer
+set search_path = pg_catalog, public, auth
+as $$
+begin
+  -- Se o usuário possui papel de staff (admin, secretaria ou religiosos), permite todas as alterações
+  if public.usuario_tem_papel('admin')
+     or public.usuario_tem_papel('secretaria')
+     or public.usuario_tem_papel('religiosos') then
+    return new;
+  end if;
+
+  -- Se for o próprio religioso editando seu cadastro via Portal do Religioso
+  if old.auth_user_id = auth.uid() then
+    -- Mantém campos administrativos inalterados sem disparar erro fatal
+    new.auth_user_id := old.auth_user_id;
+    new.origem_cadastro := old.origem_cadastro;
+    new.status_cadastro := old.status_cadastro;
+    new.status := old.status;
+    new.cpf := old.cpf;
+    new.consentimento_dados := coalesce(new.consentimento_dados, old.consentimento_dados);
+    new.consentimento_em := coalesce(old.consentimento_em, new.consentimento_em);
+  end if;
+
+  return new;
+end;
+$$;
+
 create or replace function public.salvar_ficha_religioso(
   p_payload jsonb
 )
@@ -17,6 +55,7 @@ declare
   v_current_user uuid := auth.uid();
   v_is_staff boolean := false;
   v_existing_owner uuid;
+  v_obra_id uuid;
 begin
   if p_payload is null or jsonb_typeof(p_payload) != 'object' then
     raise exception 'Payload inválido para salvar ficha de religioso.';
@@ -32,18 +71,18 @@ begin
     v_religioso_id := (p_payload->>'religioso_id')::uuid;
   end if;
 
-  -- Se autenticado, verificar permissões
+  -- Se autenticado, verificar permissões de staff
   if v_current_user is not null then
-    select exists (
-      select 1 from public.usuarios u
-      where u.auth_user_id = v_current_user
-        and u.usu_status = 'Ativo'
-        and (
-          u.usu_acessos @> '["admin"]'::jsonb
-          or u.usu_acessos @> '["secretaria"]'::jsonb
-          or u.usu_acessos @> '["religiosos"]'::jsonb
-        )
-    ) into v_is_staff;
+    v_is_staff := public.usuario_tem_papel('admin')
+               or public.usuario_tem_papel('secretaria')
+               or public.usuario_tem_papel('religiosos');
+  end if;
+
+  -- Extrair e validar obra_atual_id
+  if v_base->>'obra_atual_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+    v_obra_id := (v_base->>'obra_atual_id')::uuid;
+  else
+    v_obra_id := null;
   end if;
 
   if v_religioso_id is not null then
@@ -66,42 +105,34 @@ begin
       raise exception 'Permissão negada para atualizar este cadastro canônico.';
     end if;
 
-    -- Atualizar tabela pai
+    -- Atualizar tabela pai com as colunas reais de public.religiosos
     update public.religiosos set
+      grau = coalesce(v_base->>'grau', grau),
       nome_civil = coalesce(v_base->>'nome_civil', nome_civil),
       nome_religioso = v_base->>'nome_religioso',
-      grau = coalesce(v_base->>'grau', grau),
+      nome_elenco = coalesce(v_base->>'nome_elenco', v_base->>'nome_religioso', v_base->>'nome_civil', nome_elenco),
       data_nascimento = case when v_base->>'data_nascimento' != '' then (v_base->>'data_nascimento')::date else null end,
-      cpf = v_base->>'cpf',
-      rg = v_base->>'rg',
-      orgao_emissor_rg = v_base->>'orgao_emissor_rg',
-      titulo_eleitor = v_base->>'titulo_eleitor',
-      zona_eleitoral = v_base->>'zona_eleitoral',
-      secao_eleitoral = v_base->>'secao_eleitoral',
-      cidade_titulo = v_base->>'cidade_titulo',
-      estado_titulo = v_base->>'estado_titulo',
-      pis_pasep = v_base->>'pis_pasep',
-      carteira_trabalho = v_base->>'carteira_trabalho',
-      serie_ctps = v_base->>'serie_ctps',
-      uf_ctps = v_base->>'uf_ctps',
-      cnh = v_base->>'cnh',
-      categoria_cnh = v_base->>'categoria_cnh',
-      validade_cnh = case when v_base->>'validade_cnh' != '' then (v_base->>'validade_cnh')::date else null end,
-      passaporte = v_base->>'passaporte',
-      validade_passaporte = case when v_base->>'validade_passaporte' != '' then (v_base->>'validade_passaporte')::date else null end,
-      pais_emissor_passaporte = v_base->>'pais_emissor_passaporte',
-      nacionalidade = coalesce(v_base->>'nacionalidade', nacionalidade),
-      naturalidade_municipio = v_base->>'naturalidade_municipio',
-      naturalidade_uf = v_base->>'naturalidade_uf',
+      local_nascimento = v_base->>'local_nascimento',
+      municipio_nascimento = v_base->>'municipio_nascimento',
+      estado_nascimento = v_base->>'estado_nascimento',
       pais_nascimento = coalesce(v_base->>'pais_nascimento', pais_nascimento),
+      nacionalidade = coalesce(v_base->>'nacionalidade', nacionalidade),
+      cpf = case when v_is_staff then coalesce(v_base->>'cpf', cpf) else cpf end,
+      rg = v_base->>'rg',
+      rg_orgao_expedidor = v_base->>'rg_orgao_expedidor',
+      rg_data_emissao = case when v_base->>'rg_data_emissao' != '' then (v_base->>'rg_data_emissao')::date else null end,
+      titulo_eleitor = v_base->>'titulo_eleitor',
+      pis = v_base->>'pis',
+      cnh = v_base->>'cnh',
+      cnh_categoria = v_base->>'cnh_categoria',
+      passaporte = v_base->>'passaporte',
+      comunidade_atual_nome = v_base->>'comunidade_atual_nome',
+      obra_atual_id = v_obra_id,
       email_institucional = v_base->>'email_institucional',
       email_pessoal = v_base->>'email_pessoal',
       telefone_celular = v_base->>'telefone_celular',
       whatsapp = v_base->>'whatsapp',
       redes_sociais = v_base->>'redes_sociais',
-      comunidade_atual_id = case when v_base->>'comunidade_atual_id' != '' then (v_base->>'comunidade_atual_id')::uuid else null end,
-      obra_atual_id = case when v_base->>'obra_atual_id' != '' then (v_base->>'obra_atual_id')::uuid else null end,
-      cargo_funcao = v_base->>'cargo_funcao',
       status_cadastro = case when v_is_staff and v_base ? 'status_cadastro' then v_base->>'status_cadastro' else status_cadastro end,
       status = case when v_is_staff and v_base ? 'status' then v_base->>'status' else status end,
       updated_at = now()
@@ -127,40 +158,33 @@ begin
   else
     -- Modo Inserção (Novo Registro)
     insert into public.religiosos (
+      grau,
       nome_civil,
       nome_religioso,
-      grau,
+      nome_elenco,
+      cadastro_elenco_provisorio,
       data_nascimento,
+      local_nascimento,
+      municipio_nascimento,
+      estado_nascimento,
+      pais_nascimento,
+      nacionalidade,
       cpf,
       rg,
-      orgao_emissor_rg,
+      rg_orgao_expedidor,
+      rg_data_emissao,
       titulo_eleitor,
-      zona_eleitoral,
-      secao_eleitoral,
-      cidade_titulo,
-      estado_titulo,
-      pis_pasep,
-      carteira_trabalho,
-      serie_ctps,
-      uf_ctps,
+      pis,
       cnh,
-      categoria_cnh,
-      validade_cnh,
+      cnh_categoria,
       passaporte,
-      validade_passaporte,
-      pais_emissor_passaporte,
-      nacionalidade,
-      naturalidade_municipio,
-      naturalidade_uf,
-      pais_nascimento,
+      comunidade_atual_nome,
+      obra_atual_id,
       email_institucional,
       email_pessoal,
       telefone_celular,
       whatsapp,
       redes_sociais,
-      comunidade_atual_id,
-      obra_atual_id,
-      cargo_funcao,
       origem_cadastro,
       status_cadastro,
       status,
@@ -168,40 +192,33 @@ begin
       consentimento_em,
       auth_user_id
     ) values (
-      coalesce(v_base->>'nome_civil', 'Nome não informado'),
+      coalesce(v_base->>'grau', 'Frater'),
+      coalesce(v_base->>'nome_civil', ''),
       v_base->>'nome_religioso',
-      coalesce(v_base->>'grau', 'Fráter'),
+      coalesce(v_base->>'nome_elenco', v_base->>'nome_religioso', v_base->>'nome_civil'),
+      false,
       case when v_base->>'data_nascimento' != '' then (v_base->>'data_nascimento')::date else null end,
+      v_base->>'local_nascimento',
+      v_base->>'municipio_nascimento',
+      v_base->>'estado_nascimento',
+      coalesce(v_base->>'pais_nascimento', 'Brasil'),
+      coalesce(v_base->>'nacionalidade', 'Brasileira'),
       v_base->>'cpf',
       v_base->>'rg',
-      v_base->>'orgao_emissor_rg',
+      v_base->>'rg_orgao_expedidor',
+      case when v_base->>'rg_data_emissao' != '' then (v_base->>'rg_data_emissao')::date else null end,
       v_base->>'titulo_eleitor',
-      v_base->>'zona_eleitoral',
-      v_base->>'secao_eleitoral',
-      v_base->>'cidade_titulo',
-      v_base->>'estado_titulo',
-      v_base->>'pis_pasep',
-      v_base->>'carteira_trabalho',
-      v_base->>'serie_ctps',
-      v_base->>'uf_ctps',
+      v_base->>'pis',
       v_base->>'cnh',
-      v_base->>'categoria_cnh',
-      case when v_base->>'validade_cnh' != '' then (v_base->>'validade_cnh')::date else null end,
+      v_base->>'cnh_categoria',
       v_base->>'passaporte',
-      case when v_base->>'validade_passaporte' != '' then (v_base->>'validade_passaporte')::date else null end,
-      v_base->>'pais_emissor_passaporte',
-      coalesce(v_base->>'nacionalidade', 'Brasileira'),
-      v_base->>'naturalidade_municipio',
-      v_base->>'naturalidade_uf',
-      coalesce(v_base->>'pais_nascimento', 'Brasil'),
+      v_base->>'comunidade_atual_nome',
+      v_obra_id,
       v_base->>'email_institucional',
       v_base->>'email_pessoal',
       v_base->>'telefone_celular',
       v_base->>'whatsapp',
       v_base->>'redes_sociais',
-      case when v_base->>'comunidade_atual_id' != '' then (v_base->>'comunidade_atual_id')::uuid else null end,
-      case when v_base->>'obra_atual_id' != '' then (v_base->>'obra_atual_id')::uuid else null end,
-      v_base->>'cargo_funcao',
       case when v_is_staff then 'admin' else 'publico' end,
       case when v_is_staff then coalesce(v_base->>'status_cadastro', 'Aprovado') else 'Em revisão' end,
       case when v_is_staff then coalesce(v_base->>'status', 'Ativo') else 'Ativo' end,
@@ -221,7 +238,7 @@ begin
           religioso_id, tipo, nome, data_nascimento, local_nascimento, estado_civil, data_evento
         ) values (
           v_religioso_id,
-          coalesce(v_item->>'tipo', 'Outro'),
+          case when v_item->>'tipo' in ('Pai', 'Mãe', 'Irmão') then v_item->>'tipo' else 'Irmão' end,
           v_item->>'nome',
           case when v_item->>'data_nascimento' != '' then (v_item->>'data_nascimento')::date else null end,
           v_item->>'local_nascimento',
@@ -254,7 +271,7 @@ begin
   if p_payload ? 'sacramentos' and jsonb_typeof(p_payload->'sacramentos') = 'array' then
     for v_item in select * from jsonb_array_elements(p_payload->'sacramentos')
     loop
-      if coalesce(v_item->>'tipo', '') != '' then
+      if coalesce(v_item->>'tipo', '') in ('Batismo', 'Primeira Eucaristia', 'Crisma') then
         insert into public.religiosos_sacramentos (
           religioso_id, tipo, data, paroquia, diocese, cidade, uf, livro, folha, numero_registro, celebrante, observacoes
         ) values (
@@ -286,24 +303,32 @@ begin
       v_item->>'diocese',
       v_item->>'grupo_movimento_pastoral',
       v_item->>'promotor_vocacional'
-    );
+    )
+    on conflict (religioso_id) do update set
+      paroquia_origem = excluded.paroquia_origem,
+      diocese = excluded.diocese,
+      grupo_movimento_pastoral = excluded.grupo_movimento_pastoral,
+      promotor_vocacional = excluded.promotor_vocacional,
+      updated_at = now();
   end if;
 
   -- 5. Histórico Vocacional
   if p_payload ? 'historico_vocacional' and jsonb_typeof(p_payload->'historico_vocacional') = 'array' then
     for v_item in select * from jsonb_array_elements(p_payload->'historico_vocacional')
     loop
-      insert into public.religiosos_historico_vocacional (
-        religioso_id, data_evento, ano, titulo, descricao, local, responsavel
-      ) values (
-        v_religioso_id,
-        v_item->>'data_evento',
-        case when v_item->>'ano' ~ '^[0-9]+$' then (v_item->>'ano')::integer else null end,
-        v_item->>'titulo',
-        v_item->>'descricao',
-        v_item->>'local',
-        v_item->>'responsavel'
-      );
+      if coalesce(trim(v_item->>'titulo'), '') != '' then
+        insert into public.religiosos_historico_vocacional (
+          religioso_id, data_evento, ano, titulo, descricao, local, responsavel
+        ) values (
+          v_religioso_id,
+          case when v_item->>'data_evento' != '' then (v_item->>'data_evento')::date else null end,
+          case when v_item->>'ano' ~ '^[0-9]+$' then (v_item->>'ano')::integer else null end,
+          v_item->>'titulo',
+          v_item->>'descricao',
+          v_item->>'local',
+          v_item->>'responsavel'
+        );
+      end if;
     end loop;
   end if;
 
@@ -311,18 +336,20 @@ begin
   if p_payload ? 'formacao_religiosa' and jsonb_typeof(p_payload->'formacao_religiosa') = 'array' then
     for v_item in select * from jsonb_array_elements(p_payload->'formacao_religiosa')
     loop
-      insert into public.religiosos_formacao_religiosa (
-        religioso_id, etapa, instituicao, cidade, local, data_ingresso, data_conclusao, formador
-      ) values (
-        v_religioso_id,
-        v_item->>'etapa',
-        v_item->>'instituicao',
-        coalesce(v_item->>'cidade', v_item->>'local'),
-        coalesce(v_item->>'local', v_item->>'cidade'),
-        case when v_item->>'data_ingresso' != '' then (v_item->>'data_ingresso')::date else null end,
-        case when v_item->>'data_conclusao' != '' then (v_item->>'data_conclusao')::date else null end,
-        v_item->>'formador'
-      );
+      if coalesce(trim(v_item->>'etapa'), '') != '' then
+        insert into public.religiosos_formacao_religiosa (
+          religioso_id, etapa, instituicao, cidade, local, data_ingresso, data_conclusao, formador
+        ) values (
+          v_religioso_id,
+          v_item->>'etapa',
+          v_item->>'instituicao',
+          coalesce(v_item->>'cidade', v_item->>'local'),
+          coalesce(v_item->>'local', v_item->>'cidade'),
+          case when v_item->>'data_ingresso' != '' then (v_item->>'data_ingresso')::date else null end,
+          case when v_item->>'data_conclusao' != '' then (v_item->>'data_conclusao')::date else null end,
+          v_item->>'formador'
+        );
+      end if;
     end loop;
   end if;
 
@@ -330,16 +357,18 @@ begin
   if p_payload ? 'profissoes_votos' and jsonb_typeof(p_payload->'profissoes_votos') = 'array' then
     for v_item in select * from jsonb_array_elements(p_payload->'profissoes_votos')
     loop
-      insert into public.religiosos_profissoes_votos (
-        religioso_id, tipo, renovacao, data, local, celebrante
-      ) values (
-        v_religioso_id,
-        v_item->>'tipo',
-        case when v_item->>'renovacao' ~ '^[0-9]+$' then (v_item->>'renovacao')::integer else null end,
-        case when v_item->>'data' != '' then (v_item->>'data')::date else null end,
-        v_item->>'local',
-        v_item->>'celebrante'
-      );
+      if coalesce(trim(v_item->>'tipo'), '') != '' then
+        insert into public.religiosos_profissoes_votos (
+          religioso_id, tipo, renovacao, data, local, celebrante
+        ) values (
+          v_religioso_id,
+          v_item->>'tipo',
+          case when v_item->>'renovacao' ~ '^[0-9]+$' then (v_item->>'renovacao')::integer else null end,
+          case when v_item->>'data' != '' then (v_item->>'data')::date else null end,
+          v_item->>'local',
+          v_item->>'celebrante'
+        );
+      end if;
     end loop;
   end if;
 
@@ -347,16 +376,18 @@ begin
   if p_payload ? 'ministerios_ordens' and jsonb_typeof(p_payload->'ministerios_ordens') = 'array' then
     for v_item in select * from jsonb_array_elements(p_payload->'ministerios_ordens')
     loop
-      insert into public.religiosos_ministerios_ordens (
-        religioso_id, tipo, data, local, celebrante, bispo_ordenante
-      ) values (
-        v_religioso_id,
-        v_item->>'tipo',
-        case when v_item->>'data' != '' then (v_item->>'data')::date else null end,
-        v_item->>'local',
-        v_item->>'celebrante',
-        v_item->>'bispo_ordenante'
-      );
+      if coalesce(trim(v_item->>'tipo'), '') != '' then
+        insert into public.religiosos_ministerios_ordens (
+          religioso_id, tipo, data, local, celebrante, bispo_ordenante
+        ) values (
+          v_religioso_id,
+          v_item->>'tipo',
+          case when v_item->>'data' != '' then (v_item->>'data')::date else null end,
+          v_item->>'local',
+          v_item->>'celebrante',
+          v_item->>'bispo_ordenante'
+        );
+      end if;
     end loop;
   end if;
 
@@ -364,18 +395,20 @@ begin
   if p_payload ? 'formacao_academica' and jsonb_typeof(p_payload->'formacao_academica') = 'array' then
     for v_item in select * from jsonb_array_elements(p_payload->'formacao_academica')
     loop
-      insert into public.religiosos_formacao_academica (
-        religioso_id, categoria, instituicao, periodo, pais, cidade, estado, observacoes
-      ) values (
-        v_religioso_id,
-        v_item->>'categoria',
-        v_item->>'instituicao',
-        v_item->>'periodo',
-        v_item->>'pais',
-        v_item->>'cidade',
-        v_item->>'estado',
-        v_item->>'observacoes'
-      );
+      if coalesce(trim(v_item->>'categoria'), '') != '' then
+        insert into public.religiosos_formacao_academica (
+          religioso_id, categoria, instituicao, periodo, pais, cidade, estado, observacoes
+        ) values (
+          v_religioso_id,
+          v_item->>'categoria',
+          v_item->>'instituicao',
+          v_item->>'periodo',
+          v_item->>'pais',
+          v_item->>'cidade',
+          v_item->>'estado',
+          v_item->>'observacoes'
+        );
+      end if;
     end loop;
   end if;
 
@@ -383,18 +416,20 @@ begin
   if p_payload ? 'idiomas' and jsonb_typeof(p_payload->'idiomas') = 'array' then
     for v_item in select * from jsonb_array_elements(p_payload->'idiomas')
     loop
-      insert into public.religiosos_idiomas (
-        religioso_id, idioma, nivel, fala, audicao, leitura, escrita, observacoes
-      ) values (
-        v_religioso_id,
-        v_item->>'idioma',
-        v_item->>'nivel',
-        v_item->>'fala',
-        v_item->>'audicao',
-        v_item->>'leitura',
-        v_item->>'escrita',
-        v_item->>'observacoes'
-      );
+      if coalesce(trim(v_item->>'idioma'), '') != '' then
+        insert into public.religiosos_idiomas (
+          religioso_id, idioma, nivel, fala, audicao, leitura, escrita, observacoes
+        ) values (
+          v_religioso_id,
+          v_item->>'idioma',
+          v_item->>'nivel',
+          v_item->>'fala',
+          v_item->>'audicao',
+          v_item->>'leitura',
+          v_item->>'escrita',
+          v_item->>'observacoes'
+        );
+      end if;
     end loop;
   end if;
 
@@ -402,13 +437,15 @@ begin
   if p_payload ? 'competencias' and jsonb_typeof(p_payload->'competencias') = 'array' then
     for v_item in select * from jsonb_array_elements(p_payload->'competencias')
     loop
-      insert into public.religiosos_competencias (
-        religioso_id, competencia, observacoes
-      ) values (
-        v_religioso_id,
-        v_item->>'competencia',
-        v_item->>'observacoes'
-      );
+      if coalesce(trim(v_item->>'competencia'), '') != '' then
+        insert into public.religiosos_competencias (
+          religioso_id, competencia, observacoes
+        ) values (
+          v_religioso_id,
+          v_item->>'competencia',
+          v_item->>'observacoes'
+        );
+      end if;
     end loop;
   end if;
 
@@ -416,17 +453,19 @@ begin
   if p_payload ? 'historico_comunidades' and jsonb_typeof(p_payload->'historico_comunidades') = 'array' then
     for v_item in select * from jsonb_array_elements(p_payload->'historico_comunidades')
     loop
-      insert into public.religiosos_historico_comunidades (
-        religioso_id, periodo_inicio, periodo_fim, instituicao, funcao, local, observacoes
-      ) values (
-        v_religioso_id,
-        case when v_item->>'periodo_inicio' != '' then (v_item->>'periodo_inicio')::date else null end,
-        case when v_item->>'periodo_fim' != '' then (v_item->>'periodo_fim')::date else null end,
-        v_item->>'instituicao',
-        v_item->>'funcao',
-        v_item->>'local',
-        v_item->>'observacoes'
-      );
+      if coalesce(trim(v_item->>'instituicao'), '') != '' then
+        insert into public.religiosos_historico_comunidades (
+          religioso_id, periodo_inicio, periodo_fim, instituicao, funcao, local, observacoes
+        ) values (
+          v_religioso_id,
+          case when v_item->>'periodo_inicio' != '' then (v_item->>'periodo_inicio')::date else null end,
+          case when v_item->>'periodo_fim' != '' then (v_item->>'periodo_fim')::date else null end,
+          v_item->>'instituicao',
+          v_item->>'funcao',
+          v_item->>'local',
+          v_item->>'observacoes'
+        );
+      end if;
     end loop;
   end if;
 
@@ -434,18 +473,20 @@ begin
   if p_payload ? 'missoes_servicos' and jsonb_typeof(p_payload->'missoes_servicos') = 'array' then
     for v_item in select * from jsonb_array_elements(p_payload->'missoes_servicos')
     loop
-      insert into public.religiosos_missoes_servicos (
-        religioso_id, tipo, instituicao, funcao, periodo, local, documento, observacao
-      ) values (
-        v_religioso_id,
-        v_item->>'tipo',
-        v_item->>'instituicao',
-        v_item->>'funcao',
-        v_item->>'periodo',
-        v_item->>'local',
-        v_item->>'documento',
-        v_item->>'observacao'
-      );
+      if coalesce(trim(v_item->>'tipo'), '') != '' then
+        insert into public.religiosos_missoes_servicos (
+          religioso_id, tipo, instituicao, funcao, periodo, local, documento, observacao
+        ) values (
+          v_religioso_id,
+          v_item->>'tipo',
+          v_item->>'instituicao',
+          v_item->>'funcao',
+          v_item->>'periodo',
+          v_item->>'local',
+          v_item->>'documento',
+          v_item->>'observacao'
+        );
+      end if;
     end loop;
   end if;
 
@@ -456,7 +497,7 @@ begin
       religioso_id, obra_id, cep, logradouro, numero, complemento, bairro, cidade, estado, pais, celular, telefone, email, whatsapp, redes_sociais
     ) values (
       v_religioso_id,
-      case when v_item->>'obra_id' != '' then (v_item->>'obra_id')::uuid else null end,
+      case when v_item->>'obra_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then (v_item->>'obra_id')::uuid else null end,
       v_item->>'cep',
       v_item->>'logradouro',
       v_item->>'numero',
@@ -485,7 +526,7 @@ begin
       v_item->>'local_plano_saude',
       v_item->>'sus',
       v_item->>'tipo_sanguineo',
-      v_item->>'fator_rh',
+      case when v_item->>'fator_rh' in ('Positivo', 'Negativo', '+', '-', 'Não informado') then v_item->>'fator_rh' else null end,
       v_item->>'alergias',
       v_item->>'medicamentos_continuos',
       v_item->>'medico_responsavel',
@@ -494,7 +535,23 @@ begin
       v_item->>'cirurgias',
       v_item->>'proteses',
       v_item->>'observacoes'
-    );
+    )
+    on conflict (religioso_id) do update set
+      plano_saude = excluded.plano_saude,
+      numero_plano_saude = excluded.numero_plano_saude,
+      local_plano_saude = excluded.local_plano_saude,
+      sus = excluded.sus,
+      tipo_sanguineo = excluded.tipo_sanguineo,
+      fator_rh = excluded.fator_rh,
+      alergias = excluded.alergias,
+      medicamentos_continuos = excluded.medicamentos_continuos,
+      medico_responsavel = excluded.medico_responsavel,
+      contato_emergencia = excluded.contato_emergencia,
+      informacoes_clinicas = excluded.informacoes_clinicas,
+      cirurgias = excluded.cirurgias,
+      proteses = excluded.proteses,
+      observacoes = excluded.observacoes,
+      updated_at = now();
   end if;
 
   return jsonb_build_object('success', true, 'id', v_religioso_id);
@@ -503,6 +560,6 @@ $$;
 
 -- Permissões de Execução
 revoke all on function public.salvar_ficha_religioso(jsonb) from public, anon, authenticated;
-grant execute on function public.salvar_ficha_religioso(jsonb) to anon, authenticated;
+grant execute on function public.salvar_ficha_religioso(jsonb) to anon, authenticated, service_role;
 
 commit;

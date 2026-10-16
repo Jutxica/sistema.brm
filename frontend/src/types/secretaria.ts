@@ -48,6 +48,7 @@ export interface ConfiguracaoSecretaria {
   telefone_secretaria: string;
   notificar_confrade_email: boolean;
   notificar_secretario_nova_resposta: boolean;
+  exibir_marca_dagua?: boolean;
   rodape_personalizado?: string;
 }
 

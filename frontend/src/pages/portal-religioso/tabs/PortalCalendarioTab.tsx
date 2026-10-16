@@ -21,7 +21,7 @@ export interface PortalCalendarioTabProps {
   eventoSearch: string;
   setEventoSearch: (val: string) => void;
   onVoltar: () => void;
-  formatPeriodo: (inicio: string, fim?: string) => string;
+  formatPeriodo: (inicio: string, fim?: string | null) => string;
   getTipoCor: () => string;
   respostasInscricoes: RespostaFormulario[];
   formulariosSecretaria: FormularioSecretaria[];

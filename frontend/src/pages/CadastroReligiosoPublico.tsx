@@ -184,6 +184,25 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 const asText = (value: unknown) => typeof value === 'string' || typeof value === 'number' ? String(value) : '';
 const toTextRecord = (value: Record<string, unknown>) =>
   Object.fromEntries(Object.entries(value).map(([key, item]) => [key, asText(item)]));
+const isValidUuid = (value: unknown): value is string =>
+  typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.trim());
+const extractErrorMessage = (error: unknown, fallback = 'Não foi possível enviar o cadastro.'): string => {
+  if (!error) return fallback;
+  if (typeof error === 'string') return error;
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'object') {
+    const err = error as Record<string, unknown>;
+    const msg = typeof err.message === 'string' && err.message ? err.message : '';
+    const details = typeof err.details === 'string' && err.details ? err.details : '';
+    const hint = typeof err.hint === 'string' && err.hint ? err.hint : '';
+    if (msg && details) return `${msg} (${details})`;
+    if (msg && hint) return `${msg} (${hint})`;
+    if (msg) return msg;
+    if (details) return details;
+    if (typeof err.error_description === 'string' && err.error_description) return err.error_description;
+  }
+  return fallback;
+};
 const parseRegistrationDraft = (value: unknown): RegistrationDraft | null => {
   if (!isObject(value) || !isObject(value.base)
     || !Array.isArray(value.familiares)
@@ -323,7 +342,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   const [sacramentos, setSacramentos] = useState<Sacrament[]>([emptySacrament('Batismo'), emptySacrament('Primeira Eucaristia'), emptySacrament('Crisma')]);
   const [base, setBase] = useState<Record<string, string>>({
     grau: 'Padre', nome_civil: '', nome_religioso: '', nome_elenco: '', situacao_elenco: 'Ativo', data_nascimento: '', local_nascimento: '', municipio_nascimento: '', estado_nascimento: '', estado_nascimento_outro: '', pais_nascimento: 'Brasil', nacionalidade: 'Brasileira', cpf: '', rg: '', rg_orgao_expedidor: '', rg_data_emissao: '', titulo_eleitor: '', pis: '', cnh: '', cnh_categoria: '', passaporte: '', obra_atual_id: '', comunidade_atual_nome: '', cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', estado_outro: '', email_institucional: '', email_pessoal: '', telefone_celular: '', whatsapp: '', redes_sociais: '', status: 'Ativo', status_cadastro: 'Aprovado',
-    contato_nome: '', contato_parentesco: '', contato_1: '', contato_2: '', paroquia_origem: '', diocese_origem: '', grupo_movimento_pastoral: '', promotor_vocacional: '', plano_saude: '', numero_plano_saude: '', local_plano_saude: '', sus: '', tipo_sanguineo: '', fator_rh: '', alergias: '', medicamentos_continuos: '', medico_responsavel: '', contato_emergencia: '', informacoes_clinicas: '', cirurgias: '', proteses: '', observacoes_saude: '', consentimento_dados: '',
+    contato_nome: '', contato_parentesco: '', contato_1: '', contato_2: '', paroquia_origem: '', diocese_origem: '', grupo_movimento_pastoral: '', promotor_vocacional: '', plano_saude: '', numero_plano_saude: '', local_plano_saude: '', sus: '', tipo_sanguineo: '', fator_rh: '', alergias: '', medicamentos_continuos: '', medico_responsavel: '', contato_emergencia: '', informacoes_clinicas: '', cirurgias: '', proteses: '', observacoes_saude: '', consentimento_dados: '', consentimento_em: '',
   });
   const [rows, setRows] = useState<Record<string, string>[]>([]);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
@@ -622,7 +641,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
     setStep(1);
     setBase({
       grau: 'Padre', nome_civil: '', nome_religioso: '', nome_elenco: '', situacao_elenco: 'Ativo', data_nascimento: '', local_nascimento: '', municipio_nascimento: '', estado_nascimento: '', pais_nascimento: 'Brasil', nacionalidade: 'Brasileira', cpf: '', rg: '', rg_orgao_expedidor: '', rg_data_emissao: '', titulo_eleitor: '', pis: '', cnh: '', cnh_categoria: '', passaporte: '', obra_atual_id: '', comunidade_atual_nome: '', cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', email_institucional: '', email_pessoal: '', telefone_celular: '', whatsapp: '', redes_sociais: '', status: 'Ativo', status_cadastro: 'Aprovado',
-      contato_nome: '', contato_parentesco: '', contato_1: '', contato_2: '', paroquia_origem: '', diocese_origem: '', grupo_movimento_pastoral: '', promotor_vocacional: '', plano_saude: '', numero_plano_saude: '', local_plano_saude: '', sus: '', tipo_sanguineo: '', fator_rh: '', alergias: '', medicamentos_continuos: '', medico_responsavel: '', contato_emergencia: '', informacoes_clinicas: '', cirurgias: '', proteses: '', observacoes_saude: '', consentimento_dados: '',
+      contato_nome: '', contato_parentesco: '', contato_1: '', contato_2: '', paroquia_origem: '', diocese_origem: '', grupo_movimento_pastoral: '', promotor_vocacional: '', plano_saude: '', numero_plano_saude: '', local_plano_saude: '', sus: '', tipo_sanguineo: '', fator_rh: '', alergias: '', medicamentos_continuos: '', medico_responsavel: '', contato_emergencia: '', informacoes_clinicas: '', cirurgias: '', proteses: '', observacoes_saude: '', consentimento_dados: '', consentimento_em: '',
     });
     setFamiliares([emptyFamiliar('Pai'), emptyFamiliar('Mãe')]);
     setContatosFamiliares([]);
@@ -819,31 +838,36 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
     }
     setSubmitting(true); setErrorMessage(null);
     try {
-      const religiosoPayload = {
+      const isEditing = Boolean(religiosoId);
+      const obraIdSanitized = isValidUuid(base.obra_atual_id) ? base.obra_atual_id.trim() : null;
+
+      const religiosoPayload: Record<string, unknown> = {
         grau: base.grau, nome_civil: base.nome_civil, nome_religioso: base.nome_religioso || null,
         ...(adminMode || (memberMode && !religiosoId) ? {
           nome_elenco: base.nome_elenco || base.nome_religioso || base.nome_civil || null,
           cadastro_elenco_provisorio: !adminMode,
         } : {}),
-        data_nascimento: base.data_nascimento || null, local_nascimento: base.local_nascimento || null,
+        data_nascimento: base.data_nascimento?.trim() ? base.data_nascimento.trim() : null,
+        local_nascimento: base.local_nascimento || null,
         municipio_nascimento: base.municipio_nascimento || null,
         estado_nascimento: base.estado_nascimento === OTHER_LOCATION_VALUE ? base.estado_nascimento_outro || null : base.estado_nascimento || null,
         pais_nascimento: base.pais_nascimento || null, nacionalidade: base.nacionalidade || null,
         cpf: base.cpf || null, rg: base.rg || null, rg_orgao_expedidor: base.rg_orgao_expedidor || null,
-        rg_data_emissao: base.rg_data_emissao || null, titulo_eleitor: base.titulo_eleitor || null,
+        rg_data_emissao: base.rg_data_emissao?.trim() ? base.rg_data_emissao.trim() : null,
+        titulo_eleitor: base.titulo_eleitor || null,
         pis: base.pis || null, cnh: base.cnh || null, cnh_categoria: base.cnh_categoria || null,
         passaporte: base.passaporte || null,
         comunidade_atual_nome: base.comunidade_atual_nome || null,
-        obra_atual_id: base.obra_atual_id || null,
+        obra_atual_id: obraIdSanitized,
         email_institucional: base.email_institucional || null,
         email_pessoal: base.email_pessoal || null, telefone_celular: base.telefone_celular || null,
         whatsapp: base.whatsapp || null, redes_sociais: base.redes_sociais || null,
         ...(!memberMode ? {
-          origem_cadastro: adminMode ? 'admin' : 'publico',
+          ...(isEditing ? {} : { origem_cadastro: adminMode ? 'admin' : 'publico' }),
           status_cadastro: adminMode ? (base.status_cadastro || 'Aprovado') : 'Em revisão',
           status: adminMode ? (base.status || 'Ativo') : 'Ativo',
           consentimento_dados: true,
-          consentimento_em: new Date().toISOString(),
+          consentimento_em: base.consentimento_em || new Date().toISOString(),
         } : {}),
       };
 
@@ -964,7 +988,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       }));
 
       const enderecosContatosPayload = {
-        obra_id: base.obra_atual_id || null,
+        obra_id: obraIdSanitized,
         cep: base.cep,
         logradouro: base.logradouro,
         numero: base.numero,
@@ -1023,12 +1047,32 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       if (!rpcError && rpcData && typeof rpcData === 'object' && 'id' in rpcData) {
         id = String((rpcData as { id: string }).id);
       } else {
-        // Fallback transacional caso a RPC ainda não esteja instalada no banco
-        const parentRequest = religiosoId
-          ? await supabase.from('religiosos').update(religiosoPayload).eq('id', religiosoId).select('id').single()
-          : await supabase.from('religiosos').insert(religiosoPayload).select('id').single();
+        if (rpcError) {
+          console.warn('RPC salvar_ficha_religioso não respondeu com sucesso; acionando fallback direto:', rpcError);
+        }
+        // Fallback direto caso a RPC ainda não esteja instalada no banco
+        const payloadToUpdate = { ...religiosoPayload };
+        let parentRequest = religiosoId
+          ? await supabase.from('religiosos').update(payloadToUpdate).eq('id', religiosoId).select('id').single()
+          : await supabase.from('religiosos').insert(payloadToUpdate).select('id').single();
+
+        // Se falhar devido a coluna ausente no cache do Supabase (ex: nome_elenco ou cadastro_elenco_provisorio)
+        if (parentRequest.error && typeof parentRequest.error.message === 'string') {
+          const matchCol = parentRequest.error.message.match(/Could not find the '([^']+)' column of 'religiosos'/i);
+          if (matchCol && matchCol[1] && matchCol[1] in payloadToUpdate) {
+            console.warn(`Coluna '${matchCol[1]}' não existe em 'religiosos'. Tentando novamente sem ela...`);
+            delete payloadToUpdate[matchCol[1]];
+            parentRequest = religiosoId
+              ? await supabase.from('religiosos').update(payloadToUpdate).eq('id', religiosoId).select('id').single()
+              : await supabase.from('religiosos').insert(payloadToUpdate).select('id').single();
+          }
+        }
+
         const { data: religioso, error: religiosoError } = parentRequest;
-        if (religiosoError || !religioso) throw rpcError || religiosoError || new Error('Não foi possível criar o cadastro.');
+        if (religiosoError || !religioso) {
+          console.error('Erro ao atualizar ou inserir registro em religiosos:', religiosoError);
+          throw religiosoError || rpcError || new Error('Não foi possível salvar os dados do religioso.');
+        }
         id = religioso.id;
         const insertMany = async (table: string, values: Record<string, unknown>[]) => {
           const filtered = values.filter(value => Object.values(value).some(item => item !== '' && item !== null && item !== undefined));
@@ -1091,7 +1135,10 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       else if (memberMode) onSaved?.();
       else setSuccess(true);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Não foi possível enviar o cadastro.');
+      console.error('Erro detalhado ao enviar cadastro de religioso:', error);
+      const message = extractErrorMessage(error);
+      setErrorMessage(message);
+      showToast.error(message);
     } finally { setSubmitting(false); }
   };
 
