@@ -864,7 +864,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         whatsapp: base.whatsapp || null, redes_sociais: base.redes_sociais || null,
         ...(!memberMode ? {
           ...(isEditing ? {} : { origem_cadastro: adminMode ? 'admin' : 'publico' }),
-          status_cadastro: adminMode ? (base.status_cadastro || 'Aprovado') : 'Em revisão',
+          ...(isEditing ? (base.status_cadastro ? { status_cadastro: base.status_cadastro } : {}) : { status_cadastro: adminMode ? 'Aprovado' : 'Em revisão' }),
           status: adminMode ? (base.status || 'Ativo') : 'Ativo',
           consentimento_dados: true,
           consentimento_em: base.consentimento_em || new Date().toISOString(),
