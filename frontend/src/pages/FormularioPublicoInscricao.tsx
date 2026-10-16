@@ -63,8 +63,8 @@ export const FormularioPublicoInscricao: React.FC = () => {
     if (id) carregarFormulario();
   }, [id]);
 
-  const handleSubmit = async (respostasValores: Record<string, any>) => {
-    if (!form) return;
+  const handleSubmit = async (respostasValores: Record<string, unknown>) => {
+    if (!form) throw new Error('O formulário não está disponível para envio.');
     setSaving(true);
     try {
       const { data, error } = await supabase.rpc('secretaria_enviar_resposta', {
@@ -87,22 +87,25 @@ export const FormularioPublicoInscricao: React.FC = () => {
         created_at: savedResponse.created_at
       };
 
-      // Persistir em localStorage
-      const saved = localStorage.getItem(LOCAL_STORAGE_RESPOSTAS);
-      const list = saved ? JSON.parse(saved) : [];
-      list.unshift(novaResposta);
-      localStorage.setItem(LOCAL_STORAGE_RESPOSTAS, JSON.stringify(list));
+      try {
+        const saved = localStorage.getItem(LOCAL_STORAGE_RESPOSTAS);
+        const list: RespostaFormulario[] = saved ? JSON.parse(saved) : [];
+        list.unshift(novaResposta);
+        localStorage.setItem(LOCAL_STORAGE_RESPOSTAS, JSON.stringify(list));
 
-      // Atualizar contagem no formulário local
-      const savedForms = localStorage.getItem(LOCAL_STORAGE_FORMULARIOS);
-      if (savedForms) {
-        const formsList: FormularioSecretaria[] = JSON.parse(savedForms);
-        const idx = formsList.findIndex(f => f.id === form.id);
-        if (idx !== -1) {
-          formsList[idx].total_respostas = (formsList[idx].total_respostas || 0) + 1;
-          localStorage.setItem(LOCAL_STORAGE_FORMULARIOS, JSON.stringify(formsList));
+        const savedForms = localStorage.getItem(LOCAL_STORAGE_FORMULARIOS);
+        if (savedForms) {
+          const formsList: FormularioSecretaria[] = JSON.parse(savedForms);
+          const idx = formsList.findIndex(f => f.id === form.id);
+          if (idx !== -1) {
+            formsList[idx].total_respostas = (formsList[idx].total_respostas || 0) + 1;
+            localStorage.setItem(LOCAL_STORAGE_FORMULARIOS, JSON.stringify(formsList));
+          }
         }
+      } catch (cacheError) {
+        console.warn('Inscrição confirmada no servidor; não foi possível atualizar o cache local:', cacheError);
       }
+      return { protocolo: savedResponse.protocolo };
     } catch (err) {
       console.error('Erro ao submeter resposta:', err);
       throw err;

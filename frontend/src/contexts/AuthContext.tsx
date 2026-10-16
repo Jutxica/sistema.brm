@@ -10,6 +10,7 @@ export interface User {
   religiosoId?: string;
   religiosoNome?: string;
   religiosoGrau?: string;
+  religiosoStatusCadastro?: string;
   isReligioso?: boolean;
   isAdmin?: boolean;
 }
@@ -45,11 +46,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let religiosoId: string | undefined;
       let religiosoNome: string | undefined;
       let religiosoGrau: string | undefined;
+      let religiosoStatusCadastro: string | undefined;
       let isReligioso = false;
 
       const { data: relData, error: religiosoError } = await supabase
         .from('religiosos')
-        .select('id, nome_civil, nome_religioso, grau, auth_user_id')
+        .select('id, nome_civil, nome_religioso, grau, auth_user_id, status_cadastro')
         .eq('auth_user_id', userId)
         .maybeSingle();
       if (religiosoError) {
@@ -58,6 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         religiosoId = relData.id;
         religiosoNome = relData.nome_religioso || relData.nome_civil;
         religiosoGrau = relData.grau;
+        religiosoStatusCadastro = relData.status_cadastro;
         isReligioso = true;
       }
 
@@ -74,7 +77,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (userData.usu_status !== 'Ativo') acessos = [];
 
-        if (isReligioso && !acessos.includes('religioso')) {
+        if (religiosoStatusCadastro !== 'Aprovado') {
+          acessos = acessos.filter(access => access !== 'religioso' && access !== 'portal');
+        } else if (userData.usu_status === 'Ativo' && !acessos.includes('religioso')) {
           acessos.push('religioso');
         }
 
@@ -89,19 +94,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           religiosoId,
           religiosoNome,
           religiosoGrau,
+          religiosoStatusCadastro,
           isReligioso,
           isAdmin,
         });
       } else if (isReligioso) {
+        const aprovado = religiosoStatusCadastro === 'Aprovado';
         setUser({
           id: userId,
           nome: religiosoNome || email.split('@')[0],
           email: email,
           status: 'Ativo',
-          acessos: ['religioso', 'portal'],
+          acessos: aprovado ? ['religioso', 'portal'] : [],
           religiosoId,
           religiosoNome,
           religiosoGrau,
+          religiosoStatusCadastro,
           isReligioso: true,
           isAdmin: false,
         });
@@ -155,6 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           religiosoId: 'e2e-religioso-01',
           religiosoNome: 'Pe. Carlos Eduardo',
           religiosoGrau: 'Padre',
+          religiosoStatusCadastro: 'Aprovado',
           isReligioso: true,
           isAdmin: false,
         });
@@ -168,6 +177,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           religiosoId: 'e2e-religioso-admin',
           religiosoNome: 'Pe. Secretário Provincial',
           religiosoGrau: 'Padre',
+          religiosoStatusCadastro: 'Aprovado',
           isReligioso: true,
           isAdmin: true,
         });
