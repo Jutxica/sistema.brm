@@ -46,7 +46,12 @@ export const bensService = {
       if (!error && data) {
         return data as BemPatrimonio;
       }
-    } catch (_) {}
+      if (error) {
+        console.warn('Erro ao obter bem do Supabase:', error.message);
+      }
+    } catch (err) {
+      console.warn('Exceção ao obter bem por ID:', err);
+    }
 
     const local = getPatrimonioLocal();
     return local.bens.find(b => b.id === id) || null;

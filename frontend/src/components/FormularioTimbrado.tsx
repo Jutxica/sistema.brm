@@ -62,7 +62,7 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
   const [respostas, setRespostas] = useState<Record<string, any>>(valoresIniciais);
   const [erros, setErros] = useState<Record<string, string>>({});
   const [enviadoSucesso, setEnviadoSucesso] = useState(false);
-  const [protocoloGerado, setProtocoloGerado] = useState(numeroProtocolo || `FORM-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [protocoloGerado, setProtocoloGerado] = useState(() => numeroProtocolo || `FORM-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
   const [rascunhoPronto, setRascunhoPronto] = useState(!chaveRascunho || modo !== 'fill');
   const [rascunhoRestaurado, setRascunhoRestaurado] = useState<string | null>(null);
   const [rascunhoSalvo, setRascunhoSalvo] = useState<string | null>(null);
@@ -71,37 +71,40 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
 
   useEffect(() => {
     if (!chaveRascunho || modo !== 'fill') {
-      setRascunhoPronto(true);
       return;
     }
 
-    try {
-      const saved = localStorage.getItem(chaveRascunho);
-      if (saved) {
-        const parsed: unknown = JSON.parse(saved);
-        if (
-          typeof parsed === 'object' && parsed !== null
-          && 'savedAt' in parsed && typeof parsed.savedAt === 'string'
-          && 'responses' in parsed && typeof parsed.responses === 'object'
-          && parsed.responses !== null && !Array.isArray(parsed.responses)
-          && Date.now() - new Date(parsed.savedAt).getTime() < 30 * 24 * 60 * 60 * 1000
-        ) {
-          const knownFields = new Set(campos.map(campo => campo.id));
-          const restored = Object.fromEntries(
-            Object.entries(parsed.responses).filter(([fieldId]) => knownFields.has(fieldId)),
-          );
-          setRespostas(current => ({ ...current, ...restored }));
-          setRascunhoRestaurado(parsed.savedAt);
-        } else {
-          localStorage.removeItem(chaveRascunho);
+    const timer = setTimeout(() => {
+      try {
+        const saved = localStorage.getItem(chaveRascunho);
+        if (saved) {
+          const parsed: unknown = JSON.parse(saved);
+          if (
+            typeof parsed === 'object' && parsed !== null
+            && 'savedAt' in parsed && typeof parsed.savedAt === 'string'
+            && 'responses' in parsed && typeof parsed.responses === 'object'
+            && parsed.responses !== null && !Array.isArray(parsed.responses)
+            && Date.now() - new Date(parsed.savedAt).getTime() < 30 * 24 * 60 * 60 * 1000
+          ) {
+            const knownFields = new Set(campos.map(campo => campo.id));
+            const restored = Object.fromEntries(
+              Object.entries(parsed.responses).filter(([fieldId]) => knownFields.has(fieldId)),
+            );
+            setRespostas(current => ({ ...current, ...restored }));
+            setRascunhoRestaurado(parsed.savedAt);
+          } else {
+            localStorage.removeItem(chaveRascunho);
+          }
         }
+      } catch (error) {
+        console.error('Não foi possível recuperar o rascunho deste formulário:', error);
+        setErroRascunho(true);
+      } finally {
+        setRascunhoPronto(true);
       }
-    } catch (error) {
-      console.error('Não foi possível recuperar o rascunho deste formulário:', error);
-      setErroRascunho(true);
-    } finally {
-      setRascunhoPronto(true);
-    }
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [chaveRascunho, modo, campos]);
 
   useEffect(() => {

@@ -608,12 +608,12 @@ BEGIN
     CREATE POLICY "confighospedagens_all_authenticated" ON public.confighospedagens FOR ALL TO authenticated USING (true) WITH CHECK (true);
   END IF;
 
-  -- mainhospedagem
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'mainhospedagem' AND policyname = 'mainhospedagem_select_all') THEN
-    CREATE POLICY "mainhospedagem_select_all" ON public.mainhospedagem FOR SELECT USING (true);
+  -- mainhospedagem (Leitura pública apenas de ativos; modificação apenas autenticada)
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'mainhospedagem' AND policyname = 'mainhospedagem_select_active') THEN
+    CREATE POLICY "mainhospedagem_select_active" ON public.mainhospedagem FOR SELECT USING (main_status = 'Ativo' OR auth.role() = 'authenticated');
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'mainhospedagem' AND policyname = 'mainhospedagem_anon_crud') THEN
-    CREATE POLICY "mainhospedagem_anon_crud" ON public.mainhospedagem FOR ALL USING (true) WITH CHECK (true);
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'mainhospedagem' AND policyname = 'mainhospedagem_auth_crud') THEN
+    CREATE POLICY "mainhospedagem_auth_crud" ON public.mainhospedagem FOR ALL TO authenticated USING (true) WITH CHECK (true);
   END IF;
 
   -- modulos
@@ -636,45 +636,60 @@ BEGIN
     CREATE POLICY "lavanderia_select_all" ON public.lavanderia FOR SELECT USING (true);
   END IF;
 
-  -- hospedagens
+  -- hospedagens (Anon só pode inserir; leitura e gestão estritamente autenticadas)
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'hospedagens' AND policyname = 'hospedagens_insert_anon') THEN
     CREATE POLICY "hospedagens_insert_anon" ON public.hospedagens FOR INSERT TO anon WITH CHECK (true);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'hospedagens' AND policyname = 'hospedagens_select_anon') THEN
-    CREATE POLICY "hospedagens_select_anon" ON public.hospedagens FOR SELECT USING (true);
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'hospedagens' AND policyname = 'hospedagens_all_authenticated') THEN
     CREATE POLICY "hospedagens_all_authenticated" ON public.hospedagens FOR ALL TO authenticated USING (true) WITH CHECK (true);
   END IF;
 
-  -- religiosos_obras_referencia
+  -- religiosos_obras_referencia (Leitura pública; update restrito a token válido; gestão restrita a autenticado)
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'religiosos_obras_referencia' AND policyname = 'religiosos_obras_select_all') THEN
+    CREATE POLICY "religiosos_obras_select_all" ON public.religiosos_obras_referencia FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'religiosos_obras_referencia' AND policyname = 'religiosos_obras_auth_crud') THEN
+    CREATE POLICY "religiosos_obras_auth_crud" ON public.religiosos_obras_referencia FOR ALL TO authenticated USING (true) WITH CHECK (true);
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'religiosos_obras_referencia' AND policyname = 'religiosos_obras_anon_update_token') THEN
-    CREATE POLICY "religiosos_obras_anon_update_token" ON public.religiosos_obras_referencia FOR ALL USING (true) WITH CHECK (true);
+    CREATE POLICY "religiosos_obras_anon_update_token" ON public.religiosos_obras_referencia FOR UPDATE TO anon USING (token_edicao IS NOT NULL) WITH CHECK (token_edicao IS NOT NULL);
   END IF;
 
-  -- documentos_provinciais
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'documentos_provinciais' AND policyname = 'documentos_provinciais_all') THEN
-    CREATE POLICY "documentos_provinciais_all" ON public.documentos_provinciais FOR ALL USING (true) WITH CHECK (true);
+  -- documentos_provinciais (Leitura apenas de ativos ou autenticados; gestão restrita a autenticado)
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'documentos_provinciais' AND policyname = 'documentos_provinciais_select') THEN
+    CREATE POLICY "documentos_provinciais_select" ON public.documentos_provinciais FOR SELECT USING (status = 'Ativo' OR auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'documentos_provinciais' AND policyname = 'documentos_provinciais_auth_crud') THEN
+    CREATE POLICY "documentos_provinciais_auth_crud" ON public.documentos_provinciais FOR ALL TO authenticated USING (true) WITH CHECK (true);
   END IF;
 
   -- eventos_provinciais
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'eventos_provinciais' AND policyname = 'eventos_provinciais_all') THEN
-    CREATE POLICY "eventos_provinciais_all" ON public.eventos_provinciais FOR ALL USING (true) WITH CHECK (true);
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'eventos_provinciais' AND policyname = 'eventos_provinciais_select') THEN
+    CREATE POLICY "eventos_provinciais_select" ON public.eventos_provinciais FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'eventos_provinciais' AND policyname = 'eventos_provinciais_auth_crud') THEN
+    CREATE POLICY "eventos_provinciais_auth_crud" ON public.eventos_provinciais FOR ALL TO authenticated USING (true) WITH CHECK (true);
   END IF;
 
-  -- secretaria_configuracoes
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'secretaria_configuracoes' AND policyname = 'secretaria_configuracoes_all') THEN
-    CREATE POLICY "secretaria_configuracoes_all" ON public.secretaria_configuracoes FOR ALL USING (true) WITH CHECK (true);
+  -- secretaria_configuracoes (Restrito a autenticado)
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'secretaria_configuracoes' AND policyname = 'secretaria_configuracoes_auth_all') THEN
+    CREATE POLICY "secretaria_configuracoes_auth_all" ON public.secretaria_configuracoes FOR ALL TO authenticated USING (true) WITH CHECK (true);
   END IF;
 
-  -- secretaria_formularios
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'secretaria_formularios' AND policyname = 'secretaria_formularios_all') THEN
-    CREATE POLICY "secretaria_formularios_all" ON public.secretaria_formularios FOR ALL USING (true) WITH CHECK (true);
+  -- secretaria_formularios (Público lê apenas formulários ativos; gestão restrita a autenticado)
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'secretaria_formularios' AND policyname = 'secretaria_formularios_select_active') THEN
+    CREATE POLICY "secretaria_formularios_select_active" ON public.secretaria_formularios FOR SELECT USING (ativo = true OR auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'secretaria_formularios' AND policyname = 'secretaria_formularios_auth_crud') THEN
+    CREATE POLICY "secretaria_formularios_auth_crud" ON public.secretaria_formularios FOR ALL TO authenticated USING (true) WITH CHECK (true);
   END IF;
 
-  -- secretaria_respostas_formulario
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'secretaria_respostas_formulario' AND policyname = 'secretaria_respostas_formulario_all') THEN
-    CREATE POLICY "secretaria_respostas_formulario_all" ON public.secretaria_respostas_formulario FOR ALL USING (true) WITH CHECK (true);
+  -- secretaria_respostas_formulario (Público pode submeter respostas; leitura e gestão restrita a autenticado)
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'secretaria_respostas_formulario' AND policyname = 'secretaria_respostas_insert_public') THEN
+    CREATE POLICY "secretaria_respostas_insert_public" ON public.secretaria_respostas_formulario FOR INSERT WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'secretaria_respostas_formulario' AND policyname = 'secretaria_respostas_auth_manage') THEN
+    CREATE POLICY "secretaria_respostas_auth_manage" ON public.secretaria_respostas_formulario FOR ALL TO authenticated USING (true) WITH CHECK (true);
   END IF;
 END $$;
 

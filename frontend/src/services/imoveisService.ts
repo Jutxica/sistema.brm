@@ -47,7 +47,12 @@ export const imoveisService = {
       if (!error && data) {
         return data as ImovelPatrimonio;
       }
-    } catch (_) {}
+      if (error) {
+        console.warn('Erro ao obter imóvel do Supabase:', error.message);
+      }
+    } catch (err) {
+      console.warn('Exceção ao obter imóvel por ID:', err);
+    }
 
     const local = getPatrimonioLocal();
     return local.imoveis.find(i => i.id === id) || null;

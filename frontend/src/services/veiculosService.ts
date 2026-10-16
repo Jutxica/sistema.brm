@@ -46,7 +46,12 @@ export const veiculosService = {
       if (!error && data) {
         return data as VeiculoPatrimonio;
       }
-    } catch (_) {}
+      if (error) {
+        console.warn('Erro ao obter veículo do Supabase:', error.message);
+      }
+    } catch (err) {
+      console.warn('Exceção ao obter veículo por ID:', err);
+    }
 
     const local = getPatrimonioLocal();
     return local.veiculos.find(v => v.id === id) || null;

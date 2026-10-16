@@ -12,34 +12,7 @@ const AnimatedStat: React.FC<{ value: number }> = ({ value }) => {
   return <>{animated}</>;
 };
 
-interface RawReligioso {
-  id: string;
-  grau: string;
-  nome_civil: string;
-  nome_religioso: string | null;
-  data_nascimento: string | null;
-  comunidade_atual_nome: string | null;
-  obra_atual_id: string | null;
-  status: string;
-  status_cadastro: string;
-  estado_nascimento: string | null;
-  municipio_nascimento: string | null;
-  created_at: string;
-}
-
-interface RawOrdem {
-  id: string;
-  religioso_id: string;
-  ministerio: string;
-  data: string | null;
-}
-
-interface RawVoto {
-  id: string;
-  religioso_id: string;
-  voto_tipo: string;
-  data: string | null;
-}
+import type { RawReligioso, RawOrdem, RawVoto } from '../types/religioso';
 
 interface RawSaude {
   id: string;
@@ -110,15 +83,31 @@ export const EstatisticaBRM: React.FC = () => {
     try {
       const [religiososRes, ordensRes, votosRes, saudeRes, formacoesRes] = await Promise.all([
         supabase.from('religiosos').select('id, grau, nome_civil, nome_religioso, data_nascimento, comunidade_atual_nome, obra_atual_id, status, status_cadastro, estado_nascimento, municipio_nascimento, created_at'),
-        supabase.from('religiosos_ministerios_ordens').select('id, religioso_id, ministerio, data'),
-        supabase.from('religiosos_profissoes_votos').select('id, religioso_id, voto_tipo, data'),
+        supabase.from('religiosos_ministerios_ordens').select('*'),
+        supabase.from('religiosos_profissoes_votos').select('*'),
         supabase.from('religiosos_saude').select('id, religioso_id, plano_saude, tipo_sanguineo, medicamentos_continuos'),
         supabase.from('religiosos_formacao_religiosa').select('id, religioso_id, etapa, instituicao'),
       ]);
 
+      const ordensMapeadas: RawOrdem[] = ((ordensRes.data || []) as any[]).map(row => ({
+        id: row.id,
+        religioso_id: row.religioso_id,
+        tipo: row.tipo || row.ministerio || '',
+        ministerio: row.ministerio || row.tipo || '',
+        data: row.data || row.data_recebimento || row.data_ordenacao || null,
+      }));
+
+      const votosMapeados: RawVoto[] = ((votosRes.data || []) as any[]).map(row => ({
+        id: row.id,
+        religioso_id: row.religioso_id,
+        tipo: row.tipo || row.voto_tipo || '',
+        voto_tipo: row.voto_tipo || row.tipo || '',
+        data: row.data || row.data_profissao || null,
+      }));
+
       setReligiosos((religiososRes.data || []) as RawReligioso[]);
-      setOrdens((ordensRes.data || []) as RawOrdem[]);
-      setVotos((votosRes.data || []) as RawVoto[]);
+      setOrdens(ordensMapeadas);
+      setVotos(votosMapeados);
       setSaude((saudeRes.data || []) as RawSaude[]);
       setFormacoes((formacoesRes.data || []) as RawFormacao[]);
     } catch (err) {
@@ -235,9 +224,10 @@ export const EstatisticaBRM: React.FC = () => {
 
     // Ordens (Sacerdócio / Presbiterado)
     ordens.forEach(ordem => {
-      const isPresb = (ordem.ministerio || '').toLowerCase().includes('presb') || 
-                      (ordem.ministerio || '').toLowerCase().includes('padre') ||
-                      (ordem.ministerio || '').toLowerCase().includes('sacerd');
+      const nomeOrdem = (ordem.tipo || ordem.ministerio || '').toLowerCase();
+      const isPresb = nomeOrdem.includes('presb') || 
+                      nomeOrdem.includes('padre') ||
+                      nomeOrdem.includes('sacerd');
       if (isPresb && ordem.data) {
         const year = new Date(ordem.data).getFullYear();
         if (!isNaN(year)) {
@@ -262,9 +252,10 @@ export const EstatisticaBRM: React.FC = () => {
 
     // Votos (Vida Religiosa)
     votos.forEach(voto => {
-      const isVoto = (voto.voto_tipo || '').toLowerCase().includes('primeir') || 
-                     (voto.voto_tipo || '').toLowerCase().includes('perpétuo') ||
-                     (voto.voto_tipo || '').toLowerCase().includes('perpetuo');
+      const nomeVoto = (voto.tipo || voto.voto_tipo || '').toLowerCase();
+      const isVoto = nomeVoto.includes('primeir') || 
+                     nomeVoto.includes('perpétuo') ||
+                     nomeVoto.includes('perpetuo');
       if (isVoto && voto.data) {
         const year = new Date(voto.data).getFullYear();
         if (!isNaN(year)) {

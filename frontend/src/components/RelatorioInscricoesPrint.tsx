@@ -70,21 +70,21 @@ export const RelatorioInscricoesPrint: React.FC<RelatorioInscricoesPrintProps> =
 
     const linhas = respostas.map((r, idx) => [
       idx + 1,
-      `\"${r.protocolo}\"`,
-      `\"${new Date(r.created_at).toLocaleString("pt-BR")}\"`,
-      `\"${r.dados?.nome_completo || ""}\"`,
-      `\"${r.dados?.nome_religioso || ""}\"`,
-      `\"${r.dados?.grau_ordem || ""}\"`,
-      `\"${r.dados?.comunidade_atual || ""}\"`,
-      `\"${r.dados?.necessita_hospedagem ? "Sim" : "Não"}\"`,
-      `\"${r.dados?.tipo_quarto || ""}\"`,
-      `\"${r.dados?.data_chegada || ""}\"`,
-      `\"${r.dados?.meio_transporte || ""}\"`,
-      `\"${r.dados?.restricao_alimentar || ""}\"`,
-      `\"${r.dados?.telefone_whatsapp || ""}\"`,
-      `\"${r.dados?.email || ""}\"`,
-      `\"${r.status}\"`,
-      `\"${(r.dados?.observacoes_gerais || "").replace(/\n/g, " ")}\"`
+      `"${r.protocolo}"`,
+      `"${new Date(r.created_at).toLocaleString("pt-BR")}"`,
+      `"${r.dados?.nome_completo || ""}"`,
+      `"${r.dados?.nome_religioso || ""}"`,
+      `"${r.dados?.grau_ordem || ""}"`,
+      `"${r.dados?.comunidade_atual || ""}"`,
+      `"${r.dados?.necessita_hospedagem ? "Sim" : "Não"}"`,
+      `"${r.dados?.tipo_quarto || ""}"`,
+      `"${r.dados?.data_chegada || ""}"`,
+      `"${r.dados?.meio_transporte || ""}"`,
+      `"${r.dados?.restricao_alimentar || ""}"`,
+      `"${r.dados?.telefone_whatsapp || ""}"`,
+      `"${r.dados?.email || ""}"`,
+      `"${r.status}"`,
+      `"${(r.dados?.observacoes_gerais || "").replace(/\n/g, " ")}"`
     ].join(","));
 
     const csvContent = "\uFEFF" + [colunas.join(","), ...linhas].join("\n");

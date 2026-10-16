@@ -65,7 +65,9 @@ export const documentosService = {
       if (!error && data && data.length > 0) {
         return data as PatrimonioDocumento[];
       }
-    } catch (_) {}
+    } catch (err) {
+      console.warn('Exceção ao listar documentos de patrimônio:', err);
+    }
 
     // 2. Fallback: extrair do objeto pai no cache local
     const local = getPatrimonioLocal();

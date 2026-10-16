@@ -111,26 +111,6 @@ export const PatrimonioAdmin: React.FC = () => {
     };
   }, []);
 
-  const handleResolverConflito = async (id: string, estrategia: 'servidor' | 'local' | 'mesclar') => {
-    try {
-      const ok = await resolveConflict(id, estrategia);
-      if (ok) {
-        showToast.success('Conflito mediado com sucesso.', 'Integridade Restaurada');
-        setModalConflito(null);
-        await carregarDados();
-      } else {
-        showToast.error('Não foi possível mediar o conflito.', 'Erro de Sincronização');
-      }
-    } catch (err: any) {
-      showToast.error(err.message || 'Erro ao resolver conflito.', 'Erro');
-    }
-  };
-
-  // Carregar dados através da API agregada do dashboard
-  useEffect(() => {
-    carregarDados();
-  }, []);
-
   const carregarDados = async () => {
     setSyncing(true);
     try {
@@ -159,6 +139,26 @@ export const PatrimonioAdmin: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const handleResolverConflito = async (id: string, estrategia: 'servidor' | 'local' | 'mesclar') => {
+    try {
+      const ok = await resolveConflict(id, estrategia);
+      if (ok) {
+        showToast.success('Conflito mediado com sucesso.', 'Integridade Restaurada');
+        setModalConflito(null);
+        await carregarDados();
+      } else {
+        showToast.error('Não foi possível mediar o conflito.', 'Erro de Sincronização');
+      }
+    } catch (err: any) {
+      showToast.error(err.message || 'Erro ao resolver conflito.', 'Erro');
+    }
+  };
+
+  // Carregar dados através da API agregada do dashboard
+  useEffect(() => {
+    carregarDados();
+  }, []);
 
   const copySqlMigration = () => {
     const sql = `-- Script de Criação do Módulo de Patrimônio Provincial BRM

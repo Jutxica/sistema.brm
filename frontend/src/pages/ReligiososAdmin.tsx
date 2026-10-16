@@ -20,40 +20,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { confirmAction, showToast } from '../hooks/useFeedback';
 
-interface ReligiosoResumo {
-  id: string;
-  numero_cadastro: number;
-  nome_civil: string | null;
-  nome_religioso: string | null;
-  nome_elenco: string | null;
-  cadastro_elenco_provisorio: boolean;
-  grau: string | null;
-  status: string;
-  status_cadastro: string;
-  origem_cadastro: string;
-  email_institucional: string | null;
-  telefone_celular: string | null;
-  created_at: string;
-  auth_user_id: string | null;
-}
-
-interface ContaAcesso {
-  id: string;
-  email: string | null;
-  created_at: string | null;
-  email_confirmed_at: string | null;
-  last_sign_in_at: string | null;
-  banned_until: string | null;
-  linked_religioso_id: string | null;
-  linked_religioso_nome: string | null;
-  ledger: {
-    origin: string | null;
-    created_by: string | null;
-    created_by_name: string | null;
-    created_at: string | null;
-    state: string | null;
-  } | null;
-}
+import type { ReligiosoResumo, ContaAcesso } from '../types/religioso';
 
 type AccountAction = 'invite' | 'block' | 'unblock' | 'delete';
 

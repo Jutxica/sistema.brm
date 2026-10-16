@@ -42,76 +42,78 @@ export const LeitorDocumentoModal: React.FC<LeitorDocumentoModalProps> = ({
   // Verificar disponibilidade do arquivo e tratar erros como NoSuchBucket
   useEffect(() => {
     if (!documento) return;
-    
-    setLoading(true);
-    setHasError(false);
-    setErrorMessage('');
-
+    let cancel = false;
     let createdBlobUrl: string | null = null;
 
-    // Se for URL de dados local Base64, converte para Blob URL para suporte nativo e performático no iframe
-    if (documento.arquivo_url.startsWith('data:')) {
-      try {
-        const blob = dataURLtoBlob(documento.arquivo_url);
-        createdBlobUrl = URL.createObjectURL(blob);
-        setPreviewUrl(createdBlobUrl);
-      } catch (err) {
-        console.warn('Erro ao converter data URL em blob:', err);
+    const timer = setTimeout(() => {
+      if (cancel) return;
+      setLoading(true);
+      setHasError(false);
+      setErrorMessage('');
+
+      // Se for URL de dados local Base64, converte para Blob URL para suporte nativo e performático no iframe
+      if (documento.arquivo_url.startsWith('data:')) {
+        try {
+          const blob = dataURLtoBlob(documento.arquivo_url);
+          createdBlobUrl = URL.createObjectURL(blob);
+          setPreviewUrl(createdBlobUrl);
+        } catch (err) {
+          console.warn('Erro ao converter data URL em blob:', err);
+          setPreviewUrl(documento.arquivo_url);
+        }
+        setLoading(false);
+        return;
+      }
+
+      if (documento.arquivo_url.startsWith('blob:')) {
         setPreviewUrl(documento.arquivo_url);
+        setLoading(false);
+        return;
       }
-      setLoading(false);
-      return () => {
-        if (createdBlobUrl) URL.revokeObjectURL(createdBlobUrl);
-      };
-    }
 
-    if (documento.arquivo_url.startsWith('blob:')) {
+      // Se for URL remota (ex: Supabase Storage), definir previewUrl e testar integridade
       setPreviewUrl(documento.arquivo_url);
-      setLoading(false);
-      return;
-    }
 
-    // Se for URL remota (ex: Supabase Storage), definir previewUrl e testar integridade
-    setPreviewUrl(documento.arquivo_url);
-    let cancel = false;
+      const checkFile = async () => {
+        try {
+          const res = await fetch(documento.arquivo_url);
+          if (!cancel) {
+            if (!res.ok) {
+              let isBucketError = res.status === 404 || res.status === 400;
+              try {
+                const bodyJson = await res.json();
+                if (
+                  bodyJson.code === 'NoSuchBucket' || 
+                  bodyJson.error?.toLowerCase().includes('bucket') || 
+                  bodyJson.message?.toLowerCase().includes('bucket')
+                ) {
+                  isBucketError = true;
+                }
+              } catch (_) {}
 
-    const checkFile = async () => {
-      try {
-        const res = await fetch(documento.arquivo_url);
-        if (!cancel) {
-          if (!res.ok) {
-            let isBucketError = res.status === 404 || res.status === 400;
-            try {
-              const bodyJson = await res.json();
-              if (
-                bodyJson.code === 'NoSuchBucket' || 
-                bodyJson.error?.toLowerCase().includes('bucket') || 
-                bodyJson.message?.toLowerCase().includes('bucket')
-              ) {
-                isBucketError = true;
+              setHasError(true);
+              if (isBucketError) {
+                setErrorMessage('O bucket de armazenamento "documentos-provincia" ainda não foi criado ou configurado como público no Supabase.');
+              } else {
+                setErrorMessage(`Erro ao carregar documento do servidor (Código HTTP ${res.status}).`);
               }
-            } catch (_) {}
-
-            setHasError(true);
-            if (isBucketError) {
-              setErrorMessage('O bucket de armazenamento "documentos-provincia" ainda não foi criado ou configurado como público no Supabase.');
-            } else {
-              setErrorMessage(`Erro ao carregar documento do servidor (Código HTTP ${res.status}).`);
             }
+            setLoading(false);
           }
-          setLoading(false);
+        } catch (_) {
+          if (!cancel) {
+            // Em caso de CORS no fetch, permitimos que o iframe nativo tente carregar diretamente
+            setLoading(false);
+          }
         }
-      } catch (err) {
-        if (!cancel) {
-          // Em caso de CORS no fetch, permitimos que o iframe nativo tente carregar diretamente
-          setLoading(false);
-        }
-      }
-    };
+      };
 
-    checkFile();
+      checkFile();
+    }, 0);
+
     return () => {
       cancel = true;
+      clearTimeout(timer);
       if (createdBlobUrl) URL.revokeObjectURL(createdBlobUrl);
     };
   }, [documento]);

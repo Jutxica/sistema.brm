@@ -92,6 +92,25 @@ const votoTypeToDatabase: Record<string, string> = {
 const votoTypeFromDatabase: Record<string, string> = Object.fromEntries(
   Object.entries(votoTypeToDatabase).map(([formValue, databaseValue]) => [databaseValue, formValue])
 );
+const ministryTypeToDatabase: Record<string, string> = {
+  'Ministério da Palavra': 'Leitorado',
+  'Ministério do Leitorado': 'Leitorado',
+  'Ministério do Altar': 'Acolitado',
+  'Leitorado': 'Leitorado',
+  'Acolitado': 'Acolitado',
+  'Diaconato': 'Diaconado',
+  'Diaconado': 'Diaconado',
+  'Presbiterado': 'Presbiterado',
+  'Episcopado': 'Episcopado',
+};
+const ministryTypeFromDatabase: Record<string, string> = {
+  'Leitorado': 'Leitorado',
+  'Acolitado': 'Acolitado',
+  'Diaconado': 'Diaconato',
+  'Diaconato': 'Diaconato',
+  'Presbiterado': 'Presbiterado',
+  'Episcopado': 'Episcopado',
+};
 const renewalOptions = Array.from({ length: 9 }, (_, index) => String(index + 1));
 const orderOptions = ['Diaconato', 'Presbiterado', 'Episcopado'];
 const academicOptions = ['Filosofia', 'Teologia', 'Bacharelado', 'Mestrado', 'Doutorado', 'Graduação', 'Pós-graduação', 'Especialização', 'Cursos livres', 'Formação permanente', 'Ensino médio'];
@@ -827,39 +846,24 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
           consentimento_em: new Date().toISOString(),
         } : {}),
       };
-      const parentRequest = religiosoId
-        ? await supabase.from('religiosos').update(religiosoPayload).eq('id', religiosoId).select('id').single()
-        : await supabase.from('religiosos').insert(religiosoPayload).select('id').single();
-      const { data: religioso, error: religiosoError } = parentRequest;
-      if (religiosoError || !religioso) throw religiosoError || new Error('Não foi possível criar o cadastro.');
-      const id = religioso.id;
-      const insertMany = async (table: string, values: Record<string, unknown>[]) => {
-        const filtered = values.filter(value => Object.values(value).some(item => item !== '' && item !== null && item !== undefined));
-        if (!filtered.length) return;
-        const { error } = await supabase.from(table).insert(filtered.map(value => ({ ...value, religioso_id: id })));
-        if (error) throw error;
-      };
-      if (religiosoId) {
-        for (const table of ['religiosos_familiares', 'religiosos_contatos_familiares', 'religiosos_sacramentos', 'religiosos_historico_vocacional', 'religiosos_origem_vocacional', 'religiosos_formacao_religiosa', 'religiosos_profissoes_votos', 'religiosos_ministerios_ordens', 'religiosos_formacao_academica', 'religiosos_idiomas', 'religiosos_competencias', 'religiosos_historico_comunidades', 'religiosos_missoes_servicos', 'religiosos_enderecos_contatos', 'religiosos_saude']) {
-          const { error } = await supabase.from(table).delete().eq('religioso_id', id);
-          if (error) throw error;
-        }
-      }
-      await insertMany('religiosos_familiares', familiares.filter(row => row.nome.trim()).map(row => ({
+
+      const familiaresPayload = familiares.filter(row => row.nome.trim()).map(row => ({
         tipo: row.tipo,
         nome: row.nome,
         data_nascimento: row.data_nascimento || null,
         local_nascimento: row.local_nascimento || null,
         estado_civil: row.estado_civil || null,
         data_evento: row.estado_civil?.startsWith('Falecid') ? row.data_evento || null : null,
-      })));
-      await insertMany('religiosos_contatos_familiares', contatosFamiliares.filter(row => row.nome.trim()).map(row => ({
+      }));
+
+      const contatosFamiliaresPayload = contatosFamiliares.filter(row => row.nome.trim()).map(row => ({
         nome: row.nome,
         parentesco: row.parentesco || null,
         contato_1: row.contato_1 || null,
         contato_2: row.contato_2 || null,
-      })));
-      await insertMany('religiosos_sacramentos', sacramentos.filter(row => Object.values(row).some(value => value && value !== row.tipo)).map(row => ({
+      }));
+
+      const sacramentosPayload = sacramentos.filter(row => Object.values(row).some(value => value && value !== row.tipo)).map(row => ({
         tipo: row.tipo,
         data: row.data || null,
         paroquia: row.paroquia || null,
@@ -871,10 +875,25 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         numero_registro: row.numero_registro || null,
         celebrante: row.celebrante || null,
         observacoes: row.observacoes || null,
-      })));
-      await insertMany('religiosos_origem_vocacional', [{ paroquia_origem: base.paroquia_origem, diocese: base.diocese_origem, grupo_movimento_pastoral: base.grupo_movimento_pastoral, promotor_vocacional: base.promotor_vocacional }]);
-      await insertMany('religiosos_historico_vocacional', rows.filter(row => row.tipo === 'vocacional').map(row => ({ data_evento: row.data, ano: row.ano ? Number(row.ano) : null, titulo: row.titulo, descricao: row.descricao, local: row.local, responsavel: row.responsavel })));
-      await insertMany('religiosos_formacao_religiosa', rows.filter(row => row.tipo === 'formacao').map(row => ({
+      }));
+
+      const origemVocacionalPayload = {
+        paroquia_origem: base.paroquia_origem || null,
+        diocese: base.diocese_origem || null,
+        grupo_movimento_pastoral: base.grupo_movimento_pastoral || null,
+        promotor_vocacional: base.promotor_vocacional || null,
+      };
+
+      const historicoVocacionalPayload = rows.filter(row => row.tipo === 'vocacional').map(row => ({
+        data_evento: row.data || null,
+        ano: row.ano ? Number(row.ano) : null,
+        titulo: row.titulo,
+        descricao: row.descricao,
+        local: row.local,
+        responsavel: row.responsavel,
+      }));
+
+      const formacaoReligiosaPayload = rows.filter(row => row.tipo === 'formacao').map(row => ({
         etapa: row.etapa,
         instituicao: row.instituicao,
         cidade: row.cidade || row.local,
@@ -882,27 +901,69 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         data_ingresso: row.inicio || null,
         data_conclusao: row.fim || null,
         formador: row.formador,
-      })));
-      await insertMany('religiosos_profissoes_votos', rows.filter(row => row.tipo === 'voto').map(row => ({
+      }));
+
+      const profissoesVotosPayload = rows.filter(row => row.tipo === 'voto').map(row => ({
         tipo: votoTypeToDatabase[row.voto_tipo] || row.voto_tipo,
-        renovacao: row.voto_tipo === 'Renovação de Votos' && row.renovacao ? Number(row.renovacao) : null,
+        renovacao: (row.voto_tipo === 'Renovação de Votos' || row.voto_tipo === 'Voto temporário') && row.renovacao ? Number(row.renovacao) : null,
         data: row.data || null,
         local: row.local || null,
         celebrante: row.celebrante || null,
-      })));
-      await insertMany('religiosos_ministerios_ordens', rows.filter(row => row.tipo === 'ministerio' || row.tipo === 'ordem').map(row => ({
-        tipo: row.ministerio,
+      }));
+
+      const ministeriosOrdensPayload = rows.filter(row => row.tipo === 'ministerio' || row.tipo === 'ordem').map(row => ({
+        tipo: ministryTypeToDatabase[row.ministerio] || row.ministerio,
         data: row.data || null,
         local: row.local || null,
         celebrante: row.celebrante || null,
         bispo_ordenante: row.bispo_ordenante || null,
-      })));
-      await insertMany('religiosos_formacao_academica', rows.filter(row => row.tipo === 'academica').map(row => ({ categoria: row.categoria, instituicao: row.instituicao, periodo: row.periodo, pais: row.pais || null, cidade: row.cidade, estado: row.estado, observacoes: row.observacoes })));
-      await insertMany('religiosos_idiomas', rows.filter(row => row.tipo === 'idioma').map(row => ({ idioma: row.idioma, nivel: row.nivel, fala: row.fala, audicao: row.audicao, leitura: row.leitura, escrita: row.escrita, observacoes: row.observacoes })));
-      await insertMany('religiosos_competencias', rows.filter(row => row.tipo === 'competencia').map(row => ({ competencia: row.competencia, observacoes: row.observacoes })));
-      await insertMany('religiosos_historico_comunidades', rows.filter(row => row.tipo === 'historico').map(row => ({ periodo_inicio: row.inicio || null, periodo_fim: row.fim || null, instituicao: row.instituicao, funcao: row.funcao, local: row.local, observacoes: row.observacoes })));
-      await insertMany('religiosos_missoes_servicos', rows.filter(row => row.tipo === 'servico').map(row => ({ tipo: row.servico_tipo, instituicao: row.instituicao, funcao: row.funcao, periodo: row.periodo, local: row.local, documento: row.documento, observacao: row.observacao })));
-      await insertMany('religiosos_enderecos_contatos', [{
+      }));
+
+      const formacaoAcademicaPayload = rows.filter(row => row.tipo === 'academica').map(row => ({
+        categoria: row.categoria,
+        instituicao: row.instituicao,
+        periodo: row.periodo,
+        pais: row.pais || null,
+        cidade: row.cidade,
+        estado: row.estado,
+        observacoes: row.observacoes,
+      }));
+
+      const idiomasPayload = rows.filter(row => row.tipo === 'idioma').map(row => ({
+        idioma: row.idioma,
+        nivel: row.nivel,
+        fala: row.fala,
+        audicao: row.audicao,
+        leitura: row.leitura,
+        escrita: row.escrita,
+        observacoes: row.observacoes,
+      }));
+
+      const competenciasPayload = rows.filter(row => row.tipo === 'competencia').map(row => ({
+        competencia: row.competencia,
+        observacoes: row.observacoes,
+      }));
+
+      const historicoComunidadesPayload = rows.filter(row => row.tipo === 'historico').map(row => ({
+        periodo_inicio: row.inicio || null,
+        periodo_fim: row.fim || null,
+        instituicao: row.instituicao,
+        funcao: row.funcao,
+        local: row.local,
+        observacoes: row.observacoes,
+      }));
+
+      const missoesServicosPayload = rows.filter(row => row.tipo === 'servico').map(row => ({
+        tipo: row.servico_tipo,
+        instituicao: row.instituicao,
+        funcao: row.funcao,
+        periodo: row.periodo,
+        local: row.local,
+        documento: row.documento,
+        observacao: row.observacao,
+      }));
+
+      const enderecosContatosPayload = {
         obra_id: base.obra_atual_id || null,
         cep: base.cep,
         logradouro: base.logradouro,
@@ -917,8 +978,86 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         email: base.email_institucional || base.email_pessoal,
         whatsapp: base.whatsapp,
         redes_sociais: base.redes_sociais,
-      }]);
-      await insertMany('religiosos_saude', [{ plano_saude: base.plano_saude, numero_plano_saude: base.numero_plano_saude, local_plano_saude: base.local_plano_saude, sus: base.sus, tipo_sanguineo: base.tipo_sanguineo, fator_rh: base.fator_rh, alergias: base.alergias, medicamentos_continuos: base.medicamentos_continuos, medico_responsavel: base.medico_responsavel, contato_emergencia: base.contato_emergencia, informacoes_clinicas: base.informacoes_clinicas, cirurgias: base.cirurgias, proteses: base.proteses, observacoes: base.observacoes_saude }]);
+      };
+
+      const saudePayload = {
+        plano_saude: base.plano_saude,
+        numero_plano_saude: base.numero_plano_saude,
+        local_plano_saude: base.local_plano_saude,
+        sus: base.sus,
+        tipo_sanguineo: base.tipo_sanguineo,
+        fator_rh: base.fator_rh,
+        alergias: base.alergias,
+        medicamentos_continuos: base.medicamentos_continuos,
+        medico_responsavel: base.medico_responsavel,
+        contato_emergencia: base.contato_emergencia,
+        informacoes_clinicas: base.informacoes_clinicas,
+        cirurgias: base.cirurgias,
+        proteses: base.proteses,
+        observacoes: base.observacoes_saude,
+      };
+
+      let id: string;
+      const { data: rpcData, error: rpcError } = await supabase.rpc('salvar_ficha_religioso', {
+        p_payload: {
+          religioso_id: religiosoId || null,
+          base: religiosoPayload,
+          familiares: familiaresPayload,
+          contatos_familiares: contatosFamiliaresPayload,
+          sacramentos: sacramentosPayload,
+          origem_vocacional: origemVocacionalPayload,
+          historico_vocacional: historicoVocacionalPayload,
+          formacao_religiosa: formacaoReligiosaPayload,
+          profissoes_votos: profissoesVotosPayload,
+          ministerios_ordens: ministeriosOrdensPayload,
+          formacao_academica: formacaoAcademicaPayload,
+          idiomas: idiomasPayload,
+          competencias: competenciasPayload,
+          historico_comunidades: historicoComunidadesPayload,
+          missoes_servicos: missoesServicosPayload,
+          enderecos_contatos: enderecosContatosPayload,
+          saude: saudePayload,
+        }
+      });
+
+      if (!rpcError && rpcData && typeof rpcData === 'object' && 'id' in rpcData) {
+        id = String((rpcData as { id: string }).id);
+      } else {
+        // Fallback transacional caso a RPC ainda não esteja instalada no banco
+        const parentRequest = religiosoId
+          ? await supabase.from('religiosos').update(religiosoPayload).eq('id', religiosoId).select('id').single()
+          : await supabase.from('religiosos').insert(religiosoPayload).select('id').single();
+        const { data: religioso, error: religiosoError } = parentRequest;
+        if (religiosoError || !religioso) throw rpcError || religiosoError || new Error('Não foi possível criar o cadastro.');
+        id = religioso.id;
+        const insertMany = async (table: string, values: Record<string, unknown>[]) => {
+          const filtered = values.filter(value => Object.values(value).some(item => item !== '' && item !== null && item !== undefined));
+          if (!filtered.length) return;
+          const { error } = await supabase.from(table).insert(filtered.map(value => ({ ...value, religioso_id: id })));
+          if (error) throw error;
+        };
+        if (religiosoId) {
+          for (const table of ['religiosos_familiares', 'religiosos_contatos_familiares', 'religiosos_sacramentos', 'religiosos_historico_vocacional', 'religiosos_origem_vocacional', 'religiosos_formacao_religiosa', 'religiosos_profissoes_votos', 'religiosos_ministerios_ordens', 'religiosos_formacao_academica', 'religiosos_idiomas', 'religiosos_competencias', 'religiosos_historico_comunidades', 'religiosos_missoes_servicos', 'religiosos_enderecos_contatos', 'religiosos_saude']) {
+            const { error } = await supabase.from(table).delete().eq('religioso_id', id);
+            if (error) throw error;
+          }
+        }
+        await insertMany('religiosos_familiares', familiaresPayload);
+        await insertMany('religiosos_contatos_familiares', contatosFamiliaresPayload);
+        await insertMany('religiosos_sacramentos', sacramentosPayload);
+        await insertMany('religiosos_origem_vocacional', [origemVocacionalPayload]);
+        await insertMany('religiosos_historico_vocacional', historicoVocacionalPayload);
+        await insertMany('religiosos_formacao_religiosa', formacaoReligiosaPayload);
+        await insertMany('religiosos_profissoes_votos', profissoesVotosPayload);
+        await insertMany('religiosos_ministerios_ordens', ministeriosOrdensPayload);
+        await insertMany('religiosos_formacao_academica', formacaoAcademicaPayload);
+        await insertMany('religiosos_idiomas', idiomasPayload);
+        await insertMany('religiosos_competencias', competenciasPayload);
+        await insertMany('religiosos_historico_comunidades', historicoComunidadesPayload);
+        await insertMany('religiosos_missoes_servicos', missoesServicosPayload);
+        await insertMany('religiosos_enderecos_contatos', [enderecosContatosPayload]);
+        await insertMany('religiosos_saude', [saudePayload]);
+      }
       for (const documento of documentos) {
         const path = `${id}/${crypto.randomUUID()}-${documento.arquivo.name}`;
         const upload = await supabase.storage.from('religiosos-documentos').upload(path, documento.arquivo);
@@ -1125,7 +1264,6 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         <div className="mb-8 hidden overflow-x-auto pb-2 -mx-2 px-2 sm:block">
           <div className="flex items-center gap-2 min-w-max">
             {etapas.map((label, index) => ({ label, stepIndex: index + 1 }))
-              .filter(({ stepIndex }) => base.grau !== 'Frater' || stepIndex !== 6)
               .map(({ label, stepIndex }) => {
               const complete = step > stepIndex;
               const active = step === stepIndex;
@@ -1374,7 +1512,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               updateRow={updateRow}
               removeRow={removeRow}
               selects={{ ministerio: base.grau === 'Frater' ? ministryOptions.slice(0, 2) : ministryOptions }}
-              visibleFields={row => ['Diaconado', 'Presbiterado', 'Episcopado'].includes(row.ministerio)
+              visibleFields={row => ['Diaconato', 'Diaconado', 'Presbiterado', 'Episcopado'].includes(row.ministerio)
                 ? ['ministerio', 'data', 'local', 'celebrante', 'bispo_ordenante']
                 : ['ministerio', 'data', 'local', 'celebrante']}
             />
@@ -1547,7 +1685,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
           <button
             type="button"
             disabled={step === 1}
-            onClick={() => setStep(previous => previous === 7 && base.grau === 'Frater' ? 5 : previous - 1)}
+            onClick={() => setStep(previous => Math.max(1, previous - 1))}
             className="inline-flex items-center gap-2 rounded-[6px] border border-slate-200 dark:border-slate-800 px-5 py-2.5 text-xs font-semibold text-[#707070] hover:text-[#1d1d1f] hover:bg-black/5 dark:hover:bg-white/5 transition-all disabled:opacity-30 cursor-pointer"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -1562,7 +1700,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                 if (validation) setErrorMessage(validation);
                 else {
                   setErrorMessage(null);
-                  setStep(previous => previous === 5 && base.grau === 'Frater' ? 7 : previous + 1);
+                  setStep(previous => Math.min(etapas.length, previous + 1));
                 }
               }}
               className="inline-flex min-h-12 flex-1 sm:flex-none items-center justify-center gap-2 rounded-[6px] bg-slate-900 hover:bg-black dark:bg-white dark:text-slate-900 text-white px-5 sm:px-7 py-3 text-sm sm:text-xs font-semibold transition-all cursor-pointer shadow-none active:scale-[0.98]"
@@ -1717,7 +1855,7 @@ const DynamicSection: React.FC<{
             idPrefix={`${type}-${index}-`}
             requiredFields={[
               ...(rowHasValue(row, fields) && dynamicRequiredFields[type] ? [dynamicRequiredFields[type]] : []),
-              ...(rowHasValue(row, fields) && type === 'voto' && row.voto_tipo === 'Voto temporário' ? ['renovacao'] : []),
+              ...(rowHasValue(row, fields) && type === 'voto' && (row.voto_tipo === 'Voto temporário' || row.voto_tipo === 'Renovação de Votos') ? ['renovacao'] : []),
             ]}
           />
         </div>

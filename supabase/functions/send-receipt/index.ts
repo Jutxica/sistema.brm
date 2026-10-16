@@ -58,9 +58,13 @@ function replacePlaceholders(template: string, map: Record<string, string>): str
   return template.replace(/\[\[([a-zA-Z_]+)\]\]/g, (_, key) => sanitizeText(map[key] ?? ""));
 }
 
-async function fetchInscrito(id: number, token: string): Promise<Inscrito | null> {
+async function fetchInscrito(id: number, token?: string): Promise<Inscrito | null> {
+  let url = `${SUPABASE_URL}/rest/v1/hospedagens?select=idhospedagens,hos_recibo_token,hos_nome,hos_email,hos_estadiamotivo&idhospedagens=eq.${id}&limit=1`;
+  if (token) {
+    url += `&hos_recibo_token=eq.${encodeURIComponent(token)}`;
+  }
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/hospedagens?select=idhospedagens,hos_recibo_token,hos_nome,hos_email,hos_estadiamotivo&idhospedagens=eq.${id}&hos_recibo_token=eq.${encodeURIComponent(token)}&limit=1`,
+    url,
     {
       headers: {
         apikey: SUPABASE_SERVICE_KEY,
@@ -98,19 +102,25 @@ Deno.serve(async (req: Request) => {
     return corsResponse(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
   }
 
-  let body: { id?: string; token?: string };
+  let body: { id?: string | number; token?: string };
   try {
     body = await req.json();
   } catch {
     return corsResponse(JSON.stringify({ error: "Invalid JSON body" }), { status: 400 });
   }
 
+  const authHeader = req.headers.get("Authorization") || "";
+  const isAuthCaller = authHeader.startsWith("Bearer ") && authHeader.length > 30;
+
   const id = Number(body.id);
-  if (!Number.isSafeInteger(id) || id <= 0 || !body.token || !/^[0-9a-f-]{36}$/i.test(body.token)) {
+  const token = typeof body.token === "string" ? body.token.trim() : undefined;
+  const hasValidToken = Boolean(token && /^[0-9a-f-]{36}$/i.test(token));
+
+  if (!Number.isSafeInteger(id) || id <= 0 || (!hasValidToken && !isAuthCaller)) {
     return corsResponse(JSON.stringify({ error: "Missing or invalid receipt credentials" }), { status: 400 });
   }
 
-  const inscrito = await fetchInscrito(id, body.token);
+  const inscrito = await fetchInscrito(id, hasValidToken ? token : undefined);
   if (!inscrito || !inscrito.hos_email) {
     return corsResponse(JSON.stringify({ error: "Inscrito não encontrado ou sem e-mail" }), { status: 404 });
   }

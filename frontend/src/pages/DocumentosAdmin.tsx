@@ -10,32 +10,8 @@ import { confirmAction, showToast } from '../hooks/useFeedback';
 import { LeitorDocumentoModal } from '../components/LeitorDocumentoModal';
 import { downloadArquivo } from '../lib/downloadHelper';
 
-export type CategoriaDocumento = 
-  | 'Transferências'
-  | 'Diretórios'
-  | 'Comunicados'
-  | 'Protocolos'
-  | 'Decretos'
-  | 'Formação & Subsídios'
-  | 'Outros';
-
-export interface DocumentoProvincial {
-  id: string;
-  titulo: string;
-  categoria: CategoriaDocumento;
-  subtitulo?: string;
-  numero_referencia?: string;
-  data_documento: string;
-  arquivo_nome: string;
-  arquivo_url: string;
-  arquivo_path?: string;
-  arquivo_tamanho_bytes?: number;
-  mime_type?: string;
-  descricao?: string;
-  publicado_por: string;
-  status: 'Ativo' | 'Arquivado';
-  created_at: string;
-}
+import type { CategoriaDocumento, DocumentoProvincial } from '../types/secretaria';
+export type { CategoriaDocumento, DocumentoProvincial };
 
 const CATEGORIAS_OFICIAIS: CategoriaDocumento[] = [
   'Transferências',

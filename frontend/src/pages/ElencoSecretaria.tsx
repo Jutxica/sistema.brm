@@ -6,56 +6,8 @@ import {
 import { supabase } from '../lib/supabaseClient';
 import { confirmAction, showToast } from '../hooks/useFeedback';
 
-type SituacaoElenco = 'Ativo' | 'Ausente';
-type TipoVinculo = 'residencia' | 'juridico' | 'pastoral' | 'funcao' | 'estudos' | 'missao' | 'outro';
-type Destino = 'comunidade' | 'obra';
-
-interface Religioso {
-  id: string;
-  nome_civil: string | null;
-  nome_religioso: string | null;
-  nome_elenco: string | null;
-  cadastro_elenco_provisorio: boolean;
-  auth_user_id: string | null;
-  grau: string;
-  status: string;
-  situacao_elenco: SituacaoElenco;
-}
-
-interface Comunidade {
-  id: string;
-  nome: string;
-  cidade: string | null;
-  estado: string | null;
-  regiao: string | null;
-  status: string;
-}
-
-interface Obra {
-  id: string;
-  nome: string;
-  tipo: string;
-  cidade: string | null;
-  estado: string | null;
-  uf: string | null;
-  localidade: string | null;
-  pais: string;
-  pertencimento_elenco: string;
-  comunidade_id: string | null;
-  status: string;
-}
-
-interface Designacao {
-  id: string;
-  religioso_id: string;
-  comunidade_id: string | null;
-  obra_id: string | null;
-  tipo_vinculo: TipoVinculo;
-  funcao: string;
-  vigencia_inicio: string | null;
-  vigencia_fim: string | null;
-  ano_referencia: number;
-}
+import type { Religioso, SituacaoElenco } from '../types/religioso';
+import type { TipoVinculo, Destino, Comunidade, Obra, Designacao } from '../types/obra';
 
 interface FormularioDesignacao {
   religioso_id: string;

@@ -442,10 +442,10 @@ export const ObrasAdmin: React.FC = () => {
         let fundacao = parseDateValue(row[8]) || null;
         let assumida = parseDateValue(row[9]) || null;
         let endereco = values[10] || null;
-        let instagram = values[11] || null;
-        let facebook = values[12] || null;
-        let youtube = values[13] || null;
-        let site = values[14] || null;
+        const instagram = values[11] || null;
+        const facebook = values[12] || null;
+        const youtube = values[13] || null;
+        const site = values[14] || null;
         let rowTipo = currentTipo;
 
         // Se a coluna 0 tiver o tipo explícito

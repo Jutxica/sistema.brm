@@ -5,60 +5,12 @@ import { supabase } from '../lib/supabaseClient';
 import { showToast } from '../hooks/useFeedback';
 import { useAuth } from '../contexts/AuthContext';
 
-interface ReligiosoDossieData {
-  id: string;
-  numero_cadastro: number;
-  nome_civil: string;
-  nome_religioso: string | null;
-  grau: string | null;
-  data_nascimento: string | null;
-  cpf: string | null;
-  email_institucional: string | null;
-  telefone_celular: string | null;
-  status: string;
-  status_cadastro: string;
-  origem_cadastro: string | null;
-  auth_user_id: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-}
-
-interface ContaAcesso {
-  id: string;
-  email: string | null;
-  banned_until: string | null;
-  ledger: {
-    origin: string | null;
-    created_by_name: string | null;
-    created_at: string | null;
-  } | null;
-}
-
-interface EventoFicha {
-  id: string;
-  religioso_id: string;
-  religioso_nome: string;
-  status_anterior: string | null;
-  status_novo: string;
-  ator_nome: string;
-  observacao: string | null;
-  criado_em: string;
-}
-
-interface DocumentoFicha {
-  id: string;
-  categoria: string;
-  titulo?: string;
-  nome_arquivo: string;
-  caminho_storage: string;
-  mime_type: string | null;
-  tamanho_bytes: number | null;
-  data_cadastro: string | null;
-  quem_cadastrou: string | null;
-  criado_em?: string | null;
-  enviado_por_nome?: string | null;
-  storage_bucket: 'religiosos-documentos' | 'arquivo-religiosos-confidencial';
-}
+import type { 
+  ReligiosoDossieData, 
+  ContaAcesso, 
+  EventoFicha, 
+  DocumentoFicha 
+} from '../types/religioso';
 
 const reviewOptions = ['Em revisão', 'Em verificação', 'Aguardando complementação', 'Aprovado', 'Recusado', 'Arquivado'];
 const archiveCategories = ['Transferência', 'Advertência', 'Carta', 'Identidade', 'Saúde', 'Canônico', 'Outro'];

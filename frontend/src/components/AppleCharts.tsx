@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { TrendingUp } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
 
 // BRM Provincial Design Color Tokens
 const APPLE_COLORS = {
@@ -372,7 +371,23 @@ export const AppleDonutChart: React.FC<AppleDonutChartProps> = ({
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
-  let accumulatedPercent = 0;
+  const segments = useMemo(() => {
+    return data.reduce<{
+      items: Array<{ item: DonutSegment; index: number; percent: number; strokeDasharray: string; strokeDashoffset: number }>;
+      acc: number;
+    }>((state, item, index) => {
+      const percent = total > 0 ? item.value / total : 0;
+      const strokeDasharray = `${percent * circumference} ${circumference}`;
+      const strokeDashoffset = -state.acc * circumference;
+      return {
+        items: [
+          ...state.items,
+          { item, index, percent, strokeDasharray, strokeDashoffset }
+        ],
+        acc: state.acc + percent
+      };
+    }, { items: [], acc: 0 }).items;
+  }, [data, total, circumference]);
 
   return (
     <div className="apple-card p-6 md:p-8 flex flex-col justify-between">
@@ -404,12 +419,7 @@ export const AppleDonutChart: React.FC<AppleDonutChartProps> = ({
             />
 
             {/* Segments */}
-            {data.map((item, index) => {
-              const percent = total > 0 ? item.value / total : 0;
-              const strokeDasharray = `${percent * circumference} ${circumference}`;
-              const strokeDashoffset = -accumulatedPercent * circumference;
-              accumulatedPercent += percent;
-
+            {segments.map(({ item, index, strokeDasharray, strokeDashoffset }) => {
               const isHighlighted = activeSegment === index || activeSegment === null;
 
               return (

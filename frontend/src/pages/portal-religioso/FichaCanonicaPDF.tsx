@@ -91,13 +91,17 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         }
 
         if (targetId) {
-          const { data: relRecord, error } = await supabase
-            .from('religiosos')
-            .select('*')
-            .eq('id', targetId)
-            .eq('auth_user_id', user?.id || '')
-            .maybeSingle();
+          let query = supabase.from('religiosos').select('*').eq('id', targetId);
+          if (!religiosoId && user?.id) {
+            query = query.eq('auth_user_id', user.id);
+          }
+          const { data: relRecord, error } = await query.maybeSingle();
           if (error) throw error;
+          if (!relRecord) {
+            setData(null);
+            setLoading(false);
+            return;
+          }
 
           // Buscar votos se houver tabela
           const { data: votos } = await supabase
@@ -113,6 +117,13 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
             .eq('religioso_id', targetId)
             .order('data', { ascending: true });
 
+          // Buscar etapas de formação religiosa
+          const { data: formacaoReligiosa } = await supabase
+            .from('religiosos_formacao_religiosa')
+            .select('*')
+            .eq('religioso_id', targetId)
+            .order('data_ingresso', { ascending: true });
+
           // Buscar formações acadêmicas se houver tabela
           const { data: formacoes } = await supabase
             .from('religiosos_formacao_academica')
@@ -125,10 +136,42 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
             .select('*')
             .eq('religioso_id', targetId);
 
+          // Obter foto assinada se foto_path existir
+          let resolvedFotoUrl = relRecord.foto_url || null;
+          if (relRecord.foto_path) {
+            try {
+              const { data: signedData } = await supabase.storage
+                .from('religiosos-perfil')
+                .createSignedUrl(relRecord.foto_path, 3600);
+              if (signedData?.signedUrl) {
+                resolvedFotoUrl = signedData.signedUrl;
+              }
+            } catch (storageErr) {
+              console.warn('Não foi possível obter URL assinada da foto:', storageErr);
+            }
+          }
+
+          // Derivar marcos canônicos a partir das listas reais do banco
+          const postulantado = formacaoReligiosa?.find((f: any) => (f.etapa || '').toLowerCase().includes('postulan'));
+          const noviciado = formacaoReligiosa?.find((f: any) => (f.etapa || '').toLowerCase().includes('novici'));
+          const primVotos = votos?.find((v: any) => (v.tipo || '').toLowerCase().includes('primeir'));
+          const perpVotos = votos?.find((v: any) => (v.tipo || '').toLowerCase().includes('perp'));
+          const diaconato = ordens?.find((o: any) => (o.tipo || '').toLowerCase().includes('diacon'));
+          const presbiterato = ordens?.find((o: any) => (o.tipo || '').toLowerCase().includes('presb') || (o.tipo || '').toLowerCase().includes('sacerd'));
+
           setData({
             ...relRecord,
+            foto_url: resolvedFotoUrl,
+            data_ingresso: relRecord.data_ingresso || postulantado?.data_ingresso || noviciado?.data_ingresso || '',
+            data_primeiros_votos: relRecord.data_primeiros_votos || primVotos?.data || '',
+            data_votos_perpetuos: relRecord.data_votos_perpetuos || perpVotos?.data || '',
+            data_diaconato: relRecord.data_diaconato || diaconato?.data || '',
+            data_presbiterato: relRecord.data_presbiterato || presbiterato?.data || '',
+            bispo_ordenante: relRecord.bispo_ordenante || presbiterato?.bispo_ordenante || diaconato?.bispo_ordenante || '',
+            local_ordenacao: relRecord.local_ordenacao || presbiterato?.local || diaconato?.local || '',
             votosList: votos || [],
             ordensList: ordens || [],
+            formacaoReligiosa: formacaoReligiosa || [],
             formacoes: formacoes || [],
             familiares: familiares || []
           });
@@ -435,12 +478,17 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
 
           <div className="space-y-2 text-xs">
             {data?.formacoes && data.formacoes.length > 0 ? (
-              data.formacoes.map((f: any, idx: number) => (
-                <div key={idx} className="flex justify-between py-1.5 border-b border-[#e5e5ea]">
-                  <span className="font-semibold text-[#1d1d1f]">{f.curso}</span>
-                  <span className="text-[#707070]">{f.instituicao} ({f.ano})</span>
-                </div>
-              ))
+              data.formacoes.map((f: any, idx: number) => {
+                const titulo = f.curso || f.categoria || 'Formação Acadêmica';
+                const inst = f.instituicao || 'Instituição';
+                const anoPeriodo = f.periodo || f.ano || '';
+                return (
+                  <div key={idx} className="flex justify-between py-1.5 border-b border-[#e5e5ea]">
+                    <span className="font-semibold text-[#1d1d1f]">{titulo}</span>
+                    <span className="text-[#707070]">{inst}{anoPeriodo ? ` (${anoPeriodo})` : ''}</span>
+                  </div>
+                );
+              })
             ) : (
               <div className="py-2 text-[#707070] italic">
                 Filosofia e Teologia — Província Brasil Meridional

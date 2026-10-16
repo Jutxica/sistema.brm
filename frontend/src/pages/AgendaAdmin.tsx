@@ -12,41 +12,16 @@ import { FormularioTimbrado } from '../components/FormularioTimbrado';
 import { RelatorioInscricoesPrint } from '../components/RelatorioInscricoesPrint';
 import { FichaInscricaoIndividualPrint } from '../components/FichaInscricaoIndividualPrint';
 import { AgendaVisualizacao } from '../components/AgendaVisualizacao';
-import type { FormularioSecretaria, RespostaFormulario } from './SecretariaConfiguracoes';
+import type { 
+  FormularioSecretaria, 
+  RespostaFormulario,
+  TipoEvento,
+  StatusEvento,
+  EventoProvincial
+} from '../types/secretaria';
 import { confirmAction, showToast } from '../hooks/useFeedback';
 
-export type TipoEvento = 
-  | 'Assembleia'
-  | 'Retiro'
-  | 'Reunião'
-  | 'Encontro'
-  | 'Celebração / Solenidade'
-  | 'Visita Canônica'
-  | 'Formação'
-  | 'Outro';
-
-export type StatusEvento = 'Confirmado' | 'Previsto' | 'Concluído' | 'Cancelado';
-
-export interface EventoProvincial {
-  id: string;
-  titulo: string;
-  tipo: TipoEvento;
-  data_inicio: string;
-  data_fim?: string | null;
-  horario?: string | null;
-  local: string;
-  cidade?: string | null;
-  uf?: string | null;
-  descricao?: string | null;
-  publico_alvo?: string | null;
-  status: StatusEvento;
-  exige_inscricao?: boolean;
-  formulario_id?: string | null;
-  limite_vagas?: number | null;
-  prazo_inscricao?: string | null;
-  publicado_portal?: boolean;
-  created_at: string;
-}
+export type { TipoEvento, StatusEvento, EventoProvincial };
 
 interface CasaReferencia {
   id: string;

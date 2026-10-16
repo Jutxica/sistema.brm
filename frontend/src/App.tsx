@@ -179,7 +179,6 @@ export const App: React.FC = () => {
                 <Route path="/religiosos-publico" element={<CadastroReligiosoPublico />} />
                 <Route path="/privacidade" element={<PoliticaPrivacidade />} />
                 <Route path="/atualizar-obra/:token" element={<AtualizarObraPublico />} />
-                <Route path="/preview-obras" element={<ObrasAdmin />} />
                 <Route path="/formularios/:id" element={<FormularioPublicoInscricao />} />
                 <Route path="/validar" element={<ValidarDocumento />} />
                 <Route path="/validar/:codigo" element={<ValidarDocumento />} />

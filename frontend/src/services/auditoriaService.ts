@@ -93,7 +93,9 @@ export const auditoriaService = {
       if (!error && data && data.length > 0) {
         return data as AuditLogEntry[];
       }
-    } catch (_) {}
+    } catch (err) {
+      console.warn('Exceção ao listar logs de auditoria:', err);
+    }
 
     // Fallback para buffer local
     const locais = this.obterLocais();
@@ -173,7 +175,8 @@ export const auditoriaService = {
       ];
       localStorage.setItem(STORAGE_KEY_AUDIT, JSON.stringify(seeds));
       return seeds;
-    } catch (_) {
+    } catch (err) {
+      console.warn('Falha ao ler auditoria local:', err);
       return [];
     }
   },

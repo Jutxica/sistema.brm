@@ -5,54 +5,30 @@ import {
   User, Lock, Mail, Phone, Calendar, BookOpen, FileText,
   Hotel, LogOut, Loader2, AlertCircle, CheckCircle2, Eye, EyeOff,
   Home, Clock, ExternalLink, ArrowRight, ArrowLeft,
-  ChevronDown, Printer, MapPin, Download, Search, X
+  ChevronDown, Printer, MapPin, Download, Search, X, Menu
 } from 'lucide-react';
 import MeuPerfilReligioso from '../MeuPerfilReligioso';
 import AnuarioBRM from '../AnuarioBRM';
 import CadastroReligiosoPublico from '../CadastroReligiosoPublico';
 import { validateCpf } from '../../lib/cpf';
 import FichaCanonicaPDF from './FichaCanonicaPDF';
-import type { DocumentoProvincial, CategoriaDocumento } from '../DocumentosAdmin';
-import type { EventoProvincial } from '../AgendaAdmin';
+import type { DocumentoProvincial, CategoriaDocumento, EventoProvincial, FormularioSecretaria, RespostaFormulario } from '../../types/secretaria';
+import type { CasaAcolhida } from '../../types/obra';
+import type { ReligiosoPortalData } from '../../types/religioso';
 import { staggerStyle } from '../../hooks/useMotion';
 import { FormularioTimbrado } from '../../components/FormularioTimbrado';
 import { LeitorDocumentoModal } from '../../components/LeitorDocumentoModal';
 import { downloadArquivo } from '../../lib/downloadHelper';
-import type { FormularioSecretaria, RespostaFormulario } from '../SecretariaConfiguracoes';
 import { showToast } from '../../hooks/useFeedback';
 import { getPortalRedirectUrl } from '../../lib/portalUrls';
 import { AgendaVisualizacao } from '../../components/AgendaVisualizacao';
+import { PortalInicioTab } from './tabs/PortalInicioTab';
+import { PortalCalendarioTab } from './tabs/PortalCalendarioTab';
+import { PortalDocumentosTab } from './tabs/PortalDocumentosTab';
+import { PortalHospedagemTab } from './tabs/PortalHospedagemTab';
 
-interface CasaAcolhida {
-  id: string;
-  nome: string;
-  tipo?: string;
-  cidade?: string;
-  localidade?: string;
-  uf?: string;
-  endereco?: string;
-  telefone?: string;
-  email?: string;
-  site?: string;
-}
+export type PortalSection = 'inicio' | 'perfil' | 'inscricao' | 'ficha-pdf' | 'calendario' | 'documentos' | 'anuario' | 'hospedagem';
 
-interface ReligiosoPortalData {
-  id?: string;
-  nome_civil?: string | null;
-  nome_religioso?: string | null;
-  grau?: string | null;
-  status_cadastro?: string | null;
-  situacao_elenco?: string | null;
-  comunidade_atual_nome?: string | null;
-  email_institucional?: string | null;
-  telefone_whatsapp?: string | null;
-  telefone_celular?: string | null;
-  cpf?: string | null;
-  data_nascimento?: string | null;
-  cargo_funcao?: string | null;
-  foto_path?: string | null;
-  foto_url?: string | null;
-}
 
 const getRegistrationErrorMessage = (error: unknown) => {
   if (error instanceof Error) return error.message;
@@ -504,7 +480,11 @@ export const PortalReligioso: React.FC = () => {
   const documentoRecente = [...documentos].sort((a, b) => b.data_documento.localeCompare(a.data_documento))[0];
 
   const navigateToSection = (section: PortalSection) => {
-    setActiveSection(section);
+    if (section === 'inscricao') {
+      void openRegistration();
+    } else {
+      setActiveSection(section);
+    }
     setMobileMoreOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -1484,494 +1464,24 @@ export const PortalReligioso: React.FC = () => {
           
           {/* SEÇÃO: INÍCIO / PAINEL DO CONFRADE */}
           {activeSection === 'inicio' && (
-            <>
-            <div className="space-y-4 md:hidden">
-              <section className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-[#16485a] to-[#113240] p-4 text-white shadow-[0_8px_24px_rgba(17,50,64,0.16)]">
-                <div className="pointer-events-none absolute -right-10 -top-16 h-36 w-36 rounded-full border border-white/[0.08]" />
-                <div className="relative">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65">
-                      Portal do Confrade
-                    </span>
-                    {religiosoData?.comunidade_atual_nome && (
-                      <span className="flex min-w-0 items-center gap-1 text-[10px] text-white/70">
-                        <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
-                        <span className="max-w-[145px] truncate">{religiosoData.comunidade_atual_nome}</span>
-                      </span>
-                    )}
-                  </div>
-
-                  <h2 className="mt-1.5 text-[20px] font-semibold leading-tight tracking-[-0.03em]">
-                    Olá, {displayName}
-                  </h2>
-
-                  <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/15 pt-3">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className="text-[11px] text-white/65">Cadastro</span>
-                      <span className="truncate rounded-full bg-white/12 px-2.5 py-1 text-[11px] font-semibold">
-                        {religiosoData?.status_cadastro || 'Em revisão'}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => navigateToSection('inscricao')}
-                      className="inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-full bg-white px-3.5 text-xs font-semibold text-[#113240] transition-colors hover:bg-white/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                    >
-                      <span>{hasCompletedRegistration ? 'Revisar dados' : 'Completar cadastro'}</span>
-                      <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
-              </section>
-
-              <section aria-labelledby="mobile-next-event-title" className="rounded-[24px] border border-[#d6d6d6]/60 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:border-white/10 dark:bg-[#161617]">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#226380] dark:text-[#A3C3C7]">
-                      Fique por dentro
-                    </span>
-                    <h3 id="mobile-next-event-title" className="mt-1 text-base font-semibold text-[#1d1d1f] dark:text-white">
-                      Próximo compromisso
-                    </h3>
-                  </div>
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7]">
-                    <Calendar className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                </div>
-                {proximoEvento ? (
-                  <>
-                    <p className="mt-4 text-sm font-semibold leading-snug text-[#1d1d1f] dark:text-white">
-                      {proximoEvento.titulo}
-                    </p>
-                    <p className="mt-1 text-xs text-[#707070] dark:text-[#a1a1a6]">
-                      {formatPeriodo(proximoEvento.data_inicio, proximoEvento.data_fim)}
-                      {proximoEvento.horario ? ` · ${proximoEvento.horario}` : ''}
-                    </p>
-                    {proximoEvento.local && (
-                      <p className="mt-1 flex items-center gap-1.5 text-xs text-[#707070] dark:text-[#a1a1a6]">
-                        <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                        <span>{[proximoEvento.local, proximoEvento.cidade, proximoEvento.uf].filter(Boolean).join(' · ')}</span>
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <p className="mt-3 text-sm leading-relaxed text-[#707070] dark:text-[#a1a1a6]">
-                    Não há próximos compromissos publicados. Quando houver novidades, elas aparecerão aqui.
-                  </p>
-                )}
-                <button
-                  type="button"
-                  onClick={() => navigateToSection('calendario')}
-                  className="mt-4 inline-flex min-h-11 w-full items-center justify-between rounded-xl bg-[#f5f5f7] px-4 text-sm font-semibold text-[#226380] transition-colors hover:bg-[#e9eef0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380] dark:bg-[#262628] dark:text-[#A3C3C7] dark:hover:bg-[#303033]"
-                >
-                  <span>Ver agenda completa</span>
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </button>
-              </section>
-
-              {documentoRecente && (
-                <section aria-labelledby="mobile-recent-document-title" className="rounded-[24px] border border-[#d6d6d6]/60 bg-white p-5 dark:border-white/10 dark:bg-[#161617]">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#707070] dark:text-[#a1a1a6]">
-                        Publicação recente
-                      </span>
-                      <h3 id="mobile-recent-document-title" className="mt-1 text-base font-semibold text-[#1d1d1f] dark:text-white">
-                        Documento oficial
-                      </h3>
-                    </div>
-                    <FileText className="h-5 w-5 shrink-0 text-[#226380] dark:text-[#A3C3C7]" aria-hidden="true" />
-                  </div>
-                  <p className="mt-3 text-sm font-medium leading-snug text-[#1d1d1f] dark:text-white">
-                    {documentoRecente.titulo}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => navigateToSection('documentos')}
-                    className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#226380] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380] dark:text-[#A3C3C7]"
-                  >
-                    Explorar documentos
-                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                </section>
-              )}
-
-              <section aria-labelledby="mobile-services-title" className="space-y-3 pb-1">
-                <div className="px-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#707070] dark:text-[#a1a1a6]">
-                    Para você
-                  </span>
-                  <h3 id="mobile-services-title" className="mt-1 text-lg font-semibold text-[#1d1d1f] dark:text-white">
-                    Acessos rápidos
-                  </h3>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {([
-                    { id: 'documentos', label: 'Documentos', detail: `${documentos.length} publicações`, icon: FileText },
-                    { id: 'hospedagem', label: 'Hospedagem', detail: 'Casas da Província', icon: Hotel },
-                  ] as const).map(item => {
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => navigateToSection(item.id)}
-                        className="flex min-h-32 flex-col items-start justify-between rounded-[22px] border border-[#d6d6d6]/60 bg-white p-4 text-left transition-colors hover:border-[#226380]/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380] dark:border-white/10 dark:bg-[#161617]"
-                      >
-                        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7]">
-                          <Icon className="h-5 w-5" aria-hidden="true" />
-                        </span>
-                        <span>
-                          <span className="block text-sm font-semibold text-[#1d1d1f] dark:text-white">{item.label}</span>
-                          <span className="mt-0.5 block text-[11px] text-[#707070] dark:text-[#a1a1a6]">{item.detail}</span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-            </div>
-
-            <div className="hidden space-y-4 sm:space-y-6 md:block">
-              
-              {/* Masthead Arquitetural do Confrade (Apple Showcase Card) */}
-              <div className="portal-masthead bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-7 sm:p-9 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#707070] dark:text-[#86868b] block mb-1">
-                      Sint Unum • Padres Dehonianos
-                    </span>
-                    <h2 className="text-xl sm:text-[30px] font-semibold tracking-[-0.03em] text-[#1d1d1f] dark:text-[#f5f5f7]">
-                      Saudação fraterna, {displayName}
-                    </h2>
-                    <p className="text-xs sm:text-sm text-[#707070] dark:text-[#86868b] font-normal mt-1 leading-relaxed">
-                      Bem-vindo ao espaço digital de comunhão, serviços e acompanhamento canônico da Província BRM.
-                    </p>
-                  </div>
-
-                  <div className="hidden sm:flex items-center gap-2 self-start md:self-auto shrink-0">
-                    <span className="px-4 py-1.5 rounded-full text-xs font-medium bg-[#f5f5f7] dark:bg-[#262628] text-[#1d1d1f] dark:text-[#f5f5f7] border border-[#d6d6d6]/60 dark:border-white/10">
-                      Status: {religiosoData?.status_cadastro || 'Vínculo pendente'}
-                    </span>
-                  </div>
-                </div>
-                <div className="mt-5 flex flex-col gap-3 border-t border-[#d6d6d6]/40 dark:border-white/5 pt-4 sm:hidden">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs text-[#707070] dark:text-[#86868b]">Situação do cadastro</span>
-                    <span className="rounded-full bg-[#f5f5f7] dark:bg-[#262628] px-3 py-1 text-[11px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
-                      {religiosoData?.status_cadastro || 'Em revisão'}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setActiveSection('inscricao')}
-                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#226380] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#113240] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#226380]"
-                  >
-                    <FileText className="h-4 w-4" />
-                    <span>{hasCompletedRegistration ? 'Revisar meus dados' : 'Completar meu cadastro'}</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
-                  <p className="text-[11px] leading-relaxed text-[#707070] dark:text-[#86868b]">
-                    Confira seus dados e envie correções à Secretaria Provincial. Comunidade e designações oficiais são mantidas pela Secretaria.
-                  </p>
-                </div>
-              </div>
-
-              {/* 5 Cards de Acesso Rápido (Apple Showcase Cards) */}
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-                
-                {/* 01 / Meu Perfil */}
-                <div 
-                  onClick={() => setActiveSection('perfil')}
-                  style={staggerStyle(0)}
-                  className="rounded-[20px] sm:rounded-[24px] bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
-                >
-                  <div>
-                    <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#0071e3] mb-3 group-hover:scale-105 transition-transform">
-                      <User className="w-5 h-5" />
-                    </div>
-                    <span className="text-[10px] font-semibold tracking-wider text-[#707070] dark:text-[#86868b] block mb-1">
-                      01 / CONTA SAAS
-                    </span>
-                    <h3 className="text-[15px] font-semibold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
-                      Meu Perfil
-                    </h3>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs font-medium text-[#0066cc] dark:text-[#2997ff]">
-                    <span>Foto e contatos</span>
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                  </div>
-                </div>
-
-                {/* 02 / Cadastro BRM ou Atualizar Dados */}
-                <button
-                  type="button"
-                  data-testid="card-item-inscricao"
-                  onClick={() => void openRegistration()}
-                  style={staggerStyle(1)}
-                  className="w-full text-left rounded-[24px] bg-white dark:bg-[#161617] p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
-                >
-                  <div>
-                    <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#0071e3] mb-3 group-hover:scale-105 transition-transform">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <span className="text-[10px] font-semibold tracking-wider text-[#707070] dark:text-[#86868b] block mb-1">
-                      02 / CANÔNICO
-                    </span>
-                    <h3 className="text-[15px] font-semibold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
-                      {registrationMenuLabel}
-                    </h3>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs font-medium text-[#0066cc] dark:text-[#2997ff]">
-                    <span>6 etapas • revisar dados</span>
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                  </div>
-                </button>
-
-                {/* 03 / Documentos Oficiais */}
-                <div 
-                  onClick={() => setActiveSection('documentos')}
-                  style={staggerStyle(2)}
-                  className="rounded-[20px] sm:rounded-[24px] bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
-                >
-                  <div>
-                    <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#0071e3] mb-3 group-hover:scale-105 transition-transform">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <span className="text-[10px] font-semibold tracking-wider text-[#707070] dark:text-[#86868b] block mb-1">
-                      03 / DOCUMENTOS
-                    </span>
-                    <h3 className="text-[15px] font-semibold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
-                      Documentos Oficiais
-                    </h3>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs font-medium text-[#0066cc] dark:text-[#2997ff]">
-                    <span>{documentos.length} disponíveis</span>
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                  </div>
-                </div>
-
-                {/* 04 / Minha Ficha Completa (PDF) */}
-                <div 
-                  onClick={() => setActiveSection('ficha-pdf')}
-                  style={staggerStyle(3)}
-                  className="rounded-[20px] sm:rounded-[24px] bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
-                >
-                  <div>
-                    <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#0071e3] mb-3 group-hover:scale-105 transition-transform">
-                      <Printer className="w-5 h-5" />
-                    </div>
-                    <span className="text-[10px] font-semibold tracking-wider text-[#707070] dark:text-[#86868b] block mb-1">
-                      04 / IMPRESSÃO
-                    </span>
-                    <h3 className="text-[15px] font-semibold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
-                      Minha Ficha
-                    </h3>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs font-medium text-[#0066cc] dark:text-[#2997ff]">
-                    <span>PDF e cópia</span>
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                  </div>
-                </div>
-
-                {/* 05 / Anuário dos Confrades */}
-                <div 
-                  onClick={() => setActiveSection('anuario')}
-                  style={staggerStyle(4)}
-                  className="rounded-[20px] sm:rounded-[24px] bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
-                >
-                  <div>
-                    <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#0071e3] mb-3 group-hover:scale-105 transition-transform">
-                      <BookOpen className="w-5 h-5" />
-                    </div>
-                    <span className="text-[9px] sm:text-[10px] font-semibold tracking-wider text-[#707070] dark:text-[#86868b] block mb-1">
-                      05 / DIRETÓRIO
-                    </span>
-                    <h3 className="text-[13px] sm:text-[15px] font-semibold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
-                      Anuário BRM
-                    </h3>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs font-medium text-[#0066cc] dark:text-[#2997ff]">
-                    <span>Diretório</span>
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Informações Canônicas & Destaques da Província */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                {/* Minha Situação Canônica */}
-                <div className="bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-7 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
-                  <div className="mb-5">
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#707070] dark:text-[#86868b] block mb-1">
-                      Registro Diocesano & Provincial
-                    </span>
-                    <h3 className="text-[18px] font-semibold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
-                      Minha Situação Canônica
-                    </h3>
-                  </div>
-
-                  <div className="divide-y divide-[#d6d6d6]/40 dark:divide-white/5 text-[13px]">
-                    <div className="flex justify-between py-3">
-                      <span className="text-[#707070] dark:text-[#86868b]">Grau Eclesiástico</span>
-                      <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{displayGrau}</span>
-                    </div>
-                    <div className="flex justify-between py-3">
-                      <span className="text-[#707070] dark:text-[#86868b]">Comunidade Atual</span>
-                      <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{religiosoData?.comunidade_atual_nome || 'A definir'}</span>
-                    </div>
-                    <div className="flex justify-between py-3">
-                      <span className="text-[#707070] dark:text-[#86868b]">E-mail Institucional</span>
-                      <span className="font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">{religiosoData?.email_institucional || user?.email}</span>
-                    </div>
-                    <div className="flex justify-between py-3 items-center">
-                      <span className="text-[#707070] dark:text-[#86868b]">Validação da Secretaria</span>
-                      <span className={`rounded-full px-3 py-0.5 text-[11px] font-medium ${
-                        religiosoData?.status_cadastro === 'Aprovado'
-                          ? 'bg-[#e8f5e9] text-[#2e7d32] dark:bg-[#152a1b] dark:text-[#81c784]'
-                          : 'bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200'
-                      }`}>
-                        {religiosoData?.status_cadastro || 'Aguardando vínculo'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Publicações & Comunicados Recentes */}
-                <div className="bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-7 shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#707070] dark:text-[#86868b] block mb-1">
-                          Secretaria Provincial
-                        </span>
-                        <h3 className="text-[18px] font-semibold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
-                          Documentos Recentes
-                        </h3>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setActiveSection('documentos')}
-                        className="text-xs font-medium text-[#0066cc] dark:text-[#2997ff] hover:underline cursor-pointer"
-                      >
-                        Ver todos ({documentos.length})
-                      </button>
-                    </div>
-
-                    <div className="divide-y divide-[#d6d6d6]/40 dark:divide-white/5 text-[13px]">
-                      {documentos.slice(0, 3).map((doc, idx) => (
-                        <div key={doc.id} style={staggerStyle(idx)} className="py-3 flex items-start justify-between gap-3 motion-stagger-item">
-                          <div className="space-y-0.5 min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold border ${getCategoriaCor()}`}>
-                                {doc.categoria}
-                              </span>
-                              {doc.numero_referencia && (
-                                <span className="font-mono text-[9px] text-[#707070] dark:text-[#86868b]">
-                                  {doc.numero_referencia}
-                                </span>
-                              )}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setDocumentoLeitura(doc)}
-                              className="text-left w-full group/title cursor-pointer"
-                              title="Clique para ler este documento"
-                            >
-                              <span className="font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block line-clamp-1 group-hover/title:text-[#226380] dark:group-hover/title:text-[#64b5f6] transition-colors">
-                                {doc.titulo}
-                              </span>
-                            </button>
-                          </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => setDocumentoLeitura(doc)}
-                              className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-[#226380] dark:text-[#64b5f6] transition-colors motion-press cursor-pointer"
-                              title="Ler documento na tela"
-                            >
-                              <BookOpen className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                downloadArquivo(doc.arquivo_url, doc.arquivo_nome);
-                              }}
-                              className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-[#707070] hover:text-[#113240] dark:hover:text-white transition-colors motion-press cursor-pointer"
-                              title="Baixar arquivo"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveSection('documentos')}
-                    className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs text-[#0066cc] dark:text-[#2997ff] font-medium cursor-pointer motion-press"
-                  >
-                    <span>Consultar acervo de documentos oficiais</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-              </div>
-
-              {/* Próximos Eventos da Agenda Provincial */}
-              <div className="bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-7 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-                  <div>
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#707070] dark:text-[#86868b] block mb-1">
-                      Comunhão & Agenda
-                    </span>
-                    <h3 className="text-[18px] font-semibold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
-                      Próximos Eventos da Província BRM
-                    </h3>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setActiveSection('calendario')}
-                    className="text-xs font-medium text-[#0066cc] dark:text-[#2997ff] hover:underline self-start sm:self-auto cursor-pointer"
-                  >
-                    Ver calendário completo ({eventos.length})
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {eventos.slice(0, 3).map((evt, idx) => (
-                    <div
-                      key={evt.id}
-                      style={staggerStyle(idx)}
-                      className="p-4 rounded-[20px] bg-[#fbfbfd] dark:bg-[#1f1f21] border border-[#d6d6d6]/60 dark:border-white/10 flex flex-col justify-between gap-3 motion-lift motion-press motion-stagger-item"
-                    >
-                      <div className="space-y-1.5">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getTipoCor()}`}>
-                          {evt.tipo}
-                        </span>
-                        <h4 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] leading-snug">
-                          {evt.titulo}
-                        </h4>
-                        <span className="text-xs text-[#707070] dark:text-[#86868b] flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-red-500 shrink-0" />
-                          <span className="truncate">{evt.local}</span>
-                        </span>
-                      </div>
-                      <div className="pt-2 border-t border-[#d6d6d6]/40 dark:border-white/5 text-[11px] font-medium text-[#0071e3] dark:text-[#2997ff]">
-                        {formatPeriodo(evt.data_inicio, evt.data_fim)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-            </>
+            <PortalInicioTab
+              religiosoData={religiosoData}
+              displayName={displayName}
+              hasCompletedRegistration={hasCompletedRegistration}
+              registrationMenuLabel={registrationMenuLabel}
+              displayGrau={displayGrau}
+              userEmail={user?.email}
+              proximoEvento={proximoEvento}
+              documentoRecente={documentoRecente}
+              documentos={documentos}
+              eventos={eventos}
+              navigateToSection={navigateToSection}
+              openRegistration={openRegistration}
+              formatPeriodo={formatPeriodo}
+              getCategoriaCor={getCategoriaCor}
+              getTipoCor={getTipoCor}
+              onLerDocumento={(doc) => setDocumentoLeitura(doc)}
+            />
           )}
 
           {/* SEÇÃO: MEU PERFIL */}
@@ -2009,7 +1519,7 @@ export const PortalReligioso: React.FC = () => {
                   Secretaria Provincial BRM
                 </span>
                 <h3 className="text-[18px] font-semibold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
-                  {hasCompletedRegistration ? 'Atualizar Dados Canônicos (Ficha Oficial)' : 'Ficha Cadastral Oficial da Província (13 Etapas)'}
+                  {hasCompletedRegistration ? 'Atualizar Dados Canônicos (Ficha Oficial)' : 'Ficha Cadastral Oficial da Província (6 Etapas)'}
                 </h3>
                 <p className="text-xs sm:text-sm text-[#707070] dark:text-[#86868b] font-normal mt-1 leading-relaxed">
                   Preencha ou revise a qualquer momento todos os dados canônicos, histórico de comunidades e anexos comprobatórios.
@@ -2045,8 +1555,17 @@ export const PortalReligioso: React.FC = () => {
                   }}
                 />
               ) : (
-                <div role="status" className="rounded-[6px] border border-[#d6d6d6]/60 bg-white p-5 text-sm text-[#40565e] dark:bg-[#161617] dark:text-[#c5c5c7]">
-                  Inicie o Cadastro BRM pelo menu do usuário ou pelo cartão correspondente no painel.
+                <div role="status" className="rounded-[6px] border border-[#d6d6d6]/60 bg-white p-5 text-sm text-[#40565e] dark:bg-[#161617] dark:text-[#c5c5c7] flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <span>Inicie o Cadastro BRM pelo menu do usuário ou pelo botão ao lado.</span>
+                  <button
+                    type="button"
+                    onClick={() => void openRegistration()}
+                    disabled={registrationOpening}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#226380] text-white text-xs font-semibold rounded-lg hover:bg-[#1a4b60] transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    {registrationOpening ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+                    <span>Iniciar Cadastro BRM</span>
+                  </button>
                 </div>
               )}
             </div>
@@ -2076,557 +1595,59 @@ export const PortalReligioso: React.FC = () => {
 
           {/* SEÇÃO: CALENDÁRIO & AGENDA */}
           {activeSection === 'calendario' && (
-            <div className="space-y-6">
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setActiveSection('inicio')}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-[#161617] border border-[#d6d6d6]/60 dark:border-white/10 text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-[#f5f5f7] dark:hover:bg-[#262628] transition-all cursor-pointer shadow-sm"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Voltar ao Painel do Confrade</span>
-                </button>
-              </div>
-
-              <div className="bg-white dark:bg-[#161617] rounded-[24px] sm:rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-5 sm:p-9 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                  <div>
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#707070] dark:text-[#86868b] block mb-1">
-                      Província BRM • Calendário Litúrgico e Provincial
-                    </span>
-                    <h2 className="text-xl sm:text-2xl font-semibold tracking-[-0.03em] text-[#1d1d1f] dark:text-[#f5f5f7]">
-                      Agenda Provincial 2026
-                    </h2>
-                    <p className="text-xs sm:text-sm text-[#707070] dark:text-[#86868b] font-normal mt-1 leading-relaxed max-w-2xl">
-                      Acompanhe os retiros, assembleias, celebrações patronais e encontros oficiais da Província Brasil Meridional.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs font-medium text-[#707070] dark:text-[#86868b] bg-[#f5f5f7] dark:bg-[#262628] px-4 py-2 rounded-full border border-[#d6d6d6]/40 dark:border-white/5 self-start md:self-auto">
-                    <Calendar className="w-4 h-4 text-[#0071e3]" />
-                    <span>{eventos.length} evento{eventos.length === 1 ? '' : 's'} na agenda</span>
-                  </div>
-                </div>
-
-                <div className="mb-4 flex items-center justify-end">
-                  <div className="flex items-center gap-1 rounded-full bg-[#f5f5f7] p-1 dark:bg-[#262628]">
-                    {([
-                      ['lista', 'Lista'],
-                      ['calendario', 'Calendário'],
-                      ['quadro', 'Quadro'],
-                    ] as const).map(([modo, label]) => (
-                      <button
-                        key={modo}
-                        type="button"
-                        onClick={() => setEventoVisualizacao(modo)}
-                        aria-pressed={eventoVisualizacao === modo}
-                        className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                          eventoVisualizacao === modo
-                            ? 'bg-white text-[#113240] shadow-sm dark:bg-[#161617] dark:text-white'
-                            : 'text-[#707070] hover:text-[#113240] dark:text-[#86868b] dark:hover:text-white'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Filtros por Tipo de Evento */}
-                <div className="flex flex-wrap gap-2 pt-4 border-t border-[#d6d6d6]/40 dark:border-white/5 mb-4">
-                  {['Todos', 'Assembleia', 'Retiro', 'Reunião', 'Encontro', 'Celebração / Solenidade', 'Visita Canônica', 'Outro'].map((tipo) => {
-                    const count = tipo === 'Todos' ? eventos.length : eventos.filter(e => e.tipo === tipo).length;
-                    return (
-                      <button
-                        key={tipo}
-                        type="button"
-                        onClick={() => setEventoFiltroTipo(tipo)}
-                        className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
-                          eventoFiltroTipo === tipo
-                            ? 'bg-[#1d1d1f] dark:bg-white text-white dark:text-[#1d1d1f]'
-                            : 'bg-[#f5f5f7] dark:bg-[#262628] text-[#707070] dark:text-[#86868b] hover:bg-[#e8e8ed] dark:hover:bg-[#333336]'
-                        }`}
-                      >
-                        {tipo} {count > 0 && `(${count})`}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Barra de Busca de Eventos */}
-                <div className="relative mb-5 mt-4 sm:mt-0 sm:mb-6">
-                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#707070] dark:text-[#86868b]" />
-                  <input
-                    type="text"
-                    value={eventoSearch}
-                    onChange={(e) => setEventoSearch(e.target.value)}
-                    placeholder="Buscar evento, local ou cidade"
-                    className="min-h-12 w-full pl-10 pr-10 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#161617] rounded-xl sm:rounded-full text-base sm:text-sm text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#707070] dark:placeholder-[#86868b] transition-all outline-none"
-                  />
-                  {eventoSearch && (
-                    <button
-                      type="button"
-                      onClick={() => setEventoSearch('')}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#707070] hover:text-[#1d1d1f] dark:hover:text-white"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Lista de Eventos */}
-                {loadingEventos ? (
-                  <div className="py-12 flex flex-col items-center justify-center text-center">
-                    <Loader2 className="w-6 h-6 animate-spin text-[#0071e3] mb-2" />
-                    <span className="text-xs text-[#707070] dark:text-[#86868b]">Carregando agenda provincial...</span>
-                  </div>
-                ) : eventosFiltrados.length === 0 ? (
-                  <div className="py-12 text-center text-xs text-[#707070] dark:text-[#86868b] bg-[#f5f5f7]/60 dark:bg-[#262628]/40 rounded-[20px] p-6">
-                    {eventosError
-                      ? 'Não foi possível carregar a agenda provincial. Tente novamente mais tarde.'
-                      : 'Nenhum evento encontrado para o filtro selecionado.'}
-                  </div>
-                ) : eventoVisualizacao === 'lista' ? (
-                  <div className="divide-y divide-[#d6d6d6]/40 dark:divide-white/5">
-                    {eventosFiltrados.map((evt, idx) => (
-                      <div key={evt.id} style={staggerStyle(idx)} className="my-2 rounded-[20px] border border-[#d6d6d6]/50 bg-white p-4 flex flex-col md:flex-row md:justify-between md:items-center gap-4 hover:bg-[#f5f5f7] dark:border-white/10 dark:bg-[#1f1f21] dark:hover:bg-[#262628] transition-colors motion-stagger-item sm:border-0 sm:bg-transparent sm:px-3 sm:py-5 sm:dark:bg-transparent">
-                        <div className="space-y-1.5 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${getTipoCor()}`}>
-                              {evt.tipo}
-                            </span>
-                            {evt.publico_alvo && (
-                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#f5f5f7] dark:bg-[#1d1d1f] text-[#707070] dark:text-[#86868b] border border-[#d6d6d6]/50 dark:border-white/10">
-                                {evt.publico_alvo}
-                              </span>
-                            )}
-                            {evt.exige_inscricao && (
-                              <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-[4px] bg-[#113240]/10 text-[#113240] dark:text-[#A3C3C7] border border-[#113240]/20 flex items-center gap-1">
-                                <FileText className="w-2.5 h-2.5" />
-                                Inscrição Aberta
-                              </span>
-                            )}
-                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-[4px] ${
-                              evt.status === 'Confirmado'
-                                ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
-                            }`}>
-                              {evt.status}
-                            </span>
-                          </div>
-
-                          <h3 className="text-[16px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
-                            {evt.titulo}
-                          </h3>
-
-                          {evt.descricao && (
-                            <p className="text-xs text-[#707070] dark:text-[#86868b] leading-relaxed max-w-2xl">
-                              {evt.descricao}
-                            </p>
-                          )}
-
-                          <div className="flex flex-wrap items-center gap-3 text-xs text-[#707070] dark:text-[#86868b] pt-1">
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-3.5 h-3.5 text-[#226380]" />
-                              <span>{evt.local}{evt.cidade ? ` • ${evt.cidade}/${evt.uf}` : ''}</span>
-                            </span>
-                            {evt.horario && (
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5 text-[#707070]" />
-                                <span>{evt.horario}</span>
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="w-full shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 md:w-auto">
-                          <span className="inline-flex min-h-10 items-center gap-1.5 self-start rounded-[6px] px-3.5 py-1.5 text-xs font-semibold bg-[#f5f5f7] dark:bg-[#1d1d1f] text-[#1d1d1f] dark:text-[#f5f5f7] border border-[#d6d6d6]/60 dark:border-white/10 whitespace-nowrap shadow-sm">
-                            <Calendar className="w-3.5 h-3.5 text-[#226380]" />
-                            {formatPeriodo(evt.data_inicio, evt.data_fim)}
-                          </span>
-
-                          {evt.exige_inscricao && (() => {
-                            const jaInscrito = respostasInscricoes.find(
-                              r => (r.evento_id === evt.id || (evt.formulario_id && r.formulario_id === evt.formulario_id)) &&
-                                   (r.dados?.email === (religiosoData?.email_institucional || user?.email) || 
-                                    r.dados?.nome_religioso === religiosoData?.nome_religioso || 
-                                    r.dados?.nome_completo === religiosoData?.nome_civil)
-                            );
-
-                            const formVinculado = formulariosSecretaria.find(f => f.id === evt.formulario_id);
-
-                            if (jaInscrito) {
-                              return (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (formVinculado) {
-                                      setEventoInscricaoModal(evt);
-                                      setFormularioInscricaoAtivo(formVinculado);
-                                    }
-                                  }}
-                                  className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-1.5 rounded-[6px] px-4 py-2 text-sm sm:text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-[#113240] dark:text-white border border-slate-300 dark:border-slate-700 sm:whitespace-nowrap cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                                >
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-[#226380]" />
-                                  <span>Inscrição ({jaInscrito.protocolo})</span>
-                                </button>
-                              );
-                            }
-
-                            return (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (formVinculado) {
-                                    setEventoInscricaoModal(evt);
-                                    setFormularioInscricaoAtivo(formVinculado);
-                                  } else {
-                                    if (formulariosError) {
-                                      showToast.error('Não foi possível carregar os formulários de inscrição. Tente novamente mais tarde.');
-                                    } else {
-                                      showToast.info('O formulário para este evento ainda não foi publicado pela Secretaria.');
-                                    }
-                                  }
-                                }}
-                                className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-1.5 rounded-[6px] px-4 py-2 text-sm sm:text-xs font-semibold bg-[#113240] text-white hover:bg-[#226380] sm:whitespace-nowrap shadow-sm cursor-pointer transition-all active:scale-95"
-                              >
-                                <FileText className="w-3.5 h-3.5" />
-                                <span>Inscrever-se no Evento</span>
-                              </button>
-                            );
-                          })()}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <AgendaVisualizacao modo={eventoVisualizacao} eventos={eventosFiltrados} />
-                )}
-              </div>
-            </div>
+            <PortalCalendarioTab
+              eventos={eventos}
+              eventosFiltrados={eventosFiltrados}
+              loadingEventos={loadingEventos}
+              eventosError={eventosError}
+              eventoVisualizacao={eventoVisualizacao}
+              setEventoVisualizacao={setEventoVisualizacao}
+              eventoFiltroTipo={eventoFiltroTipo}
+              setEventoFiltroTipo={setEventoFiltroTipo}
+              eventoSearch={eventoSearch}
+              setEventoSearch={setEventoSearch}
+              onVoltar={() => setActiveSection('inicio')}
+              formatPeriodo={formatPeriodo}
+              getTipoCor={getTipoCor}
+              respostasInscricoes={respostasInscricoes}
+              formulariosSecretaria={formulariosSecretaria}
+              formulariosError={formulariosError}
+              religiosoData={religiosoData}
+              userEmail={user?.email}
+              onAbrirInscricao={(evt, form) => {
+                setEventoInscricaoModal(evt);
+                setFormularioInscricaoAtivo(form);
+              }}
+            />
           )}
 
           {/* SEÇÃO: DOCUMENTOS OFICIAIS */}
           {activeSection === 'documentos' && (
-            <div className="space-y-6">
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setActiveSection('inicio')}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-[#161617] border border-[#d6d6d6]/60 dark:border-white/10 text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-[#f5f5f7] dark:hover:bg-[#262628] transition-all cursor-pointer shadow-sm"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Voltar ao Painel do Confrade</span>
-                </button>
-              </div>
-
-              {/* Header Apple Style */}
-              <div className="bg-white dark:bg-[#161617] rounded-[24px] sm:rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-5 sm:p-9 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#707070] dark:text-[#86868b] block mb-1">
-                      Secretaria Provincial • Atos Oficiais & Decretos
-                    </span>
-                    <h2 className="text-xl sm:text-2xl font-semibold tracking-[-0.03em] text-[#1d1d1f] dark:text-[#f5f5f7]">
-                      Documentos Oficiais da Província BRM
-                    </h2>
-                    <p className="text-xs sm:text-sm text-[#707070] dark:text-[#86868b] font-normal mt-1 leading-relaxed max-w-2xl">
-                      Consulte e baixe comunicados, diretórios, decretos de transferências, protocolos e subsídios emitidos pela Secretaria Provincial.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs font-medium text-[#707070] dark:text-[#86868b] bg-[#f5f5f7] dark:bg-[#262628] px-4 py-2 rounded-full border border-[#d6d6d6]/40 dark:border-white/5 self-start md:self-auto">
-                    <FileText className="w-4 h-4 text-[#0071e3]" />
-                    <span>{documentos.length} documento{documentos.length === 1 ? '' : 's'} disponível{documentos.length === 1 ? '' : 'is'}</span>
-                  </div>
-                </div>
-
-                {/* Categorias Pills Filter */}
-                <div className="mt-5 flex snap-x snap-mandatory gap-2 overflow-x-auto border-t border-[#d6d6d6]/40 pt-4 pb-1 dark:border-white/5 sm:mt-6 sm:flex-wrap sm:overflow-visible sm:pt-6">
-                  <button
-                    type="button"
-                    onClick={() => setDocCategoria('Todas')}
-                    className={`min-h-10 shrink-0 snap-start px-3.5 py-2 rounded-full text-xs font-medium transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380] ${
-                      docCategoria === 'Todas'
-                        ? 'bg-[#1d1d1f] dark:bg-white text-white dark:text-[#1d1d1f]'
-                        : 'bg-[#f5f5f7] dark:bg-[#262628] text-[#707070] dark:text-[#86868b] hover:bg-[#e8e8ed] dark:hover:bg-[#333336]'
-                    }`}
-                  >
-                    Todas ({documentos.length})
-                  </button>
-                  {CATEGORIAS_OFICIAIS.map((cat) => {
-                    const count = documentos.filter((d) => d.categoria === cat).length;
-                    return (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setDocCategoria(cat)}
-                        className={`min-h-10 shrink-0 snap-start px-3.5 py-2 rounded-full text-xs font-medium transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380] ${
-                          docCategoria === cat
-                            ? 'bg-[#0071e3] text-white shadow-sm'
-                            : 'bg-[#f5f5f7] dark:bg-[#262628] text-[#707070] dark:text-[#86868b] hover:bg-[#e8e8ed] dark:hover:bg-[#333336]'
-                        }`}
-                      >
-                        {cat} {count > 0 && `(${count})`}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Barra de Busca de Documentos */}
-                <div className="relative mt-4">
-                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#707070] dark:text-[#86868b]" />
-                  <input
-                    type="text"
-                    value={docSearch}
-                    onChange={(e) => setDocSearch(e.target.value)}
-                    aria-label="Buscar documentos oficiais"
-                    placeholder="Buscar título, assunto ou referência"
-                    className="min-h-12 w-full rounded-xl bg-[#f5f5f7] py-2.5 pl-10 pr-12 text-base text-[#1d1d1f] outline-none transition-all placeholder:text-[#707070] focus:border-[#0071e3] focus:bg-white dark:bg-[#262628] dark:text-[#f5f5f7] dark:placeholder:text-[#86868b] dark:focus:bg-[#161617] sm:rounded-full sm:text-sm"
-                  />
-                  {docSearch && (
-                    <button
-                      type="button"
-                      onClick={() => setDocSearch('')}
-                      aria-label="Limpar busca de documentos"
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#707070] hover:text-[#1d1d1f] dark:hover:text-white"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Grid / Lista de Documentos */}
-              {loadingDocumentos ? (
-                <div className="py-16 text-center bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-[#0071e3] mx-auto mb-2" />
-                  <span className="text-xs text-[#707070] dark:text-[#86868b]">Carregando documentos oficiais...</span>
-                </div>
-              ) : documentosFiltrados.length === 0 ? (
-                <div className="py-16 text-center bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-8">
-                  <FileText className="w-10 h-10 text-[#707070]/40 mx-auto mb-3" />
-                  <h4 className="text-base font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-1">
-                    {documentosError ? 'Documentos indisponíveis' : 'Nenhum documento encontrado'}
-                  </h4>
-                  <p className="text-xs text-[#707070] dark:text-[#86868b] max-w-sm mx-auto mb-4">
-                    {documentosError
-                      ? 'Não foi possível carregar os documentos oficiais. Tente novamente mais tarde.'
-                      : 'Não encontramos nenhum documento oficial correspondente à categoria ou termo de busca selecionado.'}
-                  </p>
-                  {(docSearch || docCategoria !== 'Todas') && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDocCategoria('Todas');
-                        setDocSearch('');
-                      }}
-                      className="px-4 py-2 rounded-full bg-[#f5f5f7] dark:bg-[#262628] text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-[#e8e8ed] dark:hover:bg-[#333336] transition-all cursor-pointer"
-                    >
-                      Limpar Filtros
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {documentosFiltrados.map((doc, idx) => (
-                    <div
-                      key={doc.id}
-                      style={staggerStyle(idx)}
-                      className="bg-white dark:bg-[#161617] rounded-[22px] sm:rounded-[24px] border border-[#d6d6d6]/60 dark:border-white/10 p-4 sm:p-6 flex flex-col justify-between hover:border-[#0071e3]/40 dark:hover:border-[#2997ff]/40 transition-all shadow-[0_2px_12px_rgba(0,0,0,0.02)] motion-stagger-item motion-lift"
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${getCategoriaCor()}`}>
-                            {doc.categoria}
-                          </span>
-                          <span className="text-[11px] text-[#707070] dark:text-[#86868b] font-medium">
-                            {formatData(doc.data_documento)}
-                          </span>
-                        </div>
-
-                        <button
-                          type="button"
-                          className="w-full cursor-pointer text-left group/title focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380]"
-                          onClick={() => setDocumentoLeitura(doc)}
-                          aria-label={`Ler ${doc.titulo}`}
-                        >
-                          {doc.numero_referencia && (
-                            <span className="text-[11px] font-mono text-[#226380] dark:text-[#64b5f6] block mb-1">
-                              {doc.numero_referencia}
-                            </span>
-                          )}
-                          <h3 className="text-[16px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] group-hover/title:text-[#226380] dark:group-hover/title:text-[#64b5f6] transition-colors leading-snug font-cinzel">
-                            {doc.titulo}
-                          </h3>
-                        </button>
-
-                        {doc.descricao && (
-                          <p className="text-xs text-[#707070] dark:text-[#86868b] leading-relaxed line-clamp-2">
-                            {doc.descricao}
-                          </p>
-                        )}
-
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[#707070] dark:text-[#86868b] pt-1">
-                          <span className="min-w-0 max-w-full truncate sm:max-w-[220px]" title={doc.arquivo_nome}>
-                            {doc.arquivo_nome}
-                          </span>
-                          <span className="shrink-0">· {formatFileSize(doc.arquivo_tamanho_bytes)}</span>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 flex flex-col gap-3 border-t border-[#d6d6d6]/40 pt-4 dark:border-white/5 sm:mt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:pt-5">
-                        <span className="text-[11px] text-[#707070] dark:text-[#86868b]">
-                          {doc.publicado_por || 'Secretaria Provincial'}
-                        </span>
-
-                        <div className="grid grid-cols-[1fr_auto] gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setDocumentoLeitura(doc)}
-                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#113240] px-3 sm:px-4 text-sm sm:text-xs font-medium text-white shadow-sm transition-all hover:bg-[#1a4a5e] active:scale-[0.99] cursor-pointer motion-press dark:bg-[#226380] dark:hover:bg-[#1b526b]"
-                          >
-                            <BookOpen className="w-3.5 h-3.5" />
-                            <span>Ler Documento</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => downloadArquivo(doc.arquivo_url, doc.arquivo_nome)}
-                            className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 shadow-xs transition-all hover:bg-slate-50 cursor-pointer motion-press dark:border-slate-700 dark:bg-[#161617] dark:text-slate-300 dark:hover:bg-[#262628]"
-                            title="Baixar arquivo original"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Baixar</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <PortalDocumentosTab
+              documentos={documentos}
+              documentosFiltrados={documentosFiltrados}
+              loadingDocumentos={loadingDocumentos}
+              documentosError={documentosError}
+              docSearch={docSearch}
+              setDocSearch={setDocSearch}
+              docCategoria={docCategoria}
+              setDocCategoria={setDocCategoria}
+              categoriasOficiais={CATEGORIAS_OFICIAIS}
+              onVoltar={() => setActiveSection('inicio')}
+              onLerDocumento={(doc) => setDocumentoLeitura(doc)}
+              formatData={formatData}
+              formatFileSize={formatFileSize}
+              getCategoriaCor={getCategoriaCor}
+            />
           )}
 
           {/* SEÇÃO: PEDIR HOSPEDAGEM */}
           {activeSection === 'hospedagem' && (
-            <div className="space-y-6">
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setActiveSection('inicio')}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-[#161617] border border-[#d6d6d6]/60 dark:border-white/10 text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-[#f5f5f7] dark:hover:bg-[#262628] transition-all cursor-pointer shadow-sm"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Voltar ao Painel do Confrade</span>
-                </button>
-              </div>
-
-              <div className="bg-white dark:bg-[#161617] rounded-[24px] sm:rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-5 sm:p-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 sm:gap-6 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
-                <div>
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#707070] dark:text-[#86868b] block mb-1">
-                    Acolhida Fraterna • Província BRM
-                  </span>
-                  <h2 className="text-xl sm:text-2xl font-semibold tracking-[-0.03em] text-[#1d1d1f] dark:text-[#f5f5f7]">
-                    Hospedagem & Acolhida Fraterna
-                  </h2>
-                  <p className="text-xs sm:text-sm text-[#707070] dark:text-[#86868b] font-normal mt-1 leading-relaxed max-w-2xl">
-                    Solicite estadia para períodos de descanso, estudos, retiros ou passagem pastoral nas Casas e Obras oficiais da Província BRM.
-                  </p>
-                </div>
-
-                <a
-                  href="/inscricao"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex min-h-12 w-full sm:w-auto justify-center px-5 sm:px-6 py-3 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-sm font-semibold transition-all items-center gap-2 cursor-pointer self-start sm:self-auto shrink-0 shadow-sm active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0071e3]"
-                >
-                  <span>Ficha Geral de Inscrição</span>
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-              </div>
-
-              {/* Grid das Casas e Obras da Província BRM para Hospedagem */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-base sm:text-[17px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight">
-                      Casas e Obras de Acolhida da Província BRM
-                    </h3>
-                    <p className="text-xs text-[#707070] dark:text-[#86868b] mt-0.5">
-                      Selecione uma das casas da província abaixo para abrir a solicitação de estadia com o destino pré-definido.
-                    </p>
-                  </div>
-                  {loadingCasas && <Loader2 className="w-4 h-4 animate-spin text-[#0071e3]" />}
-                </div>
-
-                {casasAcolhida.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {casasAcolhida.map((casa, idx) => {
-                      const loc = `${casa.cidade || casa.localidade || ''}${casa.uf ? `/${casa.uf}` : ''}`;
-                      return (
-                        <div
-                          key={casa.id}
-                          style={staggerStyle(idx)}
-                          className="bg-white dark:bg-[#161617] rounded-[22px] sm:rounded-[24px] border border-[#d6d6d6]/60 dark:border-white/10 p-4 sm:p-6 flex flex-col justify-between hover:border-[#0071e3]/40 dark:hover:border-[#2997ff]/40 transition-all shadow-[0_2px_12px_rgba(0,0,0,0.02)] motion-stagger-item motion-lift"
-                        >
-                          <div>
-                            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                              <span className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#f5f5f7] dark:bg-[#262628] text-[#1d1d1f] dark:text-[#f5f5f7] border border-[#d6d6d6]/60 dark:border-white/10">
-                                {casa.tipo || 'Casa / Obra'}
-                              </span>
-                              <span className="max-w-full text-xs text-[#707070] dark:text-[#86868b] font-medium flex items-center gap-1">
-                                <MapPin className="w-3.5 h-3.5 text-[#0071e3]" />
-                                {loc}
-                              </span>
-                            </div>
-
-                            <h4 className="text-[15px] sm:text-[16px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight mb-2">
-                              {casa.nome}
-                            </h4>
-
-                            {casa.endereco && (
-                              <p className="text-[12px] text-[#707070] dark:text-[#86868b] line-clamp-2 mb-3 leading-relaxed">
-                                {casa.endereco}
-                              </p>
-                            )}
-
-                            <div className="space-y-1 text-[11px] text-[#707070] dark:text-[#86868b]">
-                              {casa.telefone && (
-                                <a href={`tel:${casa.telefone.replace(/[^\d+]/g, '')}`} className="flex min-h-10 items-center gap-2 break-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380]">
-                                  <Phone className="w-3 h-3 text-[#707070]" />
-                                  <span>{casa.telefone}</span>
-                                </a>
-                              )}
-                              {casa.email && (
-                                <a href={`mailto:${casa.email}`} className="flex min-h-10 min-w-0 items-center gap-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380]">
-                                  <Mail className="w-3 h-3 text-[#707070] shrink-0" />
-                                  <span className="truncate">{casa.email}</span>
-                                </a>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="pt-4 mt-4 border-t border-[#d6d6d6]/40 dark:border-white/5">
-                            <a
-                              href={`/inscricao?casa=${encodeURIComponent(casa.nome)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="w-full min-h-12 py-3 px-3 sm:px-4 rounded-full bg-[#f5f5f7] dark:bg-[#262628] hover:bg-[#0071e3] hover:text-white dark:hover:bg-[#0071e3] text-[#1d1d1f] dark:text-[#f5f5f7] text-sm font-medium transition-all flex items-center justify-center gap-2 cursor-pointer border border-[#d6d6d6]/60 dark:border-white/10 group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0071e3]"
-                            >
-                              <span>Solicitar Estadia Nesta Casa</span>
-                              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                            </a>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="py-12 text-center text-xs text-[#707070] dark:text-[#86868b] bg-white dark:bg-[#161617] rounded-[24px] border border-[#d6d6d6]/60 dark:border-white/10 p-6">
-                    {loadingCasas ? 'Carregando casas da Província BRM...' : 'Nenhuma casa ou obra listada no momento.'}
-                  </div>
-                )}
-              </div>
-            </div>
+            <PortalHospedagemTab
+              casasAcolhida={casasAcolhida}
+              loadingCasas={loadingCasas}
+              onVoltar={() => setActiveSection('inicio')}
+            />
           )}
         </main>
       </div>

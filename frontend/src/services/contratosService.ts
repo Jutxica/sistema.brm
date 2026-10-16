@@ -46,7 +46,12 @@ export const contratosService = {
       if (!error && data) {
         return data as ContratoPatrimonio;
       }
-    } catch (_) {}
+      if (error) {
+        console.warn('Erro ao obter contrato do Supabase:', error.message);
+      }
+    } catch (err) {
+      console.warn('Exceção ao obter contrato por ID:', err);
+    }
 
     const local = getPatrimonioLocal();
     return local.contratos.find(c => c.id === id) || null;

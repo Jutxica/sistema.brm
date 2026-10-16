@@ -48,19 +48,23 @@ export const Usuarios: React.FC = () => {
     }
   };
 
+  const parseUserAcessos = (raw: string[] | string): string[] => {
+    try {
+      return typeof raw === 'string' ? JSON.parse(raw) : raw || [];
+    } catch {
+      return [];
+    }
+  };
+
   useEffect(() => {
-    loadUsers();
+    const timer = setTimeout(() => {
+      loadUsers();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleEditClick = (user: SystemUser) => {
-    let parsedAcessos: string[] = [];
-    try {
-      parsedAcessos = typeof user.usu_acessos === 'string' 
-        ? JSON.parse(user.usu_acessos) 
-        : user.usu_acessos || [];
-    } catch {
-      parsedAcessos = [];
-    }
+    const parsedAcessos = parseUserAcessos(user.usu_acessos);
     setEditingUser({ ...user });
     setSelectedAcessos(parsedAcessos);
   };
@@ -75,7 +79,7 @@ export const Usuarios: React.FC = () => {
     setSelectedAcessos(['inicio', 'hospedagens']);
   };
 
-  const handleDeleteClick = async (id: string, name: string, email: string) => {
+  const handleDeleteClick = async (id: string, name: string, email: string, authUserId?: string) => {
     if (currentUser?.email && currentUser.email.toLowerCase() === email.toLowerCase()) {
       await showAlertModal({
         title: 'Operação Bloqueada',
@@ -99,6 +103,24 @@ export const Usuarios: React.FC = () => {
     if (!confirmed) return;
 
     try {
+      // Sincronizar exclusão com Supabase Auth via Edge Function se houver auth_user_id vinculado
+      if (authUserId) {
+        try {
+          const { error: edgeFnError } = await supabase.functions.invoke('secretaria-contas', {
+            body: {
+              action: 'delete',
+              user_id: authUserId,
+              reason: `Exclusão de operador administrativo (${name}) via painel de usuários`
+            }
+          });
+          if (edgeFnError) {
+            console.warn("Aviso ao remover conta de autenticação via Edge Function:", edgeFnError);
+          }
+        } catch (fnErr) {
+          console.warn("Falha de conexão com secretaria-contas ao excluir:", fnErr);
+        }
+      }
+
       const { error } = await supabase
         .from('usuarios')
         .delete()
@@ -110,7 +132,7 @@ export const Usuarios: React.FC = () => {
       } else {
         showToast.error("Erro ao excluir usuário: " + error.message);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       showToast.error("Erro inesperado ao excluir usuário.");
     }
@@ -133,8 +155,9 @@ export const Usuarios: React.FC = () => {
         showToast.success(`E-mail de acesso/redefinição enviado para ${email}`);
         setTimeout(() => setResetSuccessEmail(null), 4000);
       }
-    } catch (err: any) {
-      showToast.error("Falha de conexão: " + (err.message || err));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      showToast.error("Falha de conexão: " + msg);
     } finally {
       setSendingResetFor(null);
     }
@@ -155,6 +178,24 @@ export const Usuarios: React.FC = () => {
     };
 
     try {
+      // Sincronizar bloqueio/desbloqueio em GoTrue se houver conta Auth vinculada
+      if (payload.auth_user_id) {
+        const isInactive = payload.usu_status === 'Inativo';
+        try {
+          await supabase.functions.invoke('secretaria-contas', {
+            body: {
+              action: isInactive ? 'block' : 'unblock',
+              user_id: payload.auth_user_id,
+              reason: isInactive 
+                ? `Operador administrativo desativado via painel (${payload.usu_nome})`
+                : `Operador administrativo reativado via painel (${payload.usu_nome})`
+            }
+          });
+        } catch (banErr) {
+          console.warn("Aviso ao sincronizar estado com secretaria-contas:", banErr);
+        }
+      }
+
       let error;
       if (editingUser.idusuarios) {
         const { error: updateError } = await supabase
@@ -176,7 +217,7 @@ export const Usuarios: React.FC = () => {
       } else {
         showToast.error("Erro ao salvar usuário: " + error.message);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       showToast.error("Falha ao salvar usuário.");
     } finally {
@@ -397,15 +438,7 @@ export const Usuarios: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-inter">
                   {users.map(u => {
-                    let parsedAcessos: string[] = [];
-                    try {
-                      parsedAcessos = typeof u.usu_acessos === 'string'
-                        ? JSON.parse(u.usu_acessos)
-                        : u.usu_acessos || [];
-                    } catch {
-                      parsedAcessos = [];
-                    }
-                    
+                    const parsedAcessos = parseUserAcessos(u.usu_acessos);
                     const isSelf = currentUser?.email?.toLowerCase() === u.usu_email.toLowerCase();
 
                     return (
@@ -475,7 +508,7 @@ export const Usuarios: React.FC = () => {
                               type="button"
                               title={isSelf ? "Você não pode excluir sua própria conta conectada" : "Excluir Usuário"}
                               disabled={isSelf}
-                              onClick={() => handleDeleteClick(u.idusuarios, u.usu_nome, u.usu_email)}
+                              onClick={() => handleDeleteClick(u.idusuarios, u.usu_nome, u.usu_email, u.auth_user_id)}
                               className={`border border-slate-200 dark:border-slate-700 p-1.5 rounded-[6px] transition-colors ${
                                 isSelf
                                   ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-40'

@@ -2,13 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useParams, Link } from 'react-router-dom';
 import { 
   ShieldCheck, 
-  ShieldAlert, 
   Search, 
-  FileCheck2, 
-  Building2, 
-  Calendar, 
-  MapPin, 
-  FileText, 
   CheckCircle2, 
   AlertTriangle,
   ArrowLeft
@@ -43,9 +37,11 @@ export const ValidarDocumento: React.FC = () => {
   };
 
   useEffect(() => {
-    if (codigoInicial) {
+    if (!codigoInicial) return;
+    const timer = setTimeout(() => {
       executarValidacao(codigoInicial);
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [codigoInicial]);
 
   const handleSubmit = (e: React.FormEvent) => {

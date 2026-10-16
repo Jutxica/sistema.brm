@@ -46,7 +46,12 @@ export const manutencoesService = {
       if (!error && data) {
         return data as ManutencaoPatrimonio;
       }
-    } catch (_) {}
+      if (error) {
+        console.warn('Erro ao obter manutenção do Supabase:', error.message);
+      }
+    } catch (err) {
+      console.warn('Exceção ao obter manutenção por ID:', err);
+    }
 
     const local = getPatrimonioLocal();
     return local.manutencoes.find(m => m.id === id) || null;
