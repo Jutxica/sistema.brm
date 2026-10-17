@@ -1028,36 +1028,36 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
 
       const enderecosContatosPayload = {
         obra_id: obraIdSanitized,
-        cep: base.cep,
-        logradouro: base.logradouro,
-        numero: base.numero,
-        complemento: base.complemento,
-        bairro: base.bairro,
-        cidade: base.cidade,
-        estado: base.estado === OTHER_LOCATION_VALUE ? base.estado_outro : base.estado,
-        pais: base.pais_nascimento || 'Brasil',
-        celular: base.telefone_celular,
-        telefone: base.telefone_celular,
-        email: base.email_institucional || base.email_pessoal,
-        whatsapp: base.whatsapp,
-        redes_sociais: base.redes_sociais,
+        cep: base.cep?.trim() || null,
+        logradouro: base.logradouro?.trim() || null,
+        numero: base.numero?.trim() || null,
+        complemento: base.complemento?.trim() || null,
+        bairro: base.bairro?.trim() || null,
+        cidade: base.cidade?.trim() || null,
+        estado: (base.estado === OTHER_LOCATION_VALUE ? base.estado_outro : base.estado)?.trim() || null,
+        pais: base.pais_nascimento?.trim() || 'Brasil',
+        celular: base.telefone_celular?.trim() || null,
+        telefone: base.telefone_celular?.trim() || null,
+        email: (base.email_institucional || base.email_pessoal)?.trim() || null,
+        whatsapp: base.whatsapp?.trim() || null,
+        redes_sociais: base.redes_sociais?.trim() || null,
       };
 
       const saudePayload = {
-        plano_saude: base.plano_saude,
-        numero_plano_saude: base.numero_plano_saude,
-        local_plano_saude: base.local_plano_saude,
-        sus: base.sus,
-        tipo_sanguineo: base.tipo_sanguineo,
-        fator_rh: base.fator_rh,
-        alergias: base.alergias,
-        medicamentos_continuos: base.medicamentos_continuos,
-        medico_responsavel: base.medico_responsavel,
-        contato_emergencia: base.contato_emergencia,
-        informacoes_clinicas: base.informacoes_clinicas,
-        cirurgias: base.cirurgias,
-        proteses: base.proteses,
-        observacoes: base.observacoes_saude,
+        plano_saude: base.plano_saude?.trim() || null,
+        numero_plano_saude: base.numero_plano_saude?.trim() || null,
+        local_plano_saude: base.local_plano_saude?.trim() || null,
+        sus: base.sus?.trim() || null,
+        tipo_sanguineo: base.tipo_sanguineo?.trim() || null,
+        fator_rh: ['Positivo', 'Negativo', '+', '-', 'Não informado'].includes(base.fator_rh?.trim()) ? base.fator_rh.trim() : null,
+        alergias: base.alergias?.trim() || null,
+        medicamentos_continuos: base.medicamentos_continuos?.trim() || null,
+        medico_responsavel: base.medico_responsavel?.trim() || null,
+        contato_emergencia: base.contato_emergencia?.trim() || null,
+        informacoes_clinicas: base.informacoes_clinicas?.trim() || null,
+        cirurgias: base.cirurgias?.trim() || null,
+        proteses: base.proteses?.trim() || null,
+        observacoes: base.observacoes_saude?.trim() || null,
       };
 
       let id: string;
@@ -1142,11 +1142,29 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         await insertMany('religiosos_saude', [saudePayload]);
       }
       for (const documento of documentos) {
-        const path = `${id}/${crypto.randomUUID()}-${documento.arquivo.name}`;
+        const safeName = documento.arquivo.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const uniqueId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        const path = `${id}/${uniqueId}-${safeName}`;
         const upload = await supabase.storage.from('religiosos-documentos').upload(path, documento.arquivo);
-        if (upload.error) throw upload.error;
-        const { error } = await supabase.from('religiosos_documentos').insert({ religioso_id: id, categoria: documento.categoria, nome_arquivo: documento.arquivo.name, caminho_storage: path, mime_type: documento.arquivo.type, tamanho_bytes: documento.arquivo.size, quem_cadastrou: 'Religioso - cadastro público' });
-        if (error) throw error;
+        if (upload.error) {
+          console.error('Falha ao enviar arquivo para o Storage:', upload.error);
+          throw new Error(`Falha no upload do documento "${documento.arquivo.name}": ${upload.error.message}`);
+        }
+        const { error } = await supabase.from('religiosos_documentos').insert({
+          religioso_id: id,
+          categoria: documento.categoria,
+          nome_arquivo: documento.arquivo.name,
+          caminho_storage: path,
+          mime_type: documento.arquivo.type,
+          tamanho_bytes: documento.arquivo.size,
+          quem_cadastrou: adminMode ? 'Administrador' : memberMode ? 'Confrade - Portal' : 'Religioso - cadastro público',
+        });
+        if (error) {
+          console.error('Falha ao registrar documento no banco:', error);
+          throw new Error(`Não foi possível salvar o registro do documento "${documento.arquivo.name}": ${error.message}`);
+        }
       }
       pendingDraftRef.current = null;
       await draftSavePromiseRef.current;
