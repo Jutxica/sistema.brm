@@ -900,7 +900,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         obra_atual_id: obraIdSanitized,
         email_institucional: base.email_institucional || null,
         email_pessoal: base.email_pessoal || null, telefone_celular: base.telefone_celular || null,
-        whatsapp: base.whatsapp || null, redes_sociais: base.redes_sociais || null,
+        whatsapp: base.whatsapp || null,
         ...(!memberMode ? {
           ...(isEditing ? {} : { origem_cadastro: adminMode ? 'admin' : 'publico' }),
           ...(isEditing ? (base.status_cadastro ? { status_cadastro: base.status_cadastro } : {}) : { status_cadastro: adminMode ? 'Aprovado' : 'Em revisão' }),
@@ -1095,8 +1095,9 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
           ? await supabase.from('religiosos').update(payloadToUpdate).eq('id', religiosoId).select('id').single()
           : await supabase.from('religiosos').insert(payloadToUpdate).select('id').single();
 
-        // Se falhar devido a coluna ausente no cache do Supabase (ex: nome_elenco ou cadastro_elenco_provisorio)
-        if (parentRequest.error && typeof parentRequest.error.message === 'string') {
+        // Se falhar devido a colunas ausentes no cache do Supabase (ex: redes_sociais, nome_elenco, cadastro_elenco_provisorio)
+        let retryCount = 0;
+        while (parentRequest.error && typeof parentRequest.error.message === 'string' && retryCount < 10) {
           const matchCol = parentRequest.error.message.match(/Could not find the '([^']+)' column of 'religiosos'/i);
           if (matchCol && matchCol[1] && matchCol[1] in payloadToUpdate) {
             console.warn(`Coluna '${matchCol[1]}' não existe em 'religiosos'. Tentando novamente sem ela...`);
@@ -1104,6 +1105,9 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
             parentRequest = religiosoId
               ? await supabase.from('religiosos').update(payloadToUpdate).eq('id', religiosoId).select('id').single()
               : await supabase.from('religiosos').insert(payloadToUpdate).select('id').single();
+            retryCount++;
+          } else {
+            break;
           }
         }
 
