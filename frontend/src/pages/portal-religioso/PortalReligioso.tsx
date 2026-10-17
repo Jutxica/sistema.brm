@@ -921,19 +921,6 @@ export const PortalReligioso: React.FC = () => {
                       <span>Acesso Rápido de Confrade (Demonstração)</span>
                     </button>
                   )}
-
-                  <div className="pt-3 mt-3 border-t border-slate-200/60 dark:border-white/10 text-center">
-                    <span className="text-[12px] text-[#707070] dark:text-[#86868b] block mb-1">
-                      Acesso da Secretaria e operadores:
-                    </span>
-                    <a
-                      href="/login"
-                      className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#113240] hover:text-[#226380] dark:text-[#A3C3C7] dark:hover:text-white transition-colors"
-                    >
-                      <span>Entrar no Painel Administrativo</span>
-                      <span aria-hidden="true">&rarr;</span>
-                    </a>
-                  </div>
                 </div>
               </form>
             ) : (
