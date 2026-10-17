@@ -12,7 +12,7 @@ export const Layout: React.FC<LayoutProps> = ({ title = 'Sistema BRM' }) => {
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
 
   return (
-    <div className="institutional-app min-h-screen bg-[#f4f6f5] dark:bg-[#141a1c] flex transition-colors duration-200 relative">
+    <div className="institutional-app min-h-screen bg-[#f4f6f5] dark:bg-[#141a1c] print:bg-white print:bg-none flex transition-colors duration-200 relative">
       {/* Sidebar navigation */}
       <Sidebar
         collapsed={sidebarCollapsed}
@@ -23,7 +23,7 @@ export const Layout: React.FC<LayoutProps> = ({ title = 'Sistema BRM' }) => {
 
       {/* Main viewport */}
       <div 
-        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 relative
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 relative print:bg-white print:bg-none
           ${sidebarCollapsed ? 'md:pl-20' : 'md:pl-64'} print:pl-0`}
       >
         {/* Header toolbar */}
@@ -37,7 +37,7 @@ export const Layout: React.FC<LayoutProps> = ({ title = 'Sistema BRM' }) => {
         />
 
         {/* Dynamic page contents - Apple cathedral of space */}
-        <main className="institutional-content flex-1 px-4 py-5 sm:px-6 md:px-8 md:py-6 lg:px-9 max-w-[1520px] w-full mx-auto print:p-0 print:m-0 print:max-w-none">
+        <main className="institutional-content flex-1 px-4 py-5 sm:px-6 md:px-8 md:py-6 lg:px-9 max-w-[1520px] w-full mx-auto print:p-0 print:m-0 print:max-w-none print:bg-white print:bg-none">
           <Outlet />
         </main>
 

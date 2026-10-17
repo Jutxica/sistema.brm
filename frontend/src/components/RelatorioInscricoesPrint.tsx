@@ -158,6 +158,10 @@ export const RelatorioInscricoesPrint: React.FC<RelatorioInscricoesPrintProps> =
               size: A4 ${orientacao === "horizontal" ? "landscape" : "portrait"};
               margin: ${orientacao === "horizontal" ? "10mm 14mm 12mm 14mm" : "12mm 16mm 14mm 16mm"};
             }
+            html, body, #root, .institutional-app, .institutional-content, main {
+              background: #ffffff !important;
+              background-color: #ffffff !important;
+            }
           }
         `}
       </style>

@@ -361,18 +361,26 @@ export const ReligiosoDossie: React.FC = () => {
         @media print {
           @page {
             size: A4 portrait;
-            margin: 12mm 15mm 15mm 15mm;
+            margin: 10mm 15mm 12mm 15mm;
+          }
+          html, body, #root, .institutional-app, .institutional-content, main, .dossie-print-only {
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            color: #111111 !important;
           }
           .dossie-no-print { display: none !important; }
-          .dossie-print-only { display: block !important; }
-          .dossie-sheet { box-shadow: none !important; border: none !important; padding: 0 !important; }
-          body { background: #fff !important; color: #111 !important; font-size: 10pt; }
+          .dossie-print-only {
+            display: block !important;
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+          }
+          body { background: #ffffff !important; background-color: #ffffff !important; color: #111 !important; font-size: 10pt; }
         }
         .dossie-print-only { display: none; }
       `}</style>
 
       {/* DOCUMENTO IMPRESSO INSTITUCIONAL OFICIAL (A4 - PADRÃO PROVÍNCIA BRM) */}
-      <div className="dossie-print-only text-slate-900 font-sans leading-tight">
+      <div className="dossie-print-only bg-white text-slate-900 font-sans leading-tight">
         {/* Cabeçalho Oficial */}
         <header className="border-b border-slate-300 pb-3 mb-4">
           <div className="flex items-start justify-between">

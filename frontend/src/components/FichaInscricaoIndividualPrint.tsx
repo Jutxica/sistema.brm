@@ -143,6 +143,10 @@ export const FichaInscricaoIndividualPrint: React.FC<FichaInscricaoIndividualPri
               size: A4 ${orientacao === "horizontal" ? "landscape" : "portrait"};
               margin: ${orientacao === "horizontal" ? "10mm 15mm 12mm 15mm" : "12mm 16mm 14mm 16mm"};
             }
+            html, body, #root, .institutional-app, .institutional-content, main {
+              background: #ffffff !important;
+              background-color: #ffffff !important;
+            }
           }
         `}
       </style>
