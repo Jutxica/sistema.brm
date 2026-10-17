@@ -96,6 +96,10 @@ export interface ReligiosoDossieData {
   obra_atual_id?: string | null;
   familiares_pai?: string | null;
   familiares_mae?: string | null;
+  foto_path?: string | null;
+  publicado_site_em?: string | null;
+  publicado_site_id?: string | null;
+  publicado_site_status?: string | null;
   auth_user_id: string | null;
   created_at: string | null;
   updated_at: string | null;

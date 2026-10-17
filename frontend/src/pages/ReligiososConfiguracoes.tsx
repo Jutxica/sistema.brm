@@ -3,6 +3,9 @@ import { Check, Loader2, Save, Settings2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { showToast } from '../hooks/useFeedback';
 
+import { Globe, Link2, Sparkles } from 'lucide-react';
+import { siteSyncService, type SiteConfig } from '../services/siteSyncService';
+
 interface ReligiososConfig {
   id: string;
   ativo: boolean;
@@ -15,6 +18,9 @@ interface ReligiososConfig {
   email_notificacao: string;
   assunto_notificacao: string;
   instrucoes_documentos: string;
+  site_url?: string;
+  site_supabase_url?: string;
+  site_supabase_key?: string;
 }
 
 const defaults: ReligiososConfig = {
@@ -29,6 +35,9 @@ const defaults: ReligiososConfig = {
   email_notificacao: '', 
   assunto_notificacao: '', 
   instrucoes_documentos: '',
+  site_url: 'https://scj-brm.onrender.com',
+  site_supabase_url: '',
+  site_supabase_key: '',
 };
 
 export const ReligiososConfiguracoes: React.FC = () => {
@@ -36,31 +45,96 @@ export const ReligiososConfiguracoes: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<{ success: boolean; message: string } | null>(null);
   
   const update = <K extends keyof ReligiososConfig>(key: K, value: ReligiososConfig[K]) => 
     setConfig(previous => ({ ...previous, [key]: value }));
 
   useEffect(() => {
-    supabase.from('religiosos_configuracoes').select('*').eq('id', defaults.id).maybeSingle().then(({ data, error }) => {
-      if (error) console.error('Erro ao carregar configurações dos religiosos:', error);
-      if (data) setConfig({ ...defaults, ...data });
-      setLoading(false);
-    });
+    async function loadConfig() {
+      try {
+        const siteCfg = await siteSyncService.getConfig();
+        const { data, error } = await supabase
+          .from('religiosos_configuracoes')
+          .select('*')
+          .eq('id', defaults.id)
+          .maybeSingle();
+
+        if (error) console.error('Erro ao carregar configurações dos religiosos:', error);
+        setConfig(prev => ({
+          ...prev,
+          ...(data || {}),
+          site_url: data?.site_url || siteCfg.site_url,
+          site_supabase_url: data?.site_supabase_url || siteCfg.site_supabase_url,
+          site_supabase_key: data?.site_supabase_key || siteCfg.site_supabase_key,
+        }));
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadConfig();
   }, []);
+
+  const handleTestConnection = async () => {
+    setTestingConnection(true);
+    setConnectionStatus(null);
+    try {
+      const result = await siteSyncService.testConnection({
+        site_url: config.site_url,
+        site_supabase_url: config.site_supabase_url,
+        site_supabase_key: config.site_supabase_key,
+      });
+      setConnectionStatus(result);
+      if (result.success) {
+        showToast.success('Conexão com o site oficial validada!');
+      } else {
+        showToast.error(result.message);
+      }
+    } catch (err: any) {
+      setConnectionStatus({ success: false, message: err.message || 'Erro ao testar conexão' });
+      showToast.error(err.message || 'Falha ao conectar no site');
+    } finally {
+      setTestingConnection(false);
+    }
+  };
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault(); 
     setSaving(true); 
     setSaved(false);
-    const { error } = await supabase.from('religiosos_configuracoes').upsert({ ...config, id: defaults.id, updated_by: null }, { onConflict: 'id' });
-    if (error) {
-      showToast.error(`Não foi possível salvar: ${error.message}`);
-    } else {
+
+    try {
+      // 1. Salva configurações do site pelo serviço (salva em localStorage e tenta banco)
+      await siteSyncService.saveConfig({
+        site_url: config.site_url,
+        site_supabase_url: config.site_supabase_url,
+        site_supabase_key: config.site_supabase_key,
+      });
+
+      // 2. Salva campos base na tabela do Supabase
+      const payload: any = { ...config, id: defaults.id, updated_by: null };
+      const { error } = await supabase.from('religiosos_configuracoes').upsert(payload, { onConflict: 'id' });
+      
+      if (error) {
+        // Se a tabela ainda não tiver as colunas do site, remove e salva os campos base
+        if (error.message.includes('column') || error.message.includes('site_')) {
+          const { site_url, site_supabase_url, site_supabase_key, ...basePayload } = payload;
+          const { error: retryError } = await supabase.from('religiosos_configuracoes').upsert(basePayload, { onConflict: 'id' });
+          if (retryError) throw retryError;
+        } else {
+          throw error;
+        }
+      }
+
       setSaved(true);
-      showToast.success('Configurações do cadastro de religiosos salvas com sucesso.');
+      showToast.success('Configurações salvas com sucesso.');
       setTimeout(() => setSaved(false), 4000);
+    } catch (err: any) {
+      showToast.error(`Não foi possível salvar: ${err.message}`);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   if (loading) {
@@ -203,6 +277,78 @@ export const ReligiososConfiguracoes: React.FC = () => {
             />
             <div className="w-12 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#226380] transition-colors"></div>
           </label>
+        </div>
+      </section>
+
+      {/* INTEGRAÇÃO COM SITE OFICIAL (SCJ-BRM / SISTEMA.SCJ) */}
+      <section className="apple-card rounded-[6px] p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+        <div className="flex flex-col gap-2 pb-4 border-b border-slate-100 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2.5">
+            <Globe className="w-4 h-4 text-[#226380]" />
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200 font-cinzel">
+              Integração com o Site Oficial (scj.org.br / Render)
+            </h2>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleTestConnection}
+            disabled={testingConnection}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-[#226380] text-[#226380] hover:bg-[#226380]/10 rounded-[6px] transition cursor-pointer disabled:opacity-50"
+          >
+            {testingConnection ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2 className="w-3.5 h-3.5" />}
+            <span>Testar Conexão</span>
+          </button>
+        </div>
+
+        <div className="rounded-[6px] bg-slate-50 dark:bg-slate-900/50 p-4 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300 space-y-2">
+          <div className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
+            <Sparkles className="w-4 h-4 text-amber-500" />
+            <span>Alimentação automática das comunidades e religiosos</span>
+          </div>
+          <p>
+            Permite publicar com um clique no Sistema BRM os dados biográficos, foto de perfil 4x4 e vínculos comunitários diretamente no site público.
+          </p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            💡 <strong>Aviso sobre mudança de domínio:</strong> Caso o domínio do site mude em breve (ex.: de <code className="font-mono text-slate-700 dark:text-slate-300">scj-brm.onrender.com</code> para <code className="font-mono text-slate-700 dark:text-slate-300">scj.org.br</code>), a sincronização continuará funcionando perfeitamente, bastando atualizar a URL pública abaixo. A comunicação banco a banco é imune a trocas de DNS.
+          </p>
+        </div>
+
+        {connectionStatus && (
+          <div className={`p-3.5 rounded-[6px] text-xs font-medium border ${
+            connectionStatus.success 
+              ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50' 
+              : 'bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-900/50'
+          }`}>
+            <div className="flex items-start gap-2">
+              <span className="font-bold">{connectionStatus.success ? '✓ Conexão bem-sucedida:' : '✕ Falha de conexão:'}</span>
+              <span>{connectionStatus.message}</span>
+            </div>
+          </div>
+        )}
+
+        <div className="grid gap-5 md:grid-cols-2">
+          <TextField 
+            label="URL Pública do Site Oficial" 
+            value={config.site_url || ''} 
+            onChange={value => update('site_url', value)} 
+          />
+          <TextField 
+            label="URL do Supabase do Site (ex: https://xxx.supabase.co)" 
+            value={config.site_supabase_url || ''} 
+            onChange={value => update('site_supabase_url', value)} 
+          />
+          <div className="md:col-span-2">
+            <TextField 
+              label="Chave de API / Service Key do Supabase do Site" 
+              type="password"
+              value={config.site_supabase_key || ''} 
+              onChange={value => update('site_supabase_key', value)} 
+            />
+            <span className="text-[11px] text-slate-400 mt-1 block">
+              Chave com permissão de gravação nas tabelas <code className="font-mono">religiosos</code> e <code className="font-mono">locais</code> do projeto do site.
+            </span>
+          </div>
         </div>
       </section>
     </form>

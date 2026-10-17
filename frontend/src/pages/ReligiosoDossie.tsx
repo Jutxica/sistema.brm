@@ -1,9 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Archive, CheckCircle2, Download, FileText, FolderClosed, FolderOpen, Loader2, Printer, ShieldCheck, Upload, UserRound } from 'lucide-react';
+import { 
+  ArrowLeft, Archive, Check, CheckCircle2, Download, ExternalLink, FileText, 
+  FolderClosed, FolderOpen, Globe, Loader2, Printer, ShieldCheck, Sparkles, Upload, UserRound, X 
+} from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { showToast } from '../hooks/useFeedback';
 import { useAuth } from '../contexts/AuthContext';
+import { siteSyncService, type SiteReligiosoItem, type SiteLocalItem } from '../services/siteSyncService';
 
 import type { 
   ReligiosoDossieData, 
@@ -92,6 +96,66 @@ export const ReligiosoDossie: React.FC = () => {
   const [archiveSaving, setArchiveSaving] = useState(false);
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<Set<string>>(new Set());
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
+
+  // Estados da Publicação no Site Oficial
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [preparingPublish, setPreparingPublish] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishPayload, setPublishPayload] = useState<SiteReligiosoItem | null>(null);
+  const [siteLocais, setSiteLocais] = useState<SiteLocalItem[]>([]);
+  const [selectedLocalId, setSelectedLocalId] = useState<string>('');
+  const [sitePublicUrl, setSitePublicUrl] = useState<string>('https://scj-brm.onrender.com');
+
+  const handleOpenPublishModal = async () => {
+    if (!id) return;
+    setPreparingPublish(true);
+    try {
+      const [cfg, payloadData, locais] = await Promise.all([
+        siteSyncService.getConfig(),
+        siteSyncService.buildSitePayload(id),
+        siteSyncService.fetchSiteLocais(),
+      ]);
+      setSitePublicUrl(cfg.site_url || 'https://scj-brm.onrender.com');
+      setPublishPayload(payloadData.item);
+      setSiteLocais(locais);
+
+      // Tenta correlacionar a comunidade atual com um local do site
+      const found = locais.find(l => 
+        (l.nome || '').toLowerCase().includes((payloadData.comunidadeNome || '').toLowerCase()) ||
+        (payloadData.comunidadeNome || '').toLowerCase().includes((l.nome || '').toLowerCase())
+      );
+      if (found) {
+        setSelectedLocalId(found.id);
+      } else if (locais.length > 0) {
+        setSelectedLocalId(locais[0].id);
+      }
+      setShowPublishModal(true);
+    } catch (err: any) {
+      showToast.error(`Não foi possível carregar os dados para publicação: ${err.message}`);
+    } finally {
+      setPreparingPublish(false);
+    }
+  };
+
+  const handleConfirmPublish = async () => {
+    if (!id || !publishPayload) return;
+    setPublishing(true);
+    try {
+      const result = await siteSyncService.publishToSite(
+        id,
+        publishPayload,
+        selectedLocalId,
+        user?.email || 'Secretaria Provincial'
+      );
+      showToast.success(result.message);
+      setShowPublishModal(false);
+      await load();
+    } catch (err: any) {
+      showToast.error(`Erro ao publicar no site oficial: ${err.message}`);
+    } finally {
+      setPublishing(false);
+    }
+  };
 
   const load = async () => {
     if (!id) return;
@@ -677,14 +741,26 @@ export const ReligiosoDossie: React.FC = () => {
             Voltar
           </button>
 
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-2 border border-slate-900 bg-slate-900 px-3 py-2 text-xs font-medium text-white transition hover:opacity-90 dark:border-white dark:bg-white dark:text-slate-900"
-          >
-            <Printer className="h-3.5 w-3.5" />
-            Imprimir ficha e checklist
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleOpenPublishModal}
+              disabled={preparingPublish}
+              className="inline-flex items-center gap-2 border border-[#226380] bg-[#226380] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#1b4f66] shadow-sm cursor-pointer disabled:opacity-50"
+            >
+              {preparingPublish ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Globe className="h-3.5 w-3.5" />}
+              <span>Publicar no Site Oficial</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-2 border border-slate-900 bg-slate-900 px-3 py-2 text-xs font-medium text-white transition hover:opacity-90 dark:border-white dark:bg-white dark:text-slate-900"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              Imprimir ficha e checklist
+            </button>
+          </div>
         </div>
 
         {loading || !religioso ? (
@@ -710,9 +786,28 @@ export const ReligiosoDossie: React.FC = () => {
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Arquivo Provincial</p>
                   <h1 className="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">{religioso.nome_religioso || religioso.nome_civil}</h1>
                   <p className="text-sm text-slate-500 dark:text-slate-400">{religioso.nome_civil} • {religioso.grau || 'Grau pendente'}</p>
-                  <p className="mt-2 inline-flex border border-[#226380]/20 bg-[#226380]/5 px-2.5 py-1 font-mono text-[11px] font-semibold tracking-wide text-[#226380] dark:border-[#A3C3C7]/20 dark:bg-[#A3C3C7]/10 dark:text-[#A3C3C7]">
-                    Cadastro {formatRegistrationNumber(religioso.numero_cadastro, religioso.created_at)}
-                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <p className="inline-flex border border-[#226380]/20 bg-[#226380]/5 px-2.5 py-1 font-mono text-[11px] font-semibold tracking-wide text-[#226380] dark:border-[#A3C3C7]/20 dark:bg-[#A3C3C7]/10 dark:text-[#A3C3C7]">
+                      Cadastro {formatRegistrationNumber(religioso.numero_cadastro, religioso.created_at)}
+                    </p>
+                    {religioso.publicado_site_em && (
+                      <span className="inline-flex items-center gap-1.5 border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 font-mono text-[11px] font-semibold tracking-wide text-emerald-700 dark:text-emerald-300">
+                        <CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                        No site: {formatDate(religioso.publicado_site_em)}
+                      </span>
+                    )}
+                    {religioso.publicado_site_id && (
+                      <a
+                        href={`${sitePublicUrl.replace(/\/$/, '')}/institucional/religioso?id=${religioso.publicado_site_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-medium text-[#226380] hover:underline dark:text-[#A3C3C7]"
+                      >
+                        <span>Ver no site</span>
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -936,6 +1031,223 @@ export const ReligiosoDossie: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* MODAL DE REVISÃO E CONFIRMAÇÃO: PUBLICAR NO SITE OFICIAL */}
+      {showPublishModal && publishPayload && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-fade-in dossie-no-print">
+          <div className="w-full max-w-2xl max-h-[90vh] flex flex-col rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-[#161b22]">
+            {/* Cabeçalho do Modal */}
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#226380]/10 text-[#226380] dark:bg-[#226380]/20">
+                  <Globe className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+                    Publicar Religioso no Site Oficial
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Sincronização com o portal público ({sitePublicUrl})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPublishModal(false)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Corpo do Modal com Scroll */}
+            <div className="p-6 overflow-y-auto space-y-5 text-xs text-slate-700 dark:text-slate-300">
+              {/* Card de Resumo do Religioso com Foto 4x4 */}
+              <div className="flex items-center gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/40">
+                {publishPayload.foto ? (
+                  <img
+                    src={publishPayload.foto}
+                    alt={publishPayload.nome}
+                    className="h-20 w-20 aspect-square rounded-lg border-2 border-[#226380] object-cover shadow-sm shrink-0"
+                  />
+                ) : (
+                  <div className="flex h-20 w-20 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-800 shrink-0">
+                    <UserRound className="h-8 w-8" />
+                  </div>
+                )}
+                <div className="space-y-1 min-w-0">
+                  <span className="inline-block px-2 py-0.5 text-[10px] font-mono uppercase font-semibold rounded bg-[#226380]/10 text-[#226380] dark:bg-[#A3C3C7]/10 dark:text-[#A3C3C7]">
+                    Categoria: {publishPayload.categoria}
+                  </span>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                    {publishPayload.nome}
+                  </h4>
+                  <p className="text-slate-500 dark:text-slate-400 font-mono text-[11px]">
+                    ID / Slug no site: <code className="text-[#226380] dark:text-[#A3C3C7]">{publishPayload.id}</code>
+                  </p>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 italic">
+                    "{publishPayload.lema}"
+                  </p>
+                </div>
+              </div>
+
+              {/* Campos Editáveis antes da Publicação */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">
+                    Nome Oficial no Site
+                  </label>
+                  <input
+                    type="text"
+                    value={publishPayload.nome}
+                    onChange={(e) => setPublishPayload({ ...publishPayload, nome: e.target.value })}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#226380] dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">
+                    Cargo / Função na Comunidade
+                  </label>
+                  <input
+                    type="text"
+                    value={publishPayload.cargo}
+                    onChange={(e) => setPublishPayload({ ...publishPayload, cargo: e.target.value })}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#226380] dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">
+                    Comunidade / Local no Site (Equipe)
+                  </label>
+                  {siteLocais.length > 0 ? (
+                    <select
+                      value={selectedLocalId}
+                      onChange={(e) => {
+                        setSelectedLocalId(e.target.value);
+                        const sel = siteLocais.find(l => l.id === e.target.value);
+                        if (sel) {
+                          setPublishPayload({ ...publishPayload, comunidade: sel.nome });
+                        }
+                      }}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#226380] dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                    >
+                      {siteLocais.map(loc => (
+                        <option key={loc.id} value={loc.id}>
+                          {loc.nome} {loc.cidade ? `(${loc.cidade}/${loc.estado || ''})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={publishPayload.comunidade}
+                      onChange={(e) => setPublishPayload({ ...publishPayload, comunidade: e.target.value })}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#226380] dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                    />
+                  )}
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    Atualiza o religioso na equipe desta paróquia/comunidade no site e desvincula da anterior em caso de transferência.
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">
+                    Cidade / Região
+                  </label>
+                  <input
+                    type="text"
+                    value={publishPayload.cidade}
+                    onChange={(e) => setPublishPayload({ ...publishPayload, cidade: e.target.value })}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#226380] dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">
+                    Data de 1ª Profissão
+                  </label>
+                  <input
+                    type="text"
+                    value={publishPayload.profissao || ''}
+                    placeholder="DD/MM/AAAA"
+                    onChange={(e) => setPublishPayload({ ...publishPayload, profissao: e.target.value, primeiraProfissao: e.target.value })}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#226380] dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">
+                    Data de Ordenação Presbiteral
+                  </label>
+                  <input
+                    type="text"
+                    value={publishPayload.ordenacao || ''}
+                    placeholder="DD/MM/AAAA"
+                    onChange={(e) => setPublishPayload({ ...publishPayload, ordenacao: e.target.value, ordenacaopresbiteral: e.target.value })}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#226380] dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">
+                    Lema Sacerdotal / Consagrado
+                  </label>
+                  <input
+                    type="text"
+                    value={publishPayload.lema || ''}
+                    onChange={(e) => setPublishPayload({ ...publishPayload, lema: e.target.value })}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#226380] dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">
+                  Biografia Resumida
+                </label>
+                <textarea
+                  rows={3}
+                  value={publishPayload.bio || ''}
+                  onChange={(e) => setPublishPayload({ ...publishPayload, bio: e.target.value })}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#226380] dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+              </div>
+
+              {/* Informação sobre atualização e transferência */}
+              <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/20 p-3 border border-emerald-200 dark:border-emerald-900/40 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-start gap-2">
+                <Sparkles className="h-4 w-4 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
+                <span>
+                  Ao confirmar, o site oficial atualizará imediatamente o perfil biográfico individual e o card com foto e cargo na equipe da comunidade selecionada.
+                </span>
+              </div>
+            </div>
+
+            {/* Rodapé do Modal */}
+            <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowPublishModal(false)}
+                disabled={publishing}
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 cursor-pointer disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmPublish}
+                disabled={publishing}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#226380] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1b4f66] shadow-sm cursor-pointer disabled:opacity-50"
+              >
+                {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
+                <span>{publishing ? 'Publicando no site...' : 'Confirmar e Publicar'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
