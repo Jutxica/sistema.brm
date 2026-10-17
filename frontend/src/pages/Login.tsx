@@ -150,6 +150,19 @@ export const Login: React.FC = () => {
               </button>
             </div>
 
+            <div className="pt-4 mt-3 border-t border-slate-200/60 dark:border-slate-800/60 text-center">
+              <span className="text-[12px] text-slate-500 dark:text-slate-400 block mb-1">
+                É confrade ou religioso da Província?
+              </span>
+              <a
+                href="/portal-religioso"
+                className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#113240] hover:text-[#226380] dark:text-[#A3C3C7] dark:hover:text-white transition-colors"
+              >
+                <span>Acessar o Portal do Confrade</span>
+                <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
+
           </form>
 
         </div>
