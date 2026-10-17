@@ -1095,13 +1095,21 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
           ? await supabase.from('religiosos').update(payloadToUpdate).eq('id', religiosoId).select('id').single()
           : await supabase.from('religiosos').insert(payloadToUpdate).select('id').single();
 
-        // Se falhar devido a colunas ausentes no cache do Supabase (ex: redes_sociais, nome_elenco, cadastro_elenco_provisorio)
+        // Se falhar devido a colunas ausentes no cache ou foreign key legada (ex: obra_atual_id apontando para tabela antiga 'obras')
         let retryCount = 0;
         while (parentRequest.error && typeof parentRequest.error.message === 'string' && retryCount < 10) {
-          const matchCol = parentRequest.error.message.match(/Could not find the '([^']+)' column of 'religiosos'/i);
+          const errMsg = parentRequest.error.message;
+          const matchCol = errMsg.match(/Could not find the '([^']+)' column of 'religiosos'/i);
           if (matchCol && matchCol[1] && matchCol[1] in payloadToUpdate) {
             console.warn(`Coluna '${matchCol[1]}' não existe em 'religiosos'. Tentando novamente sem ela...`);
             delete payloadToUpdate[matchCol[1]];
+            parentRequest = religiosoId
+              ? await supabase.from('religiosos').update(payloadToUpdate).eq('id', religiosoId).select('id').single()
+              : await supabase.from('religiosos').insert(payloadToUpdate).select('id').single();
+            retryCount++;
+          } else if (errMsg.includes('religiosos_obra_atual_id_fkey') || (errMsg.includes('obra_atual_id') && errMsg.includes('obras'))) {
+            console.warn("obra_atual_id violou foreign key legada com a tabela 'obras'. Tentando novamente com obra_atual_id nulo...");
+            delete payloadToUpdate.obra_atual_id;
             parentRequest = religiosoId
               ? await supabase.from('religiosos').update(payloadToUpdate).eq('id', religiosoId).select('id').single()
               : await supabase.from('religiosos').insert(payloadToUpdate).select('id').single();
@@ -1120,7 +1128,18 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         const insertMany = async (table: string, values: Record<string, unknown>[]) => {
           const filtered = values.filter(value => Object.values(value).some(item => item !== '' && item !== null && item !== undefined));
           if (!filtered.length) return;
-          const { error } = await supabase.from(table).insert(filtered.map(value => ({ ...value, religioso_id: id })));
+          let insertPayload: Record<string, unknown>[] = filtered.map(value => ({ ...value, religioso_id: id }));
+          let { error } = await supabase.from(table).insert(insertPayload);
+          if (error && typeof error.message === 'string' && (error.message.includes('obra_id') || error.message.includes('fkey'))) {
+            console.warn(`Tentando reinserir em ${table} sem obra_id devido a foreign key legada:`, error.message);
+            insertPayload = insertPayload.map(item => {
+              const copy = { ...item };
+              delete copy.obra_id;
+              return copy;
+            });
+            const retry = await supabase.from(table).insert(insertPayload);
+            error = retry.error;
+          }
           if (error) throw error;
         };
         if (religiosoId) {
