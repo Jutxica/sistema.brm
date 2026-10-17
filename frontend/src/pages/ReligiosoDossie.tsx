@@ -51,6 +51,13 @@ const formatBytes = (bytes?: number | null) => {
 const formatRegistrationNumber = (number: number, createdAt: string | null) =>
   `BRM-${createdAt ? new Date(createdAt).getFullYear() : '—'}-${String(number).padStart(6, '0')}`;
 
+const formatCpfMask = (value?: string | null) => {
+  if (!value) return '—';
+  const digits = value.replace(/\D/g, '');
+  if (digits.length !== 11) return value;
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+};
+
 export const ReligiosoDossie: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -60,6 +67,23 @@ export const ReligiosoDossie: React.FC = () => {
   const [documentos, setDocumentos] = useState<DocumentoFicha[]>([]);
   const [historico, setHistorico] = useState<EventoFicha[]>([]);
   const [allAccounts, setAllAccounts] = useState<ContaAcesso[]>([]);
+  const [canonicalData, setCanonicalData] = useState<{
+    familiares: any[];
+    votos: any[];
+    ordens: any[];
+    sacramentos: any[];
+    formacao: any[];
+    designacoes: any[];
+    residencia: any | null;
+  }>({
+    familiares: [],
+    votos: [],
+    ordens: [],
+    sacramentos: [],
+    formacao: [],
+    designacoes: [],
+    residencia: null,
+  });
   const [loading, setLoading] = useState(true);
   const [archiveCategory, setArchiveCategory] = useState(archiveCategories[0]);
   const [archiveTitle, setArchiveTitle] = useState('');
@@ -78,12 +102,26 @@ export const ReligiosoDossie: React.FC = () => {
       { data: documentosArquivo, error: documentosArquivoError },
       { data: historicoData, error: historicoError },
       { data: contasResult, error: contasError },
+      { data: familiaresData },
+      { data: votosData },
+      { data: ordensData },
+      { data: sacramentosData },
+      { data: formacaoData },
+      { data: designacoesData },
+      { data: residenciaData },
     ] = await Promise.all([
       supabase.from('religiosos').select('*').eq('id', id).maybeSingle(),
       supabase.from('religiosos_documentos').select('id,categoria,nome_arquivo,caminho_storage,mime_type,tamanho_bytes,data_cadastro,quem_cadastrou').eq('religioso_id', id).eq('status', 'Ativo').order('data_cadastro', { ascending: false }),
       supabase.from('secretaria_dossie_documentos').select('id,categoria,titulo,nome_arquivo,caminho_storage,mime_type,tamanho_bytes,enviado_por_nome,criado_em').eq('religioso_id', id).order('criado_em', { ascending: false }),
       supabase.from('secretaria_ficha_eventos').select('*').eq('religioso_id', id).order('criado_em', { ascending: false }),
       supabase.functions.invoke<{ accounts: ContaAcesso[] }>('secretaria-contas', { body: { action: 'list' } }),
+      supabase.from('religiosos_familiares').select('*').eq('religioso_id', id),
+      supabase.from('religiosos_profissoes_votos').select('*').eq('religioso_id', id).order('data', { ascending: true }),
+      supabase.from('religiosos_ministerios_ordens').select('*').eq('religioso_id', id).order('data', { ascending: true }),
+      supabase.from('religiosos_sacramentos').select('*').eq('religioso_id', id).order('data', { ascending: true }),
+      supabase.from('religiosos_formacao_religiosa').select('*').eq('religioso_id', id).order('data_ingresso', { ascending: true }),
+      supabase.from('religiosos_designacoes').select('*, comunidades(nome), religiosos_obras_referencia(nome)').eq('religioso_id', id),
+      supabase.from('religiosos_enderecos_contatos').select('*').eq('religioso_id', id).limit(1).maybeSingle(),
     ]);
 
     if (religiosoError) {
@@ -129,6 +167,15 @@ export const ReligiosoDossie: React.FC = () => {
     setDocumentos([...legacyDocuments, ...archiveDocuments]);
     setSelectedDocumentIds(new Set([...legacyDocuments, ...archiveDocuments].map(documento => documento.id)));
     setHistorico((historicoData || []) as EventoFicha[]);
+    setCanonicalData({
+      familiares: familiaresData || [],
+      votos: votosData || [],
+      ordens: ordensData || [],
+      sacramentos: sacramentosData || [],
+      formacao: formacaoData || [],
+      designacoes: designacoesData || [],
+      residencia: residenciaData || null,
+    });
     const contas = contasResult?.accounts || [];
     setAllAccounts(contas);
     setConta(contas.find(item => item.id === religiosoData.auth_user_id) || null);
@@ -270,17 +317,295 @@ export const ReligiosoDossie: React.FC = () => {
   const totalContas = allAccounts.length;
   const selectedDocuments = documentos.filter(documento => selectedDocumentIds.has(documento.id));
 
+  const paisTexto = [
+    religioso?.familiares_pai || canonicalData.familiares.find(f => f.tipo === 'Pai')?.nome,
+    religioso?.familiares_mae || canonicalData.familiares.find(f => f.tipo === 'Mãe')?.nome
+  ].filter(Boolean).join(' e ') || '—';
+
+  const naturalidadeTexto = [religioso?.municipio_nascimento, religioso?.estado_nascimento].filter(Boolean).join('/') || '—';
+
+  const batismo = canonicalData.sacramentos.find(s => (s.tipo || '').toLowerCase().includes('batis'));
+  const primVotos = canonicalData.votos.find(v => (v.tipo || '').toLowerCase().includes('primeir') || (v.tipo || '').toLowerCase().includes('tempor'));
+  const perpVotos = canonicalData.votos.find(v => (v.tipo || '').toLowerCase().includes('perp'));
+  const ordenacao = canonicalData.ordens.find(o => (o.tipo || '').toLowerCase().includes('presb') || (o.tipo || '').toLowerCase().includes('sacerd')) || canonicalData.ordens[0];
+
+  const anoIngresso = canonicalData.formacao[0]?.data_ingresso
+    ? new Date(canonicalData.formacao[0].data_ingresso).getFullYear()
+    : (religioso?.created_at ? new Date(religioso.created_at).getFullYear() : '2026');
+
+  const docCategories = [
+    { label: 'RG e CPF', match: ['rg', 'cpf', 'identidade', 'cnh'] },
+    { label: 'Certidão de nascimento', match: ['nascimento', 'certidão de nascimento'] },
+    { label: 'Certidão de batismo', match: ['batismo'] },
+    { label: 'Certidão de crisma', match: ['crisma'] },
+    { label: 'Termo de admissão', match: ['admissão', 'postulantado', 'noviciado'] },
+    { label: 'Profissão religiosa temporária', match: ['voto temporário', 'primeira profissão', 'renovação'] },
+    { label: 'Profissão perpétua', match: ['voto perpétuo', 'perpétua', 'perpétuo'] },
+    { label: 'Ordenação diaconal / presbiteral', match: ['ordem', 'diaconato', 'presbiterato', 'ordenação'] },
+    { label: 'Decretos e nomeações', match: ['decreto', 'nomeação', 'transferência', 'carta'] },
+    { label: 'Termo de consentimento (LGPD)', match: ['lgpd', 'consentimento', 'termo'] },
+  ];
+
+  const hasDoc = (matchArr: string[]) => {
+    return documentos.some(d => {
+      const target = `${d.categoria || ''} ${d.nome_arquivo || ''} ${d.titulo || ''}`.toLowerCase();
+      return matchArr.some(m => target.includes(m));
+    });
+  };
+
+  const docsCount = docCategories.filter(c => hasDoc(c.match)).length;
+
   return (
     <>
       <style>{`
         @media print {
+          @page {
+            size: A4 portrait;
+            margin: 12mm 15mm 15mm 15mm;
+          }
           .dossie-no-print { display: none !important; }
           .dossie-print-only { display: block !important; }
-          .dossie-sheet { box-shadow: none !important; border: none !important; }
-          body { background: #fff !important; color: #111 !important; }
+          .dossie-sheet { box-shadow: none !important; border: none !important; padding: 0 !important; }
+          body { background: #fff !important; color: #111 !important; font-size: 10pt; }
         }
         .dossie-print-only { display: none; }
       `}</style>
+
+      {/* DOCUMENTO IMPRESSO INSTITUCIONAL OFICIAL (A4 - PADRÃO PROVÍNCIA BRM) */}
+      <div className="dossie-print-only text-slate-900 font-sans leading-tight">
+        {/* Cabeçalho Oficial */}
+        <header className="border-b border-slate-300 pb-3 mb-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <img src="/logo-timbrado-brm.png" alt="Província BRM" className="h-14 w-auto object-contain" />
+              <div>
+                <p className="font-mono text-[8pt] uppercase tracking-[0.15em] text-slate-500 font-semibold">
+                  Congregação dos Sacerdotes do Sagrado Coração de Jesus
+                </p>
+                <h1 className="text-[14pt] font-serif font-bold text-slate-900 tracking-tight mt-0.5">
+                  Província Brasil Meridional
+                </h1>
+                <p className="text-[8.5pt] font-mono text-slate-600">Arquivo Provincial</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="font-mono text-[7pt] uppercase tracking-wider text-slate-400">Cadastro</p>
+              <p className="font-mono text-[10pt] font-bold text-slate-800">
+                {formatRegistrationNumber(religioso?.numero_cadastro || 0, religioso?.created_at || null)}
+              </p>
+            </div>
+          </div>
+        </header>
+
+        {/* Identificação do Religioso */}
+        <div className="flex items-end justify-between border-b border-slate-200 pb-3 mb-3">
+          <div>
+            <p className="font-mono text-[7.5pt] uppercase tracking-[0.16em] text-slate-500 font-semibold">
+              Dossiê do Religioso
+            </p>
+            <h2 className="text-[17pt] font-serif font-bold text-slate-900 mt-0.5">
+              {religioso?.nome_religioso || religioso?.nome_civil}
+            </h2>
+          </div>
+          <div className="flex items-center gap-1.5 border border-slate-900 px-2.5 py-0.5 text-[8pt] font-mono font-semibold uppercase">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-900" />
+            <span>Cadastro {religioso?.status_cadastro || 'Aprovado'}</span>
+          </div>
+        </div>
+
+        {/* Faixa de Indicadores Rápidos */}
+        <div className="grid grid-cols-4 border border-slate-200 bg-slate-50/60 text-center mb-4">
+          <div className="p-2 border-r border-slate-200">
+            <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Grau</p>
+            <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5">{religioso?.grau || 'Pendente'}</p>
+          </div>
+          <div className="p-2 border-r border-slate-200">
+            <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Ingresso</p>
+            <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5">{anoIngresso}</p>
+          </div>
+          <div className="p-2 border-r border-slate-200">
+            <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Última Revisão</p>
+            <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5">{historico[0] ? formatDate(historico[0].criado_em) : '—'}</p>
+          </div>
+          <div className="p-2">
+            <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Documentos Anexados</p>
+            <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5">{docsCount} de 10</p>
+          </div>
+        </div>
+
+        {/* Bloco 1: Ficha Geral */}
+        <div className="mb-4">
+          <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
+            Ficha Geral
+          </p>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-[8.5pt]">
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Nome Civil</p>
+              <p className="font-medium text-slate-900">{religioso?.nome_civil || '—'}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Nome Religioso</p>
+              <p className="font-medium text-slate-900">{religioso?.nome_religioso || '—'}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Data de Nascimento</p>
+              <p className="font-medium text-slate-900">{formatDate(religioso?.data_nascimento)}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">CPF</p>
+              <p className="font-mono font-medium text-slate-900">{formatCpfMask(religioso?.cpf)}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Naturalidade</p>
+              <p className="font-medium text-slate-900">{naturalidadeTexto}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Nacionalidade</p>
+              <p className="font-medium text-slate-900">{religioso?.nacionalidade || 'Brasileira'}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">E-mail Institucional</p>
+              <p className="font-medium text-slate-900">{religioso?.email_institucional || '—'}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Celular / WhatsApp</p>
+              <p className="font-medium text-slate-900">{religioso?.telefone_celular || '—'}</p>
+            </div>
+            <div className="col-span-2">
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Filiação</p>
+              <p className="font-medium text-slate-900">{paisTexto}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bloco 2: Vínculo Provincial */}
+        <div className="mb-4">
+          <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
+            Vínculo Provincial
+          </p>
+          <div className="grid grid-cols-3 gap-x-4 text-[8.5pt]">
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Comunidade Atual</p>
+              <p className="font-medium text-slate-900">{religioso?.comunidade_atual_nome || '—'}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Ofício / Função</p>
+              <p className="font-medium text-slate-900">{canonicalData.designacoes[0]?.funcao || '—'}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Superior Imediato</p>
+              <p className="font-medium text-slate-900">—</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bloco 3: Trajetória Canônica (Linha do Tempo Visual) */}
+        <div className="mb-4">
+          <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
+            Trajetória Canônica
+          </p>
+          <div className="grid grid-cols-4 gap-2 text-center pt-1">
+            <div className="border border-slate-200 p-2">
+              <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
+              <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Batismo</p>
+              <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{batismo?.data ? formatDate(batismo.data) : '—'}</p>
+              {batismo?.paroquia && <p className="text-[6.5pt] text-slate-500 truncate">{batismo.paroquia}</p>}
+            </div>
+            <div className="border border-slate-200 p-2">
+              <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
+              <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Primeira Profissão</p>
+              <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{primVotos?.data ? formatDate(primVotos.data) : '—'}</p>
+              {primVotos?.local && <p className="text-[6.5pt] text-slate-500 truncate">{primVotos.local}</p>}
+            </div>
+            <div className="border border-slate-200 p-2">
+              <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
+              <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Profissão Perpétua</p>
+              <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{perpVotos?.data ? formatDate(perpVotos.data) : '—'}</p>
+              {perpVotos?.local && <p className="text-[6.5pt] text-slate-500 truncate">{perpVotos.local}</p>}
+            </div>
+            <div className="border border-slate-200 p-2">
+              <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
+              <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Ordenação</p>
+              <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{ordenacao?.data ? formatDate(ordenacao.data) : '—'}</p>
+              {ordenacao?.tipo && <p className="text-[6.5pt] text-slate-500 truncate">{ordenacao.tipo}</p>}
+            </div>
+          </div>
+        </div>
+
+        {/* Bloco 4: Documentos do Arquivo (Checklist Canônico Oficial) */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-1 mb-2">
+            <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700">
+              Documentos do Arquivo
+            </p>
+            <span className="text-[6.5pt] font-mono text-slate-400">✓ = anexado no sistema</span>
+          </div>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[8pt]">
+            {docCategories.map((doc, idx) => {
+              const checked = hasDoc(doc.match);
+              return (
+                <div key={idx} className="flex items-center gap-2 py-0.5">
+                  <span className={`w-3 h-3 flex items-center justify-center border text-[8pt] font-bold ${
+                    checked ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-400 text-transparent'
+                  }`}>
+                    {checked ? '✓' : ''}
+                  </span>
+                  <span className={checked ? 'text-slate-900 font-medium' : 'text-slate-500'}>
+                    {doc.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Bloco 5: Histórico de Revisão */}
+        <div className="mb-6">
+          <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-1.5">
+            Histórico de Revisão
+          </p>
+          <table className="w-full text-left text-[7.5pt] border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200 text-slate-400 font-mono text-[6.5pt] uppercase">
+                <th className="py-1">Data</th>
+                <th className="py-1">Situação</th>
+                <th className="py-1">Responsável</th>
+                <th className="py-1">Registro</th>
+              </tr>
+            </thead>
+            <tbody>
+              {historico.slice(0, 3).map(evento => (
+                <tr key={evento.id} className="border-b border-slate-100">
+                  <td className="py-1 font-mono">{formatDate(evento.criado_em)}</td>
+                  <td className="py-1 font-semibold text-slate-900">{evento.status_novo}</td>
+                  <td className="py-1 text-slate-600">{evento.ator_nome}</td>
+                  <td className="py-1 text-slate-600">{evento.observacao || 'Atualização administrativa do dossiê.'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Assinaturas Institucionais */}
+        <div className="mt-8 pt-4 grid grid-cols-2 gap-12 text-center text-[7.5pt]">
+          <div>
+            <div className="border-t border-slate-800 mx-auto w-48 mb-1" />
+            <p className="font-semibold text-slate-800">Secretaria Provincial</p>
+            <p className="text-[6.5pt] text-slate-400">Assinatura e carimbo</p>
+          </div>
+          <div>
+            <div className="border-t border-slate-800 mx-auto w-48 mb-1" />
+            <p className="font-semibold text-slate-800">Chancelaria · Arquivo Provincial</p>
+            <p className="text-[6.5pt] text-slate-400">Assinatura e carimbo</p>
+          </div>
+        </div>
+
+        {/* Rodapé de autenticação */}
+        <footer className="mt-6 pt-3 border-t border-slate-200 flex justify-between text-[6.5pt] font-mono text-slate-400">
+          <span>Emitido eletronicamente em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} · sistema.brm.org.br</span>
+          <span>Documento reservado · Dados pessoais protegidos pela LGPD</span>
+        </footer>
+      </div>
 
       <div className="space-y-5 pb-8">
         <div className="dossie-no-print flex items-center justify-between gap-3">

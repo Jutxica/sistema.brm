@@ -88,6 +88,14 @@ export interface ReligiosoDossieData {
   status: string;
   status_cadastro: string;
   origem_cadastro: string | null;
+  municipio_nascimento?: string | null;
+  estado_nascimento?: string | null;
+  pais_nascimento?: string | null;
+  nacionalidade?: string | null;
+  comunidade_atual_nome?: string | null;
+  obra_atual_id?: string | null;
+  familiares_pai?: string | null;
+  familiares_mae?: string | null;
   auth_user_id: string | null;
   created_at: string | null;
   updated_at: string | null;
