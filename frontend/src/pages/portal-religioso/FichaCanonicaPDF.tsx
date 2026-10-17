@@ -401,7 +401,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         </div>
 
         {/* Faixa de Indicadores Rápidos */}
-        <div className="grid grid-cols-4 border border-slate-200 bg-slate-50/60 text-center mb-4">
+        <div className="grid grid-cols-4 border border-slate-200 bg-white text-center mb-4">
           <div className="p-2 border-r border-slate-200">
             <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Grau</p>
             <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5">{data?.grau || 'Padre'}</p>
@@ -500,23 +500,23 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
             03. Trajetória Canônica
           </p>
           <div className="grid grid-cols-4 gap-2 text-center pt-1">
-            <div className="border border-slate-200 p-2">
+            <div className="border border-slate-200 p-2 bg-white">
               <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
               <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Batismo</p>
               <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{batismo?.data ? formatarData(batismo.data) : '—'}</p>
               {batismo?.paroquia && <p className="text-[6.5pt] text-slate-500 truncate">{batismo.paroquia}</p>}
             </div>
-            <div className="border border-slate-200 p-2">
+            <div className="border border-slate-200 p-2 bg-white">
               <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
               <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Primeira Profissão</p>
               <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{formatarData(data?.data_primeiros_votos)}</p>
             </div>
-            <div className="border border-slate-200 p-2">
+            <div className="border border-slate-200 p-2 bg-white">
               <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
               <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Profissão Perpétua</p>
               <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{formatarData(data?.data_votos_perpetuos)}</p>
             </div>
-            <div className="border border-slate-200 p-2">
+            <div className="border border-slate-200 p-2 bg-white">
               <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
               <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Ordenação</p>
               <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{formatarData(data?.data_presbiterato || data?.data_diaconato)}</p>

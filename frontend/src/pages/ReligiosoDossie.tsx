@@ -414,7 +414,7 @@ export const ReligiosoDossie: React.FC = () => {
         </div>
 
         {/* Faixa de Indicadores Rápidos */}
-        <div className="grid grid-cols-4 border border-slate-200 bg-slate-50/60 text-center mb-4">
+        <div className="grid grid-cols-4 border border-slate-200 bg-white text-center mb-4">
           <div className="p-2 border-r border-slate-200">
             <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Grau</p>
             <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5">{religioso?.grau || 'Pendente'}</p>
@@ -505,25 +505,25 @@ export const ReligiosoDossie: React.FC = () => {
             Trajetória Canônica
           </p>
           <div className="grid grid-cols-4 gap-2 text-center pt-1">
-            <div className="border border-slate-200 p-2">
+            <div className="border border-slate-200 p-2 bg-white">
               <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
               <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Batismo</p>
               <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{batismo?.data ? formatDate(batismo.data) : '—'}</p>
               {batismo?.paroquia && <p className="text-[6.5pt] text-slate-500 truncate">{batismo.paroquia}</p>}
             </div>
-            <div className="border border-slate-200 p-2">
+            <div className="border border-slate-200 p-2 bg-white">
               <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
               <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Primeira Profissão</p>
               <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{primVotos?.data ? formatDate(primVotos.data) : '—'}</p>
               {primVotos?.local && <p className="text-[6.5pt] text-slate-500 truncate">{primVotos.local}</p>}
             </div>
-            <div className="border border-slate-200 p-2">
+            <div className="border border-slate-200 p-2 bg-white">
               <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
               <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Profissão Perpétua</p>
               <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{perpVotos?.data ? formatDate(perpVotos.data) : '—'}</p>
               {perpVotos?.local && <p className="text-[6.5pt] text-slate-500 truncate">{perpVotos.local}</p>}
             </div>
-            <div className="border border-slate-200 p-2">
+            <div className="border border-slate-200 p-2 bg-white">
               <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
               <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Ordenação</p>
               <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{ordenacao?.data ? formatDate(ordenacao.data) : '—'}</p>
@@ -546,7 +546,7 @@ export const ReligiosoDossie: React.FC = () => {
               return (
                 <div key={idx} className="flex items-center gap-2 py-0.5">
                   <span className={`w-3 h-3 flex items-center justify-center border text-[8pt] font-bold ${
-                    checked ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-400 text-transparent'
+                    checked ? 'border-slate-900 bg-white text-slate-900' : 'border-slate-400 text-transparent'
                   }`}>
                     {checked ? '✓' : ''}
                   </span>
@@ -607,8 +607,8 @@ export const ReligiosoDossie: React.FC = () => {
         </footer>
       </div>
 
-      <div className="space-y-5 pb-8">
-        <div className="dossie-no-print flex items-center justify-between gap-3">
+      <div className="space-y-5 pb-8 dossie-no-print print:hidden">
+        <div className="flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={() => navigate('/religiosos')}
@@ -634,11 +634,6 @@ export const ReligiosoDossie: React.FC = () => {
           </div>
         ) : (
           <div className="dossie-sheet space-y-5 rounded-none border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#161b22]">
-            <div className="dossie-print-only border-b border-slate-300 pb-4 text-center">
-              <img src="/logo-impresso.png" alt="Província BRM" className="mx-auto mb-2 h-12 w-auto object-contain" />
-              <p className="text-xs font-semibold uppercase tracking-[0.18em]">Província Brasil Meridional</p>
-              <p className="mt-1 text-[10px] uppercase tracking-[0.12em]">Arquivo Provincial • Dossiê do religioso</p>
-            </div>
             <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 dark:border-slate-800 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-4">
                 <span className="flex h-12 w-12 items-center justify-center border border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-white/5 dark:text-slate-200">

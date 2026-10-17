@@ -203,7 +203,7 @@ export const FichaInscricaoIndividualPrint: React.FC<FichaInscricaoIndividualPri
           </div>
 
           {/* Faixa de Indicadores Rápidos */}
-          <div className="grid grid-cols-4 border border-slate-200 bg-slate-50/60 text-center mb-4">
+          <div className="grid grid-cols-4 border border-slate-200 bg-white text-center mb-4">
             <div className="p-2 border-r border-slate-200">
               <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Confrade</p>
               <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5 truncate px-1">
