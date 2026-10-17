@@ -40,6 +40,15 @@ export const FichaInscricaoIndividualPrint: React.FC<FichaInscricaoIndividualPri
   // Montar lista de campos conhecidos e extras
   const camposMapeados = formulario?.campos || [];
 
+  const formatCpfMask = (cpf?: string | null) => {
+    if (!cpf) return null;
+    const clean = cpf.replace(/\D/g, '');
+    if (clean.length === 11) {
+      return clean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    }
+    return cpf;
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-[#090d16] text-slate-900 dark:text-white print:bg-white print:text-black">
       {/* BARRA SUPERIOR DE CONTROLE (Oculta na Impressão) */}
@@ -58,7 +67,7 @@ export const FichaInscricaoIndividualPrint: React.FC<FichaInscricaoIndividualPri
             <span className="font-mono text-[10px] uppercase font-bold text-[#226380] dark:text-[#A3C3C7] tracking-wider block">
               Ficha Individual de Inscrição Canônica
             </span>
-            <h1 className="text-sm sm:text-base font-cinzel font-bold text-[#113240] dark:text-white">
+            <h1 className="text-sm sm:text-base font-serif font-bold text-[#113240] dark:text-white">
               {dados.nome_religioso || dados.nome_completo || "Confrade Inscrito"}
             </h1>
           </div>
@@ -72,7 +81,7 @@ export const FichaInscricaoIndividualPrint: React.FC<FichaInscricaoIndividualPri
               <button
                 type="button"
                 onClick={() => onAtualizarStatus(resposta.id, "Confirmada")}
-                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${
+                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-colors cursor-pointer ${
                   resposta.status === "Confirmada"
                     ? "bg-emerald-600 text-white shadow-2xs"
                     : "text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
@@ -83,7 +92,7 @@ export const FichaInscricaoIndividualPrint: React.FC<FichaInscricaoIndividualPri
               <button
                 type="button"
                 onClick={() => onAtualizarStatus(resposta.id, "Pendente")}
-                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${
+                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-colors cursor-pointer ${
                   resposta.status === "Pendente"
                     ? "bg-amber-600 text-white shadow-2xs"
                     : "text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
@@ -94,7 +103,7 @@ export const FichaInscricaoIndividualPrint: React.FC<FichaInscricaoIndividualPri
               <button
                 type="button"
                 onClick={() => onAtualizarStatus(resposta.id, "Cancelada")}
-                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${
+                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-colors cursor-pointer ${
                   resposta.status === "Cancelada"
                     ? "bg-rose-600 text-white shadow-2xs"
                     : "text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
@@ -121,7 +130,7 @@ export const FichaInscricaoIndividualPrint: React.FC<FichaInscricaoIndividualPri
             className="inline-flex items-center gap-2 px-4 py-1.5 text-xs font-mono uppercase font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] transition-colors cursor-pointer shadow-sm"
           >
             <Printer className="w-3.5 h-3.5" />
-            <span>Imprimir Ficha Individual</span>
+            <span>Imprimir Ficha</span>
           </button>
         </div>
       </div>
@@ -140,160 +149,176 @@ export const FichaInscricaoIndividualPrint: React.FC<FichaInscricaoIndividualPri
 
       {/* DOCUMENTO IMPRESSO NO PADRÃO OFICIAL TIMBRADO BRM */}
       <main className={`mx-auto my-6 sm:my-8 px-4 sm:px-6 print:m-0 print:p-0 print:max-w-none transition-all ${orientacao === "horizontal" ? "max-w-6xl" : "max-w-4xl"}`}>
-        <div className="bg-white dark:bg-[#12161f] print:bg-white text-slate-900 print:text-black border border-slate-200 dark:border-slate-800 print:border-none shadow-sm print:shadow-none rounded-[8px] print:rounded-none overflow-hidden p-6 sm:p-10 space-y-6">
+        <div className="bg-white dark:bg-[#12161f] print:bg-white text-slate-900 print:text-black border border-slate-200 dark:border-slate-800 print:border-none shadow-sm print:shadow-none rounded-[6px] print:rounded-none overflow-hidden p-8 sm:p-12 font-sans leading-tight">
           
-          {/* CABEÇALHO OFICIAL DO PAPEL TIMBRADO BRM */}
-          <CabecalhoTimbradoBRM
-            protocolo={resposta.protocolo}
-            dataEmissao={new Date(resposta.created_at).toLocaleDateString("pt-BR")}
-            subtituloDocumento={formulario?.titulo || "Ficha Canônica de Inscrição"}
-          />
+          {/* Cabeçalho Oficial */}
+          <header className="border-b border-slate-300 pb-3 mb-4">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <img src="/logo-timbrado-brm.png" alt="Província BRM" className="h-14 w-auto object-contain" />
+                <div>
+                  <p className="font-mono text-[8pt] uppercase tracking-[0.15em] text-slate-500 font-semibold">
+                    Congregação dos Sacerdotes do Sagrado Coração de Jesus
+                  </p>
+                  <h1 className="text-[14pt] font-serif font-bold text-slate-900 tracking-tight mt-0.5">
+                    Província Brasil Meridional
+                  </h1>
+                  <p className="text-[8.5pt] font-mono text-slate-600">Secretaria Provincial · Atos Oficiais</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="font-mono text-[7pt] uppercase tracking-wider text-slate-400">Protocolo</p>
+                <p className="font-mono text-[10pt] font-bold text-slate-800">
+                  {resposta.protocolo}
+                </p>
+                <p className="text-[7.5pt] font-mono text-slate-500 mt-0.5">
+                  {new Date(resposta.created_at).toLocaleDateString("pt-BR")}
+                </p>
+              </div>
+            </div>
+          </header>
 
-          {/* TÍTULO DO FORMULÁRIO / EVENTO */}
-          <div className="bg-slate-50 dark:bg-slate-900/40 print:bg-slate-50 p-4 rounded-[6px] border border-slate-200 dark:border-slate-800">
-            <span className="font-mono text-[10px] uppercase font-bold text-[#226380] tracking-wider block">
-              Inscrição Oficial para
-            </span>
-            <h2 className="font-cinzel text-base sm:text-lg font-bold text-[#113240] dark:text-white print:text-black">
-              {formulario?.titulo || "Evento / Reunião Provincial"}
-            </h2>
-            {formulario?.descricao && (
-              <p className="text-xs text-slate-600 dark:text-slate-400 print:text-slate-700 mt-1">
-                {formulario.descricao}
+          {/* Identificação da Ficha */}
+          <div className="flex items-end justify-between border-b border-slate-200 pb-3 mb-3">
+            <div>
+              <p className="font-mono text-[7.5pt] uppercase tracking-[0.16em] text-slate-500 font-semibold">
+                Ficha Individual de Inscrição Canônica
               </p>
-            )}
+              <h2 className="text-[16pt] font-serif font-bold text-slate-900 mt-0.5">
+                {formulario?.titulo || "Evento / Reunião Provincial"}
+              </h2>
+              {formulario?.descricao && (
+                <p className="text-[8.5pt] text-slate-600 mt-0.5 max-w-xl">
+                  {formulario.descricao}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 border border-slate-900 px-2.5 py-0.5 text-[8pt] font-mono font-semibold uppercase">
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                resposta.status === "Confirmada" ? "bg-emerald-600" :
+                resposta.status === "Cancelada" ? "bg-rose-600" : "bg-amber-600"
+              }`} />
+              <span>Inscrição {resposta.status || "Confirmada"}</span>
+            </div>
+          </div>
+
+          {/* Faixa de Indicadores Rápidos */}
+          <div className="grid grid-cols-4 border border-slate-200 bg-slate-50/60 text-center mb-4">
+            <div className="p-2 border-r border-slate-200">
+              <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Confrade</p>
+              <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5 truncate px-1">
+                {dados.nome_religioso || dados.nome_completo || "—"}
+              </p>
+            </div>
+            <div className="p-2 border-r border-slate-200">
+              <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Grau / Vínculo</p>
+              <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5">{dados.grau_ordem || "Confrade"}</p>
+            </div>
+            <div className="p-2 border-r border-slate-200">
+              <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Hospedagem</p>
+              <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5">
+                {dados.necessita_hospedagem ? "Solicitada" : "Não Necessita"}
+              </p>
+            </div>
+            <div className="p-2">
+              <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Data de Submissão</p>
+              <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5">
+                {new Date(resposta.created_at).toLocaleDateString("pt-BR")}
+              </p>
+            </div>
           </div>
 
           {/* SEÇÕES DE DADOS PREENCHIDOS */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             
-            {/* 1. DADOS PESSOAIS E ECLESIÁSTICOS */}
-            <div className="border border-slate-200 dark:border-slate-800 print:border-slate-400 rounded-[6px] overflow-hidden">
-              <div className="bg-slate-100 dark:bg-slate-800/80 print:bg-slate-100 px-4 py-2 border-b border-slate-200 dark:border-slate-800 print:border-slate-400 font-mono text-xs uppercase font-bold text-[#113240] dark:text-white print:text-black flex items-center gap-2">
-                <User className="w-3.5 h-3.5 text-[#226380]" />
-                <span>1. Identificação do Confrade</span>
-              </div>
-              <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs font-sans">
+            {/* 1. IDENTIFICAÇÃO DO CONFRADE */}
+            <div>
+              <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
+                01. Identificação do Confrade
+              </p>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-[8.5pt]">
                 <div>
-                  <span className="font-mono text-[10px] text-slate-400 uppercase block">Nome Religioso:</span>
-                  <strong className="text-sm text-slate-900 dark:text-white print:text-black">
-                    {dados.nome_religioso || dados.nome_completo || "-"}
-                  </strong>
+                  <p className="text-[6.5pt] font-mono uppercase text-slate-500">Nome Religioso</p>
+                  <p className="font-medium text-slate-900">{dados.nome_religioso || "—"}</p>
                 </div>
                 <div>
-                  <span className="font-mono text-[10px] text-slate-400 uppercase block">Nome Civil:</span>
-                  <span className="text-slate-800 dark:text-slate-200 print:text-black">
-                    {dados.nome_completo || "-"}
-                  </span>
+                  <p className="text-[6.5pt] font-mono uppercase text-slate-500">Nome Civil Completo</p>
+                  <p className="font-medium text-slate-900">{dados.nome_completo || "—"}</p>
                 </div>
                 <div>
-                  <span className="font-mono text-[10px] text-slate-400 uppercase block">Grau de Ordem / Vínculo:</span>
-                  <span className="font-mono font-semibold text-[#226380] print:text-black">
-                    {dados.grau_ordem || "-"}
-                  </span>
+                  <p className="text-[6.5pt] font-mono uppercase text-slate-500">Grau de Ordem</p>
+                  <p className="font-medium text-slate-900">{dados.grau_ordem || "—"}</p>
                 </div>
                 <div>
-                  <span className="font-mono text-[10px] text-slate-400 uppercase block">Comunidade Atual:</span>
-                  <span className="text-slate-800 dark:text-slate-200 print:text-black">
-                    {dados.comunidade_atual || "-"}
-                  </span>
+                  <p className="text-[6.5pt] font-mono uppercase text-slate-500">Comunidade Atual</p>
+                  <p className="font-medium text-slate-900">{dados.comunidade_atual || "—"}</p>
                 </div>
                 <div>
-                  <span className="font-mono text-[10px] text-slate-400 uppercase block">Telefone / WhatsApp:</span>
-                  <span className="font-mono text-slate-800 dark:text-slate-200 print:text-black">
-                    {dados.telefone_whatsapp || "-"}
-                  </span>
+                  <p className="text-[6.5pt] font-mono uppercase text-slate-500">Celular / WhatsApp</p>
+                  <p className="font-medium text-slate-900">{dados.telefone_whatsapp || "—"}</p>
                 </div>
                 <div>
-                  <span className="font-mono text-[10px] text-slate-400 uppercase block">E-mail:</span>
-                  <span className="font-mono text-slate-800 dark:text-slate-200 print:text-black">
-                    {dados.email || "-"}
-                  </span>
+                  <p className="text-[6.5pt] font-mono uppercase text-slate-500">E-mail</p>
+                  <p className="font-medium text-slate-900">{dados.email || "—"}</p>
                 </div>
                 {dados.cpf && (
                   <div>
-                    <span className="font-mono text-[10px] text-slate-400 uppercase block">CPF:</span>
-                    <span className="font-mono text-slate-800 dark:text-slate-200 print:text-black">
-                      {dados.cpf}
-                    </span>
+                    <p className="text-[6.5pt] font-mono uppercase text-slate-500">CPF</p>
+                    <p className="font-mono font-medium text-slate-900">{formatCpfMask(dados.cpf)}</p>
                   </div>
                 )}
                 {dados.cargo_funcao && (
                   <div>
-                    <span className="font-mono text-[10px] text-slate-400 uppercase block">Ofício / Função:</span>
-                    <span className="text-slate-800 dark:text-slate-200 print:text-black">
-                      {dados.cargo_funcao}
-                    </span>
+                    <p className="text-[6.5pt] font-mono uppercase text-slate-500">Ofício / Função</p>
+                    <p className="font-medium text-slate-900">{dados.cargo_funcao}</p>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* 2. HOSPEDAGEM, TRANSPORTE E LOGÍSTICA */}
-            <div className="border border-slate-200 dark:border-slate-800 print:border-slate-400 rounded-[6px] overflow-hidden">
-              <div className="bg-slate-100 dark:bg-slate-800/80 print:bg-slate-100 px-4 py-2 border-b border-slate-200 dark:border-slate-800 print:border-slate-400 font-mono text-xs uppercase font-bold text-[#113240] dark:text-white print:text-black flex items-center gap-2">
-                <Home className="w-3.5 h-3.5 text-[#226380]" />
-                <span>2. Logística, Hospedagem e Chegada</span>
-              </div>
-              <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs font-sans">
+            {/* 2. LOGÍSTICA & HOSPEDAGEM */}
+            <div>
+              <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
+                02. Logística, Hospedagem & Transporte
+              </p>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-[8.5pt]">
                 <div>
-                  <span className="font-mono text-[10px] text-slate-400 uppercase block">Necessita Hospedagem:</span>
-                  <strong className={`font-mono ${dados.necessita_hospedagem ? "text-emerald-600" : "text-slate-600"}`}>
-                    {dados.necessita_hospedagem ? "SIM" : "NÃO"}
-                  </strong>
+                  <p className="text-[6.5pt] font-mono uppercase text-slate-500">Necessita Hospedagem</p>
+                  <p className="font-medium text-slate-900">{dados.necessita_hospedagem ? "Sim" : "Não"}</p>
                 </div>
-                {dados.tipo_quarto && (
-                  <div>
-                    <span className="font-mono text-[10px] text-slate-400 uppercase block">Tipo de Quarto Preferido:</span>
-                    <span className="text-slate-800 dark:text-slate-200 print:text-black font-medium">
-                      {dados.tipo_quarto}
-                    </span>
-                  </div>
-                )}
-                {dados.data_chegada && (
-                  <div>
-                    <span className="font-mono text-[10px] text-slate-400 uppercase block">Previsão de Chegada:</span>
-                    <span className="font-mono text-slate-800 dark:text-slate-200 print:text-black">
-                      {dados.data_chegada}
-                    </span>
-                  </div>
-                )}
-                {dados.meio_transporte && (
-                  <div>
-                    <span className="font-mono text-[10px] text-slate-400 uppercase block">Meio de Transporte:</span>
-                    <span className="text-slate-800 dark:text-slate-200 print:text-black">
-                      {dados.meio_transporte}
-                    </span>
-                  </div>
-                )}
+                <div>
+                  <p className="text-[6.5pt] font-mono uppercase text-slate-500">Tipo de Quarto Preferido</p>
+                  <p className="font-medium text-slate-900">{dados.tipo_quarto || "Indiferente / Padrão"}</p>
+                </div>
+                <div>
+                  <p className="text-[6.5pt] font-mono uppercase text-slate-500">Previsão de Chegada</p>
+                  <p className="font-medium text-slate-900">{dados.data_chegada || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[6.5pt] font-mono uppercase text-slate-500">Meio de Transporte</p>
+                  <p className="font-medium text-slate-900">{dados.meio_transporte || "Próprio / Terrestre"}</p>
+                </div>
               </div>
             </div>
 
-            {/* 3. ALIMENTAÇÃO E OUTRAS PREFERÊNCIAS */}
-            <div className="border border-slate-200 dark:border-slate-800 print:border-slate-400 rounded-[6px] overflow-hidden">
-              <div className="bg-slate-100 dark:bg-slate-800/80 print:bg-slate-100 px-4 py-2 border-b border-slate-200 dark:border-slate-800 print:border-slate-400 font-mono text-xs uppercase font-bold text-[#113240] dark:text-white print:text-black flex items-center gap-2">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#226380]" />
-                <span>3. Alimentação, Paramento e Observações Gerais</span>
-              </div>
-              <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-sans">
+            {/* 3. ALIMENTAÇÃO & PARAMENTO */}
+            <div>
+              <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
+                03. Alimentação, Paramento & Observações
+              </p>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-[8.5pt]">
                 <div>
-                  <span className="font-mono text-[10px] text-slate-400 uppercase block">Restrições Alimentares:</span>
-                  <span className="text-slate-800 dark:text-slate-200 print:text-black font-medium">
-                    {dados.restricao_alimentar || "Nenhuma restrição declarada"}
-                  </span>
+                  <p className="text-[6.5pt] font-mono uppercase text-slate-500">Restrições Alimentares</p>
+                  <p className="font-medium text-slate-900">{dados.restricao_alimentar || "Nenhuma declarada"}</p>
                 </div>
-                {dados.tamanho_paramento && (
-                  <div>
-                    <span className="font-mono text-[10px] text-slate-400 uppercase block">Tamanho de Veste / Paramento:</span>
-                    <span className="font-mono font-bold text-[#226380] print:text-black">
-                      {dados.tamanho_paramento}
-                    </span>
-                  </div>
-                )}
-                <div className="sm:col-span-2">
-                  <span className="font-mono text-[10px] text-slate-400 uppercase block">Observações do Confrade:</span>
-                  <p className="text-slate-700 dark:text-slate-300 print:text-black bg-slate-50 dark:bg-slate-900/60 p-3 rounded border border-slate-200 dark:border-slate-800 mt-1 whitespace-pre-line leading-relaxed">
-                    {dados.observacoes_gerais || "Nenhuma observação adicional informada."}
+                <div>
+                  <p className="text-[6.5pt] font-mono uppercase text-slate-500">Tamanho de Veste / Paramento</p>
+                  <p className="font-medium text-slate-900">{dados.tamanho_paramento || "—"}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-[6.5pt] font-mono uppercase text-slate-500">Observações Gerais do Confrade</p>
+                  <p className="font-medium text-slate-900 whitespace-pre-line mt-0.5">
+                    {dados.observacoes_gerais || "Nenhuma observação informada."}
                   </p>
                 </div>
               </div>
@@ -312,21 +337,20 @@ export const FichaInscricaoIndividualPrint: React.FC<FichaInscricaoIndividualPri
               if (camposExtras.length === 0) return null;
 
               return (
-                <div className="border border-slate-200 dark:border-slate-800 print:border-slate-400 rounded-[6px] overflow-hidden">
-                  <div className="bg-slate-100 dark:bg-slate-800/80 print:bg-slate-100 px-4 py-2 border-b border-slate-200 dark:border-slate-800 print:border-slate-400 font-mono text-xs uppercase font-bold text-[#113240] dark:text-white print:text-black flex items-center gap-2">
-                    <Shield className="w-3.5 h-3.5 text-[#226380]" />
-                    <span>4. Informações Complementares Específicas</span>
-                  </div>
-                  <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-sans">
+                <div>
+                  <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
+                    04. Informações Complementares
+                  </p>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-[8.5pt]">
                     {camposExtras.map(([chave, valor]) => {
                       const campoDef = camposMapeados.find(c => c.id === chave);
                       const label = campoDef ? campoDef.label : chave.replace(/_/g, " ").toUpperCase();
                       return (
                         <div key={chave}>
-                          <span className="font-mono text-[10px] text-slate-400 uppercase block">{label}:</span>
-                          <span className="text-slate-800 dark:text-slate-200 print:text-black font-medium">
-                            {typeof valor === "boolean" ? (valor ? "Sim" : "Não") : String(valor || "-")}
-                          </span>
+                          <p className="text-[6.5pt] font-mono uppercase text-slate-500">{label}</p>
+                          <p className="font-medium text-slate-900">
+                            {typeof valor === "boolean" ? (valor ? "Sim" : "Não") : String(valor || "—")}
+                          </p>
                         </div>
                       );
                     })}
@@ -337,33 +361,34 @@ export const FichaInscricaoIndividualPrint: React.FC<FichaInscricaoIndividualPri
 
           </div>
 
-          {/* TERMO E ASSINATURA INDIVIDUAL */}
-          <div className="pt-6 border-t border-slate-300 dark:border-slate-700 print:border-slate-400 space-y-6 break-inside-avoid">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-8 text-center pt-2">
-              <div className="w-72">
-                <div className="border-b border-slate-400 print:border-black pb-1 mb-1" />
-                <p className="font-mono text-[10px] uppercase font-bold text-slate-700 print:text-black">
-                  Assinatura do Confrade Inscrito
-                </p>
-                <p className="text-[9px] text-slate-400 font-sans">
-                  {dados.nome_religioso || dados.nome_completo || "Confrade"}
-                </p>
-              </div>
-
-              <div className="w-72">
-                <div className="border-b border-slate-400 print:border-black pb-1 mb-1" />
-                <p className="font-mono text-[10px] uppercase font-bold text-slate-700 print:text-black">
-                  Secretaria Provincial BRM
-                </p>
-                <p className="text-[9px] text-slate-400 font-sans">
-                  Visto de Recebimento & Protocolo
-                </p>
-              </div>
+          {/* Assinaturas Institucionais */}
+          <div className="mt-8 pt-4 grid grid-cols-2 gap-12 text-center text-[7.5pt] break-inside-avoid">
+            <div>
+              <div className="border-t border-slate-800 mx-auto w-48 mb-1" />
+              <p className="font-semibold text-slate-800">{dados.nome_religioso || dados.nome_completo || "Confrade Inscrito"}</p>
+              <p className="text-[6.5pt] text-slate-400">Assinatura do Confrade</p>
+            </div>
+            <div>
+              <div className="border-t border-slate-800 mx-auto w-48 mb-1" />
+              <p className="font-semibold text-slate-800">Secretaria Provincial BRM</p>
+              <p className="text-[6.5pt] text-slate-400">Visto de Recebimento & Protocolo</p>
             </div>
           </div>
 
-          {/* RODAPÉ OFICIAL PAPEL TIMBRADO BRM */}
-          <RodapeTimbradoBRM />
+          {/* Linha Canônica da Sede e Rodapé */}
+          <div className="mt-8 pt-2 border-t border-[#a0a0a0] text-center select-none">
+            <p className="font-serif text-[8.5pt] text-slate-700 leading-snug">
+              Rua Padre Gabriel Lux, 900 – Caixa Postal 21 – Corupá/SC | CEP 89278-000
+            </p>
+            <p className="font-serif text-[8pt] text-slate-600 mt-0.5 leading-snug">
+              Telefone: +55 (47) 3375-1194 | E-mail: secretaria@brm.org.br | Site: scj.org.br
+            </p>
+          </div>
+
+          <footer className="mt-3 pt-2 border-t border-slate-200 flex justify-between text-[6.5pt] font-mono text-slate-400">
+            <span>Emitido eletronicamente em {new Date().toLocaleDateString("pt-BR")} às {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} · sistema.brm.org.br</span>
+            <span>Documento reservado · Dados pessoais protegidos pela LGPD</span>
+          </footer>
 
         </div>
       </main>

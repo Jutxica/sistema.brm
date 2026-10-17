@@ -308,9 +308,36 @@ export const EstatisticaBRM: React.FC = () => {
   }, [saude]);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300 print:space-y-6">
-      {/* 1. Header Oficial da Secretaria Provincial */}
-      <header className="rounded-[6px] card-editorial-masthead bg-white dark:bg-[#161b22] p-6 md:p-8 border border-slate-200 dark:border-slate-800 transition-all shadow-sm">
+    <div className="space-y-8 animate-in fade-in duration-300 print:space-y-4 font-sans">
+      {/* Cabeçalho Institucional de Impressão Oficial */}
+      <header className="hidden print:block border-b border-slate-300 pb-3 mb-4">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <img src="/logo-timbrado-brm.png" alt="Província BRM" className="h-14 w-auto object-contain" />
+            <div>
+              <p className="font-mono text-[8pt] uppercase tracking-[0.15em] text-slate-500 font-semibold">
+                Congregação dos Sacerdotes do Sagrado Coração de Jesus
+              </p>
+              <h1 className="text-[14pt] font-serif font-bold text-slate-900 tracking-tight mt-0.5">
+                Província Brasil Meridional
+              </h1>
+              <p className="text-[8.5pt] font-mono text-slate-600">Secretaria Provincial · Censo & Estatística Demográfica</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="font-mono text-[7pt] uppercase tracking-wider text-slate-400">Documento Oficial</p>
+            <p className="font-mono text-[10pt] font-bold text-slate-800">
+              ESTAT-{new Date().getFullYear()}
+            </p>
+            <p className="text-[7.5pt] font-mono text-slate-500 mt-0.5">
+              {new Date().toLocaleDateString("pt-BR")}
+            </p>
+          </div>
+        </div>
+      </header>
+
+      {/* 1. Header Oficial da Secretaria Provincial (Web) */}
+      <header className="rounded-[6px] card-editorial-masthead bg-white dark:bg-[#161b22] p-6 md:p-8 border border-slate-200 dark:border-slate-800 transition-all shadow-sm print:hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-start gap-4">
             <div className="flex items-center shrink-0">
@@ -775,10 +802,22 @@ export const EstatisticaBRM: React.FC = () => {
       </section>
 
       {/* 7. Rodapé Oficial para Impressão */}
-      <footer className="hidden print:block pt-6 border-t border-slate-300 text-center text-[10px] font-mono text-slate-500 space-y-1">
-        <p>Província Brasileira Meridional dos Padres do Sagrado Coração de Jesus (SCJ)</p>
-        <p>Documento gerado pelo Sistema BRM em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')}</p>
-      </footer>
+      <div className="hidden print:block select-none">
+        {/* Linha Canônica da Sede e Rodapé */}
+        <div className="mt-8 pt-2 border-t border-[#a0a0a0] text-center">
+          <p className="font-serif text-[8.5pt] text-slate-700 leading-snug">
+            Rua Padre Gabriel Lux, 900 – Caixa Postal 21 – Corupá/SC | CEP 89278-000
+          </p>
+          <p className="font-serif text-[8pt] text-slate-600 mt-0.5 leading-snug">
+            Telefone: +55 (47) 3375-1194 | E-mail: secretaria@brm.org.br | Site: scj.org.br
+          </p>
+        </div>
+
+        <footer className="mt-3 pt-2 border-t border-slate-200 flex justify-between text-[6.5pt] font-mono text-slate-400">
+          <span>Emitido eletronicamente em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} · sistema.brm.org.br</span>
+          <span>Documento reservado · Dados estatísticos e cadastrais sob custódia provincial</span>
+        </footer>
+      </div>
     </div>
   );
 };

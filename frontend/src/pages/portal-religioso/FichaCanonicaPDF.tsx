@@ -254,27 +254,44 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
     );
   }
 
+  const formatCpfMask = (cpf?: string | null) => {
+    if (!cpf) return '—';
+    const clean = cpf.replace(/\D/g, '');
+    if (clean.length === 11) {
+      return clean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    }
+    return cpf;
+  };
+
+  const naturalidadeTexto = [data?.municipio_nascimento, data?.estado_nascimento].filter(Boolean).join(' - ') || '—';
+  const pai = data?.familiares?.find((f: any) => (f.parentesco || f.tipo || '').toLowerCase().includes('pai'))?.nome;
+  const mae = data?.familiares?.find((f: any) => (f.parentesco || f.tipo || '').toLowerCase().includes('mãe') || (f.parentesco || f.tipo || '').toLowerCase().includes('mae'))?.nome;
+  const paisTexto = [pai, mae].filter(Boolean).join(' e ') || '—';
+
+  const anoIngresso = data?.data_ingresso ? data.data_ingresso.slice(0, 4) : '—';
+  const batismo = data?.sacramentosList?.find((s: any) => (s.tipo || '').toLowerCase().includes('batis')) || null;
+
   return (
     <div className="w-full">
       {/* BARRA DE AÇÕES SUPERIOR (OCULTADA NA IMPRESSÃO) */}
-      <div className="print:hidden mb-6 flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-[#161617] p-4 rounded-[20px] border border-[#d6d6d6]/60 dark:border-white/10 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+      <div className="print:hidden mb-6 flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-[#161617] p-4 rounded-[8px] border border-slate-200 dark:border-white/10 shadow-xs">
         <div className="flex items-center gap-3">
           {onBack && (
             <button
               type="button"
               onClick={onBack}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#f5f5f7] dark:bg-[#262628] text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-[#e8e8ed] dark:hover:bg-[#323236] transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Voltar ao Painel</span>
             </button>
           )}
           <div>
-            <h2 className="text-sm font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+            <h2 className="text-sm font-semibold text-[#113240] dark:text-[#f5f5f7]">
               Ficha Canônica Individual
             </h2>
-            <span className="text-[11px] text-[#707070] dark:text-[#86868b]">
-              Visualização oficial estilo documento / A4 para impressão e arquivamento
+            <span className="text-[11px] text-slate-500 dark:text-[#86868b]">
+              Visualização oficial no padrão institucional A4 para impressão e arquivamento
             </span>
           </div>
         </div>
@@ -283,7 +300,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
           <button
             type="button"
             onClick={handleShare}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#f5f5f7] dark:bg-[#262628] text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-[#e8e8ed] dark:hover:bg-[#323236] transition-all cursor-pointer border border-[#d6d6d6]/60 dark:border-white/10"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             {copiado ? (
               <>
@@ -292,7 +309,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
               </>
             ) : (
               <>
-                <Share2 className="w-3.5 h-3.5 text-[#0071e3]" />
+                <Share2 className="w-3.5 h-3.5 text-[#226380]" />
                 <span>Compartilhar</span>
               </>
             )}
@@ -301,17 +318,17 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
           <button
             type="button"
             onClick={() => setOrientacao(prev => (prev === 'vertical' ? 'horizontal' : 'vertical'))}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#f5f5f7] dark:bg-[#262628] text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-[#e8e8ed] dark:hover:bg-[#323236] transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             title="Alternar orientação entre Vertical (Retrato) e Horizontal (Paisagem)"
           >
-            <RotateCw className="w-3.5 h-3.5 text-[#0071e3]" />
+            <RotateCw className="w-3.5 h-3.5 text-[#226380]" />
             <span>{orientacao === 'horizontal' ? 'Vertical' : 'Horizontal'}</span>
           </button>
 
           <button
             type="button"
             onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-[6px] bg-[#113240] hover:bg-[#226380] text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>Imprimir / Salvar PDF</span>
@@ -331,205 +348,235 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         `}
       </style>
 
-      {/* DOCUMENTO ESTILO FOLHA OFICIAL A4 / PDF */}
-      <div className={`mx-auto bg-white text-[#1d1d1f] p-8 sm:p-12 rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-[#d6d6d6]/60 print:shadow-none print:border-none print:p-0 print:m-0 print:max-w-none print:rounded-none transition-all ${orientacao === 'horizontal' ? 'max-w-[1140px]' : 'max-w-[850px]'}`}>
+      {/* DOCUMENTO ESTILO FOLHA OFICIAL INSTITUCIONAL A4 */}
+      <div className={`mx-auto bg-white text-slate-900 p-8 sm:p-12 border border-slate-200 shadow-sm print:shadow-none print:border-none print:p-0 print:m-0 print:max-w-none transition-all font-sans leading-tight ${orientacao === 'horizontal' ? 'max-w-[1140px]' : 'max-w-[850px]'}`}>
         
-        {/* CABEÇALHO OFICIAL DO PAPEL TIMBRADO BRM */}
-        <CabecalhoTimbradoBRM
-          protocolo={data?.id ? data.id.slice(0, 8).toUpperCase() : 'BRM-2026'}
-          dataEmissao={new Date().toLocaleDateString('pt-BR')}
-          subtituloDocumento="Ficha Cadastral Canônica Oficial"
-        />
-
-        {/* IDENTIFICAÇÃO DO RELIGIOSO (FOTO + DADOS PRINCIPAIS) */}
-        <div className="bg-[#fbfbfd] rounded-[16px] border border-[#d6d6d6]/60 p-5 mb-6 flex flex-col sm:flex-row items-center sm:items-start gap-6">
-          <div className="w-24 h-28 rounded-[12px] bg-white border border-[#d6d6d6] flex flex-col items-center justify-center text-[#707070] shrink-0 overflow-hidden shadow-sm">
-            {data?.foto_url ? (
-              <img src={data.foto_url} alt="Foto do Religioso" className="w-full h-full object-cover" />
-            ) : (
-              <div className="flex flex-col items-center justify-center p-2 text-center">
-                <FileText className="w-8 h-8 text-[#a1a1a6] mb-1" />
-                <span className="text-[9px] uppercase font-semibold text-[#707070]">3x4 Oficial</span>
+        {/* Cabeçalho Oficial com Brasão Dehoniano */}
+        <header className="border-b border-slate-300 pb-3 mb-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <img src="/logo-timbrado-brm.png" alt="Província BRM" className="h-14 w-auto object-contain" />
+              <div>
+                <p className="font-mono text-[8pt] uppercase tracking-[0.15em] text-slate-500 font-semibold">
+                  Congregação dos Sacerdotes do Sagrado Coração de Jesus
+                </p>
+                <h1 className="text-[14pt] font-serif font-bold text-slate-900 tracking-tight mt-0.5">
+                  Província Brasil Meridional
+                </h1>
+                <p className="text-[8.5pt] font-mono text-slate-600">Arquivo Provincial · Chancelaria</p>
               </div>
-            )}
+            </div>
+            <div className="text-right">
+              <p className="font-mono text-[7pt] uppercase tracking-wider text-slate-400">Cadastro / Protocolo</p>
+              <p className="font-mono text-[10pt] font-bold text-slate-800">
+                {data?.numero_cadastro ? String(data.numero_cadastro).padStart(4, '0') : (data?.id ? data.id.slice(0, 8).toUpperCase() : 'BRM-2026')}
+              </p>
+            </div>
           </div>
+        </header>
 
-          <div className="flex-1 text-center sm:text-left">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[#0071e3] block mb-1">
-              {data?.grau || 'Padre'} • Dehoniano SCJ
-            </span>
-            <h2 className="text-xl sm:text-2xl font-bold text-[#1d1d1f] tracking-tight">
-              {data?.nome_religioso || data?.nome_civil}
-            </h2>
-            <p className="text-xs text-[#707070] mt-0.5">
-              Nome civil completo: <span className="font-semibold text-[#1d1d1f]">{data?.nome_civil}</span>
-            </p>
+        {/* Identificação do Religioso */}
+        <div className="flex items-end justify-between border-b border-slate-200 pb-3 mb-3">
+          <div className="flex items-center gap-4">
+            {data?.foto_url && (
+              <img
+                src={data.foto_url}
+                alt="Foto"
+                className="w-14 h-16 object-cover border border-slate-300 rounded-[2px]"
+              />
+            )}
+            <div>
+              <p className="font-mono text-[7.5pt] uppercase tracking-[0.16em] text-slate-500 font-semibold">
+                Ficha Cadastral Canônica
+              </p>
+              <h2 className="text-[17pt] font-serif font-bold text-slate-900 mt-0.5">
+                {data?.nome_religioso || data?.nome_civil}
+              </h2>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 border border-slate-900 px-2.5 py-0.5 text-[8pt] font-mono font-semibold uppercase">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-900" />
+            <span>Cadastro {data?.status_cadastro || data?.status || 'Aprovado'}</span>
+          </div>
+        </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 mt-3 pt-3 border-t border-[#d6d6d6]/50 text-xs">
-              <div>
-                <span className="text-[#707070]">Comunidade de Residência: </span>
-                <span className="font-semibold text-[#1d1d1f]">{data?.comunidade_atual_nome || 'A definir'}</span>
-              </div>
-              <div>
-                <span className="text-[#707070]">Status Canônico: </span>
-                <span className="font-semibold text-emerald-700">{data?.status || 'Ativo'}</span>
-              </div>
-              <div>
-                <span className="text-[#707070]">E-mail Institucional: </span>
-                <span className="font-medium text-[#1d1d1f]">{data?.email_institucional || '—'}</span>
-              </div>
-              <div>
-                <span className="text-[#707070]">WhatsApp / Celular: </span>
-                <span className="font-medium text-[#1d1d1f]">{data?.whatsapp || data?.telefone_celular || '—'}</span>
-              </div>
+        {/* Faixa de Indicadores Rápidos */}
+        <div className="grid grid-cols-4 border border-slate-200 bg-slate-50/60 text-center mb-4">
+          <div className="p-2 border-r border-slate-200">
+            <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Grau</p>
+            <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5">{data?.grau || 'Padre'}</p>
+          </div>
+          <div className="p-2 border-r border-slate-200">
+            <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Ingresso</p>
+            <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5">{anoIngresso}</p>
+          </div>
+          <div className="p-2 border-r border-slate-200">
+            <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Votos Perpétuos</p>
+            <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5">{formatarData(data?.data_votos_perpetuos)}</p>
+          </div>
+          <div className="p-2">
+            <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Ordenação</p>
+            <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5">{formatarData(data?.data_presbiterato || data?.data_diaconato)}</p>
+          </div>
+        </div>
+
+        {/* Bloco 1: Ficha Geral & Registro Civil */}
+        <div className="mb-4">
+          <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
+            01. Ficha Geral & Registro Civil
+          </p>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-[8.5pt]">
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Nome Civil</p>
+              <p className="font-medium text-slate-900">{data?.nome_civil || '—'}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Nome Religioso</p>
+              <p className="font-medium text-slate-900">{data?.nome_religioso || '—'}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Data de Nascimento</p>
+              <p className="font-medium text-slate-900">{formatarData(data?.data_nascimento)}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">CPF</p>
+              <p className="font-mono font-medium text-slate-900">{formatCpfMask(data?.cpf)}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">RG / Órgão Expedidor</p>
+              <p className="font-medium text-slate-900">{data?.rg ? `${data.rg} (${data?.rg_orgao_expedidor || 'SSP'})` : '—'}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Naturalidade</p>
+              <p className="font-medium text-slate-900">{naturalidadeTexto}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Nacionalidade</p>
+              <p className="font-medium text-slate-900">{data?.nacionalidade || 'Brasileira'}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Título de Eleitor / PIS</p>
+              <p className="font-mono font-medium text-slate-900">{[data?.titulo_eleitor, data?.pis].filter(Boolean).join(' · ') || '—'}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">E-mail Institucional</p>
+              <p className="font-medium text-slate-900">{data?.email_institucional || '—'}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Celular / WhatsApp</p>
+              <p className="font-medium text-slate-900">{data?.whatsapp || data?.telefone_celular || '—'}</p>
+            </div>
+            <div className="col-span-2">
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Filiação</p>
+              <p className="font-medium text-slate-900">{paisTexto}</p>
             </div>
           </div>
         </div>
 
-        {/* SEÇÃO 1: DADOS CIVIS & REGISTROS */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 border-b border-[#1d1d1f]/20 pb-1.5 mb-3">
-            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0071e3]">
-              01 • Registro Civil & Identificação Pessoal
-            </span>
+        {/* Bloco 2: Vínculo Provincial & Residência */}
+        <div className="mb-4">
+          <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
+            02. Vínculo Provincial & Residência
+          </p>
+          <div className="grid grid-cols-3 gap-x-4 text-[8.5pt]">
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Comunidade Atual</p>
+              <p className="font-medium text-slate-900">{data?.comunidade_atual_nome || '—'}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Status Canônico</p>
+              <p className="font-medium text-slate-900">{data?.status || 'Ativo'}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Bispo Ordenante</p>
+              <p className="font-medium text-slate-900">{data?.bispo_ordenante || '—'}</p>
+            </div>
           </div>
-
-          <table className="w-full text-xs border-collapse">
-            <tbody>
-              <tr className="border-b border-[#e5e5ea]">
-                <td className="py-2 text-[#707070] font-medium w-1/4">Data de Nascimento:</td>
-                <td className="py-2 font-semibold text-[#1d1d1f] w-1/4">{formatarData(data?.data_nascimento)}</td>
-                <td className="py-2 text-[#707070] font-medium w-1/4">Naturalidade / UF:</td>
-                <td className="py-2 font-semibold text-[#1d1d1f] w-1/4">
-                  {data?.municipio_nascimento ? `${data.municipio_nascimento}/${data?.estado_nascimento || ''}` : '—'}
-                </td>
-              </tr>
-              <tr className="border-b border-[#e5e5ea]">
-                <td className="py-2 text-[#707070] font-medium">Nacionalidade:</td>
-                <td className="py-2 font-semibold text-[#1d1d1f]">{data?.nacionalidade || 'Brasileira'}</td>
-                <td className="py-2 text-[#707070] font-medium">CPF:</td>
-                <td className="py-2 font-mono font-semibold text-[#1d1d1f]">{data?.cpf || '—'}</td>
-              </tr>
-              <tr className="border-b border-[#e5e5ea]">
-                <td className="py-2 text-[#707070] font-medium">RG / Órgão:</td>
-                <td className="py-2 font-semibold text-[#1d1d1f]">
-                  {data?.rg ? `${data.rg} (${data?.rg_orgao_expedidor || 'SSP'})` : '—'}
-                </td>
-                <td className="py-2 text-[#707070] font-medium">Título de Eleitor:</td>
-                <td className="py-2 font-mono font-semibold text-[#1d1d1f]">{data?.titulo_eleitor || '—'}</td>
-              </tr>
-              <tr className="border-b border-[#e5e5ea]">
-                <td className="py-2 text-[#707070] font-medium">PIS / PASEP:</td>
-                <td className="py-2 font-mono font-semibold text-[#1d1d1f]">{data?.pis || '—'}</td>
-                <td className="py-2 text-[#707070] font-medium">CNH / Categoria:</td>
-                <td className="py-2 font-semibold text-[#1d1d1f]">
-                  {data?.cnh ? `${data.cnh} (Cat. ${data?.cnh_categoria || 'B'})` : '—'}
-                </td>
-              </tr>
-            </tbody>
-          </table>
         </div>
 
-        {/* SEÇÃO 2: DADOS VOCACIONAIS & CANÔNICOS */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 border-b border-[#1d1d1f]/20 pb-1.5 mb-3">
-            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0071e3]">
-              02 • Trajetória Religiosa & Ministério Eclesiástico
-            </span>
+        {/* Bloco 3: Trajetória Canônica (Linha do Tempo Visual) */}
+        <div className="mb-4">
+          <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
+            03. Trajetória Canônica
+          </p>
+          <div className="grid grid-cols-4 gap-2 text-center pt-1">
+            <div className="border border-slate-200 p-2">
+              <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
+              <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Batismo</p>
+              <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{batismo?.data ? formatarData(batismo.data) : '—'}</p>
+              {batismo?.paroquia && <p className="text-[6.5pt] text-slate-500 truncate">{batismo.paroquia}</p>}
+            </div>
+            <div className="border border-slate-200 p-2">
+              <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
+              <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Primeira Profissão</p>
+              <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{formatarData(data?.data_primeiros_votos)}</p>
+            </div>
+            <div className="border border-slate-200 p-2">
+              <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
+              <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Profissão Perpétua</p>
+              <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{formatarData(data?.data_votos_perpetuos)}</p>
+            </div>
+            <div className="border border-slate-200 p-2">
+              <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
+              <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Ordenação</p>
+              <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{formatarData(data?.data_presbiterato || data?.data_diaconato)}</p>
+              {data?.local_ordenacao && <p className="text-[6.5pt] text-slate-500 truncate">{data.local_ordenacao}</p>}
+            </div>
           </div>
-
-          <table className="w-full text-xs border-collapse">
-            <tbody>
-              <tr className="border-b border-[#e5e5ea]">
-                <td className="py-2 text-[#707070] font-medium w-1/4">Ingresso / Postulado:</td>
-                <td className="py-2 font-semibold text-[#1d1d1f] w-1/4">{formatarData(data?.data_ingresso)}</td>
-                <td className="py-2 text-[#707070] font-medium w-1/4">Primeira Profissão Religiosa:</td>
-                <td className="py-2 font-semibold text-[#1d1d1f] w-1/4">{formatarData(data?.data_primeiros_votos)}</td>
-              </tr>
-              <tr className="border-b border-[#e5e5ea]">
-                <td className="py-2 text-[#707070] font-medium">Votos Perpétuos:</td>
-                <td className="py-2 font-semibold text-[#1d1d1f]">{formatarData(data?.data_votos_perpetuos)}</td>
-                <td className="py-2 text-[#707070] font-medium">Ordenação Diaconal:</td>
-                <td className="py-2 font-semibold text-[#1d1d1f]">{formatarData(data?.data_diaconato)}</td>
-              </tr>
-              <tr className="border-b border-[#e5e5ea]">
-                <td className="py-2 text-[#707070] font-medium">Ordenação Presbiteral:</td>
-                <td className="py-2 font-semibold text-[#1d1d1f]">{formatarData(data?.data_presbiterato)}</td>
-                <td className="py-2 text-[#707070] font-medium">Bispo Ordenante:</td>
-                <td className="py-2 font-semibold text-[#1d1d1f]">{data?.bispo_ordenante || '—'}</td>
-              </tr>
-              <tr className="border-b border-[#e5e5ea]">
-                <td className="py-2 text-[#707070] font-medium">Local da Ordenação:</td>
-                <td colSpan={3} className="py-2 font-semibold text-[#1d1d1f]">
-                  {data?.local_ordenacao || 'Província Brasil Meridional'}
-                </td>
-              </tr>
-            </tbody>
-          </table>
         </div>
 
-        {/* SEÇÃO 3: FORMAÇÃO ACADÊMICA & HABILITAÇÕES */}
+        {/* Bloco 4: Formação Acadêmica & Graus Obtidos */}
         <div className="mb-6">
-          <div className="flex items-center gap-2 border-b border-[#1d1d1f]/20 pb-1.5 mb-3">
-            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0071e3]">
-              03 • Formação Acadêmica & Graus Obtidos
-            </span>
-          </div>
-
-          <div className="space-y-2 text-xs">
+          <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
+            04. Formação Acadêmica & Graus Obtidos
+          </p>
+          <div className="space-y-1 text-[8pt]">
             {data?.formacoes && data.formacoes.length > 0 ? (
               data.formacoes.map((f: any, idx: number) => {
                 const titulo = f.curso || f.categoria || 'Formação Acadêmica';
                 const inst = f.instituicao || 'Instituição';
                 const anoPeriodo = f.periodo || f.ano || '';
                 return (
-                  <div key={idx} className="flex justify-between py-1.5 border-b border-[#e5e5ea]">
-                    <span className="font-semibold text-[#1d1d1f]">{titulo}</span>
-                    <span className="text-[#707070]">{inst}{anoPeriodo ? ` (${anoPeriodo})` : ''}</span>
+                  <div key={idx} className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="font-medium text-slate-900">{titulo}</span>
+                    <span className="text-slate-600">{inst}{anoPeriodo ? ` (${anoPeriodo})` : ''}</span>
                   </div>
                 );
               })
             ) : (
-              <div className="py-2 text-[#707070] italic">
-                Filosofia e Teologia — Província Brasil Meridional
-              </div>
+              <p className="text-slate-500 italic py-1">Filosofia e Teologia — Província Brasil Meridional</p>
             )}
           </div>
         </div>
 
-        {/* BLOC DE AUTENTICAÇÃO E ASSINATURAS (SECRETARIA PROVINCIAL) */}
-        <div className="mt-12 pt-6 border-t-2 border-[#1d1d1f] flex flex-col sm:flex-row justify-between items-end gap-8">
-          <div className="text-left text-[11px] text-[#707070] max-w-sm">
-            <div className="flex items-center gap-2 text-[#1d1d1f] font-semibold mb-1">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>Secretaria Provincial • Província BRM</span>
-            </div>
-            <p>
-              Documento canônico expedido em {new Date().toLocaleDateString('pt-BR')}, com fé pública perante a Sede Provincial e registros canônicos dos Padres Dehonianos.
-            </p>
+        {/* Assinaturas Institucionais */}
+        <div className="mt-8 pt-4 grid grid-cols-2 gap-12 text-center text-[7.5pt] break-inside-avoid">
+          <div>
+            <div className="border-t border-slate-800 mx-auto w-48 mb-1" />
+            <p className="font-semibold text-slate-800">{data?.nome_religioso || data?.nome_civil}</p>
+            <p className="text-[6.5pt] text-slate-400">Assinatura do Religioso</p>
           </div>
-
-          <div className="flex flex-col sm:flex-row gap-8 w-full sm:w-auto">
-            <div className="text-center min-w-[180px]">
-              <div className="border-b border-[#1d1d1f] mb-1.5 h-10" />
-              <span className="text-[10px] font-semibold text-[#1d1d1f] block uppercase">
-                {data?.nome_religioso || data?.nome_civil}
-              </span>
-              <span className="text-[9px] text-[#707070] block">Assinatura do Religioso</span>
-            </div>
-
-            <div className="text-center min-w-[180px]">
-              <div className="border-b border-[#1d1d1f] mb-1.5 h-10" />
-              <span className="text-[10px] font-semibold text-[#1d1d1f] block uppercase">
-                Secretário Provincial
-              </span>
-              <span className="text-[9px] text-[#707070] block">Sede Provincial BRM</span>
-            </div>
+          <div>
+            <div className="border-t border-slate-800 mx-auto w-48 mb-1" />
+            <p className="font-semibold text-slate-800">Chancelaria · Arquivo Provincial</p>
+            <p className="text-[6.5pt] text-slate-400">Assinatura e carimbo</p>
           </div>
         </div>
 
-        {/* Rodapé Oficial Timbrado BRM */}
-        <RodapeTimbradoBRM />
+        {/* Linha Canônica da Sede e Rodapé */}
+        <div className="mt-8 pt-2 border-t border-[#a0a0a0] text-center select-none">
+          <p className="font-serif text-[8.5pt] text-slate-700 leading-snug">
+            Rua Padre Gabriel Lux, 900 – Caixa Postal 21 – Corupá/SC | CEP 89278-000
+          </p>
+          <p className="font-serif text-[8pt] text-slate-600 mt-0.5 leading-snug">
+            Telefone: +55 (47) 3375-1194 | E-mail: secretaria@brm.org.br | Site: scj.org.br
+          </p>
+        </div>
+
+        <footer className="mt-3 pt-2 border-t border-slate-200 flex justify-between text-[6.5pt] font-mono text-slate-400">
+          <span>Emitido eletronicamente em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} · sistema.brm.org.br</span>
+          <span>Documento reservado · Dados pessoais protegidos pela LGPD</span>
+        </footer>
       </div>
     </div>
   );

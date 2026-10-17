@@ -162,79 +162,85 @@ export const RelatorioInscricoesPrint: React.FC<RelatorioInscricoesPrintProps> =
         `}
       </style>
 
-      {/* ÁREA DE IMPRESSÃO / FOLHA OFICIAL */}
+      {/* ÁREA DE IMPRESSÃO / FOLHA OFICIAL INSTITUCIONAL */}
       <main className={`mx-auto my-6 sm:my-8 px-4 sm:px-6 print:m-0 print:p-0 print:max-w-none transition-all ${orientacao === "horizontal" ? "max-w-7xl" : "max-w-5xl"}`}>
-        <div className="bg-white dark:bg-[#12161f] print:bg-white text-slate-900 print:text-black border border-slate-200 dark:border-slate-800 print:border-none shadow-sm print:shadow-none rounded-[8px] print:rounded-none overflow-hidden p-6 sm:p-10 space-y-6">
+        <div className="bg-white dark:bg-[#12161f] print:bg-white text-slate-900 print:text-black border border-slate-200 dark:border-slate-800 print:border-none shadow-sm print:shadow-none rounded-[6px] print:rounded-none overflow-hidden p-8 sm:p-12 font-sans leading-tight">
           
-          {/* CABEÇALHO OFICIAL DO PAPEL TIMBRADO BRM */}
-          <CabecalhoTimbradoBRM
-            subtituloDocumento={tituloDocumento}
-            dataEmissao={new Date().toLocaleDateString("pt-BR")}
-          />
-
-          {/* IDENTIFICAÇÃO DO EVENTO / FORMULÁRIO */}
-          <div className="bg-slate-50 dark:bg-slate-900/40 print:bg-slate-50 p-4 rounded-[6px] border border-slate-200 dark:border-slate-800 print:border-slate-300">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div>
-                <span className="font-mono text-[10px] uppercase font-bold text-[#226380] tracking-wider block">
-                  Livro de Inscrições & Atos Participativos
-                </span>
-                <h2 className="font-cinzel text-lg sm:text-xl font-bold text-[#113240] dark:text-white print:text-black">
-                  {tituloDocumento}
-                </h2>
-                {nomeEvento && nomeEvento !== tituloDocumento && (
-                  <p className="text-xs font-sans text-slate-600 dark:text-slate-400 print:text-slate-700 mt-0.5">
-                    Evento Vinculado: <strong>{nomeEvento}</strong>
+          {/* Cabeçalho Oficial */}
+          <header className="border-b border-slate-300 pb-3 mb-4">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <img src="/logo-timbrado-brm.png" alt="Província BRM" className="h-14 w-auto object-contain" />
+                <div>
+                  <p className="font-mono text-[8pt] uppercase tracking-[0.15em] text-slate-500 font-semibold">
+                    Congregação dos Sacerdotes do Sagrado Coração de Jesus
                   </p>
-                )}
-              </div>
-
-              {(dataEvento || localEvento) && (
-                <div className="font-mono text-xs text-slate-600 dark:text-slate-400 print:text-slate-700 space-y-1 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-700 md:pl-4">
-                  {dataEvento && (
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{dataEvento}</span>
-                    </div>
-                  )}
-                  {localEvento && (
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{localEvento}</span>
-                    </div>
-                  )}
+                  <h1 className="text-[14pt] font-serif font-bold text-slate-900 tracking-tight mt-0.5">
+                    Província Brasil Meridional
+                  </h1>
+                  <p className="text-[8.5pt] font-mono text-slate-600">Secretaria Provincial · Livro de Inscrições</p>
                 </div>
+              </div>
+              <div className="text-right">
+                <p className="font-mono text-[7pt] uppercase tracking-wider text-slate-400">Documento Oficial</p>
+                <p className="font-mono text-[10pt] font-bold text-slate-800">
+                  REL-{new Date().getFullYear()}-{String(respostas.length).padStart(3, '0')}
+                </p>
+                <p className="text-[7.5pt] font-mono text-slate-500 mt-0.5">
+                  {new Date().toLocaleDateString("pt-BR")}
+                </p>
+              </div>
+            </div>
+          </header>
+
+          {/* Identificação do Relatório */}
+          <div className="flex items-end justify-between border-b border-slate-200 pb-3 mb-3">
+            <div>
+              <p className="font-mono text-[7.5pt] uppercase tracking-[0.16em] text-slate-500 font-semibold">
+                Livro de Inscrições & Atos Participativos
+              </p>
+              <h2 className="text-[16pt] font-serif font-bold text-slate-900 mt-0.5">
+                {tituloDocumento}
+              </h2>
+              {(dataEvento || localEvento) && (
+                <p className="text-[8.5pt] font-mono text-slate-600 mt-0.5">
+                  {[dataEvento, localEvento].filter(Boolean).join(" · ")}
+                </p>
               )}
             </div>
+            <div className="flex items-center gap-1.5 border border-slate-900 px-2.5 py-0.5 text-[8pt] font-mono font-semibold uppercase">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-900" />
+              <span>{totalInscritos} Inscrições</span>
+            </div>
+          </div>
 
-            {/* QUADRO DE RESUMO ESTATÍSTICO */}
-            <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-              <div className="p-2 bg-white dark:bg-[#161b22] print:bg-white rounded border border-slate-200 dark:border-slate-800 print:border-slate-300">
-                <span className="font-mono text-[10px] uppercase text-slate-400 block">Total Inscritos</span>
-                <span className="font-mono text-base font-bold text-[#113240] dark:text-white print:text-black">{totalInscritos}</span>
-              </div>
-              <div className="p-2 bg-white dark:bg-[#161b22] print:bg-white rounded border border-slate-200 dark:border-slate-800 print:border-slate-300">
-                <span className="font-mono text-[10px] uppercase text-slate-400 block">Confirmadas</span>
-                <span className="font-mono text-base font-bold text-emerald-600">{totalConfirmadas}</span>
-              </div>
-              <div className="p-2 bg-white dark:bg-[#161b22] print:bg-white rounded border border-slate-200 dark:border-slate-800 print:border-slate-300">
-                <span className="font-mono text-[10px] uppercase text-slate-400 block">Com Hospedagem</span>
-                <span className="font-mono text-base font-bold text-[#226380]">{totalHospedagem}</span>
-              </div>
-              <div className="p-2 bg-white dark:bg-[#161b22] print:bg-white rounded border border-slate-200 dark:border-slate-800 print:border-slate-300">
-                <span className="font-mono text-[10px] uppercase text-slate-400 block">Sem Hospedagem</span>
-                <span className="font-mono text-base font-bold text-slate-600">{totalInscritos - totalHospedagem}</span>
-              </div>
+          {/* Faixa de Indicadores Rápidos */}
+          <div className="grid grid-cols-4 border border-slate-200 bg-slate-50/60 text-center mb-4">
+            <div className="p-2 border-r border-slate-200">
+              <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Total Inscritos</p>
+              <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5">{totalInscritos}</p>
+            </div>
+            <div className="p-2 border-r border-slate-200">
+              <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Confirmadas</p>
+              <p className="text-[9.5pt] font-medium text-emerald-700 mt-0.5">{totalConfirmadas}</p>
+            </div>
+            <div className="p-2 border-r border-slate-200">
+              <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Com Hospedagem</p>
+              <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5">{totalHospedagem}</p>
+            </div>
+            <div className="p-2">
+              <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Sem Hospedagem</p>
+              <p className="text-[9.5pt] font-medium text-slate-600 mt-0.5">{totalInscritos - totalHospedagem}</p>
             </div>
           </div>
 
           {/* TABELA COMPLETA DIAGRAMADA PARA IMPRESSÃO */}
-          <section className="space-y-2">
-            <div className="flex items-center justify-between text-xs font-mono">
-              <span className="font-bold text-[#113240] dark:text-white print:text-black uppercase">
+          <section className="space-y-2 mb-6">
+            <div className="flex items-center justify-between text-xs font-mono border-b border-slate-200 pb-1 mb-2">
+              <span className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700">
                 Relação Nominal dos Confrades Inscritos ({respostas.length})
               </span>
-              <span className="text-[10px] text-slate-400">
+              <span className="text-[6.5pt] text-slate-400">
                 Ordenado cronologicamente por protocolo
               </span>
             </div>
@@ -244,108 +250,108 @@ export const RelatorioInscricoesPrint: React.FC<RelatorioInscricoesPrintProps> =
                 Nenhuma inscrição protocolada para exibição neste relatório.
               </div>
             ) : (
-              <div className="border border-slate-300 dark:border-slate-700 print:border-black rounded-[4px] overflow-hidden">
+              <div className="border border-slate-300 print:border-black rounded-[2px] overflow-hidden">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-slate-100 dark:bg-slate-800 print:bg-slate-100 border-b border-slate-300 dark:border-slate-700 print:border-black font-mono text-[10px] uppercase text-slate-700 print:text-black font-bold">
-                      <th className="p-2 border-r border-slate-200 print:border-black w-8 text-center">Nº</th>
-                      <th className="p-2 border-r border-slate-200 print:border-black w-24">Protocolo</th>
-                      <th className="p-2 border-r border-slate-200 print:border-black">Confrade & Grau</th>
-                      <th className="p-2 border-r border-slate-200 print:border-black">Comunidade</th>
-                      <th className="p-2 border-r border-slate-200 print:border-black">Hospedagem & Chegada</th>
-                      <th className="p-2 border-r border-slate-200 print:border-black">Opções & Restrições</th>
-                      <th className="p-2 border-r border-slate-200 print:border-black w-28">Contato</th>
-                      <th className="p-2 w-28 text-center">Credenciamento</th>
+                    <tr className="bg-slate-100 print:bg-slate-100 border-b border-slate-300 print:border-black font-mono text-[8pt] uppercase text-slate-700 print:text-black font-bold">
+                      <th className="p-1.5 border-r border-slate-200 print:border-black w-7 text-center">Nº</th>
+                      <th className="p-1.5 border-r border-slate-200 print:border-black w-20">Protocolo</th>
+                      <th className="p-1.5 border-r border-slate-200 print:border-black">Confrade & Grau</th>
+                      <th className="p-1.5 border-r border-slate-200 print:border-black">Comunidade</th>
+                      <th className="p-1.5 border-r border-slate-200 print:border-black">Hospedagem & Chegada</th>
+                      <th className="p-1.5 border-r border-slate-200 print:border-black">Opções & Restrições</th>
+                      <th className="p-1.5 border-r border-slate-200 print:border-black w-24">Contato</th>
+                      <th className="p-1.5 w-24 text-center">Credenciamento</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800 print:divide-black">
+                  <tbody className="divide-y divide-slate-200 print:divide-slate-300 text-[8pt]">
                     {respostas.map((r, i) => (
                       <tr key={r.id || i} className="print:text-black font-sans leading-tight">
-                        <td className="p-2 border-r border-slate-200 print:border-black text-center font-mono text-[10px] text-slate-500 font-bold">
+                        <td className="p-1.5 border-r border-slate-200 print:border-black text-center font-mono text-[7.5pt] text-slate-500 font-bold">
                           {i + 1}
                         </td>
-                        <td className="p-2 border-r border-slate-200 print:border-black font-mono text-[10px] font-bold text-[#226380] print:text-black">
+                        <td className="p-1.5 border-r border-slate-200 print:border-black font-mono text-[7.5pt] font-bold text-slate-800 print:text-black">
                           {r.protocolo}
-                          <span className="block text-[8px] text-slate-400 font-normal">
+                          <span className="block text-[7pt] text-slate-400 font-normal">
                             {new Date(r.created_at).toLocaleDateString("pt-BR")}
                           </span>
                         </td>
-                        <td className="p-2 border-r border-slate-200 print:border-black">
-                          <strong className="block text-slate-900 dark:text-white print:text-black font-semibold">
+                        <td className="p-1.5 border-r border-slate-200 print:border-black">
+                          <strong className="block text-slate-900 font-semibold text-[8.5pt]">
                             {r.dados?.nome_religioso || r.dados?.nome_completo || "Sem identificação"}
                           </strong>
                           {r.dados?.nome_completo && r.dados?.nome_completo !== r.dados?.nome_religioso && (
-                            <span className="block text-[10px] text-slate-500 print:text-slate-700">
+                            <span className="block text-[7.5pt] text-slate-500">
                               {r.dados?.nome_completo}
                             </span>
                           )}
                           {r.dados?.grau_ordem && (
-                            <span className="inline-block mt-0.5 px-1 py-0.2 bg-slate-100 print:bg-transparent font-mono text-[9px] text-[#226380] print:text-black border border-slate-200 print:border-none rounded">
+                            <span className="inline-block mt-0.5 font-mono text-[7pt] text-slate-600">
                               {r.dados?.grau_ordem}
                             </span>
                           )}
                         </td>
-                        <td className="p-2 border-r border-slate-200 print:border-black text-[11px] text-slate-700 dark:text-slate-300 print:text-black">
-                          {r.dados?.comunidade_atual || "-"}
+                        <td className="p-1.5 border-r border-slate-200 print:border-black text-[8pt] text-slate-700">
+                          {r.dados?.comunidade_atual || "—"}
                         </td>
-                        <td className="p-2 border-r border-slate-200 print:border-black font-mono text-[10px] text-slate-700 dark:text-slate-300 print:text-black">
+                        <td className="p-1.5 border-r border-slate-200 print:border-black font-mono text-[7.5pt] text-slate-700">
                           {r.dados?.necessita_hospedagem ? (
                             <div>
-                              <span className="font-bold text-[#226380] print:text-black">SIM</span>
+                              <span className="font-bold text-slate-900">SIM</span>
                               {r.dados?.tipo_quarto && (
-                                <span className="block text-[9px] text-slate-500">
+                                <span className="block text-[7pt] text-slate-500">
                                   {r.dados?.tipo_quarto}
                                 </span>
                               )}
                               {r.dados?.data_chegada && (
-                                <span className="block text-[9px] text-slate-500">
-                                  Chegada: {r.dados?.data_chegada}
+                                <span className="block text-[7pt] text-slate-500">
+                                  {r.dados?.data_chegada}
                                 </span>
                               )}
                             </div>
                           ) : (
-                            <span className="text-slate-400">Não necessita</span>
+                            <span className="text-slate-400">Não</span>
                           )}
                         </td>
-                        <td className="p-2 border-r border-slate-200 print:border-black text-[10px] text-slate-600 dark:text-slate-400 print:text-black space-y-0.5">
+                        <td className="p-1.5 border-r border-slate-200 print:border-black text-[7.5pt] text-slate-600 space-y-0.5">
                           {r.dados?.restricao_alimentar && (
                             <div>
-                              <strong className="font-mono text-[9px] text-amber-700 print:text-black">Alimentação: </strong>
+                              <span className="font-mono text-[7pt] text-slate-800 font-semibold">Alim: </span>
                               <span>{r.dados?.restricao_alimentar}</span>
                             </div>
                           )}
                           {r.dados?.tamanho_paramento && (
                             <div>
-                              <strong className="font-mono text-[9px]">Paramento: </strong>
+                              <span className="font-mono text-[7pt]">Veste: </span>
                               <span>{r.dados?.tamanho_paramento}</span>
                             </div>
                           )}
                           {r.dados?.meio_transporte && (
                             <div>
-                              <strong className="font-mono text-[9px]">Transporte: </strong>
+                              <span className="font-mono text-[7pt]">Transp: </span>
                               <span>{r.dados?.meio_transporte}</span>
                             </div>
                           )}
                           {r.dados?.observacoes_gerais && (
-                            <div className="italic text-[9px] text-slate-500 print:text-black">
+                            <div className="italic text-[7pt] text-slate-500 truncate max-w-[130px]" title={r.dados?.observacoes_gerais}>
                               Obs: {r.dados?.observacoes_gerais}
                             </div>
                           )}
                           {!r.dados?.restricao_alimentar && !r.dados?.tamanho_paramento && !r.dados?.observacoes_gerais && (
-                            <span className="text-slate-400">-</span>
+                            <span className="text-slate-400">—</span>
                           )}
                         </td>
-                        <td className="p-2 border-r border-slate-200 print:border-black font-mono text-[10px] text-slate-600 dark:text-slate-400 print:text-black">
-                          <div>{r.dados?.telefone_whatsapp || "-"}</div>
+                        <td className="p-1.5 border-r border-slate-200 print:border-black font-mono text-[7.5pt] text-slate-600">
+                          <div>{r.dados?.telefone_whatsapp || "—"}</div>
                           {r.dados?.email && (
-                            <div className="text-[9px] text-slate-400 print:text-black truncate max-w-[110px]" title={r.dados?.email}>
+                            <div className="text-[7pt] text-slate-400 truncate max-w-[100px]" title={r.dados?.email}>
                               {r.dados?.email}
                             </div>
                           )}
                         </td>
-                        <td className="p-2 text-center align-middle">
-                          <div className="w-full h-7 border-b border-dashed border-slate-400 print:border-black flex items-end justify-center pb-0.5">
-                            <span className="text-[8px] text-slate-300 print:text-slate-500 font-mono">Visto / Presença</span>
+                        <td className="p-1.5 text-center align-middle">
+                          <div className="w-full h-6 border-b border-dashed border-slate-400 print:border-black flex items-end justify-center pb-0.5">
+                            <span className="text-[6.5pt] text-slate-400 font-mono">Visto</span>
                           </div>
                         </td>
                       </tr>
@@ -356,33 +362,34 @@ export const RelatorioInscricoesPrint: React.FC<RelatorioInscricoesPrintProps> =
             )}
           </section>
 
-          {/* CHANCELA E ASSINATURA DA SECRETARIA PROVINCIAL */}
-          <div className="pt-6 border-t border-slate-300 dark:border-slate-700 print:border-slate-400 space-y-6 break-inside-avoid">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 text-center">
-              <div className="w-64">
-                <div className="border-b border-slate-400 print:border-black pb-1 mb-1" />
-                <p className="font-mono text-[10px] uppercase font-bold text-slate-700 print:text-black">
-                  Secretário Provincial BRM
-                </p>
-                <p className="text-[9px] text-slate-400 font-sans">
-                  Chancela & Conferência Documental
-                </p>
-              </div>
-
-              <div className="w-64">
-                <div className="border-b border-slate-400 print:border-black pb-1 mb-1" />
-                <p className="font-mono text-[10px] uppercase font-bold text-slate-700 print:text-black">
-                  Coordenador / Responsável
-                </p>
-                <p className="text-[9px] text-slate-400 font-sans">
-                  Recepção & Hospedagem
-                </p>
-              </div>
+          {/* Chancela e Assinatura */}
+          <div className="mt-8 pt-4 grid grid-cols-2 gap-12 text-center text-[7.5pt] break-inside-avoid">
+            <div>
+              <div className="border-t border-slate-800 mx-auto w-48 mb-1" />
+              <p className="font-semibold text-slate-800">Secretário Provincial BRM</p>
+              <p className="text-[6.5pt] text-slate-400">Chancela & Conferência Documental</p>
+            </div>
+            <div>
+              <div className="border-t border-slate-800 mx-auto w-48 mb-1" />
+              <p className="font-semibold text-slate-800">Coordenador / Responsável</p>
+              <p className="text-[6.5pt] text-slate-400">Recepção & Hospedagem</p>
             </div>
           </div>
 
-          {/* RODAPÉ OFICIAL PAPEL TIMBRADO BRM */}
-          <RodapeTimbradoBRM />
+          {/* Linha Canônica da Sede e Rodapé */}
+          <div className="mt-8 pt-2 border-t border-[#a0a0a0] text-center select-none">
+            <p className="font-serif text-[8.5pt] text-slate-700 leading-snug">
+              Rua Padre Gabriel Lux, 900 – Caixa Postal 21 – Corupá/SC | CEP 89278-000
+            </p>
+            <p className="font-serif text-[8pt] text-slate-600 mt-0.5 leading-snug">
+              Telefone: +55 (47) 3375-1194 | E-mail: secretaria@brm.org.br | Site: scj.org.br
+            </p>
+          </div>
+
+          <footer className="mt-3 pt-2 border-t border-slate-200 flex justify-between text-[6.5pt] font-mono text-slate-400">
+            <span>Emitido eletronicamente em {new Date().toLocaleDateString("pt-BR")} às {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} · sistema.brm.org.br</span>
+            <span>Documento reservado · Dados pessoais protegidos pela LGPD</span>
+          </footer>
 
         </div>
       </main>
