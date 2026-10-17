@@ -1,11 +1,20 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileUp, Info, Loader2, Plus, Trash2, Printer } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileUp, Info, Loader2, Plus, Trash2, Printer, Camera, Star, Check, Upload } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { confirmAction, showToast } from '../hooks/useFeedback';
 import { useAuth } from '../contexts/AuthContext';
 import { formatCep, lookupCep } from '../lib/cep';
 import { validateCpf } from '../lib/cpf';
+
+interface FotoReligiosoItem {
+  id: string;
+  arquivo?: File;
+  previewUrl: string;
+  caminho_storage?: string;
+  isPerfil: boolean;
+  nome_arquivo?: string;
+}
 
 interface ObraReferencia {
   id: string;
@@ -338,6 +347,8 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   const [profileUnavailable, setProfileUnavailable] = useState(false);
   const [documentos, setDocumentos] = useState<DocumentoSelecionado[]>([]);
   const [documentosExistentes, setDocumentosExistentes] = useState<DocumentoExistente[]>([]);
+  const [fotosReligioso, setFotosReligioso] = useState<FotoReligiosoItem[]>([]);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const [publicConfig, setPublicConfig] = useState(defaultPublicConfig);
   const [designacoesElenco, setDesignacoesElenco] = useState<DesignacaoPortal[]>([]);
   const [erroDesignacoesElenco, setErroDesignacoesElenco] = useState<string | null>(null);
@@ -477,7 +488,74 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
           ...(historicoData.data || []).map(row => ({ ...row, tipo: 'historico', inicio: row.periodo_inicio || '', fim: row.periodo_fim || '' })),
           ...(servicosData.data || []).map(row => ({ ...row, tipo: 'servico', servico_tipo: row.tipo })),
         ]);
-        setDocumentosExistentes((documentosData.data || []) as DocumentoExistente[]);
+        const docsList = (documentosData.data || []) as DocumentoExistente[];
+        setDocumentosExistentes(docsList);
+
+        // Carregar fotos pré-existentes do religioso
+        const photoDocs = docsList.filter(d => d.categoria?.toLowerCase().includes('foto') || d.categoria?.toLowerCase().includes('fotografia'));
+        const loadedFotos: FotoReligiosoItem[] = [];
+
+        for (const pDoc of photoDocs) {
+          try {
+            const { data: signedData } = await supabase.storage
+              .from('religiosos-documentos')
+              .createSignedUrl(pDoc.caminho_storage, 3600);
+            if (signedData?.signedUrl) {
+              const isProfile = Boolean(
+                (religiosoData?.foto_path && pDoc.caminho_storage === religiosoData.foto_path) ||
+                pDoc.categoria.includes('Perfil')
+              );
+              loadedFotos.push({
+                id: pDoc.id,
+                previewUrl: signedData.signedUrl,
+                caminho_storage: pDoc.caminho_storage,
+                isPerfil: isProfile,
+                nome_arquivo: pDoc.nome_arquivo
+              });
+            }
+          } catch (pErr) {
+            console.warn('Erro ao carregar preview de foto salva:', pErr);
+          }
+        }
+
+        if (religiosoData?.foto_path && !loadedFotos.some(f => f.caminho_storage === religiosoData.foto_path)) {
+          try {
+            const { data: signedDoc } = await supabase.storage
+              .from('religiosos-documentos')
+              .createSignedUrl(religiosoData.foto_path, 3600);
+            if (signedDoc?.signedUrl) {
+              loadedFotos.unshift({
+                id: 'perfil-doc',
+                previewUrl: signedDoc.signedUrl,
+                caminho_storage: religiosoData.foto_path,
+                isPerfil: true,
+                nome_arquivo: 'foto_perfil.jpg'
+              });
+            } else {
+              const { data: signedPerfil } = await supabase.storage
+                .from('religiosos-perfil')
+                .createSignedUrl(religiosoData.foto_path, 3600);
+              if (signedPerfil?.signedUrl) {
+                loadedFotos.unshift({
+                  id: 'perfil-storage',
+                  previewUrl: signedPerfil.signedUrl,
+                  caminho_storage: religiosoData.foto_path,
+                  isPerfil: true,
+                  nome_arquivo: 'foto_perfil.jpg'
+                });
+              }
+            }
+          } catch (pErr) {
+            console.warn('Erro ao carregar foto_path principal:', pErr);
+          }
+        }
+
+        if (loadedFotos.length > 0) {
+          if (!loadedFotos.some(f => f.isPerfil)) {
+            loadedFotos[0].isPerfil = true;
+          }
+          setFotosReligioso(loadedFotos.slice(0, 4));
+        }
         const saude = saudeData.data;
         const endereco = enderecoData.data;
         setBase(previous => ({ ...previous, ...(saude ? Object.fromEntries(Object.entries(saude).filter(([key]) => key in previous).map(([key, value]) => [key, value == null ? '' : String(value)])) : {}), ...(endereco ? { obra_atual_id: endereco.obra_id || previous.obra_atual_id, telefone_celular: endereco.celular || previous.telefone_celular, email_institucional: endereco.email || previous.email_institucional, whatsapp: endereco.whatsapp || previous.whatsapp, redes_sociais: endereco.redes_sociais || previous.redes_sociais } : {}) }));
@@ -739,6 +817,72 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   const updateFamiliar = (index: number, field: keyof Familiar, value: string) => setFamiliares(previous => previous.map((row, rowIndex) => rowIndex === index ? { ...row, [field]: value } : row));
   const updateContact = (index: number, field: keyof ContatoFamiliar, value: string) => setContatosFamiliares(previous => previous.map((row, rowIndex) => rowIndex === index ? { ...row, [field]: value } : row));
   const updateSacrament = (index: number, field: keyof Sacrament, value: string) => setSacramentos(previous => previous.map((row, rowIndex) => rowIndex === index ? { ...row, [field]: value } : row));
+  const handleAddPhotos = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(event.currentTarget.files || []);
+    if (!selected.length) return;
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const newItems: FotoReligiosoItem[] = [];
+
+    for (const file of selected) {
+      if (fotosReligioso.length + newItems.length >= 4) {
+        showToast.info('O limite máximo é de 4 fotos.', 'Limite atingido');
+        break;
+      }
+      if (!validTypes.includes(file.type) && !/\.(jpe?g|png|webp)$/i.test(file.name)) {
+        showToast.error(`O arquivo "${file.name}" não é uma imagem aceita (use JPG, PNG ou WebP).`);
+        continue;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        showToast.error(`A foto "${file.name}" ultrapassa o limite de 5 MB.`);
+        continue;
+      }
+
+      const previewUrl = URL.createObjectURL(file);
+      newItems.push({
+        id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        arquivo: file,
+        previewUrl,
+        isPerfil: false,
+        nome_arquivo: file.name
+      });
+    }
+
+    setFotosReligioso(previous => {
+      const combined = [...previous, ...newItems].slice(0, 4);
+      if (!combined.some(item => item.isPerfil) && combined.length > 0) {
+        combined[0].isPerfil = true;
+      }
+      return combined;
+    });
+
+    if (photoInputRef.current) photoInputRef.current.value = '';
+  };
+
+  const handleSelectProfilePhoto = (id: string) => {
+    setFotosReligioso(previous =>
+      previous.map(item => ({
+        ...item,
+        isPerfil: item.id === id
+      }))
+    );
+    showToast.success('Foto definida como perfil oficial da Ficha (4x4).');
+  };
+
+  const handleRemovePhoto = (id: string) => {
+    setFotosReligioso(previous => {
+      const target = previous.find(item => item.id === id);
+      if (target?.previewUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      const filtered = previous.filter(item => item.id !== id);
+      if (target?.isPerfil && filtered.length > 0) {
+        filtered[0].isPerfil = true;
+      }
+      return filtered;
+    });
+  };
+
   const handleDocumentSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(event.currentTarget.files || []);
     const accepted = selected.filter(file =>
@@ -1189,6 +1333,47 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
           throw new Error(`Não foi possível salvar o registro do documento "${documento.arquivo.name}": ${error.message}`);
         }
       }
+
+      // Processamento e persistência das fotografias oficiais
+      let chosenProfileStoragePath: string | null = fotosReligioso.find(f => f.isPerfil && f.caminho_storage)?.caminho_storage || base.foto_path || null;
+
+      for (const foto of fotosReligioso) {
+        if (foto.arquivo) {
+          const safeName = foto.arquivo.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const uniqueId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+          const path = `${id}/fotos/${uniqueId}-${safeName}`;
+
+          const upload = await supabase.storage.from('religiosos-documentos').upload(path, foto.arquivo, { upsert: true });
+          if (!upload.error) {
+            await supabase.from('religiosos_documentos').insert({
+              religioso_id: id,
+              categoria: foto.isPerfil ? 'Fotografia (Perfil Oficial 4x4)' : 'Fotografia',
+              nome_arquivo: foto.arquivo.name,
+              caminho_storage: path,
+              mime_type: foto.arquivo.type,
+              tamanho_bytes: foto.arquivo.size,
+              quem_cadastrou: adminMode ? 'Administrador' : memberMode ? 'Confrade - Portal' : 'Religioso - cadastro público',
+            });
+            if (foto.isPerfil) {
+              chosenProfileStoragePath = path;
+            }
+          } else {
+            console.warn('Erro ao enviar foto oficial:', upload.error);
+          }
+        } else if (foto.caminho_storage && foto.isPerfil) {
+          chosenProfileStoragePath = foto.caminho_storage;
+        }
+      }
+
+      if (chosenProfileStoragePath) {
+        await supabase.from('religiosos').update({ foto_path: chosenProfileStoragePath }).eq('id', id);
+        if (user?.id) {
+          await supabase.from('portal_perfis_religiosos').update({ foto_path: chosenProfileStoragePath }).eq('auth_user_id', user.id);
+        }
+      }
+
       pendingDraftRef.current = null;
       await draftSavePromiseRef.current;
       if ((adminMode || memberMode) && user?.id) {
@@ -1468,6 +1653,162 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         {/* Step Contents */}
         {step === 1 && (
           <Section title="1. Identificação e Contatos">
+            {/* Bloco de Fotografias Oficiais do Religioso (Até 4 fotos com seleção 4x4) */}
+            <div className="mb-8 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161b22]">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-white/5 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#226380]/10 text-[#226380] dark:bg-[#68a9c7]/15 dark:text-[#68a9c7]">
+                    <Camera className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                      Fotografias Oficiais do Religioso
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Envie até 4 fotos e escolha qual será a foto oficial da sua ficha cadastral (formato 4x4)
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleAddPhotos}
+                    className="hidden"
+                    disabled={fotosReligioso.length >= 4}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={fotosReligioso.length >= 4}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition ${
+                      fotosReligioso.length >= 4
+                        ? 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 cursor-not-allowed'
+                        : 'bg-[#226380] text-white hover:bg-[#1b4f66] dark:bg-[#68a9c7] dark:text-slate-900 dark:hover:bg-[#528ea8]'
+                    }`}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>{fotosReligioso.length >= 4 ? 'Limite de 4 fotos atingido' : `Enviar fotos (${fotosReligioso.length}/4)`}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Instruções aos Religiosos */}
+              <div className="mt-4 rounded-lg border border-amber-200/70 bg-amber-50/70 p-3.5 dark:border-amber-900/40 dark:bg-amber-950/20 text-xs text-amber-900 dark:text-amber-200 space-y-1.5">
+                <div className="flex items-center gap-1.5 font-semibold">
+                  <Info className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <span>Orientações para o envio de fotografias:</span>
+                </div>
+                <ul className="list-disc list-inside space-y-1 pl-1 text-[11.5px] leading-relaxed text-amber-800 dark:text-amber-300">
+                  <li>Por favor, envie <strong>4 fotografias</strong> recentes com boa nitidez (preferencialmente com clergyman ou hábito religioso).</li>
+                  <li>Dentre as fotos enviadas, <strong>clique para escolher qual delas será a sua foto de perfil</strong>.</li>
+                  <li>A foto escolhida será utilizada no <strong>formato oficial 4x4</strong> na sua Ficha Cadastral Oficial da Província e no Portal do Religioso.</li>
+                </ul>
+              </div>
+
+              {/* Galeria de Fotos */}
+              {fotosReligioso.length === 0 ? (
+                <div
+                  onClick={() => photoInputRef.current?.click()}
+                  className="mt-4 flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-lg hover:border-[#226380] dark:hover:border-[#68a9c7] transition cursor-pointer text-center group"
+                >
+                  <Upload className="h-8 w-8 text-slate-400 group-hover:text-[#226380] dark:group-hover:text-[#68a9c7] transition mb-2" />
+                  <p className="text-xs font-medium text-slate-700 dark:text-slate-200">
+                    Nenhuma foto adicionada ainda. Clique para selecionar até 4 fotos.
+                  </p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                    Formatos aceitos: JPG, PNG ou WebP (máx. 5MB cada)
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-4 space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {fotosReligioso.map((foto, index) => (
+                      <div
+                        key={foto.id}
+                        className={`relative group rounded-lg overflow-hidden border-2 transition ${
+                          foto.isPerfil
+                            ? 'border-[#226380] ring-2 ring-[#226380]/30 shadow-md bg-[#226380]/5'
+                            : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02]'
+                        }`}
+                      >
+                        <div className="aspect-square w-full overflow-hidden bg-slate-100 dark:bg-black/20">
+                          <img
+                            src={foto.previewUrl}
+                            alt={`Foto ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+
+                        {foto.isPerfil && (
+                          <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 bg-[#226380] text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
+                            <Star className="h-2.5 w-2.5 fill-current" /> Perfil 4x4
+                          </span>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemovePhoto(foto.id);
+                          }}
+                          title="Remover esta foto"
+                          className="absolute top-1.5 right-1.5 p-1 bg-red-600/90 hover:bg-red-700 text-white rounded opacity-0 group-hover:opacity-100 transition shadow"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+
+                        <div className="p-2 text-center">
+                          {foto.isPerfil ? (
+                            <span className="text-[11px] font-semibold text-[#226380] dark:text-[#68a9c7] flex items-center justify-center gap-1">
+                              <Check className="h-3 w-3" /> Foto do Perfil
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleSelectProfilePhoto(foto.id)}
+                              className="w-full text-[10px] font-medium text-slate-600 dark:text-slate-300 hover:text-[#226380] dark:hover:text-[#68a9c7] py-0.5 border border-slate-200 dark:border-white/10 rounded hover:border-[#226380] dark:hover:border-[#68a9c7] transition"
+                            >
+                              Definir como Perfil
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Destaque da Foto Escolhida para o formato 4x4 da Ficha */}
+                  {fotosReligioso.some(f => f.isPerfil) && (
+                    <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-xl border border-[#226380]/30 bg-gradient-to-r from-[#226380]/5 to-transparent dark:border-[#68a9c7]/30 dark:from-[#68a9c7]/5">
+                      <div className="relative w-28 h-28 aspect-square rounded-lg overflow-hidden border-2 border-[#226380] dark:border-[#68a9c7] shadow shrink-0 bg-slate-100">
+                        <img
+                          src={fotosReligioso.find(f => f.isPerfil)?.previewUrl}
+                          alt="Foto 4x4 da Ficha"
+                          className="w-full h-full object-cover"
+                        />
+                        <span className="absolute bottom-0 inset-x-0 bg-[#226380] dark:bg-[#113240] text-white text-[9px] font-bold text-center py-0.5 tracking-wider uppercase">
+                          Formato 4x4
+                        </span>
+                      </div>
+                      <div className="space-y-1 text-center sm:text-left">
+                        <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#226380] dark:text-[#68a9c7] uppercase tracking-wide">
+                          <Star className="h-3.5 w-3.5 fill-current" />
+                          <span>Foto Selecionada para a Ficha Cadastral Oficial</span>
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-300">
+                          Esta fotografia será utilizada no formato 4x4 no cabeçalho do seu Dossiê Provincial Oficial e no Portal do Religioso.
+                        </p>
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                          Para escolher outra foto, basta clicar em "Definir como Perfil" na foto desejada acima.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <Fields
               fields={['grau', 'nome_civil', 'nome_religioso', 'data_nascimento', 'local_nascimento', 'municipio_nascimento', 'estado_nascimento', 'pais_nascimento', 'nacionalidade', 'cpf', 'rg', 'rg_orgao_expedidor', 'rg_data_emissao', 'titulo_eleitor', 'pis', 'cnh', 'cnh_categoria', 'passaporte', 'email_institucional', 'email_pessoal', 'telefone_celular', 'whatsapp', 'redes_sociais']}
               base={base}

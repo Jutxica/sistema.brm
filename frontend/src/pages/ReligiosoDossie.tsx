@@ -91,6 +91,7 @@ export const ReligiosoDossie: React.FC = () => {
   const [archiveFile, setArchiveFile] = useState<File | null>(null);
   const [archiveSaving, setArchiveSaving] = useState(false);
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<Set<string>>(new Set());
+  const [fotoUrl, setFotoUrl] = useState<string | null>(null);
 
   const load = async () => {
     if (!id) return;
@@ -123,6 +124,38 @@ export const ReligiosoDossie: React.FC = () => {
       supabase.from('religiosos_designacoes').select('*, comunidades(nome), religiosos_obras_referencia(nome)').eq('religioso_id', id),
       supabase.from('religiosos_enderecos_contatos').select('*').eq('religioso_id', id).limit(1).maybeSingle(),
     ]);
+
+    let resolvedFotoUrl: string | null = null;
+    if (religiosoData?.foto_path) {
+      try {
+        const { data: sDoc } = await supabase.storage
+          .from('religiosos-documentos')
+          .createSignedUrl(religiosoData.foto_path, 3600);
+        if (sDoc?.signedUrl) {
+          resolvedFotoUrl = sDoc.signedUrl;
+        } else {
+          const { data: sPerfil } = await supabase.storage
+            .from('religiosos-perfil')
+            .createSignedUrl(religiosoData.foto_path, 3600);
+          if (sPerfil?.signedUrl) resolvedFotoUrl = sPerfil.signedUrl;
+        }
+      } catch (fErr) {
+        console.warn('Erro ao carregar URL da foto:', fErr);
+      }
+    } else {
+      const fotoDoc = (documentosAntigos || []).find((d: { categoria?: string }) => d.categoria?.toLowerCase().includes('foto'));
+      if (fotoDoc?.caminho_storage) {
+        try {
+          const { data: sDoc } = await supabase.storage
+            .from('religiosos-documentos')
+            .createSignedUrl(fotoDoc.caminho_storage, 3600);
+          if (sDoc?.signedUrl) resolvedFotoUrl = sDoc.signedUrl;
+        } catch (fErr) {
+          console.warn('Erro ao carregar URL da foto em documentos:', fErr);
+        }
+      }
+    }
+    setFotoUrl(resolvedFotoUrl);
 
     if (religiosoError) {
       showToast.error(`Não foi possível carregar o religioso: ${religiosoError.message}`);
@@ -406,14 +439,32 @@ export const ReligiosoDossie: React.FC = () => {
         </header>
 
         {/* Identificação do Religioso */}
-        <div className="flex items-end justify-between border-b border-slate-200 pb-3 mb-3">
-          <div>
-            <p className="font-mono text-[7.5pt] uppercase tracking-[0.16em] text-slate-500 font-semibold">
-              Dossiê do Religioso
-            </p>
-            <h2 className="text-[17pt] font-serif font-bold text-slate-900 mt-0.5">
-              {religioso?.nome_religioso || religioso?.nome_civil}
-            </h2>
+        <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-3">
+          <div className="flex items-center gap-4">
+            {fotoUrl ? (
+              <div className="w-20 h-20 aspect-square border-2 border-slate-900 overflow-hidden bg-slate-100 shrink-0">
+                <img
+                  src={fotoUrl}
+                  alt={religioso?.nome_religioso || religioso?.nome_civil}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-20 h-20 aspect-square border border-dashed border-slate-400 flex items-center justify-center bg-slate-50 text-[7pt] font-mono text-slate-400 uppercase text-center p-1 shrink-0">
+                Foto 4x4
+              </div>
+            )}
+            <div>
+              <p className="font-mono text-[7.5pt] uppercase tracking-[0.16em] text-slate-500 font-semibold">
+                Dossiê do Religioso
+              </p>
+              <h2 className="text-[17pt] font-serif font-bold text-slate-900 mt-0.5">
+                {religioso?.nome_religioso || religioso?.nome_civil}
+              </h2>
+              <p className="text-[8.5pt] font-mono text-slate-600 mt-0.5">
+                {religioso?.nome_civil} • {religioso?.grau || 'Grau pendente'}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-1.5 border border-slate-900 px-2.5 py-0.5 text-[8pt] font-mono font-semibold uppercase">
             <span className="w-1.5 h-1.5 rounded-full bg-slate-900" />
@@ -644,9 +695,17 @@ export const ReligiosoDossie: React.FC = () => {
           <div className="dossie-sheet space-y-5 rounded-none border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#161b22]">
             <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 dark:border-slate-800 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-4">
-                <span className="flex h-12 w-12 items-center justify-center border border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-white/5 dark:text-slate-200">
-                  <UserRound className="h-5 w-5" />
-                </span>
+                {fotoUrl ? (
+                  <img
+                    src={fotoUrl}
+                    alt={religioso.nome_religioso || religioso.nome_civil}
+                    className="h-14 w-14 aspect-square rounded-lg border-2 border-[#226380] object-cover shadow-sm shrink-0"
+                  />
+                ) : (
+                  <span className="flex h-14 w-14 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-white/5 dark:text-slate-200 shrink-0">
+                    <UserRound className="h-6 w-6" />
+                  </span>
+                )}
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Arquivo Provincial</p>
                   <h1 className="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">{religioso.nome_religioso || religioso.nome_civil}</h1>
