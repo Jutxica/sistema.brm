@@ -8,7 +8,8 @@ import {
   Calendar, 
   MapPin, 
   Loader2,
-  Heart
+  Heart,
+  AlertCircle
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
@@ -73,41 +74,31 @@ function getJubileuInfo(anos: number) {
   return null;
 }
 
-function parseDateParts(raw: string | null | undefined): { ano: number; mes: number; dia: number } | null {
+function parseDateParts(raw: unknown): { ano: number; mes: number; dia: number } | null {
   if (!raw) return null;
   const str = String(raw).trim();
   if (!str) return null;
 
-  // Formato ISO (YYYY-MM-DD ou YYYY-MM-DDT...)
-  if (str.includes('-')) {
-    const parts = str.slice(0, 10).split('-');
-    if (parts.length >= 3) {
-      const ano = parseInt(parts[0], 10);
-      const mes = parseInt(parts[1], 10);
-      const dia = parseInt(parts[2], 10);
-      if (!isNaN(ano) && !isNaN(mes) && !isNaN(dia)) return { ano, mes, dia };
-    }
+  // Formato ISO: YYYY-MM-DD ou YYYY-MM-DDT...
+  const isoMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (isoMatch) {
+    const ano = parseInt(isoMatch[1], 10);
+    const mes = parseInt(isoMatch[2], 10);
+    const dia = parseInt(isoMatch[3], 10);
+    if (!isNaN(ano) && !isNaN(mes) && !isNaN(dia)) return { ano, mes, dia };
   }
 
-  // Formato brasileiro (DD/MM/YYYY)
-  if (str.includes('/')) {
-    const parts = str.split('/');
-    if (parts.length >= 3) {
-      if (parts[2].length === 4) {
-        const dia = parseInt(parts[0], 10);
-        const mes = parseInt(parts[1], 10);
-        const ano = parseInt(parts[2], 10);
-        if (!isNaN(ano) && !isNaN(mes) && !isNaN(dia)) return { ano, mes, dia };
-      } else {
-        const ano = parseInt(parts[0], 10);
-        const mes = parseInt(parts[1], 10);
-        const dia = parseInt(parts[2], 10);
-        if (!isNaN(ano) && !isNaN(mes) && !isNaN(dia)) return { ano, mes, dia };
-      }
-    }
+  // Formato brasileiro: DD/MM/YYYY ou DD-MM-YYYY
+  const brMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (brMatch) {
+    const dia = parseInt(brMatch[1], 10);
+    const mes = parseInt(brMatch[2], 10);
+    const ano = parseInt(brMatch[3], 10);
+    if (!isNaN(ano) && !isNaN(mes) && !isNaN(dia)) return { ano, mes, dia };
   }
 
-  const d = new Date(str);
+  // Fallback via Date
+  const d = new Date(str.includes('T') ? str : `${str}T12:00:00`);
   if (!isNaN(d.getTime())) {
     return { ano: d.getFullYear(), mes: d.getMonth() + 1, dia: d.getDate() };
   }
@@ -124,195 +115,312 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
 }) => {
   const [dataAtual, setDataAtual] = useState(() => new Date());
   const [loading, setLoading] = useState(true);
-  const [itens, setItens] = useState<AniversarioItem[]>([]);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [abaAtiva, setAbaAtiva] = useState<'todos' | 'natalicio' | 'votos' | 'ordenacao'>('todos');
+
+  // Cache em memória de toda a base carregada do Supabase
+  const [religiososBase, setReligiososBase] = useState<any[]>([]);
+  const [votosBase, setVotosBase] = useState<any[]>([]);
+  const [ordensBase, setOrdensBase] = useState<any[]>([]);
+  const [fotosMap, setFotosMap] = useState<Map<string, string>>(new Map());
 
   const mesAtual = dataAtual.getMonth(); // 0 a 11
   const anoAtual = dataAtual.getFullYear();
 
   const proximoMes = () => {
-    setDataAtual(new Date(anoAtual, mesAtual + 1, 1));
+    setDataAtual(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   };
 
   const mesAnterior = () => {
-    setDataAtual(new Date(anoAtual, mesAtual - 1, 1));
+    setDataAtual(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+
+  const setMesDireto = (novoMes: number) => {
+    setDataAtual(prev => new Date(prev.getFullYear(), novoMes, 1));
   };
 
   const hoje = () => {
     setDataAtual(new Date());
   };
 
+  // Carrega os dados reais do Supabase uma única vez na montagem
   useEffect(() => {
     let cancelado = false;
 
-    async function carregarAniversariantes() {
+    async function carregarBaseSupabase() {
       setLoading(true);
+      setErrorMsg(null);
+
       try {
-        // 1. Busca religiosos sem filtros excludentes rígidos (apenas exclui falecidos e exclaustrados)
+        // 1. Busca religiosos sem filtrar colunas inexistentes (select('*') garante zero erro de coluna)
         const { data: relData, error: relError } = await supabase
           .from('religiosos')
-          .select('id, nome_civil, nome_religioso, nome_elenco, data_nascimento, foto_url, foto_path, grau, comunidade_atual_nome, status, situacao_elenco');
+          .select('*');
 
-        if (relError) throw relError;
+        if (relError) {
+          throw new Error(`Falha ao ler tabela religiosos: ${relError.message}`);
+        }
 
-        const relsValidos = (relData || []).filter(r => {
+        // Exclui apenas quem estiver explicitamente marcado como falecido
+        const relsAtivos = (relData || []).filter(r => {
           const s = (r.status || '').toLowerCase();
           const se = (r.situacao_elenco || '').toLowerCase();
-          return !s.includes('falec') && !s.includes('exclaust') && !se.includes('falec') && !se.includes('exclaust');
+          return !s.includes('falec') && !se.includes('falec');
         });
 
-        // 2. Busca votos (primeiros e perpétuos)
-        const { data: votosData } = await supabase
-          .from('religiosos_profissoes_votos')
-          .select('*');
+        // 2. Busca votos (opcional - não quebra se tabela não existir)
+        let votos: any[] = [];
+        try {
+          const { data: vData } = await supabase
+            .from('religiosos_profissoes_votos')
+            .select('*');
+          if (vData) votos = vData;
+        } catch (e) {
+          console.warn('[Jubileus] Tabela religiosos_profissoes_votos indisponível:', e);
+        }
 
-        // 3. Busca ordens sacras
-        const { data: ordensData } = await supabase
-          .from('religiosos_ministerios_ordens')
-          .select('*');
+        // 3. Busca ordens (opcional - não quebra se tabela não existir)
+        let ordens: any[] = [];
+        try {
+          const { data: oData } = await supabase
+            .from('religiosos_ministerios_ordens')
+            .select('*');
+          if (oData) ordens = oData;
+        } catch (e) {
+          console.warn('[Jubileus] Tabela religiosos_ministerios_ordens indisponível:', e);
+        }
 
         if (cancelado) return;
 
-        const relMap = new Map(relsValidos.map(r => [r.id, r]));
-        const listaColetada: AniversarioItem[] = [];
+        setReligiososBase(relsAtivos);
+        setVotosBase(votos);
+        setOrdensBase(ordens);
 
-        // 1. Aniversários Natalícios
-        for (const rel of relsValidos) {
-          if (!rel.data_nascimento) continue;
-          const parsed = parseDateParts(rel.data_nascimento);
-          if (!parsed) continue;
+        console.info(`[Jubileus & Aniversários] Base carregada com sucesso: ${relsAtivos.length} religioso(s), ${votos.length} voto(s), ${ordens.length} ordem(ns).`);
 
-          if (parsed.mes === mesAtual + 1) {
-            const idade = anoAtual - parsed.ano;
-            const nomeFormatado = rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
-            listaColetada.push({
-              id: `natalicio-${rel.id}`,
-              religiosoId: rel.id,
-              nome: nomeFormatado,
-              grau: rel.grau,
-              comunidade: rel.comunidade_atual_nome || undefined,
-              fotoUrl: rel.foto_url,
-              tipo: 'natalicio',
-              dia: parsed.dia,
-              dataOriginal: rel.data_nascimento,
-              anos: idade > 0 ? idade : undefined,
-              descricaoDetalhe: idade > 0 ? `Comemora ${idade} anos de vida` : 'Aniversário natalício',
-            });
-          }
-        }
-
-        // 2. Profissão Religiosa (Votos)
-        for (const voto of votosData || []) {
-          const rel = relMap.get(voto.religioso_id);
-          if (!rel) continue;
-          const rawDate = voto.data || voto.data_profissao || voto.data_voto;
-          const parsed = parseDateParts(rawDate);
-          if (!parsed) continue;
-
-          if (parsed.mes === mesAtual + 1) {
-            const anosProfissao = anoAtual - parsed.ano;
-            const rawTipo = voto.tipo || voto.voto_tipo || '';
-            const tipoLower = rawTipo.toLowerCase();
-            const isPerpetuo = tipoLower.includes('perp');
-            const rotuloTipo = isPerpetuo ? 'Votos Perpétuos' : 'Primeiros Votos';
-            const jubileu = getJubileuInfo(anosProfissao);
-            const nomeFormatado = rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
-
-            listaColetada.push({
-              id: `voto-${rel.id}-${rawDate}`,
-              religiosoId: rel.id,
-              nome: nomeFormatado,
-              grau: rel.grau,
-              comunidade: rel.comunidade_atual_nome || undefined,
-              fotoUrl: rel.foto_url,
-              tipo: 'votos',
-              dia: parsed.dia,
-              dataOriginal: String(rawDate),
-              anos: anosProfissao,
-              jubileu,
-              descricaoDetalhe: anosProfissao > 0 
-                ? `${anosProfissao} anos de Consagração (${rotuloTipo})` 
-                : rotuloTipo,
-            });
-          }
-        }
-
-        // 3. Ordenações Sacras (Presbiteral, Diaconal, Episcopal)
-        for (const ordem of ordensData || []) {
-          const rel = relMap.get(ordem.religioso_id);
-          if (!rel) continue;
-          const rawDate = ordem.data || ordem.data_recebimento || ordem.data_ordenacao;
-          const parsed = parseDateParts(rawDate);
-          if (!parsed) continue;
-
-          const rawTipo = ordem.tipo || ordem.ministerio || '';
-          const tipoLower = rawTipo.toLowerCase();
-          const isOrdenacao = tipoLower.includes('diacon') || tipoLower.includes('presb') || tipoLower.includes('sacerd') || tipoLower.includes('episc') || tipoLower.includes('bispo');
-          if (!isOrdenacao) continue;
-
-          if (parsed.mes === mesAtual + 1) {
-            const anosOrdenacao = anoAtual - parsed.ano;
-            let rotuloOrdem = 'Ordenação Presbiteral';
-            if (tipoLower.includes('diacon')) rotuloOrdem = 'Ordenação Diaconal';
-            else if (tipoLower.includes('episcop') || tipoLower.includes('bispo')) rotuloOrdem = 'Ordenação Episcopal';
-
-            const jubileu = getJubileuInfo(anosOrdenacao);
-            const nomeFormatado = rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
-
-            listaColetada.push({
-              id: `ordem-${rel.id}-${rawDate}`,
-              religiosoId: rel.id,
-              nome: nomeFormatado,
-              grau: rel.grau,
-              comunidade: rel.comunidade_atual_nome || undefined,
-              fotoUrl: rel.foto_url,
-              tipo: 'ordenacao',
-              dia: parsed.dia,
-              dataOriginal: String(rawDate),
-              anos: anosOrdenacao,
-              jubileu,
-              descricaoDetalhe: anosOrdenacao > 0
-                ? `${anosOrdenacao} anos de Ministério (${rotuloOrdem})`
-                : rotuloOrdem,
-            });
-          }
-        }
-
-        // Tenta resolver foto assinada para quem tiver foto_path
-        for (const item of listaColetada) {
-          const rel = relMap.get(item.religiosoId);
-          if (rel?.foto_path && !item.fotoUrl) {
+        // 4. Resolve fotos de perfil em segundo plano
+        const newFotos = new Map<string, string>();
+        for (const rel of relsAtivos) {
+          if (rel.foto_path) {
             try {
               const { data: sDoc } = await supabase.storage
                 .from('religiosos-documentos')
                 .createSignedUrl(rel.foto_path, 3600);
-              if (sDoc?.signedUrl) item.fotoUrl = sDoc.signedUrl;
-              else {
+              if (sDoc?.signedUrl) {
+                newFotos.set(rel.id, sDoc.signedUrl);
+              } else {
                 const { data: sPerfil } = await supabase.storage
                   .from('religiosos-perfil')
                   .createSignedUrl(rel.foto_path, 3600);
-                if (sPerfil?.signedUrl) item.fotoUrl = sPerfil.signedUrl;
+                if (sPerfil?.signedUrl) newFotos.set(rel.id, sPerfil.signedUrl);
               }
             } catch {
-              // Silencioso se der erro no storage
+              // Silencioso para storage
             }
           }
         }
+        if (!cancelado) setFotosMap(newFotos);
 
-        // Ordena por dia do mês crescente
-        listaColetada.sort((a, b) => a.dia - b.dia);
-        console.info(`[Jubileus & Aniversários] Carregados ${relsValidos.length} religiosos, ${votosData?.length || 0} votos, ${ordensData?.length || 0} ordens. Comemorações em ${MESES[mesAtual]}: ${listaColetada.length}`);
-        setItens(listaColetada);
-      } catch (err) {
-        console.error('Erro ao carregar aniversários:', err);
+      } catch (err: any) {
+        console.error('[Jubileus & Aniversários] Erro na consulta:', err);
+        if (!cancelado) setErrorMsg(err?.message || 'Erro ao consultar banco de dados.');
       } finally {
         if (!cancelado) setLoading(false);
       }
     }
 
-    void carregarAniversariantes();
+    void carregarBaseSupabase();
     return () => { cancelado = true; };
-  }, [mesAtual, anoAtual]);
+  }, []);
+
+  // Calcula itens comemorativos do mês selecionado em memória de forma instantânea
+  const itens = useMemo(() => {
+    if (!religiososBase.length) return [];
+
+    const listaColetada: AniversarioItem[] = [];
+    const relMap = new Map(religiososBase.map(r => [r.id, r]));
+    const mesAlvo = mesAtual + 1; // 1 a 12
+
+    // 1. Aniversários Natalícios
+    for (const rel of religiososBase) {
+      if (!rel.data_nascimento) continue;
+      const parsed = parseDateParts(rel.data_nascimento);
+      if (!parsed) continue;
+
+      if (parsed.mes === mesAlvo) {
+        const idade = anoAtual - parsed.ano;
+        const nomeFormatado = rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
+        listaColetada.push({
+          id: `natalicio-${rel.id}`,
+          religiosoId: rel.id,
+          nome: nomeFormatado,
+          grau: rel.grau,
+          comunidade: rel.comunidade_atual_nome || undefined,
+          fotoUrl: fotosMap.get(rel.id) || null,
+          tipo: 'natalicio',
+          dia: parsed.dia,
+          dataOriginal: String(rel.data_nascimento),
+          anos: idade > 0 ? idade : undefined,
+          descricaoDetalhe: idade > 0 ? `Comemora ${idade} anos de vida` : 'Aniversário natalício',
+        });
+      }
+    }
+
+    // 2. Profissão Religiosa (tabela de votos ou campos diretos em religiosos)
+    // 2a. Via tabela filhos
+    for (const voto of votosBase) {
+      const rel = relMap.get(voto.religioso_id);
+      if (!rel) continue;
+      const rawDate = voto.data || voto.data_profissao || voto.data_voto;
+      const parsed = parseDateParts(rawDate);
+      if (!parsed) continue;
+
+      if (parsed.mes === mesAlvo) {
+        const anosProfissao = anoAtual - parsed.ano;
+        const rawTipo = voto.tipo || voto.voto_tipo || '';
+        const tipoLower = rawTipo.toLowerCase();
+        const isPerpetuo = tipoLower.includes('perp');
+        const rotuloTipo = isPerpetuo ? 'Votos Perpétuos' : 'Primeiros Votos';
+        const jubileu = getJubileuInfo(anosProfissao);
+        const nomeFormatado = rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
+
+        listaColetada.push({
+          id: `voto-${rel.id}-${rawDate}`,
+          religiosoId: rel.id,
+          nome: nomeFormatado,
+          grau: rel.grau,
+          comunidade: rel.comunidade_atual_nome || undefined,
+          fotoUrl: fotosMap.get(rel.id) || null,
+          tipo: 'votos',
+          dia: parsed.dia,
+          dataOriginal: String(rawDate),
+          anos: anosProfissao,
+          jubileu,
+          descricaoDetalhe: anosProfissao > 0 
+            ? `${anosProfissao} anos de Consagração (${rotuloTipo})` 
+            : rotuloTipo,
+        });
+      }
+    }
+
+    // 2b. Via campos diretos no cadastro principal (primeira_profissao_data, votos_perpetuos_data)
+    for (const rel of religiososBase) {
+      const datasVotosDirect = [
+        { data: rel.primeira_profissao_data, rotulo: 'Primeiros Votos' },
+        { data: rel.votos_perpetuos_data, rotulo: 'Votos Perpétuos' },
+      ];
+      for (const item of datasVotosDirect) {
+        if (!item.data) continue;
+        const parsed = parseDateParts(item.data);
+        if (!parsed || parsed.mes !== mesAlvo) continue;
+
+        // Evita duplicar se já foi adicionado pela tabela filhos
+        const key = `voto-${rel.id}-${item.data}`;
+        if (listaColetada.some(i => i.id === key)) continue;
+
+        const anos = anoAtual - parsed.ano;
+        const jubileu = getJubileuInfo(anos);
+        const nomeFormatado = rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
+
+        listaColetada.push({
+          id: key,
+          religiosoId: rel.id,
+          nome: nomeFormatado,
+          grau: rel.grau,
+          comunidade: rel.comunidade_atual_nome || undefined,
+          fotoUrl: fotosMap.get(rel.id) || null,
+          tipo: 'votos',
+          dia: parsed.dia,
+          dataOriginal: String(item.data),
+          anos,
+          jubileu,
+          descricaoDetalhe: anos > 0 ? `${anos} anos de Consagração (${item.rotulo})` : item.rotulo,
+        });
+      }
+    }
+
+    // 3. Ordenações Sacras (tabela de ordens ou campos diretos)
+    // 3a. Via tabela filhos
+    for (const ordem of ordensBase) {
+      const rel = relMap.get(ordem.religioso_id);
+      if (!rel) continue;
+      const rawDate = ordem.data || ordem.data_recebimento || ordem.data_ordenacao;
+      const parsed = parseDateParts(rawDate);
+      if (!parsed) continue;
+
+      const rawTipo = ordem.tipo || ordem.ministerio || '';
+      const tipoLower = rawTipo.toLowerCase();
+      const isOrdenacao = tipoLower.includes('diacon') || tipoLower.includes('presb') || tipoLower.includes('sacerd') || tipoLower.includes('episc') || tipoLower.includes('bispo');
+      if (!isOrdenacao) continue;
+
+      if (parsed.mes === mesAlvo) {
+        const anosOrdenacao = anoAtual - parsed.ano;
+        let rotuloOrdem = 'Ordenação Presbiteral';
+        if (tipoLower.includes('diacon')) rotuloOrdem = 'Ordenação Diaconal';
+        else if (tipoLower.includes('episcop') || tipoLower.includes('bispo')) rotuloOrdem = 'Ordenação Episcopal';
+
+        const jubileu = getJubileuInfo(anosOrdenacao);
+        const nomeFormatado = rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
+
+        listaColetada.push({
+          id: `ordem-${rel.id}-${rawDate}`,
+          religiosoId: rel.id,
+          nome: nomeFormatado,
+          grau: rel.grau,
+          comunidade: rel.comunidade_atual_nome || undefined,
+          fotoUrl: fotosMap.get(rel.id) || null,
+          tipo: 'ordenacao',
+          dia: parsed.dia,
+          dataOriginal: String(rawDate),
+          anos: anosOrdenacao,
+          jubileu,
+          descricaoDetalhe: anosOrdenacao > 0
+            ? `${anosOrdenacao} anos de Ministério (${rotuloOrdem})`
+            : rotuloOrdem,
+        });
+      }
+    }
+
+    // 3b. Via campos diretos (presbiterado_data, diaconato_data, episcopado_data)
+    for (const rel of religiososBase) {
+      const datasOrdensDirect = [
+        { data: rel.presbiterado_data, rotulo: 'Ordenação Presbiteral' },
+        { data: rel.diaconato_data, rotulo: 'Ordenação Diaconal' },
+        { data: rel.episcopado_data, rotulo: 'Ordenação Episcopal' },
+      ];
+      for (const item of datasOrdensDirect) {
+        if (!item.data) continue;
+        const parsed = parseDateParts(item.data);
+        if (!parsed || parsed.mes !== mesAlvo) continue;
+
+        const key = `ordem-${rel.id}-${item.data}`;
+        if (listaColetada.some(i => i.id === key)) continue;
+
+        const anos = anoAtual - parsed.ano;
+        const jubileu = getJubileuInfo(anos);
+        const nomeFormatado = rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
+
+        listaColetada.push({
+          id: key,
+          religiosoId: rel.id,
+          nome: nomeFormatado,
+          grau: rel.grau,
+          comunidade: rel.comunidade_atual_nome || undefined,
+          fotoUrl: fotosMap.get(rel.id) || null,
+          tipo: 'ordenacao',
+          dia: parsed.dia,
+          dataOriginal: String(item.data),
+          anos,
+          jubileu,
+          descricaoDetalhe: anos > 0 ? `${anos} anos de Ministério (${item.rotulo})` : item.rotulo,
+        });
+      }
+    }
+
+    // Ordena por dia crescente
+    listaColetada.sort((a, b) => a.dia - b.dia);
+    return listaColetada;
+  }, [religiososBase, votosBase, ordensBase, fotosMap, mesAtual, anoAtual]);
 
   const filtrados = useMemo(() => {
     if (abaAtiva === 'todos') return itens;
@@ -326,7 +434,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
 
   return (
     <div className={`overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/60 ${className}`}>
-      {/* Header com Navegação de Mês */}
+      {/* Header com Navegação e Seletor Direto de Mês */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 p-4 sm:px-6 dark:border-slate-800">
         <div>
           <div className="flex items-center gap-2">
@@ -350,33 +458,57 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
           </div>
         </div>
 
-        {/* Controles de Navegação de Mês */}
+        {/* Controles de Navegação e Seletor Direto de Mês */}
         <div className="flex items-center gap-1 self-start sm:self-auto bg-slate-100 dark:bg-slate-800/80 p-1 rounded-lg">
           <button
             type="button"
             onClick={mesAnterior}
             title="Mês anterior"
-            className="p-1 rounded text-slate-600 hover:text-slate-900 hover:bg-white dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-700 transition"
+            className="p-1 rounded text-slate-600 hover:text-slate-900 hover:bg-white dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-700 transition cursor-pointer"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <button
-            type="button"
-            onClick={hoje}
-            className="px-2.5 py-1 text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 rounded transition"
+
+          {/* Seletor dropdown para pular direto para qualquer mês */}
+          <select
+            value={mesAtual}
+            onChange={e => setMesDireto(Number(e.target.value))}
+            className="bg-transparent text-xs font-semibold text-slate-800 dark:text-slate-200 outline-none px-2 py-1 cursor-pointer hover:bg-white dark:hover:bg-slate-700 rounded transition"
           >
-            {MESES[mesAtual]} {anoAtual}
-          </button>
+            {MESES.map((m, idx) => (
+              <option key={m} value={idx} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
+                {m} {anoAtual}
+              </option>
+            ))}
+          </select>
+
           <button
             type="button"
             onClick={proximoMes}
             title="Próximo mês"
-            className="p-1 rounded text-slate-600 hover:text-slate-900 hover:bg-white dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-700 transition"
+            className="p-1 rounded text-slate-600 hover:text-slate-900 hover:bg-white dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-700 transition cursor-pointer"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
+
+          <button
+            type="button"
+            onClick={hoje}
+            title="Voltar ao mês atual"
+            className="ml-1 px-2 py-1 text-[11px] font-medium text-[#226380] hover:text-[#113240] dark:text-sky-300 dark:hover:text-white transition"
+          >
+            Hoje
+          </button>
         </div>
       </div>
+
+      {/* Alerta de erro se houver falha de banco */}
+      {errorMsg && (
+        <div className="bg-rose-50 dark:bg-rose-950/40 border-b border-rose-200 dark:border-rose-900/40 px-4 py-3 text-xs text-rose-800 dark:text-rose-200 flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>Aviso ao carregar dados do banco: {errorMsg}</span>
+        </div>
+      )}
 
       {/* Destaque para Jubileus se houver */}
       {jubileusDestaque.length > 0 && (
@@ -410,7 +542,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
         <button
           type="button"
           onClick={() => setAbaAtiva('todos')}
-          className={`flex items-center gap-1.5 border-b-2 py-3 px-3 text-xs font-semibold transition ${
+          className={`flex items-center gap-1.5 border-b-2 py-3 px-3 text-xs font-semibold transition cursor-pointer ${
             abaAtiva === 'todos'
               ? 'border-[#226380] text-[#17485b] dark:border-sky-400 dark:text-sky-300'
               : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
@@ -425,7 +557,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
         <button
           type="button"
           onClick={() => setAbaAtiva('natalicio')}
-          className={`flex items-center gap-1.5 border-b-2 py-3 px-3 text-xs font-semibold transition ${
+          className={`flex items-center gap-1.5 border-b-2 py-3 px-3 text-xs font-semibold transition cursor-pointer ${
             abaAtiva === 'natalicio'
               ? 'border-rose-500 text-rose-700 dark:border-rose-400 dark:text-rose-300'
               : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
@@ -441,7 +573,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
         <button
           type="button"
           onClick={() => setAbaAtiva('votos')}
-          className={`flex items-center gap-1.5 border-b-2 py-3 px-3 text-xs font-semibold transition ${
+          className={`flex items-center gap-1.5 border-b-2 py-3 px-3 text-xs font-semibold transition cursor-pointer ${
             abaAtiva === 'votos'
               ? 'border-indigo-500 text-indigo-700 dark:border-indigo-400 dark:text-indigo-300'
               : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
@@ -457,7 +589,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
         <button
           type="button"
           onClick={() => setAbaAtiva('ordenacao')}
-          className={`flex items-center gap-1.5 border-b-2 py-3 px-3 text-xs font-semibold transition ${
+          className={`flex items-center gap-1.5 border-b-2 py-3 px-3 text-xs font-semibold transition cursor-pointer ${
             abaAtiva === 'ordenacao'
               ? 'border-amber-500 text-amber-700 dark:border-amber-400 dark:text-amber-300'
               : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
@@ -485,7 +617,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
               Nenhuma comemoração registrada para {MESES[mesAtual]} nesta categoria.
             </p>
             <p className="text-xs text-slate-400 mt-1">
-              Navegue pelos meses acima para conferir as celebrações de outros meses do ano.
+              Use o seletor ou as setas acima para conferir os outros meses do ano.
             </p>
           </div>
         ) : (
@@ -570,6 +702,14 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
             })}
           </div>
         )}
+      </div>
+
+      {/* Rodapé com status da base */}
+      <div className="border-t border-slate-100 dark:border-slate-800/60 px-4 py-2.5 sm:px-6 bg-slate-50/50 dark:bg-slate-900/30 flex items-center justify-between text-[11px] text-slate-400">
+        <span>Província BRM • Base Canônica</span>
+        <span>
+          {religiososBase.length} confrade(s) na base • {itens.length} comemoração(ões) em {MESES[mesAtual]}
+        </span>
       </div>
     </div>
   );
