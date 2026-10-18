@@ -5,6 +5,7 @@ import {
   Camera,
   Check,
   CheckCircle2,
+  ChevronDown,
   Edit,
   FileQuestion,
   FileText,
@@ -343,97 +344,40 @@ export const ReligiososAdmin: React.FC = () => {
         </div>
       )}
 
-      {activeTab === 'fichas' && (
-        <div className="flex flex-wrap items-center gap-2 pt-1 pb-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mr-1">
-            Filtros da Secretaria:
-          </span>
-          <button
-            type="button"
-            onClick={() => setFiltroAuditoria('todos')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded transition cursor-pointer border ${
-              filtroAuditoria === 'todos'
-                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent shadow-sm'
-                : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800'
-            }`}
-          >
-            Todos ({auditCounts.todos})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setFiltroAuditoria('sem_foto')}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded transition cursor-pointer border ${
-              filtroAuditoria === 'sem_foto'
-                ? 'bg-amber-600 text-white border-transparent shadow-sm'
-                : 'bg-white text-amber-700 hover:bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:text-amber-300 dark:border-amber-900/40'
-            }`}
-          >
-            <Camera className="h-3.5 w-3.5" />
-            <span>Sem Foto 4x4 ({auditCounts.sem_foto})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setFiltroAuditoria('sem_docs')}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded transition cursor-pointer border ${
-              filtroAuditoria === 'sem_docs'
-                ? 'bg-rose-600 text-white border-transparent shadow-sm'
-                : 'bg-white text-rose-700 hover:bg-rose-50 border-rose-200 dark:bg-rose-950/20 dark:text-rose-300 dark:border-rose-900/40'
-            }`}
-          >
-            <FileQuestion className="h-3.5 w-3.5" />
-            <span>Sem Documentos ({auditCounts.sem_docs})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setFiltroAuditoria('pendente_revisao')}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded transition cursor-pointer border ${
-              filtroAuditoria === 'pendente_revisao'
-                ? 'bg-orange-600 text-white border-transparent shadow-sm'
-                : 'bg-white text-orange-700 hover:bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:text-orange-300 dark:border-orange-900/40'
-            }`}
-          >
-            <span>Em Revisão ({auditCounts.pendente_revisao})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setFiltroAuditoria('pendente_site')}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded transition cursor-pointer border ${
-              filtroAuditoria === 'pendente_site'
-                ? 'bg-[#226380] text-white border-transparent shadow-sm'
-                : 'bg-white text-[#226380] hover:bg-[#226380]/10 border-[#226380]/30 dark:bg-[#226380]/10 dark:text-[#A3C3C7] dark:border-[#226380]/30'
-            }`}
-          >
-            <Globe className="h-3.5 w-3.5" />
-            <span>Pendente no Site ({auditCounts.pendente_site})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setFiltroAuditoria('publicado_site')}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded transition cursor-pointer border ${
-              filtroAuditoria === 'publicado_site'
-                ? 'bg-emerald-600 text-white border-transparent shadow-sm'
-                : 'bg-white text-emerald-700 hover:bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-300 dark:border-emerald-900/40'
-            }`}
-          >
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            <span>Publicado no Site ({auditCounts.publicado_site})</span>
-          </button>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-[#161b22]">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <Search className="h-4 w-4 shrink-0 text-slate-400" />
+          <input
+            value={query}
+            onChange={event => setQuery(event.target.value)}
+            placeholder={activeTab === 'contas' ? 'Pesquisar por e-mail, religioso vinculado, origem ou criador...' : 'Pesquisar por nome civil, nome religioso, grau, e-mail ou status...'}
+            className="w-full bg-transparent font-inter text-xs text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
+          />
         </div>
-      )}
 
-      <div className="flex items-center gap-3 border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-[#161b22]">
-        <Search className="h-4 w-4 shrink-0 text-slate-400" />
-        <input
-          value={query}
-          onChange={event => setQuery(event.target.value)}
-          placeholder={activeTab === 'contas' ? 'Pesquisar por e-mail, religioso vinculado, origem ou criador...' : 'Pesquisar por nome civil, nome religioso, grau, e-mail ou status...'}
-          className="w-full bg-transparent font-inter text-xs text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
-        />
+        {activeTab === 'fichas' && (
+          <div className="flex items-center gap-2 border-t sm:border-t-0 sm:border-l border-slate-200 sm:pl-3 pt-2 sm:pt-0 dark:border-slate-700">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 whitespace-nowrap">
+              Filtro:
+            </span>
+            <div className="relative flex items-center">
+              <select
+                value={filtroAuditoria}
+                onChange={event => setFiltroAuditoria(event.target.value as typeof filtroAuditoria)}
+                className="appearance-none rounded-md border border-slate-200 bg-slate-50 py-1.5 pl-3 pr-8 text-xs font-semibold text-slate-800 outline-none transition hover:bg-slate-100 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+              >
+                <option value="todos">Todos os cadastros ({auditCounts.todos})</option>
+                <option value="sem_foto">📷 Sem Foto 4x4 ({auditCounts.sem_foto})</option>
+                <option value="sem_docs">📄 Sem Documentos ({auditCounts.sem_docs})</option>
+                <option value="pendente_revisao">⏳ Em Revisão ({auditCounts.pendente_revisao})</option>
+                <option value="pendente_site">🌐 Pendente no Site ({auditCounts.pendente_site})</option>
+                <option value="publicado_site">✓ Publicado no Site ({auditCounts.publicado_site})</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-slate-400" />
+            </div>
+          </div>
+        )}
+
         <span className="whitespace-nowrap border border-slate-200 px-2 py-0.5 font-mono text-[10px] font-semibold text-slate-500 dark:border-slate-700">
           {activeTab === 'contas' ? filteredAccounts.length : filtered.length} registro(s)
         </span>
