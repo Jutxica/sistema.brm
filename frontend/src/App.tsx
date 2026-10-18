@@ -153,9 +153,13 @@ const DefaultRedirect: React.FC = () => {
   return <Navigate to={isAuthenticated ? getDefaultPath(user) : "/login"} replace />;
 };
 
+const LoginRoute: React.FC = () => {
+  if (isPortalPublicHost()) return <PortalReligioso />;
+  return <Login />;
+};
+
 const ApplicationRoot: React.FC = () => {
-  const location = useLocation();
-  if (isPortalPublicHost() && location.pathname === '/') return <PortalReligioso />;
+  if (isPortalPublicHost()) return <PortalReligioso />;
   return <ProtectedRoute><Layout /></ProtectedRoute>;
 };
 
@@ -173,7 +177,7 @@ export const App: React.FC = () => {
                 <Route path="/area-religioso" element={<PortalReligioso />} />
 
                 {/* Public Access */}
-                <Route path="/login" element={<Login />} />
+                <Route path="/login" element={<LoginRoute />} />
                 <Route path="/inscricao" element={<InscricaoPublica />} />
                 <Route path="/cadastro-religiosos" element={<CadastroReligiosoPublico />} />
                 <Route path="/religiosos-publico" element={<CadastroReligiosoPublico />} />
