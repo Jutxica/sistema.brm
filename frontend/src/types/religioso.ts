@@ -53,6 +53,10 @@ export interface ReligiosoResumo {
   origem_cadastro: string;
   email_institucional: string | null;
   telefone_celular: string | null;
+  foto_path?: string | null;
+  publicado_site_em?: string | null;
+  publicado_site_id?: string | null;
+  has_documents?: boolean;
   created_at: string;
   auth_user_id: string | null;
 }

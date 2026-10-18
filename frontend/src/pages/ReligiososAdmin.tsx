@@ -2,9 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Archive,
   Ban,
+  Camera,
   Check,
+  CheckCircle2,
   Edit,
+  FileQuestion,
   FileText,
+  Globe,
   KeyRound,
   Loader2,
   Plus,
@@ -54,23 +58,39 @@ export const ReligiososAdmin: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'fichas' | 'contas'>('fichas');
   const [accountDialog, setAccountDialog] = useState<AccountDialog | null>(null);
   const [accountActionLoading, setAccountActionLoading] = useState(false);
+  const [filtroAuditoria, setFiltroAuditoria] = useState<'todos' | 'sem_foto' | 'sem_docs' | 'pendente_revisao' | 'pendente_site' | 'publicado_site'>('todos');
 
   const load = async () => {
     setLoading(true);
-    const [religiososResult, accountsResult] = await Promise.all([
+    const [religiososResult, accountsResult, docsResult] = await Promise.all([
       supabase
         .from('religiosos')
-        .select('id,numero_cadastro,nome_civil,nome_religioso,nome_elenco,cadastro_elenco_provisorio,grau,status,status_cadastro,origem_cadastro,email_institucional,telefone_celular,created_at,auth_user_id')
+        .select('id,numero_cadastro,nome_civil,nome_religioso,nome_elenco,cadastro_elenco_provisorio,grau,status,status_cadastro,origem_cadastro,email_institucional,telefone_celular,created_at,auth_user_id,foto_path,publicado_site_em,publicado_site_id')
         .order('nome_elenco', { ascending: true, nullsFirst: false })
         .order('nome_civil', { ascending: true }),
       supabase.functions.invoke<{ accounts: ContaAcesso[] }>('secretaria-contas', { body: { action: 'list' } }),
+      supabase.from('religiosos_documentos').select('religioso_id, categoria').eq('status', 'Ativo'),
     ]);
 
     if (religiososResult.error) {
       console.error('Erro ao carregar religiosos:', religiososResult.error);
       showToast.error(`Não foi possível carregar a base de religiosos: ${religiososResult.error.message}`);
     }
-    setItems((religiososResult.data || []) as ReligiosoResumo[]);
+
+    const docsByReligioso = new Set<string>((docsResult.data || []).map(d => d.religioso_id));
+    const fotoDocsByReligioso = new Set<string>(
+      (docsResult.data || [])
+        .filter(d => (d.categoria || '').includes('Foto') || (d.categoria || '').includes('Perfil'))
+        .map(d => d.religioso_id)
+    );
+
+    const mappedItems: ReligiosoResumo[] = (religiososResult.data || []).map((r: any) => ({
+      ...r,
+      has_documents: docsByReligioso.has(r.id),
+      foto_path: r.foto_path || (fotoDocsByReligioso.has(r.id) ? 'doc_photo' : null),
+    }));
+
+    setItems(mappedItems);
 
     if (accountsResult.error) {
       console.error('Erro ao carregar contas de acesso:', accountsResult.error);
@@ -85,17 +105,36 @@ export const ReligiososAdmin: React.FC = () => {
 
   useEffect(() => { void load(); }, []);
 
+  const auditCounts = useMemo(() => ({
+    todos: items.length,
+    sem_foto: items.filter(i => !i.foto_path).length,
+    sem_docs: items.filter(i => !i.has_documents).length,
+    pendente_revisao: items.filter(i => ['Em revisão', 'Em verificação', 'Aguardando complementação'].includes(i.status_cadastro)).length,
+    pendente_site: items.filter(i => i.status_cadastro === 'Aprovado' && !i.publicado_site_em).length,
+    publicado_site: items.filter(i => Boolean(i.publicado_site_em)).length,
+  }), [items]);
+
   const filtered = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase();
-    return items.filter(item => [
-      item.nome_elenco || '',
-      item.nome_civil || '',
-      item.nome_religioso || '',
-      item.grau || '',
-      item.email_institucional || '',
-      item.status_cadastro || '',
-    ].join(' ').toLocaleLowerCase().includes(normalized));
-  }, [items, query]);
+    return items.filter(item => {
+      // Filtro de Auditoria da Secretaria
+      if (filtroAuditoria === 'sem_foto' && item.foto_path) return false;
+      if (filtroAuditoria === 'sem_docs' && item.has_documents) return false;
+      if (filtroAuditoria === 'pendente_revisao' && !['Em revisão', 'Em verificação', 'Aguardando complementação'].includes(item.status_cadastro)) return false;
+      if (filtroAuditoria === 'pendente_site' && (item.status_cadastro !== 'Aprovado' || Boolean(item.publicado_site_em))) return false;
+      if (filtroAuditoria === 'publicado_site' && !item.publicado_site_em) return false;
+
+      // Busca textual
+      return [
+        item.nome_elenco || '',
+        item.nome_civil || '',
+        item.nome_religioso || '',
+        item.grau || '',
+        item.email_institucional || '',
+        item.status_cadastro || '',
+      ].join(' ').toLocaleLowerCase().includes(normalized);
+    });
+  }, [items, query, filtroAuditoria]);
 
   const nomeExibido = (item: ReligiosoResumo) =>
     item.nome_elenco?.trim() || item.nome_religioso?.trim() || item.nome_civil?.trim() || 'Nome pendente';
@@ -304,6 +343,89 @@ export const ReligiososAdmin: React.FC = () => {
         </div>
       )}
 
+      {activeTab === 'fichas' && (
+        <div className="flex flex-wrap items-center gap-2 pt-1 pb-1">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mr-1">
+            Filtros da Secretaria:
+          </span>
+          <button
+            type="button"
+            onClick={() => setFiltroAuditoria('todos')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded transition cursor-pointer border ${
+              filtroAuditoria === 'todos'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent shadow-sm'
+                : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800'
+            }`}
+          >
+            Todos ({auditCounts.todos})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFiltroAuditoria('sem_foto')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded transition cursor-pointer border ${
+              filtroAuditoria === 'sem_foto'
+                ? 'bg-amber-600 text-white border-transparent shadow-sm'
+                : 'bg-white text-amber-700 hover:bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:text-amber-300 dark:border-amber-900/40'
+            }`}
+          >
+            <Camera className="h-3.5 w-3.5" />
+            <span>Sem Foto 4x4 ({auditCounts.sem_foto})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFiltroAuditoria('sem_docs')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded transition cursor-pointer border ${
+              filtroAuditoria === 'sem_docs'
+                ? 'bg-rose-600 text-white border-transparent shadow-sm'
+                : 'bg-white text-rose-700 hover:bg-rose-50 border-rose-200 dark:bg-rose-950/20 dark:text-rose-300 dark:border-rose-900/40'
+            }`}
+          >
+            <FileQuestion className="h-3.5 w-3.5" />
+            <span>Sem Documentos ({auditCounts.sem_docs})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFiltroAuditoria('pendente_revisao')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded transition cursor-pointer border ${
+              filtroAuditoria === 'pendente_revisao'
+                ? 'bg-orange-600 text-white border-transparent shadow-sm'
+                : 'bg-white text-orange-700 hover:bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:text-orange-300 dark:border-orange-900/40'
+            }`}
+          >
+            <span>Em Revisão ({auditCounts.pendente_revisao})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFiltroAuditoria('pendente_site')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded transition cursor-pointer border ${
+              filtroAuditoria === 'pendente_site'
+                ? 'bg-[#226380] text-white border-transparent shadow-sm'
+                : 'bg-white text-[#226380] hover:bg-[#226380]/10 border-[#226380]/30 dark:bg-[#226380]/10 dark:text-[#A3C3C7] dark:border-[#226380]/30'
+            }`}
+          >
+            <Globe className="h-3.5 w-3.5" />
+            <span>Pendente no Site ({auditCounts.pendente_site})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFiltroAuditoria('publicado_site')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded transition cursor-pointer border ${
+              filtroAuditoria === 'publicado_site'
+                ? 'bg-emerald-600 text-white border-transparent shadow-sm'
+                : 'bg-white text-emerald-700 hover:bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-300 dark:border-emerald-900/40'
+            }`}
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            <span>Publicado no Site ({auditCounts.publicado_site})</span>
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center gap-3 border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-[#161b22]">
         <Search className="h-4 w-4 shrink-0 text-slate-400" />
         <input
@@ -341,9 +463,34 @@ export const ReligiososAdmin: React.FC = () => {
                           <div>
                             <p className="font-semibold text-slate-900 dark:text-white">{nomeExibido(item)}</p>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400">{item.grau || 'Grau pendente'} · {item.nome_civil || 'Nome civil pendente'}</p>
-                            <p className="mt-1 font-mono text-[10px] font-medium tracking-wide text-[#226380] dark:text-[#A3C3C7]">
-                              BRM-{new Date(item.created_at).getFullYear()}-{String(item.numero_cadastro).padStart(6, '0')}
-                            </p>
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                              <span className="font-mono text-[10px] font-medium tracking-wide text-[#226380] dark:text-[#A3C3C7] mr-1">
+                                BRM-{new Date(item.created_at).getFullYear()}-{String(item.numero_cadastro).padStart(6, '0')}
+                              </span>
+                              {item.foto_path ? (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-medium dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900/40" title="Foto oficial de perfil 4x4 cadastrada">
+                                  <Camera className="h-2.5 w-2.5" /> 4x4
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-medium dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/40" title="Sem foto de perfil cadastrada">
+                                  Sem foto
+                                </span>
+                              )}
+                              {item.has_documents ? (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 text-[9px] font-medium dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700" title="Documentos anexados">
+                                  Docs OK
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[9px] font-medium dark:bg-rose-950/30 dark:text-rose-300 dark:border-rose-900/40" title="Nenhum documento anexado">
+                                  Sem docs
+                                </span>
+                              )}
+                              {item.publicado_site_em && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-50 text-[#226380] border border-sky-200 text-[9px] font-medium dark:bg-sky-950/30 dark:text-sky-300 dark:border-sky-900/40" title="Publicado no Site Oficial">
+                                  <Globe className="h-2.5 w-2.5" /> No site
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>

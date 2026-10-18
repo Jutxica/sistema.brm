@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowRightLeft, Building2, CalendarDays, Check, ChevronDown, CircleAlert,
-  Loader2, Link2, MapPin, Plus, Search, UserRound, Users, X,
+  AlertCircle, ArrowRightLeft, Building2, CalendarDays, Check, CheckCircle2, ChevronDown, CircleAlert,
+  Globe, Loader2, Link2, MapPin, Plus, RefreshCw, Search, Sparkles, UserRound, Users, X,
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { confirmAction, showToast } from '../hooks/useFeedback';
+import { siteSyncService } from '../services/siteSyncService';
 
 import type { Religioso, SituacaoElenco } from '../types/religioso';
 import type { TipoVinculo, Destino, Comunidade, Obra, Designacao } from '../types/obra';
@@ -74,6 +75,25 @@ export const ElencoSecretaria: React.FC = () => {
   const [religiosoParaVincular, setReligiosoParaVincular] = useState<Religioso | null>(null);
   const [authUserId, setAuthUserId] = useState('');
   const [linking, setLinking] = useState(false);
+
+  // Estados de Sincronização com o Site Oficial
+  const [modalSincronizacaoAberto, setModalSincronizacaoAberto] = useState(false);
+  const [syncingSingleId, setSyncingSingleId] = useState<string | null>(null);
+  const [batchRunning, setBatchRunning] = useState(false);
+  const [batchCompleted, setBatchCompleted] = useState(false);
+  const [batchFilterApenasDesignados, setBatchFilterApenasDesignados] = useState(true);
+  const [selectedIdsParaSync, setSelectedIdsParaSync] = useState<Set<string>>(new Set());
+  const [batchLogs, setBatchLogs] = useState<
+    { id: string; name: string; status: 'pending' | 'syncing' | 'success' | 'error'; message?: string }[]
+  >([]);
+  const [batchProgress, setBatchProgress] = useState({
+    total: 0,
+    current: 0,
+    currentName: '',
+    successCount: 0,
+    errorCount: 0,
+  });
+  const abortBatchRef = useRef(false);
 
   const aplicarResultados = useCallback((resultados: ResultadoElenco) => {
     const [religiososResult, comunidadesResult, obrasResult, designacoesResult] = resultados;
@@ -258,6 +278,136 @@ export const ElencoSecretaria: React.FC = () => {
     designacoes: vigentes.length,
   }), [religiosos, vigentes]);
 
+  const handleSyncSingle = async (religioso: Religioso) => {
+    setSyncingSingleId(religioso.id);
+    try {
+      await siteSyncService.publishToSite(religioso.id);
+      showToast.success(`Sincronizado no site oficial: ${nomeExibido(religioso)}!`);
+    } catch (err: any) {
+      showToast.error(`Erro ao sincronizar ${nomeExibido(religioso)}: ${err.message}`);
+    } finally {
+      setSyncingSingleId(null);
+    }
+  };
+
+  const religiososCandidatosParaSync = useMemo(() => {
+    const ativos = religiosos.filter(r => r.situacao_elenco === 'Ativo');
+    if (!batchFilterApenasDesignados) return ativos;
+    return ativos.filter(r => (designacoesPorReligioso.get(r.id) || []).length > 0);
+  }, [religiosos, batchFilterApenasDesignados, designacoesPorReligioso]);
+
+  const abrirModalSincronizacao = () => {
+    const defaultIds = new Set(religiososCandidatosParaSync.map(r => r.id));
+    setSelectedIdsParaSync(defaultIds);
+    setBatchLogs([]);
+    setBatchProgress({ total: defaultIds.size, current: 0, currentName: '', successCount: 0, errorCount: 0 });
+    setBatchCompleted(false);
+    setBatchRunning(false);
+    setModalSincronizacaoAberto(true);
+  };
+
+  const toggleSelectParaSync = (id: string) => {
+    if (batchRunning) return;
+    setSelectedIdsParaSync(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllParaSync = (selectAll: boolean) => {
+    if (batchRunning) return;
+    if (selectAll) {
+      setSelectedIdsParaSync(new Set(religiososCandidatosParaSync.map(r => r.id)));
+    } else {
+      setSelectedIdsParaSync(new Set());
+    }
+  };
+
+  const iniciarSincronizacaoEmLote = async () => {
+    const alvos = religiososCandidatosParaSync.filter(r => selectedIdsParaSync.has(r.id));
+    if (alvos.length === 0) {
+      showToast.error('Selecione ao menos um religioso para sincronizar.');
+      return;
+    }
+
+    abortBatchRef.current = false;
+    setBatchRunning(true);
+    setBatchCompleted(false);
+
+    const logsIniciais = alvos.map(r => ({
+      id: r.id,
+      name: nomeExibido(r),
+      status: 'pending' as const,
+    }));
+    setBatchLogs(logsIniciais);
+    setBatchProgress({
+      total: alvos.length,
+      current: 0,
+      currentName: '',
+      successCount: 0,
+      errorCount: 0,
+    });
+
+    let sucessos = 0;
+    let erros = 0;
+
+    for (let i = 0; i < alvos.length; i++) {
+      if (abortBatchRef.current) {
+        showToast.info('Sincronização em lote interrompida pelo usuário.');
+        break;
+      }
+
+      const rel = alvos[i];
+      const nome = nomeExibido(rel);
+
+      setBatchProgress(prev => ({
+        ...prev,
+        current: i + 1,
+        currentName: nome,
+      }));
+
+      setBatchLogs(prev =>
+        prev.map(item => (item.id === rel.id ? { ...item, status: 'syncing' } : item))
+      );
+
+      try {
+        await siteSyncService.publishToSite(rel.id);
+        sucessos++;
+        setBatchLogs(prev =>
+          prev.map(item => (item.id === rel.id ? { ...item, status: 'success' } : item))
+        );
+      } catch (err: any) {
+        erros++;
+        setBatchLogs(prev =>
+          prev.map(item =>
+            item.id === rel.id ? { ...item, status: 'error', message: err?.message || 'Falha na publicação' } : item
+          )
+        );
+      }
+
+      setBatchProgress(prev => ({
+        ...prev,
+        successCount: sucessos,
+        errorCount: erros,
+      }));
+
+      await new Promise(r => setTimeout(r, 120));
+    }
+
+    setBatchRunning(false);
+    setBatchCompleted(true);
+    if (!abortBatchRef.current) {
+      showToast.success(`Sincronização em lote concluída: ${sucessos} confrade(s) sincronizado(s)!`);
+    }
+  };
+
+  const pararSincronizacaoEmLote = () => {
+    abortBatchRef.current = true;
+    setBatchRunning(false);
+  };
+
   if (loading) {
     return <div className="flex min-h-[50vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#226380]" /></div>;
   }
@@ -270,13 +420,23 @@ export const ElencoSecretaria: React.FC = () => {
           <h1 className="mt-1 font-cinzel text-2xl font-semibold tracking-tight text-slate-900 dark:text-white sm:text-3xl">Elenco dos Religiosos</h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">Consulte comunidades e designações, registre transferências e mantenha a situação canônica atualizada.</p>
         </div>
-        <button
-          type="button"
-          onClick={() => abrirDesignacao()}
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-[#113240] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#19495b]"
-        >
-          <Plus className="h-4 w-4" /> Nova designação
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={abrirModalSincronizacao}
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-[#226380] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#17485b] shadow-xs transition hover:bg-slate-50 dark:border-sky-400 dark:bg-slate-800 dark:text-sky-200 dark:hover:bg-slate-700"
+          >
+            <Globe className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+            Sincronizar com Site Oficial
+          </button>
+          <button
+            type="button"
+            onClick={() => abrirDesignacao()}
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-[#113240] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#19495b]"
+          >
+            <Plus className="h-4 w-4" /> Nova designação
+          </button>
+        </div>
       </header>
 
       <section className="grid gap-3 sm:grid-cols-3">
@@ -369,6 +529,22 @@ export const ElencoSecretaria: React.FC = () => {
                     <td className="px-4 py-4">
                       <div className="flex justify-end gap-2">
                         {!religioso.auth_user_id && <button type="button" onClick={() => { setReligiosoParaVincular(religioso); setAuthUserId(''); }} className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"><Link2 className="h-3.5 w-3.5" /> Vincular conta</button>}
+                        {ativo && (
+                          <button
+                            type="button"
+                            title="Sincronizar dados deste religioso com o site oficial"
+                            onClick={() => void handleSyncSingle(religioso)}
+                            disabled={syncingSingleId === religioso.id}
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-white/5 disabled:opacity-50"
+                          >
+                            {syncingSingleId === religioso.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin text-sky-600" />
+                            ) : (
+                              <Globe className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+                            )}
+                            <span className="hidden xl:inline">Site</span>
+                          </button>
+                        )}
                         {ativo && <button type="button" onClick={() => abrirDesignacao(religioso.id)} className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"><ArrowRightLeft className="h-3.5 w-3.5" /> Transferir</button>}
                         <button type="button" onClick={() => void mudarSituacao(religioso)} className={`rounded-md border px-2.5 py-1.5 text-xs font-medium ${ativo ? 'border-amber-200 text-amber-800 hover:bg-amber-50 dark:border-amber-900 dark:text-amber-300' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-900 dark:text-emerald-300'}`}>
                           {ativo ? 'Marcar ausente' : 'Reativar'}
@@ -494,6 +670,263 @@ export const ElencoSecretaria: React.FC = () => {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Modal de Sincronização em Lote com o Site Oficial */}
+      {modalSincronizacaoAberto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-xs"
+          role="presentation"
+          onMouseDown={event => {
+            if (event.target === event.currentTarget && !batchRunning) {
+              setModalSincronizacaoAberto(false);
+            }
+          }}
+        >
+          <div className="my-auto w-full max-w-3xl space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-[#161b22] sm:p-7">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600 dark:bg-sky-950/50 dark:text-sky-300">
+                  <Globe className="h-5 w-5" />
+                </span>
+                <div>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                    Integração Pública • Site Provincial
+                  </span>
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                    Sincronização em Lote com o Site Oficial
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Transfira em lote as comunidades, cargos e perfis dos religiosos para o portal público (scj-brm.onrender.com).
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={batchRunning}
+                onClick={() => setModalSincronizacaoAberto(false)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Painel de Filtros e Seleção */}
+            {!batchRunning && !batchCompleted && (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-50 p-3.5 dark:bg-white/[0.03]">
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={batchFilterApenasDesignados}
+                        onChange={e => {
+                          const checked = e.target.checked;
+                          setBatchFilterApenasDesignados(checked);
+                          const ativos = religiosos.filter(r => r.situacao_elenco === 'Ativo');
+                          const filtradosParaSync = checked 
+                            ? ativos.filter(r => (designacoesPorReligioso.get(r.id) || []).length > 0)
+                            : ativos;
+                          setSelectedIdsParaSync(new Set(filtradosParaSync.map(r => r.id)));
+                        }}
+                        className="rounded border-slate-300 text-[#226380] focus:ring-[#226380]"
+                      />
+                      <span>Apenas religiosos com designação vigente ({religiosos.filter(r => r.situacao_elenco === 'Ativo' && (designacoesPorReligioso.get(r.id) || []).length > 0).length})</span>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => toggleSelectAllParaSync(true)}
+                      className="font-semibold text-[#17485b] dark:text-sky-300 hover:underline"
+                    >
+                      Selecionar todos ({religiososCandidatosParaSync.length})
+                    </button>
+                    <span className="text-slate-300">|</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleSelectAllParaSync(false)}
+                      className="text-slate-500 hover:underline"
+                    >
+                      Desmarcar todos
+                    </button>
+                  </div>
+                </div>
+
+                <div className="text-xs text-slate-600 dark:text-slate-300 flex items-center justify-between px-1">
+                  <span>
+                    <strong>{selectedIdsParaSync.size}</strong> de {religiososCandidatosParaSync.length} selecionado(s) para sincronização.
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    A publicação atualiza tanto a biografia quanto a composição das equipes nas comunidades.
+                  </span>
+                </div>
+
+                {/* Lista com scroll dos selecionados */}
+                <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-800">
+                  {religiososCandidatosParaSync.map(rel => {
+                    const isChecked = selectedIdsParaSync.has(rel.id);
+                    const relDesigs = designacoesPorReligioso.get(rel.id) || [];
+                    const primeiraDesig = relDesigs[0];
+                    const comunidade = primeiraDesig?.comunidade_id ? mapaComunidades.get(primeiraDesig.comunidade_id) : null;
+                    const obra = primeiraDesig?.obra_id ? mapaObras.get(primeiraDesig.obra_id) : null;
+                    const localNome = comunidade?.nome || obra?.nome || 'Sem designação ativa';
+                    const funcao = primeiraDesig?.funcao || 'Membro';
+
+                    return (
+                      <div
+                        key={`sync-cand-${rel.id}`}
+                        onClick={() => toggleSelectParaSync(rel.id)}
+                        className={`flex items-center justify-between p-3 text-xs transition cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.02] ${
+                          isChecked ? 'bg-sky-50/40 dark:bg-sky-950/20' : ''
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleSelectParaSync(rel.id)}
+                            className="rounded border-slate-300 text-[#226380] focus:ring-[#226380]"
+                          />
+                          <div className="min-w-0">
+                            <span className="font-semibold text-slate-900 dark:text-white block truncate">
+                              {nomeExibido(rel)}
+                            </span>
+                            <span className="text-[11px] text-slate-500 dark:text-slate-400 block truncate">
+                              {localNome} • {funcao}
+                            </span>
+                          </div>
+                        </div>
+
+                        <span className="text-[11px] text-slate-400 shrink-0 ml-2">
+                          {rel.grau}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Progresso durante a execução ou pós-conclusão */}
+            {(batchRunning || batchCompleted) && (
+              <div className="space-y-4">
+                {/* Barra de Progresso */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-medium text-slate-700 dark:text-slate-300">
+                    <span>
+                      {batchRunning
+                        ? `Sincronizando: ${batchProgress.currentName}...`
+                        : `Sincronização em lote finalizada!`}
+                    </span>
+                    <span>
+                      {batchProgress.current} de {batchProgress.total} ({Math.round((batchProgress.current / (batchProgress.total || 1)) * 100)}%)
+                    </span>
+                  </div>
+                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                    <div
+                      className={`h-full transition-all duration-300 ${
+                        batchCompleted ? 'bg-emerald-600' : 'bg-[#226380]'
+                      }`}
+                      style={{
+                        width: `${Math.round((batchProgress.current / (batchProgress.total || 1)) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="flex items-center gap-4 text-xs">
+                    <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> {batchProgress.successCount} concluído(s)
+                    </span>
+                    {batchProgress.errorCount > 0 && (
+                      <span className="text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1">
+                        <AlertCircle className="h-3.5 w-3.5" /> {batchProgress.errorCount} com falha
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Log detalhado de cada confrade */}
+                <div className="max-h-64 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 p-2 text-xs">
+                  {batchLogs.map(log => (
+                    <div key={`log-${log.id}`} className="flex items-center justify-between py-2 px-2">
+                      <span className="font-medium text-slate-800 dark:text-slate-200 truncate">
+                        {log.name}
+                      </span>
+                      <div className="shrink-0 flex items-center gap-1.5">
+                        {log.status === 'pending' && (
+                          <span className="text-[11px] text-slate-400">Na fila</span>
+                        )}
+                        {log.status === 'syncing' && (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-sky-600 dark:text-sky-400">
+                            <Loader2 className="h-3 w-3 animate-spin" /> Publicando...
+                          </span>
+                        )}
+                        {log.status === 'success' && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                            <Check className="h-3 w-3" /> Sincronizado
+                          </span>
+                        )}
+                        {log.status === 'error' && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400" title={log.message}>
+                            <AlertCircle className="h-3 w-3" /> Erro
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Footer com Ações */}
+            <div className="flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
+              <p className="text-[11px] text-slate-400">
+                Província BRM • SCJ Brasil Meridional
+              </p>
+
+              <div className="flex items-center gap-2">
+                {batchRunning ? (
+                  <button
+                    type="button"
+                    onClick={pararSincronizacaoEmLote}
+                    className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300 transition"
+                  >
+                    Interromper sincronização
+                  </button>
+                ) : batchCompleted ? (
+                  <button
+                    type="button"
+                    onClick={() => setModalSincronizacaoAberto(false)}
+                    className="rounded-lg bg-[#113240] px-4 py-2 text-sm font-semibold text-white hover:bg-[#19495b] transition"
+                  >
+                    Concluir & Fechar
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setModalSincronizacaoAberto(false)}
+                      className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 transition"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      disabled={selectedIdsParaSync.size === 0}
+                      onClick={iniciarSincronizacaoEmLote}
+                      className="inline-flex items-center gap-2 rounded-lg bg-[#113240] px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-[#19495b] transition disabled:opacity-50"
+                    >
+                      <Globe className="h-4 w-4" />
+                      Iniciar Sincronização ({selectedIdsParaSync.size})
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

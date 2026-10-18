@@ -8,6 +8,7 @@ import type { ReligiosoPortalData } from '../../../types/religioso';
 import type { DocumentoProvincial, EventoProvincial } from '../../../types/secretaria';
 import { staggerStyle } from '../../../hooks/useMotion';
 import { downloadArquivo } from '../../../lib/downloadHelper';
+import { AniversariosJubileusCard } from '../../../components/AniversariosJubileusCard';
 
 export interface PortalInicioTabProps {
   religiosoData: ReligiosoPortalData | null;
@@ -193,6 +194,8 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
             })}
           </div>
         </section>
+
+        <AniversariosJubileusCard variant="portal" />
       </div>
 
       <div className="hidden space-y-4 sm:space-y-6 md:block">
@@ -485,6 +488,9 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
           </div>
 
         </div>
+
+        {/* Jubileus & Aniversários do Mês */}
+        <AniversariosJubileusCard variant="portal" />
 
         {/* Próximos Eventos da Agenda Provincial */}
         <div className="bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-7 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">

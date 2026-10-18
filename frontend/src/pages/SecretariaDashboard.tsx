@@ -16,6 +16,7 @@ import { hasModuleAccess, useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { showToast } from '../hooks/useFeedback';
 import { arquivoSecretariaService, type ProtocoloArquivo } from '../services/arquivoSecretariaService';
+import { AniversariosJubileusCard } from '../components/AniversariosJubileusCard';
 
 interface DocumentoRecente {
   id: string;
@@ -274,6 +275,10 @@ export const SecretariaDashboard: React.FC = () => {
           </>
         )}
       </section>
+
+      {canAccessSecretaria && (
+        <AniversariosJubileusCard variant="dashboard" />
+      )}
 
       {canAccessSecretaria && (
         <section className="grid gap-5 lg:grid-cols-2">

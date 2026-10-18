@@ -1497,6 +1497,26 @@ export const PortalReligioso: React.FC = () => {
 
                 </div>
 
+                {user?.acessos && user.acessos.some(a => ['secretaria', 'religiosos', 'obras', 'patrimonio', 'configuracoes'].includes(a)) && (
+                  <>
+                    <div className="my-1.5 border-t border-[#d6d6d6]/40 dark:border-white/5" />
+                    <a
+                      href="https://sistema.brm.org.br"
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-[14px] text-left text-xs font-medium text-[#226380] dark:text-[#A3C3C7] hover:bg-[#226380]/10 transition-colors cursor-pointer"
+                    >
+                      <div className="w-7 h-7 rounded-[10px] bg-[#226380]/10 flex items-center justify-center text-[#226380] dark:text-[#A3C3C7] shrink-0">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <span className="font-semibold block">Painel da Secretaria</span>
+                        <span className="text-[10px] text-[#707070] dark:text-[#86868b] block font-normal">
+                          Acessar sistema.brm.org.br
+                        </span>
+                      </div>
+                    </a>
+                  </>
+                )}
+
                 <div className="my-1.5 border-t border-[#d6d6d6]/40 dark:border-white/5" />
 
                 {/* Sair da Conta */}
