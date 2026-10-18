@@ -6,10 +6,8 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Calendar, 
-  User, 
   MapPin, 
   Loader2,
-  Medal,
   Heart
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
@@ -75,6 +73,47 @@ function getJubileuInfo(anos: number) {
   return null;
 }
 
+function parseDateParts(raw: string | null | undefined): { ano: number; mes: number; dia: number } | null {
+  if (!raw) return null;
+  const str = String(raw).trim();
+  if (!str) return null;
+
+  // Formato ISO (YYYY-MM-DD ou YYYY-MM-DDT...)
+  if (str.includes('-')) {
+    const parts = str.slice(0, 10).split('-');
+    if (parts.length >= 3) {
+      const ano = parseInt(parts[0], 10);
+      const mes = parseInt(parts[1], 10);
+      const dia = parseInt(parts[2], 10);
+      if (!isNaN(ano) && !isNaN(mes) && !isNaN(dia)) return { ano, mes, dia };
+    }
+  }
+
+  // Formato brasileiro (DD/MM/YYYY)
+  if (str.includes('/')) {
+    const parts = str.split('/');
+    if (parts.length >= 3) {
+      if (parts[2].length === 4) {
+        const dia = parseInt(parts[0], 10);
+        const mes = parseInt(parts[1], 10);
+        const ano = parseInt(parts[2], 10);
+        if (!isNaN(ano) && !isNaN(mes) && !isNaN(dia)) return { ano, mes, dia };
+      } else {
+        const ano = parseInt(parts[0], 10);
+        const mes = parseInt(parts[1], 10);
+        const dia = parseInt(parts[2], 10);
+        if (!isNaN(ano) && !isNaN(mes) && !isNaN(dia)) return { ano, mes, dia };
+      }
+    }
+  }
+
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    return { ano: d.getFullYear(), mes: d.getMonth() + 1, dia: d.getDate() };
+  }
+  return null;
+}
+
 interface AniversariosJubileusCardProps {
   className?: string;
   variant?: 'dashboard' | 'portal';
@@ -82,7 +121,6 @@ interface AniversariosJubileusCardProps {
 
 export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> = ({
   className = '',
-  variant = 'dashboard',
 }) => {
   const [dataAtual, setDataAtual] = useState(() => new Date());
   const [loading, setLoading] = useState(true);
@@ -110,37 +148,42 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
     async function carregarAniversariantes() {
       setLoading(true);
       try {
-        // Busca religiosos ativos
+        // 1. Busca religiosos sem filtros excludentes rígidos (apenas exclui falecidos e exclaustrados)
         const { data: relData, error: relError } = await supabase
           .from('religiosos')
-          .select('id, nome_civil, nome_religioso, nome_elenco, data_nascimento, foto_url, foto_path, grau, comunidade_atual_nome, status')
-          .in('status', ['ativo', 'Ativo', 'estudos', 'missao', 'saude', 'ano_sabatico']);
+          .select('id, nome_civil, nome_religioso, nome_elenco, data_nascimento, foto_url, foto_path, grau, comunidade_atual_nome, status, situacao_elenco');
 
         if (relError) throw relError;
 
-        // Busca votos (primeiros e perpétuos)
+        const relsValidos = (relData || []).filter(r => {
+          const s = (r.status || '').toLowerCase();
+          const se = (r.situacao_elenco || '').toLowerCase();
+          return !s.includes('falec') && !s.includes('exclaust') && !se.includes('falec') && !se.includes('exclaust');
+        });
+
+        // 2. Busca votos (primeiros e perpétuos)
         const { data: votosData } = await supabase
           .from('religiosos_profissoes_votos')
-          .select('religioso_id, tipo, data')
-          .not('data', 'is', null);
+          .select('*');
 
-        // Busca ordens sacras
+        // 3. Busca ordens sacras
         const { data: ordensData } = await supabase
           .from('religiosos_ministerios_ordens')
-          .select('religioso_id, tipo, data')
-          .not('data', 'is', null);
+          .select('*');
 
         if (cancelado) return;
 
-        const relMap = new Map((relData || []).map(r => [r.id, r]));
+        const relMap = new Map(relsValidos.map(r => [r.id, r]));
         const listaColetada: AniversarioItem[] = [];
 
         // 1. Aniversários Natalícios
-        for (const rel of relData || []) {
+        for (const rel of relsValidos) {
           if (!rel.data_nascimento) continue;
-          const [anoNasc, mesNasc, diaNasc] = rel.data_nascimento.split('-').map(Number);
-          if (mesNasc === mesAtual + 1) {
-            const idade = anoAtual - anoNasc;
+          const parsed = parseDateParts(rel.data_nascimento);
+          if (!parsed) continue;
+
+          if (parsed.mes === mesAtual + 1) {
+            const idade = anoAtual - parsed.ano;
             const nomeFormatado = rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
             listaColetada.push({
               id: `natalicio-${rel.id}`,
@@ -150,7 +193,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
               comunidade: rel.comunidade_atual_nome || undefined,
               fotoUrl: rel.foto_url,
               tipo: 'natalicio',
-              dia: diaNasc,
+              dia: parsed.dia,
               dataOriginal: rel.data_nascimento,
               anos: idade > 0 ? idade : undefined,
               descricaoDetalhe: idade > 0 ? `Comemora ${idade} anos de vida` : 'Aniversário natalício',
@@ -161,26 +204,30 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
         // 2. Profissão Religiosa (Votos)
         for (const voto of votosData || []) {
           const rel = relMap.get(voto.religioso_id);
-          if (!rel || !voto.data) continue;
-          const [anoVoto, mesVoto, diaVoto] = voto.data.split('-').map(Number);
-          if (mesVoto === mesAtual + 1) {
-            const anosProfissao = anoAtual - anoVoto;
-            const tipoLower = (voto.tipo || '').toLowerCase();
+          if (!rel) continue;
+          const rawDate = voto.data || voto.data_profissao || voto.data_voto;
+          const parsed = parseDateParts(rawDate);
+          if (!parsed) continue;
+
+          if (parsed.mes === mesAtual + 1) {
+            const anosProfissao = anoAtual - parsed.ano;
+            const rawTipo = voto.tipo || voto.voto_tipo || '';
+            const tipoLower = rawTipo.toLowerCase();
             const isPerpetuo = tipoLower.includes('perp');
             const rotuloTipo = isPerpetuo ? 'Votos Perpétuos' : 'Primeiros Votos';
             const jubileu = getJubileuInfo(anosProfissao);
             const nomeFormatado = rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
 
             listaColetada.push({
-              id: `voto-${rel.id}-${voto.data}`,
+              id: `voto-${rel.id}-${rawDate}`,
               religiosoId: rel.id,
               nome: nomeFormatado,
               grau: rel.grau,
               comunidade: rel.comunidade_atual_nome || undefined,
               fotoUrl: rel.foto_url,
               tipo: 'votos',
-              dia: diaVoto,
-              dataOriginal: voto.data,
+              dia: parsed.dia,
+              dataOriginal: String(rawDate),
               anos: anosProfissao,
               jubileu,
               descricaoDetalhe: anosProfissao > 0 
@@ -193,11 +240,18 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
         // 3. Ordenações Sacras (Presbiteral, Diaconal, Episcopal)
         for (const ordem of ordensData || []) {
           const rel = relMap.get(ordem.religioso_id);
-          if (!rel || !ordem.data) continue;
-          const [anoOrd, mesOrd, diaOrd] = ordem.data.split('-').map(Number);
-          if (mesOrd === mesAtual + 1) {
-            const anosOrdenacao = anoAtual - anoOrd;
-            const tipoLower = (ordem.tipo || '').toLowerCase();
+          if (!rel) continue;
+          const rawDate = ordem.data || ordem.data_recebimento || ordem.data_ordenacao;
+          const parsed = parseDateParts(rawDate);
+          if (!parsed) continue;
+
+          const rawTipo = ordem.tipo || ordem.ministerio || '';
+          const tipoLower = rawTipo.toLowerCase();
+          const isOrdenacao = tipoLower.includes('diacon') || tipoLower.includes('presb') || tipoLower.includes('sacerd') || tipoLower.includes('episc') || tipoLower.includes('bispo');
+          if (!isOrdenacao) continue;
+
+          if (parsed.mes === mesAtual + 1) {
+            const anosOrdenacao = anoAtual - parsed.ano;
             let rotuloOrdem = 'Ordenação Presbiteral';
             if (tipoLower.includes('diacon')) rotuloOrdem = 'Ordenação Diaconal';
             else if (tipoLower.includes('episcop') || tipoLower.includes('bispo')) rotuloOrdem = 'Ordenação Episcopal';
@@ -206,15 +260,15 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
             const nomeFormatado = rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
 
             listaColetada.push({
-              id: `ordem-${rel.id}-${ordem.data}`,
+              id: `ordem-${rel.id}-${rawDate}`,
               religiosoId: rel.id,
               nome: nomeFormatado,
               grau: rel.grau,
               comunidade: rel.comunidade_atual_nome || undefined,
               fotoUrl: rel.foto_url,
               tipo: 'ordenacao',
-              dia: diaOrd,
-              dataOriginal: ordem.data,
+              dia: parsed.dia,
+              dataOriginal: String(rawDate),
               anos: anosOrdenacao,
               jubileu,
               descricaoDetalhe: anosOrdenacao > 0
@@ -224,8 +278,30 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
           }
         }
 
+        // Tenta resolver foto assinada para quem tiver foto_path
+        for (const item of listaColetada) {
+          const rel = relMap.get(item.religiosoId);
+          if (rel?.foto_path && !item.fotoUrl) {
+            try {
+              const { data: sDoc } = await supabase.storage
+                .from('religiosos-documentos')
+                .createSignedUrl(rel.foto_path, 3600);
+              if (sDoc?.signedUrl) item.fotoUrl = sDoc.signedUrl;
+              else {
+                const { data: sPerfil } = await supabase.storage
+                  .from('religiosos-perfil')
+                  .createSignedUrl(rel.foto_path, 3600);
+                if (sPerfil?.signedUrl) item.fotoUrl = sPerfil.signedUrl;
+              }
+            } catch {
+              // Silencioso se der erro no storage
+            }
+          }
+        }
+
         // Ordena por dia do mês crescente
         listaColetada.sort((a, b) => a.dia - b.dia);
+        console.info(`[Jubileus & Aniversários] Carregados ${relsValidos.length} religiosos, ${votosData?.length || 0} votos, ${ordensData?.length || 0} ordens. Comemorações em ${MESES[mesAtual]}: ${listaColetada.length}`);
         setItens(listaColetada);
       } catch (err) {
         console.error('Erro ao carregar aniversários:', err);
@@ -247,8 +323,6 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
   const contagemVotos = useMemo(() => itens.filter(i => i.tipo === 'votos').length, [itens]);
   const contagemOrdenacoes = useMemo(() => itens.filter(i => i.tipo === 'ordenacao').length, [itens]);
   const jubileusDestaque = useMemo(() => itens.filter(i => i.jubileu !== null && i.jubileu !== undefined), [itens]);
-
-  const isPortal = variant === 'portal';
 
   return (
     <div className={`overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/60 ${className}`}>
@@ -411,7 +485,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
               Nenhuma comemoração registrada para {MESES[mesAtual]} nesta categoria.
             </p>
             <p className="text-xs text-slate-400 mt-1">
-              Navegue pelos meses acima para conferir as próximas celebrações provinciais.
+              Navegue pelos meses acima para conferir as celebrações de outros meses do ano.
             </p>
           </div>
         ) : (
@@ -427,14 +501,25 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
                       : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/40 hover:border-slate-300'
                   }`}
                 >
-                  {/* Badge de Dia do Mês */}
-                  <div className="flex flex-col items-center justify-center shrink-0 w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-semibold">
-                    <span className="text-[10px] uppercase text-slate-500 dark:text-slate-400 leading-tight">
-                      {MESES[mesAtual].slice(0, 3)}
-                    </span>
-                    <span className="text-base text-slate-900 dark:text-white leading-tight font-bold">
-                      {String(item.dia).padStart(2, '0')}
-                    </span>
+                  {/* Foto ou Badge de Dia */}
+                  <div className="relative shrink-0 w-12 h-12 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                    {item.fotoUrl ? (
+                      <>
+                        <img src={item.fotoUrl} alt={item.nome} className="w-full h-full object-cover" />
+                        <span className="absolute bottom-0 inset-x-0 bg-slate-900/80 text-[10px] font-bold text-white text-center py-0.5 leading-none">
+                          Dia {item.dia}
+                        </span>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-center">
+                        <span className="text-[9px] uppercase text-slate-500 dark:text-slate-400 font-semibold leading-none">
+                          {MESES[mesAtual].slice(0, 3)}
+                        </span>
+                        <span className="text-base text-slate-900 dark:text-white leading-tight font-bold">
+                          {String(item.dia).padStart(2, '0')}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Informações do Confrade */}
