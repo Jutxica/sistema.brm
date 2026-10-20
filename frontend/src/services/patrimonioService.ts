@@ -10,6 +10,7 @@ import { sincronizacaoService } from './sincronizacaoService';
 import { dashboardService } from './dashboardService';
 import { cepService } from './cepService';
 import { cnpjService } from './cnpjService';
+import { fipeService } from './fipeService';
 import { ocrService } from './ocrService';
 import { relatoriosService } from './relatoriosService';
 
@@ -26,6 +27,7 @@ export const patrimonioService = {
   dashboard: dashboardService,
   cep: cepService,
   cnpj: cnpjService,
+  fipe: fipeService,
   ocr: ocrService,
   relatorios: relatoriosService
 };
@@ -43,6 +45,7 @@ export {
   dashboardService,
   cepService,
   cnpjService,
+  fipeService,
   ocrService,
   relatoriosService
 };

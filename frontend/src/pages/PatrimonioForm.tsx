@@ -26,6 +26,7 @@ import {
   manutencoesService,
   cepService,
   cnpjService,
+  fipeService,
   ocrService
 } from '../services/patrimonioService';
 import { useAuth } from '../contexts/AuthContext';
@@ -90,6 +91,8 @@ export const PatrimonioForm: React.FC = () => {
   const [anexosAtuais, setAnexosAtuais] = useState<PatrimonioAnexo[]>([]);
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [buscandoCnpj, setBuscandoCnpj] = useState(false);
+  const [buscandoFipe, setBuscandoFipe] = useState(false);
+  const [codigoFipeBusca, setCodigoFipeBusca] = useState('');
   const [processandoOcr, setProcessandoOcr] = useState(false);
   const [ocrResultado, setOcrResultado] = useState<any>(null);
 
@@ -300,6 +303,34 @@ export const PatrimonioForm: React.FC = () => {
       showToast.error('Falha ao consultar CNPJ. Preenchimento manual liberado.', 'Aviso');
     } finally {
       setBuscandoCnpj(false);
+    }
+  };
+
+  // Integração Assistida Tabela FIPE (BrasilAPI)
+  const handleBuscarFipe = async () => {
+    if (!codigoFipeBusca?.trim()) {
+      showToast.error('Informe o código FIPE (ex: 004278-1).', 'Código FIPE');
+      return;
+    }
+    setBuscandoFipe(true);
+    try {
+      const res = await fipeService.consultarPorCodigoFipe(codigoFipeBusca);
+      if (res) {
+        setVeiculoData(prev => ({
+          ...prev,
+          marca_modelo: `${res.marca} ${res.modelo}`,
+          ano_modelo: res.anoModelo || prev.ano_modelo,
+          combustivel: res.combustivel || prev.combustivel,
+          observacoes: `${prev.observacoes ? prev.observacoes + ' | ' : ''}FIPE Ref: ${res.valor} (${res.mesReferencia}, Cód: ${res.codigoFipe})`
+        }));
+        showToast.success(`Veículo localizado na FIPE: ${res.marca} ${res.modelo} — ${res.valor}`, 'Cotação FIPE');
+      } else {
+        showToast.error('Código FIPE não encontrado na base pública.', 'FIPE');
+      }
+    } catch (_) {
+      showToast.error('Erro ao consultar FIPE. Preenchimento manual liberado.', 'Aviso');
+    } finally {
+      setBuscandoFipe(false);
     }
   };
 
@@ -1018,6 +1049,40 @@ export const PatrimonioForm: React.FC = () => {
                   <Car className="w-4 h-4 text-[#226380]" />
                   <span>1. Dados do Automóvel & Registro DETRAN</span>
                 </h2>
+              </div>
+
+              {/* Assistente Tabela FIPE (BrasilAPI) */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-[#226380] dark:text-[#A3C3C7]" />
+                  <div>
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                      Assistente Tabela FIPE (BrasilAPI)
+                    </span>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Consulte a cotação oficial de mercado para controle patrimonial e apólice da província.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={codigoFipeBusca}
+                    onChange={(e) => setCodigoFipeBusca(e.target.value)}
+                    placeholder="Cód. FIPE (Ex: 004278-1)"
+                    className="px-2.5 py-1.5 rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-mono outline-none text-slate-900 dark:text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleBuscarFipe}
+                    disabled={buscandoFipe}
+                    className="px-3 py-1.5 rounded bg-[#226380] text-white hover:bg-[#113240] text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-60"
+                  >
+                    {buscandoFipe ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+                    <span>{buscandoFipe ? 'Buscando...' : 'Buscar FIPE'}</span>
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">

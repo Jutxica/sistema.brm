@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
+import { feriadosService, type FeriadoNacional } from '../services/feriadosService';
+import { useEffect } from 'react';
 
 export interface EventoVisualizacao {
   id: string;
@@ -41,10 +43,25 @@ export function AgendaVisualizacao<T extends EventoVisualizacao>({
   eventos,
   renderAcoes,
 }: AgendaVisualizacaoProps<T>) {
+  const [feriados, setFeriados] = useState<FeriadoNacional[]>([]);
   const [mesVisivel, setMesVisivel] = useState(() => {
     const hoje = new Date();
     return new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   });
+
+  useEffect(() => {
+    let ativo = true;
+    feriadosService.listarFeriados(mesVisivel.getFullYear()).then(dados => {
+      if (ativo) setFeriados(dados);
+    });
+    return () => { ativo = false; };
+  }, [mesVisivel]);
+
+  const mapaFeriados = useMemo(() => {
+    const mapa = new Map<string, string>();
+    feriados.forEach(f => mapa.set(f.date, f.name));
+    return mapa;
+  }, [feriados]);
 
   const diasDoMes = useMemo(() => {
     const inicio = new Date(mesVisivel.getFullYear(), mesVisivel.getMonth(), 1);
@@ -176,6 +193,7 @@ export function AgendaVisualizacao<T extends EventoVisualizacao>({
         {diasDoMes.map((dia) => {
           const chaveDia = `${dia.getFullYear()}-${String(dia.getMonth() + 1).padStart(2, '0')}-${String(dia.getDate()).padStart(2, '0')}`;
           const eventosDia = eventos.filter((evento) => evento.data_inicio <= chaveDia && (evento.data_fim || evento.data_inicio) >= chaveDia);
+          const feriadoNome = mapaFeriados.get(chaveDia);
           const pertenceMes = dia.getMonth() === mesVisivel.getMonth();
           return (
             <div

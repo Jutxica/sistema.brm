@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowLeft, ExternalLink, Loader2, MapPin, Phone, Mail, ArrowRight } from 'lucide-react';
+import { ClimaCasaCard } from '../../../components/ClimaCasaCard';
 import type { CasaAcolhida } from '../../../types/obra';
 import { staggerStyle } from '../../../hooks/useMotion';
 
@@ -111,6 +112,8 @@ export const PortalHospedagemTab: React.FC<PortalHospedagemTabProps> = ({
                       )}
                     </div>
                   </div>
+
+                    <ClimaCasaCard cidade={casa.cidade || casa.localidade} />
 
                   <div className="pt-4 mt-4 border-t border-[#d6d6d6]/40 dark:border-white/5">
                     <a

@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabaseClient';
 import { AppleTrendChart, AppleDonutChart, AppleOccupancyGauge } from '../components/AppleCharts';
 import type { TrendPoint, DonutSegment } from '../components/AppleCharts';
 import { useAnimatedNumber, staggerStyle } from '../hooks/useMotion';
+import { LiturgiaDiaCard } from '../components/LiturgiaDiaCard';
 
 interface DashboardData {
   hospedaria: { total: number; checkins: number; checkouts: number; ocupados: number; recentes: Array<{ id: string; nome: string; cidade: string; chegada: string; status: string }> };
@@ -197,6 +198,8 @@ export const Inicio: React.FC = () => {
           </div>
         </div>
       </header>
+
+      <LiturgiaDiaCard />
 
       {data.warning && (
         <div className="flex items-center gap-3 rounded-[6px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-800 dark:text-amber-300">

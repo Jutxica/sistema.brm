@@ -17,6 +17,7 @@ import { supabase } from '../lib/supabaseClient';
 import { showToast } from '../hooks/useFeedback';
 import { arquivoSecretariaService, type ProtocoloArquivo } from '../services/arquivoSecretariaService';
 import { AniversariosJubileusCard } from '../components/AniversariosJubileusCard';
+import { LiturgiaDiaCard } from '../components/LiturgiaDiaCard';
 
 interface DocumentoRecente {
   id: string;
@@ -226,6 +227,8 @@ export const SecretariaDashboard: React.FC = () => {
           Atualizar painel
         </button>
       </header>
+
+      <LiturgiaDiaCard />
 
       {error && (
         <div role="alert" className="flex flex-col gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-200 sm:flex-row sm:items-center sm:justify-between">

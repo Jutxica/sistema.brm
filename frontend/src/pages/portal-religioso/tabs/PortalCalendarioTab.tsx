@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { SincronizarCalendarioModal } from '../../../components/SincronizarCalendarioModal';
 import { 
-  ArrowLeft, Calendar, Search, X, Loader2, 
+  ArrowLeft, Calendar, Search, X, Loader2, Smartphone, 
   FileText, MapPin, Clock, CheckCircle2 
 } from 'lucide-react';
 import type { EventoProvincial, FormularioSecretaria, RespostaFormulario } from '../../../types/secretaria';
@@ -52,6 +53,7 @@ export const PortalCalendarioTab: React.FC<PortalCalendarioTabProps> = ({
   userEmail,
   onAbrirInscricao
 }) => {
+  const [modalSyncAberto, setModalSyncAberto] = useState(false);
   return (
     <div className="space-y-6">
       <div>
@@ -277,6 +279,12 @@ export const PortalCalendarioTab: React.FC<PortalCalendarioTabProps> = ({
           <AgendaVisualizacao modo={eventoVisualizacao} eventos={eventosFiltrados} />
         )}
       </div>
+
+      <SincronizarCalendarioModal
+        aberto={modalSyncAberto}
+        onFechar={() => setModalSyncAberto(false)}
+        eventos={eventos}
+      />
     </div>
   );
 };

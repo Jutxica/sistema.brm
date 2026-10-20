@@ -9,6 +9,7 @@ import type { DocumentoProvincial, EventoProvincial } from '../../../types/secre
 import { staggerStyle } from '../../../hooks/useMotion';
 import { downloadArquivo } from '../../../lib/downloadHelper';
 import { AniversariosJubileusCard } from '../../../components/AniversariosJubileusCard';
+import { LiturgiaDiaCard } from '../../../components/LiturgiaDiaCard';
 
 export interface PortalInicioTabProps {
   religiosoData: ReligiosoPortalData | null;
@@ -87,6 +88,8 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
             </div>
           </div>
         </section>
+
+        <LiturgiaDiaCard />
 
         <section aria-labelledby="mobile-next-event-title" className="rounded-[24px] border border-[#d6d6d6]/60 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:border-white/10 dark:bg-[#161617]">
           <div className="flex items-center justify-between gap-3">
@@ -242,6 +245,8 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
             </p>
           </div>
         </div>
+
+        <LiturgiaDiaCard />
 
         {/* 5 Cards de Acesso Rápido (Apple Showcase Cards) */}
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">

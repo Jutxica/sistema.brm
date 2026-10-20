@@ -4,11 +4,12 @@ import {
   Calendar, Plus, Search, MapPin, Clock, Users, Edit3, Trash2, 
   CheckCircle2, AlertCircle, X, ChevronRight, Filter, Building2, Tag,
   FileText, ExternalLink, Download, SlidersHorizontal, Check, Eye, Copy,
-  Printer, ArrowLeft
+  Printer, ArrowLeft, Smartphone
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { staggerStyle } from '../hooks/useMotion';
 import { FormularioTimbrado } from '../components/FormularioTimbrado';
+import { SincronizarCalendarioModal } from '../components/SincronizarCalendarioModal';
 import { RelatorioInscricoesPrint } from '../components/RelatorioInscricoesPrint';
 import { FichaInscricaoIndividualPrint } from '../components/FichaInscricaoIndividualPrint';
 import { AgendaVisualizacao } from '../components/AgendaVisualizacao';
@@ -160,6 +161,7 @@ export const AgendaAdmin: React.FC = () => {
   const [formularios, setFormularios] = useState<FormularioSecretaria[]>([]);
   const [respostas, setRespostas] = useState<RespostaFormulario[]>([]);
   const [loading, setLoading] = useState(true);
+  const [modalSyncAberto, setModalSyncAberto] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedTipo, setSelectedTipo] = useState<string>('Todos');
   const [selectedStatus, setSelectedStatus] = useState<string>('Todos');
@@ -1454,6 +1456,11 @@ export const AgendaAdmin: React.FC = () => {
         </div>
       )}
 
+      <SincronizarCalendarioModal
+        aberto={modalSyncAberto}
+        onFechar={() => setModalSyncAberto(false)}
+        eventos={eventos}
+      />
     </div>
   );
 };
