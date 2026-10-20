@@ -1388,6 +1388,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               caminho_storage: path,
               mime_type: foto.arquivo.type,
               tamanho_bytes: foto.arquivo.size,
+              status: 'Ativo',
               quem_cadastrou: adminMode ? 'Administrador' : memberMode ? 'Confrade - Portal' : 'Religioso - cadastro público',
             });
             if (foto.isPerfil) {

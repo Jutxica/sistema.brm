@@ -176,7 +176,7 @@ export const ReligiosoDossie: React.FC = () => {
       { data: residenciaData },
     ] = await Promise.all([
       supabase.from('religiosos').select('*').eq('id', id).maybeSingle(),
-      supabase.from('religiosos_documentos').select('id,categoria,nome_arquivo,caminho_storage,mime_type,tamanho_bytes,data_cadastro,quem_cadastrou').eq('religioso_id', id).eq('status', 'Ativo').order('data_cadastro', { ascending: false }),
+      supabase.from('religiosos_documentos').select('id,categoria,nome_arquivo,caminho_storage,mime_type,tamanho_bytes,data_cadastro,quem_cadastrou,status').eq('religioso_id', id).order('data_cadastro', { ascending: false }),
       supabase.from('secretaria_dossie_documentos').select('id,categoria,titulo,nome_arquivo,caminho_storage,mime_type,tamanho_bytes,enviado_por_nome,criado_em').eq('religioso_id', id).order('criado_em', { ascending: false }),
       supabase.from('secretaria_ficha_eventos').select('*').eq('religioso_id', id).order('criado_em', { ascending: false }),
       supabase.functions.invoke<{ accounts: ContaAcesso[] }>('secretaria-contas', { body: { action: 'list' } }),
@@ -190,35 +190,55 @@ export const ReligiosoDossie: React.FC = () => {
     ]);
 
     let resolvedFotoUrl: string | null = null;
-    if (religiosoData?.foto_path) {
+    const targetFotoPath = religiosoData?.foto_path || (religiosoData as any)?.foto_url;
+
+    const resolveStorageUrl = async (path: string): Promise<string | null> => {
+      if (!path) return null;
+      if (path.startsWith('http://') || path.startsWith('https://')) return path;
+
       try {
         const { data: sDoc } = await supabase.storage
           .from('religiosos-documentos')
-          .createSignedUrl(religiosoData.foto_path, 3600);
-        if (sDoc?.signedUrl) {
-          resolvedFotoUrl = sDoc.signedUrl;
-        } else {
-          const { data: sPerfil } = await supabase.storage
-            .from('religiosos-perfil')
-            .createSignedUrl(religiosoData.foto_path, 3600);
-          if (sPerfil?.signedUrl) resolvedFotoUrl = sPerfil.signedUrl;
-        }
-      } catch (fErr) {
-        console.warn('Erro ao carregar URL da foto:', fErr);
-      }
-    } else {
-      const fotoDoc = (documentosAntigos || []).find((d: { categoria?: string }) => d.categoria?.toLowerCase().includes('foto'));
+          .createSignedUrl(path, 86400);
+        if (sDoc?.signedUrl) return sDoc.signedUrl;
+      } catch {}
+
+      try {
+        const { data: sPerfil } = await supabase.storage
+          .from('religiosos-perfil')
+          .createSignedUrl(path, 86400);
+        if (sPerfil?.signedUrl) return sPerfil.signedUrl;
+      } catch {}
+
+      try {
+        const { data: pDoc } = supabase.storage
+          .from('religiosos-documentos')
+          .getPublicUrl(path);
+        if (pDoc?.publicUrl) return pDoc.publicUrl;
+      } catch {}
+
+      return null;
+    };
+
+    if (targetFotoPath) {
+      resolvedFotoUrl = await resolveStorageUrl(targetFotoPath);
+    }
+
+    // Se ainda não encontrou via foto_path, busca fallback nos documentos anexos
+    if (!resolvedFotoUrl) {
+      const allDocs = (documentosAntigos || []) as Array<{ categoria?: string; nome_arquivo?: string; caminho_storage?: string; status?: string }>;
+      const fotoDoc = allDocs.find(d =>
+        d.status !== 'Excluido' && (
+          d.categoria?.toLowerCase().includes('foto') ||
+          d.categoria?.toLowerCase().includes('perfil') ||
+          /.(jpe?g|png|webp)$/i.test(d.nome_arquivo || '')
+        )
+      );
       if (fotoDoc?.caminho_storage) {
-        try {
-          const { data: sDoc } = await supabase.storage
-            .from('religiosos-documentos')
-            .createSignedUrl(fotoDoc.caminho_storage, 3600);
-          if (sDoc?.signedUrl) resolvedFotoUrl = sDoc.signedUrl;
-        } catch (fErr) {
-          console.warn('Erro ao carregar URL da foto em documentos:', fErr);
-        }
+        resolvedFotoUrl = await resolveStorageUrl(fotoDoc.caminho_storage);
       }
     }
+
     setFotoUrl(resolvedFotoUrl);
 
     if (religiosoError) {
