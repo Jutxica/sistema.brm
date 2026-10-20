@@ -73,20 +73,30 @@ export const ReligiosoDossie: React.FC = () => {
   const [allAccounts, setAllAccounts] = useState<ContaAcesso[]>([]);
   const [canonicalData, setCanonicalData] = useState<{
     familiares: any[];
+    contatosFamiliares: any[];
     votos: any[];
     ordens: any[];
     sacramentos: any[];
     formacao: any[];
     designacoes: any[];
     residencia: any | null;
+    saude: any | null;
+    academica: any[];
+    idiomas: any[];
+    origemVocacional: any | null;
   }>({
     familiares: [],
+    contatosFamiliares: [],
     votos: [],
     ordens: [],
     sacramentos: [],
     formacao: [],
     designacoes: [],
     residencia: null,
+    saude: null,
+    academica: [],
+    idiomas: [],
+    origemVocacional: null,
   });
   const [loading, setLoading] = useState(true);
   const [archiveCategory, setArchiveCategory] = useState(archiveCategories[0]);
@@ -174,6 +184,11 @@ export const ReligiosoDossie: React.FC = () => {
       { data: formacaoData },
       { data: designacoesData },
       { data: residenciaData },
+      { data: saudeData },
+      { data: academicaData },
+      { data: idiomasData },
+      { data: origemVocacionalData },
+      { data: contatosFamiliaresData },
     ] = await Promise.all([
       supabase.from('religiosos').select('*').eq('id', id).maybeSingle(),
       supabase.from('religiosos_documentos').select('id,categoria,nome_arquivo,caminho_storage,mime_type,tamanho_bytes,data_cadastro,quem_cadastrou,status').eq('religioso_id', id).order('data_cadastro', { ascending: false }),
@@ -187,6 +202,11 @@ export const ReligiosoDossie: React.FC = () => {
       supabase.from('religiosos_formacao_religiosa').select('*').eq('religioso_id', id).order('data_ingresso', { ascending: true }),
       supabase.from('religiosos_designacoes').select('*, comunidades(nome), religiosos_obras_referencia(nome)').eq('religioso_id', id),
       supabase.from('religiosos_enderecos_contatos').select('*').eq('religioso_id', id).limit(1).maybeSingle(),
+      supabase.from('religiosos_saude').select('*').eq('religioso_id', id).limit(1).maybeSingle(),
+      supabase.from('religiosos_formacao_academica').select('*').eq('religioso_id', id).order('created_at', { ascending: true }),
+      supabase.from('religiosos_idiomas').select('*').eq('religioso_id', id),
+      supabase.from('religiosos_origem_vocacional').select('*').eq('religioso_id', id).limit(1).maybeSingle(),
+      supabase.from('religiosos_contatos_familiares').select('*').eq('religioso_id', id),
     ]);
 
     let resolvedFotoUrl: string | null = null;
@@ -286,12 +306,17 @@ export const ReligiosoDossie: React.FC = () => {
     setHistorico((historicoData || []) as EventoFicha[]);
     setCanonicalData({
       familiares: familiaresData || [],
+      contatosFamiliares: contatosFamiliaresData || [],
       votos: votosData || [],
       ordens: ordensData || [],
       sacramentos: sacramentosData || [],
       formacao: formacaoData || [],
       designacoes: designacoesData || [],
       residencia: residenciaData || null,
+      saude: saudeData || null,
+      academica: academicaData || [],
+      idiomas: idiomasData || [],
+      origemVocacional: origemVocacionalData || null,
     });
     const contas = contasResult?.accounts || [];
     setAllAccounts(contas);
@@ -434,17 +459,65 @@ export const ReligiosoDossie: React.FC = () => {
   const totalContas = allAccounts.length;
   const selectedDocuments = documentos.filter(documento => selectedDocumentIds.has(documento.id));
 
-  const paisTexto = [
-    religioso?.familiares_pai || canonicalData.familiares.find(f => f.tipo === 'Pai')?.nome,
-    religioso?.familiares_mae || canonicalData.familiares.find(f => f.tipo === 'Mãe')?.nome
-  ].filter(Boolean).join(' e ') || '—';
+  const paiNome = religioso?.pai_nome || canonicalData.familiares.find(f => f.tipo === 'Pai')?.nome || '—';
+  const maeNome = religioso?.mae_nome || canonicalData.familiares.find(f => f.tipo === 'Mãe')?.nome || '—';
+  const paisTexto = [paiNome !== '—' ? paiNome : null, maeNome !== '—' ? maeNome : null].filter(Boolean).join(' e ') || '—';
 
-  const naturalidadeTexto = [religioso?.municipio_nascimento, religioso?.estado_nascimento].filter(Boolean).join('/') || '—';
+  const naturalidadeTexto = [
+    religioso?.municipio_nascimento,
+    religioso?.estado_nascimento,
+    religioso?.pais_nascimento && religioso.pais_nascimento !== 'Brasil' ? religioso.pais_nascimento : null
+  ].filter(Boolean).join('/') || '—';
 
+  // Data oficial de aprovação no sistema (sem exibir tabela de histórico na ficha impressa)
+  const eventoAprovado = historico.find(e =>
+    e.status_novo === 'Aprovado' || (e.observacao || '').toLowerCase().includes('aprovado')
+  );
+  const dataAprovacaoRaw = eventoAprovado?.criado_em || (religioso?.status_cadastro === 'Aprovado' ? (religioso.updated_at || religioso.created_at) : null);
+  const dataAprovacaoFormatada = dataAprovacaoRaw ? formatDate(dataAprovacaoRaw) : null;
+
+  // Grau Canônico normalizado
+  const grauNormalizado = (religioso?.grau || '').toLowerCase();
+  const isFrater = grauNormalizado.includes('frater');
+  const isIrmao = grauNormalizado.includes('irmão') || grauNormalizado.includes('irmao');
+  const isDiacono = grauNormalizado.includes('diácono') || grauNormalizado.includes('diacono');
+  const isPadre = grauNormalizado.includes('padre') || grauNormalizado.includes('sacerd');
+  const isBispo = grauNormalizado.includes('bispo');
+
+  // Sacramentos
   const batismo = canonicalData.sacramentos.find(s => (s.tipo || '').toLowerCase().includes('batis'));
+  const primeiraEucaristia = canonicalData.sacramentos.find(s => (s.tipo || '').toLowerCase().includes('eucar'));
+  const crisma = canonicalData.sacramentos.find(s => (s.tipo || '').toLowerCase().includes('crism'));
+
+  // Votos
   const primVotos = canonicalData.votos.find(v => (v.tipo || '').toLowerCase().includes('primeir') || (v.tipo || '').toLowerCase().includes('tempor'));
   const perpVotos = canonicalData.votos.find(v => (v.tipo || '').toLowerCase().includes('perp'));
-  const ordenacao = canonicalData.ordens.find(o => (o.tipo || '').toLowerCase().includes('presb') || (o.tipo || '').toLowerCase().includes('sacerd')) || canonicalData.ordens[0];
+
+  // Ministérios Instituídos (Leitorado, Acolitado)
+  const ministeriosList = canonicalData.ordens.filter(o => {
+    const t = (o.tipo || '').toLowerCase();
+    return t.includes('leitor') || t.includes('acolit') || t.includes('palavra') || t.includes('altar') || t.includes('minist');
+  });
+
+  // Ordens Sacras
+  const ordenacaoDiaconal = canonicalData.ordens.find(o => (o.tipo || '').toLowerCase().includes('diacon'));
+  const ordenacaoPresbiteral = canonicalData.ordens.find(o => (o.tipo || '').toLowerCase().includes('presb') || (o.tipo || '').toLowerCase().includes('sacerd'));
+  const ordenacaoEpiscopal = canonicalData.ordens.find(o => (o.tipo || '').toLowerCase().includes('episcop') || (o.tipo || '').toLowerCase().includes('bispo'));
+
+  // Apenas Diácono, Padre ou Bispo exibem card de ordenação (NUNCA Frater nem Irmão)
+  const podeTerOrdenacao = !isFrater && !isIrmao && (isDiacono || isPadre || isBispo || Boolean(ordenacaoPresbiteral || ordenacaoDiaconal || ordenacaoEpiscopal));
+  const ordenacaoExibida = isDiacono
+    ? { titulo: 'ORDENAÇÃO DIACONAL', data: ordenacaoDiaconal?.data, local: ordenacaoDiaconal?.local || ordenacaoDiaconal?.bispo_ordenante || '—' }
+    : isBispo
+      ? { titulo: 'ORDENAÇÃO EPISCOPAL', data: ordenacaoEpiscopal?.data || ordenacaoPresbiteral?.data, local: ordenacaoEpiscopal?.local || '—' }
+      : { titulo: 'ORDENAÇÃO PRESBITERAL', data: ordenacaoPresbiteral?.data, local: ordenacaoPresbiteral?.local || ordenacaoPresbiteral?.bispo_ordenante || '—' };
+
+  // Contato de emergência formatado
+  const contatoEmergenciaTexto = canonicalData.saude?.contato_emergencia || (
+    canonicalData.contatosFamiliares.length > 0
+      ? `${canonicalData.contatosFamiliares[0].nome} (${canonicalData.contatosFamiliares[0].parentesco || 'Contato'})${canonicalData.contatosFamiliares[0].contato_1 ? ` - ${canonicalData.contatosFamiliares[0].contato_1}` : ''}`
+      : '—'
+  );
 
   const anoIngresso = canonicalData.formacao[0]?.data_ingresso
     ? new Date(canonicalData.formacao[0].data_ingresso).getFullYear()
@@ -499,34 +572,35 @@ export const ReligiosoDossie: React.FC = () => {
       {/* DOCUMENTO IMPRESSO INSTITUCIONAL OFICIAL (A4 - PADRÃO PROVÍNCIA BRM) */}
       <div className="dossie-print-only bg-white text-slate-900 font-sans leading-tight">
         {/* Cabeçalho Oficial */}
-        <header className="border-b border-slate-300 pb-3 mb-4">
+        <header className="border-b-2 border-slate-900 pb-3 mb-3">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <img src="/logo-timbrado-brm.png" alt="Província BRM" className="h-14 w-auto object-contain" />
               <div>
-                <p className="font-mono text-[8pt] uppercase tracking-[0.15em] text-slate-500 font-semibold">
+                <p className="font-mono text-[7.5pt] uppercase tracking-[0.16em] text-slate-500 font-semibold">
                   Congregação dos Sacerdotes do Sagrado Coração de Jesus
                 </p>
-                <h1 className="text-[14pt] font-serif font-bold text-slate-900 tracking-tight mt-0.5">
-                  Província Brasil Meridional
+                <h1 className="text-[13.5pt] font-serif font-bold text-slate-900 tracking-tight mt-0.5">
+                  Província Brasil Meridional · Arquivo Provincial
                 </h1>
-                <p className="text-[8.5pt] font-mono text-slate-600">Arquivo Provincial</p>
+                <p className="text-[8pt] font-mono text-slate-600">Ficha Canônica Cadastral Oficial</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="font-mono text-[7pt] uppercase tracking-wider text-slate-400">Cadastro</p>
-              <p className="font-mono text-[10pt] font-bold text-slate-800">
+              <p className="font-mono text-[6.5pt] uppercase tracking-wider text-slate-400">Registro Provincial</p>
+              <p className="font-mono text-[10pt] font-bold text-slate-900">
                 {formatRegistrationNumber(religioso?.numero_cadastro || 0, religioso?.created_at || null)}
               </p>
+              <p className="text-[6.5pt] font-mono text-slate-500 mt-0.5">Emissão: {new Date().toLocaleDateString('pt-BR')}</p>
             </div>
           </div>
         </header>
 
-        {/* Identificação do Religioso */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-3">
+        {/* Identificação do Religioso e Foto 4x4 */}
+        <div className="flex items-center justify-between border-b border-slate-300 pb-3 mb-3">
           <div className="flex items-center gap-4">
             {fotoUrl ? (
-              <div className="w-20 h-20 aspect-square border-2 border-slate-900 overflow-hidden bg-slate-100 shrink-0">
+              <div className="w-20 h-20 aspect-square border-2 border-slate-900 overflow-hidden bg-slate-100 shrink-0 shadow-sm">
                 <img
                   src={fotoUrl}
                   alt={religioso?.nome_religioso || religioso?.nome_civil}
@@ -534,161 +608,313 @@ export const ReligiosoDossie: React.FC = () => {
                 />
               </div>
             ) : (
-              <div className="w-20 h-20 aspect-square border border-dashed border-slate-400 flex items-center justify-center bg-slate-50 text-[7pt] font-mono text-slate-400 uppercase text-center p-1 shrink-0">
-                Foto 4x4
+              <div className="w-20 h-20 aspect-square border-2 border-dashed border-slate-400 flex flex-col items-center justify-center bg-slate-50 text-[7pt] font-mono text-slate-400 uppercase text-center p-1 shrink-0">
+                <span>Foto Oficial</span>
+                <span className="font-bold text-slate-600">4x4</span>
               </div>
             )}
             <div>
-              <p className="font-mono text-[7.5pt] uppercase tracking-[0.16em] text-slate-500 font-semibold">
-                Dossiê do Religioso
+              <p className="font-mono text-[7pt] uppercase tracking-[0.16em] text-[#226380] font-bold">
+                {religioso?.grau || 'Confrade'} Dehoniano
               </p>
-              <h2 className="text-[17pt] font-serif font-bold text-slate-900 mt-0.5">
+              <h2 className="text-[16pt] font-serif font-bold text-slate-900 mt-0.5">
                 {religioso?.nome_religioso || religioso?.nome_civil}
               </h2>
-              <p className="text-[8.5pt] font-mono text-slate-600 mt-0.5">
-                {religioso?.nome_civil} • {religioso?.grau || 'Grau pendente'}
+              <p className="text-[8.5pt] font-mono text-slate-700 mt-0.5">
+                Nome civil: <span className="font-semibold">{religioso?.nome_civil}</span>
+              </p>
+              <p className="text-[7.5pt] text-slate-600 mt-0.5">
+                Comunidade atual: <span className="font-medium text-slate-900">{religioso?.comunidade_atual_nome || 'A designar'}</span>
+                {canonicalData.designacoes[0]?.funcao ? ` · Ofício: ${canonicalData.designacoes[0].funcao}` : ''}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 border border-slate-900 px-2.5 py-0.5 text-[8pt] font-mono font-semibold uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-900" />
-            <span>Cadastro {religioso?.status_cadastro || 'Aprovado'}</span>
+
+          <div className="text-right">
+            <div className="inline-flex items-center gap-1.5 border-2 border-slate-900 px-3 py-1 text-[7.5pt] font-mono font-bold uppercase bg-slate-50">
+              <span className={`w-2 h-2 rounded-full ${religioso?.status_cadastro === 'Aprovado' ? 'bg-emerald-600' : 'bg-amber-500'}`} />
+              <span>
+                {dataAprovacaoFormatada
+                  ? `Aprovado no Sistema em ${dataAprovacaoFormatada}`
+                  : `Situação: ${religioso?.status_cadastro || 'Em revisão'}`}
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Faixa de Indicadores Rápidos */}
-        <div className="grid grid-cols-4 border border-slate-200 bg-white text-center mb-4">
-          <div className="p-2 border-r border-slate-200">
-            <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Grau</p>
-            <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5">{religioso?.grau || 'Pendente'}</p>
+        <div className="grid grid-cols-4 border border-slate-300 bg-slate-50/50 text-center mb-3">
+          <div className="p-1.5 border-r border-slate-300">
+            <p className="text-[6pt] font-mono uppercase tracking-wider text-slate-500">Grau Canônico</p>
+            <p className="text-[9pt] font-bold text-slate-900">{religioso?.grau || 'Pendente'}</p>
           </div>
-          <div className="p-2 border-r border-slate-200">
-            <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Ingresso</p>
-            <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5">{anoIngresso}</p>
+          <div className="p-1.5 border-r border-slate-300">
+            <p className="text-[6pt] font-mono uppercase tracking-wider text-slate-500">Ingresso na Formação</p>
+            <p className="text-[9pt] font-bold text-slate-900">{anoIngresso}</p>
           </div>
-          <div className="p-2 border-r border-slate-200">
-            <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Última Revisão</p>
-            <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5">{historico[0] ? formatDate(historico[0].criado_em) : '—'}</p>
+          <div className="p-1.5 border-r border-slate-300">
+            <p className="text-[6pt] font-mono uppercase tracking-wider text-slate-500">Data de Aprovação</p>
+            <p className="text-[9pt] font-bold text-slate-900">{dataAprovacaoFormatada || 'Pendente'}</p>
           </div>
-          <div className="p-2">
-            <p className="text-[6.5pt] font-mono uppercase tracking-wider text-slate-500">Documentos Anexados</p>
-            <p className="text-[9.5pt] font-medium text-slate-900 mt-0.5">{docsCount} de 10</p>
+          <div className="p-1.5">
+            <p className="text-[6pt] font-mono uppercase tracking-wider text-slate-500">Documentos Arquivados</p>
+            <p className="text-[9pt] font-bold text-slate-900">{docsCount} de 10</p>
           </div>
         </div>
 
-        {/* Bloco 1: Ficha Geral */}
-        <div className="mb-4">
-          <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
-            Ficha Geral
+        {/* Bloco 1: Dados Pessoais & Documentação Civil Completa */}
+        <div className="mb-3">
+          <p className="text-[7pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-800 border-b border-slate-300 pb-0.5 mb-1.5">
+            1. Dados Pessoais e Documentação Civil
           </p>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-[8.5pt]">
+          <div className="grid grid-cols-3 gap-x-4 gap-y-1.5 text-[8pt]">
             <div>
-              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Nome Civil</p>
-              <p className="font-medium text-slate-900">{religioso?.nome_civil || '—'}</p>
-            </div>
-            <div>
-              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Nome Religioso</p>
-              <p className="font-medium text-slate-900">{religioso?.nome_religioso || '—'}</p>
-            </div>
-            <div>
-              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Data de Nascimento</p>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">Data de Nascimento</p>
               <p className="font-medium text-slate-900">{formatDate(religioso?.data_nascimento)}</p>
             </div>
             <div>
-              <p className="text-[6.5pt] font-mono uppercase text-slate-500">CPF</p>
-              <p className="font-mono font-medium text-slate-900">{formatCpfMask(religioso?.cpf)}</p>
-            </div>
-            <div>
-              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Naturalidade</p>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">Naturalidade</p>
               <p className="font-medium text-slate-900">{naturalidadeTexto}</p>
             </div>
             <div>
-              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Nacionalidade</p>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">Nacionalidade</p>
               <p className="font-medium text-slate-900">{religioso?.nacionalidade || 'Brasileira'}</p>
             </div>
             <div>
-              <p className="text-[6.5pt] font-mono uppercase text-slate-500">E-mail Institucional</p>
-              <p className="font-medium text-slate-900">{religioso?.email_institucional || '—'}</p>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">CPF</p>
+              <p className="font-mono font-medium text-slate-900">{formatCpfMask(religioso?.cpf)}</p>
             </div>
             <div>
-              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Celular / WhatsApp</p>
-              <p className="font-medium text-slate-900">{religioso?.telefone_celular || '—'}</p>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">RG</p>
+              <p className="font-mono font-medium text-slate-900">
+                {religioso?.rg || '—'}{religioso?.rg_orgao_expedidor ? ` (${religioso.rg_orgao_expedidor})` : ''}
+                {religioso?.rg_data_emissao ? ` · Emissão: ${formatDate(religioso.rg_data_emissao)}` : ''}
+              </p>
+            </div>
+            <div>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">Título de Eleitor / PIS</p>
+              <p className="font-mono font-medium text-slate-900">
+                {religioso?.titulo_eleitor || '—'} {religioso?.pis ? `· PIS: ${religioso.pis}` : ''}
+              </p>
+            </div>
+            <div>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">CNH / Passaporte</p>
+              <p className="font-mono font-medium text-slate-900">
+                {religioso?.cnh ? `CNH ${religioso.cnh}${religioso?.cnh_categoria ? ` (${religioso.cnh_categoria})` : ''}` : '—'}
+                {religioso?.passaporte ? ` · Pass: ${religioso.passaporte}` : ''}
+              </p>
             </div>
             <div className="col-span-2">
-              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Filiação</p>
-              <p className="font-medium text-slate-900">{paisTexto}</p>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">Filiação (Pai e Mãe)</p>
+              <p className="font-medium text-slate-900">
+                Pai: <span className="font-semibold">{paiNome}</span> · Mãe: <span className="font-semibold">{maeNome}</span>
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Bloco 2: Vínculo Provincial */}
-        <div className="mb-4">
-          <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
-            Vínculo Provincial
+        {/* Bloco 2: Saúde, Emergência & Contatos */}
+        <div className="mb-3">
+          <p className="text-[7pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-800 border-b border-slate-300 pb-0.5 mb-1.5">
+            2. Saúde, Emergência e Contatos
           </p>
-          <div className="grid grid-cols-3 gap-x-4 text-[8.5pt]">
+          <div className="grid grid-cols-3 gap-x-4 gap-y-1.5 text-[8pt]">
             <div>
-              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Comunidade Atual</p>
-              <p className="font-medium text-slate-900">{religioso?.comunidade_atual_nome || '—'}</p>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">Tipo Sanguíneo / Fator RH</p>
+              <p className="font-mono font-bold text-slate-900">
+                {canonicalData.saude?.tipo_sanguineo || 'Não informado'} {canonicalData.saude?.fator_rh || ''}
+              </p>
             </div>
             <div>
-              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Ofício / Função</p>
-              <p className="font-medium text-slate-900">{canonicalData.designacoes[0]?.funcao || '—'}</p>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">Plano de Saúde / SUS</p>
+              <p className="font-medium text-slate-900">
+                {canonicalData.saude?.plano_saude ? `${canonicalData.saude.plano_saude} (${canonicalData.saude.numero_plano_saude || 's/n'})` : 'SUS'}
+                {canonicalData.saude?.sus ? ` · SUS: ${canonicalData.saude.sus}` : ''}
+              </p>
             </div>
             <div>
-              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Superior Imediato</p>
-              <p className="font-medium text-slate-900">—</p>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">Contato de Emergência</p>
+              <p className="font-medium text-slate-900 truncate">{contatoEmergenciaTexto}</p>
+            </div>
+            <div>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">Telefones (Celular / WhatsApp)</p>
+              <p className="font-medium text-slate-900">
+                {religioso?.telefone_celular || '—'} {religioso?.whatsapp && religioso.whatsapp !== religioso.telefone_celular ? `· Zap: ${religioso.whatsapp}` : ''}
+              </p>
+            </div>
+            <div>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">E-mail Institucional</p>
+              <p className="font-medium text-slate-900 truncate">{religioso?.email_institucional || '—'}</p>
+            </div>
+            <div>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">E-mail Pessoal</p>
+              <p className="font-medium text-slate-900 truncate">{religioso?.email_pessoal || '—'}</p>
+            </div>
+            <div className="col-span-3">
+              <p className="text-[6pt] font-mono uppercase text-slate-500">Endereço Residencial / Comunidade</p>
+              <p className="font-medium text-slate-900">
+                {canonicalData.residencia?.logradouro
+                  ? `${canonicalData.residencia.logradouro}, ${canonicalData.residencia.numero || 's/n'}${canonicalData.residencia.complemento ? ` (${canonicalData.residencia.complemento})` : ''} - ${canonicalData.residencia.bairro || ''}, ${canonicalData.residencia.cidade || ''}/${canonicalData.residencia.estado || ''} - CEP: ${canonicalData.residencia.cep || ''}`
+                  : `Comunidade: ${religioso?.comunidade_atual_nome || 'Sede Provincial BRM'}`}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Bloco 3: Trajetória Canônica (Linha do Tempo Visual) */}
-        <div className="mb-4">
-          <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
-            Trajetória Canônica
+        {/* Bloco 3: Trajetória Canônica (Linha do Tempo Visual Inteligente) */}
+        <div className="mb-3">
+          <p className="text-[7pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-800 border-b border-slate-300 pb-0.5 mb-1.5">
+            3. Trajetória Canônica
           </p>
-          <div className="grid grid-cols-4 gap-2 text-center pt-1">
-            <div className="border border-slate-200 p-2 bg-white">
-              <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
-              <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Batismo</p>
-              <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{batismo?.data ? formatDate(batismo.data) : '—'}</p>
-              {batismo?.paroquia && <p className="text-[6.5pt] text-slate-500 truncate">{batismo.paroquia}</p>}
+          <div className={`grid ${podeTerOrdenacao ? 'grid-cols-5' : 'grid-cols-4'} gap-2 text-center pt-1`}>
+            {/* Card 1: Batismo */}
+            <div className="border border-slate-300 p-1.5 bg-white shadow-xs">
+              <span className="inline-block w-3 h-3 rounded-full border-2 border-slate-800 mb-0.5" />
+              <p className="text-[6pt] font-mono uppercase font-bold text-slate-600">Batismo</p>
+              <p className="text-[7.5pt] font-bold text-slate-900 mt-0.5">{batismo?.data ? formatDate(batismo.data) : '—'}</p>
+              {batismo?.paroquia && <p className="text-[6pt] text-slate-500 truncate">{batismo.paroquia}</p>}
             </div>
-            <div className="border border-slate-200 p-2 bg-white">
-              <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
-              <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Primeira Profissão</p>
-              <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{primVotos?.data ? formatDate(primVotos.data) : '—'}</p>
-              {primVotos?.local && <p className="text-[6.5pt] text-slate-500 truncate">{primVotos.local}</p>}
+
+            {/* Card 2: Primeira Profissão */}
+            <div className="border border-slate-300 p-1.5 bg-white shadow-xs">
+              <span className="inline-block w-3 h-3 rounded-full border-2 border-slate-800 mb-0.5" />
+              <p className="text-[6pt] font-mono uppercase font-bold text-slate-600">Primeira Profissão</p>
+              <p className="text-[7.5pt] font-bold text-slate-900 mt-0.5">{primVotos?.data ? formatDate(primVotos.data) : '—'}</p>
+              {primVotos?.local && <p className="text-[6pt] text-slate-500 truncate">{primVotos.local}</p>}
             </div>
-            <div className="border border-slate-200 p-2 bg-white">
-              <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
-              <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Profissão Perpétua</p>
-              <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{perpVotos?.data ? formatDate(perpVotos.data) : '—'}</p>
-              {perpVotos?.local && <p className="text-[6.5pt] text-slate-500 truncate">{perpVotos.local}</p>}
+
+            {/* Card 3: Profissão Perpétua */}
+            <div className="border border-slate-300 p-1.5 bg-white shadow-xs">
+              <span className="inline-block w-3 h-3 rounded-full border-2 border-slate-800 mb-0.5" />
+              <p className="text-[6pt] font-mono uppercase font-bold text-slate-600">Profissão Perpétua</p>
+              <p className="text-[7.5pt] font-bold text-slate-900 mt-0.5">{perpVotos?.data ? formatDate(perpVotos.data) : '—'}</p>
+              {perpVotos?.local && <p className="text-[6pt] text-slate-500 truncate">{perpVotos.local}</p>}
             </div>
-            <div className="border border-slate-200 p-2 bg-white">
-              <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-800 mb-1" />
-              <p className="text-[6.5pt] font-mono uppercase font-bold text-slate-600">Ordenação</p>
-              <p className="text-[8pt] font-medium text-slate-900 mt-0.5">{ordenacao?.data ? formatDate(ordenacao.data) : '—'}</p>
-              {ordenacao?.tipo && <p className="text-[6.5pt] text-slate-500 truncate">{ordenacao.tipo}</p>}
+
+            {/* Card 4: Ministérios (Leitorado / Acolitado) */}
+            <div className="border border-slate-300 p-1.5 bg-white shadow-xs">
+              <span className="inline-block w-3 h-3 rounded-full border-2 border-[#226380] mb-0.5" />
+              <p className="text-[6pt] font-mono uppercase font-bold text-[#226380]">Ministérios</p>
+              {ministeriosList.length > 0 ? (
+                <div className="mt-0.5 space-y-0.5">
+                  {ministeriosList.map((m, idx) => (
+                    <div key={idx} className="text-[6.5pt] text-slate-800">
+                      <span className="font-semibold">{m.tipo}:</span> {formatDate(m.data)}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[7.5pt] font-medium text-slate-400 mt-0.5">—</p>
+              )}
+            </div>
+
+            {/* Card 5: Ordenação (Apenas se Padre, Diácono ou Bispo - NUNCA Frater nem Irmão) */}
+            {podeTerOrdenacao && (
+              <div className="border border-slate-300 p-1.5 bg-white shadow-xs">
+                <span className="inline-block w-3 h-3 rounded-full border-2 border-amber-600 mb-0.5" />
+                <p className="text-[6pt] font-mono uppercase font-bold text-amber-700">{ordenacaoExibida.titulo}</p>
+                <p className="text-[7.5pt] font-bold text-slate-900 mt-0.5">{ordenacaoExibida.data ? formatDate(ordenacaoExibida.data) : '—'}</p>
+                {ordenacaoExibida.local && <p className="text-[6pt] text-slate-500 truncate">{ordenacaoExibida.local}</p>}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Bloco 4: Iniciação Cristã e Origem Vocacional */}
+        <div className="mb-3">
+          <p className="text-[7pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-800 border-b border-slate-300 pb-0.5 mb-1.5">
+            4. Iniciação Cristã e Origem Vocacional
+          </p>
+          <div className="grid grid-cols-3 gap-x-4 gap-y-1.5 text-[8pt]">
+            <div>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">Paróquia / Diocese de Origem</p>
+              <p className="font-medium text-slate-900">
+                {canonicalData.origemVocacional?.paroquia_origem || '—'} {canonicalData.origemVocacional?.diocese ? `(${canonicalData.origemVocacional.diocese})` : ''}
+              </p>
+            </div>
+            <div>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">Promotor Vocacional</p>
+              <p className="font-medium text-slate-900">{canonicalData.origemVocacional?.promotor_vocacional || '—'}</p>
+            </div>
+            <div>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">Registro de Batismo (Livro / Folha / Nº)</p>
+              <p className="font-mono text-slate-900">
+                {batismo?.livro ? `Lv. ${batismo.livro}` : ''} {batismo?.folha ? `Fl. ${batismo.folha}` : ''} {batismo?.numero_registro ? `Nº ${batismo.numero_registro}` : (batismo ? 'Certidão anexada' : '—')}
+              </p>
+            </div>
+            <div>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">Primeira Eucaristia</p>
+              <p className="font-medium text-slate-900">
+                {primeiraEucaristia?.data ? `${formatDate(primeiraEucaristia.data)} · ${primeiraEucaristia.paroquia || ''}` : '—'}
+              </p>
+            </div>
+            <div>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">Crisma</p>
+              <p className="font-medium text-slate-900">
+                {crisma?.data ? `${formatDate(crisma.data)} · ${crisma.paroquia || ''}` : '—'}
+              </p>
+            </div>
+            <div>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">Ordenação Diaconal (se aplicável)</p>
+              <p className="font-medium text-slate-900">
+                {ordenacaoDiaconal?.data ? `${formatDate(ordenacaoDiaconal.data)} (${ordenacaoDiaconal.local || ''})` : '—'}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Bloco 4: Documentos do Arquivo (Checklist Canônico Oficial) */}
+        {/* Bloco 5: Formação Acadêmica e Idiomas */}
+        <div className="mb-3">
+          <p className="text-[7pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-800 border-b border-slate-300 pb-0.5 mb-1.5">
+            5. Formação Acadêmica, Formativa e Idiomas
+          </p>
+          <div className="grid grid-cols-2 gap-x-6 text-[8pt]">
+            <div>
+              <p className="text-[6pt] font-mono uppercase text-slate-500 mb-0.5">Estudos Acadêmicos e Formações</p>
+              {canonicalData.academica.length > 0 ? (
+                <ul className="space-y-0.5">
+                  {canonicalData.academica.slice(0, 4).map((c, idx) => (
+                    <li key={idx} className="text-slate-900">
+                      <span className="font-semibold">{c.categoria}:</span> {c.instituicao} {c.periodo ? `(${c.periodo})` : ''}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-slate-500 italic">Filosofia e Teologia nos centros provinciais.</p>
+              )}
+            </div>
+
+            <div>
+              <p className="text-[6pt] font-mono uppercase text-slate-500 mb-0.5">Idiomas Declarados</p>
+              {canonicalData.idiomas.length > 0 ? (
+                <div className="flex flex-wrap gap-2 text-slate-900">
+                  {canonicalData.idiomas.map((i, idx) => (
+                    <span key={idx} className="inline-block border border-slate-200 px-1.5 py-0.5 text-[7pt] bg-slate-50">
+                      <strong>{i.idioma}</strong>: {i.nivel || i.fala || 'Básico'}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-slate-500 italic">Português (nativo).</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Bloco 6: Documentos do Arquivo (Checklist Canônico Oficial) */}
         <div className="mb-4">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-1 mb-2">
-            <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700">
-              Documentos do Arquivo
+          <div className="flex items-center justify-between border-b border-slate-300 pb-0.5 mb-1.5">
+            <p className="text-[7pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-800">
+              6. Checklist de Documentos Canônicos Arquivados
             </p>
-            <span className="text-[6.5pt] font-mono text-slate-400">✓ = anexado no sistema</span>
+            <span className="text-[6pt] font-mono text-slate-500">✓ = arquivado no Arquivo Provincial</span>
           </div>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[8pt]">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 text-[7.5pt]">
             {docCategories.map((doc, idx) => {
               const checked = hasDoc(doc.match);
               return (
-                <div key={idx} className="flex items-center gap-2 py-0.5">
-                  <span className={`w-3 h-3 flex items-center justify-center border text-[8pt] font-bold ${
+                <div key={idx} className="flex items-center gap-1.5 py-0.5">
+                  <span className={`w-3 h-3 flex items-center justify-center border text-[7.5pt] font-bold ${
                     checked ? 'border-slate-900 bg-white text-slate-900' : 'border-slate-400 text-transparent'
                   }`}>
                     {checked ? '✓' : ''}
@@ -702,51 +928,24 @@ export const ReligiosoDossie: React.FC = () => {
           </div>
         </div>
 
-        {/* Bloco 5: Histórico de Revisão */}
-        <div className="mb-6">
-          <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-1.5">
-            Histórico de Revisão
-          </p>
-          <table className="w-full text-left text-[7.5pt] border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 text-slate-400 font-mono text-[6.5pt] uppercase">
-                <th className="py-1">Data</th>
-                <th className="py-1">Situação</th>
-                <th className="py-1">Responsável</th>
-                <th className="py-1">Registro</th>
-              </tr>
-            </thead>
-            <tbody>
-              {historico.slice(0, 3).map(evento => (
-                <tr key={evento.id} className="border-b border-slate-100">
-                  <td className="py-1 font-mono">{formatDate(evento.criado_em)}</td>
-                  <td className="py-1 font-semibold text-slate-900">{evento.status_novo}</td>
-                  <td className="py-1 text-slate-600">{evento.ator_nome}</td>
-                  <td className="py-1 text-slate-600">{evento.observacao || 'Atualização administrativa do dossiê.'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
         {/* Assinaturas Institucionais */}
-        <div className="mt-8 pt-4 grid grid-cols-2 gap-12 text-center text-[7.5pt]">
+        <div className="mt-6 pt-3 grid grid-cols-2 gap-12 text-center text-[7.5pt]">
           <div>
-            <div className="border-t border-slate-800 mx-auto w-48 mb-1" />
-            <p className="font-semibold text-slate-800">Secretaria Provincial</p>
-            <p className="text-[6.5pt] text-slate-400">Assinatura e carimbo</p>
+            <div className="border-t border-slate-900 mx-auto w-48 mb-1" />
+            <p className="font-semibold text-slate-900">Secretaria Provincial</p>
+            <p className="text-[6pt] text-slate-500">Assinatura e carimbo oficial</p>
           </div>
           <div>
-            <div className="border-t border-slate-800 mx-auto w-48 mb-1" />
-            <p className="font-semibold text-slate-800">Chancelaria · Arquivo Provincial</p>
-            <p className="text-[6.5pt] text-slate-400">Assinatura e carimbo</p>
+            <div className="border-t border-slate-900 mx-auto w-48 mb-1" />
+            <p className="font-semibold text-slate-900">Chancelaria · Arquivo Provincial</p>
+            <p className="text-[6pt] text-slate-500">Assinatura e carimbo oficial</p>
           </div>
         </div>
 
         {/* Rodapé de autenticação */}
-        <footer className="mt-6 pt-3 border-t border-slate-200 flex justify-between text-[6.5pt] font-mono text-slate-400">
-          <span>Emitido eletronicamente em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} · sistema.brm.org.br</span>
-          <span>Documento reservado · Dados pessoais protegidos pela LGPD</span>
+        <footer className="mt-5 pt-2 border-t border-slate-300 flex justify-between text-[6.5pt] font-mono text-slate-500">
+          <span>Emitido eletronicamente pelo Sistema BRM em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} · Província Brasil Meridional</span>
+          <span>Documento reservado canônico · Protegido pela LGPD</span>
         </footer>
       </div>
 

@@ -100,6 +100,18 @@ export interface ReligiosoDossieData {
   obra_atual_id?: string | null;
   familiares_pai?: string | null;
   familiares_mae?: string | null;
+  pai_nome?: string | null;
+  mae_nome?: string | null;
+  rg?: string | null;
+  rg_orgao_expedidor?: string | null;
+  rg_data_emissao?: string | null;
+  titulo_eleitor?: string | null;
+  pis?: string | null;
+  cnh?: string | null;
+  cnh_categoria?: string | null;
+  passaporte?: string | null;
+  whatsapp?: string | null;
+  email_pessoal?: string | null;
   foto_path?: string | null;
   publicado_site_em?: string | null;
   publicado_site_id?: string | null;

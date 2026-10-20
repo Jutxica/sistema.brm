@@ -2011,21 +2011,48 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         )}
 
         {step === 4 && (
-          <Section title="4. Ministérios e Ordens, Formação Acadêmica e Idiomas">
+          <Section title={
+            base.grau === 'Frater' || base.grau === 'Irmão'
+              ? '4. Ministérios, Formação Acadêmica e Idiomas'
+              : base.grau === 'Diácono'
+                ? '4. Ministérios, Ordenação Diaconal, Formação Acadêmica e Idiomas'
+                : '4. Ministérios, Ordens, Formação Acadêmica e Idiomas'
+          }>
             <DynamicSection
-              title="Ministérios e Ordens"
+              title="Ministérios Instituídos"
               type="ministerio"
-              rowTypes={base.grau === 'Frater' ? ['ministerio'] : ['ministerio', 'ordem']}
+              rowTypes={['ministerio']}
               fields={['ministerio', 'data', 'local', 'celebrante']}
               rows={rows}
               addRow={addRow}
               updateRow={updateRow}
               removeRow={removeRow}
-              selects={{ ministerio: base.grau === 'Frater' ? ministryOptions.slice(0, 2) : ministryOptions }}
-              visibleFields={row => ['Diaconato', 'Diaconado', 'Presbiterado', 'Episcopado'].includes(row.ministerio)
-                ? ['ministerio', 'data', 'local', 'celebrante', 'bispo_ordenante']
-                : ['ministerio', 'data', 'local', 'celebrante']}
+              selects={{ ministerio: ['Leitorado', 'Acolitado', 'Ministério da Palavra', 'Ministério do Altar'] }}
+              visibleFields={() => ['ministerio', 'data', 'local', 'celebrante']}
             />
+
+            {base.grau !== 'Frater' && base.grau !== 'Irmão' && (
+              <div className="mt-8 border-t border-[#e5e5ea] pt-6 dark:border-white/10">
+                <DynamicSection
+                  title={base.grau === 'Diácono' ? 'Ordenação Diaconal' : 'Ordens Sacras (Ordenações)'}
+                  type="ordem"
+                  rowTypes={['ordem']}
+                  fields={['ministerio', 'data', 'local', 'celebrante', 'bispo_ordenante']}
+                  rows={rows}
+                  addRow={addRow}
+                  updateRow={updateRow}
+                  removeRow={removeRow}
+                  selects={{
+                    ministerio: base.grau === 'Diácono'
+                      ? ['Diaconato']
+                      : base.grau === 'Padre'
+                        ? ['Diaconato', 'Presbiterado']
+                        : ['Diaconato', 'Presbiterado', 'Episcopado']
+                  }}
+                  visibleFields={() => ['ministerio', 'data', 'local', 'celebrante', 'bispo_ordenante']}
+                />
+              </div>
+            )}
             <div className="mt-8 border-t border-[#e5e5ea] pt-6 dark:border-white/10">
               <p className="mb-4 text-sm text-[#707070] dark:text-[#a1a1aa]">Inclua Filosofia, Teologia e outras formações anteriores ou posteriores ao seminário.</p>
               <DynamicSection title="Formação Acadêmica" type="academica" fields={['categoria', 'instituicao', 'periodo', 'pais', 'estado', 'cidade', 'observacoes']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} selects={{ categoria: academicOptions }} />
