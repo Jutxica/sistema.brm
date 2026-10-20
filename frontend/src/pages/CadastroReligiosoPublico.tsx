@@ -294,7 +294,7 @@ const toTextRecord = (value: Record<string, unknown>) =>
   Object.fromEntries(Object.entries(value).map(([key, item]) => [key, asText(item)]));
 const isValidUuid = (value: unknown): value is string =>
   typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.trim());
-const extractErrorMessage = (error: unknown, fallback = 'Não foi possível enviar o cadastro.'): string => {
+const extractErrorMessage = (error: unknown, fallback = 'Não foi possível salvar os dados do cadastro.'): string => {
   if (!error) return fallback;
   if (typeof error === 'string') return error;
   if (error instanceof Error) return error.message;
@@ -423,6 +423,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   const { user } = useAuth();
   const { id: routeReligiosoId } = useParams<{ id: string }>();
   const religiosoId = religiosoIdProp || profileReligiosoId || routeReligiosoId;
+  const isEditing = Boolean(religiosoId);
   const serverDraftKey = memberMode && religiosoId
     ? `member:${religiosoId}`
     : adminMode && religiosoId ? `admin:edit:${religiosoId}` : 'admin:new';
@@ -1263,7 +1264,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (profileUnavailable) {
-      setErrorMessage('A ficha vinculada não foi carregada; não é possível enviar alterações com segurança.');
+      setErrorMessage('A ficha vinculada não foi carregada; não é possível salvar alterações com segurança.');
       return;
     }
     for (let stepIndex = 1; stepIndex <= etapas.length; stepIndex += 1) {
@@ -1276,7 +1277,6 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
     }
     setSubmitting(true); setErrorMessage(null);
     try {
-      const isEditing = Boolean(religiosoId);
       const obraIdSanitized = isValidUuid(base.obra_atual_id) ? base.obra_atual_id.trim() : null;
 
       const religiosoPayload: Record<string, unknown> = {
@@ -1679,25 +1679,33 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
           .eq('usuario_id', user.id)
           .eq('chave', serverDraftKey);
         if (draftDeleteError) {
-          console.error('Cadastro foi enviado, mas o rascunho não pôde ser removido:', draftDeleteError);
-          showToast.warning('Cadastro enviado. Não foi possível remover o rascunho salvo; use “Limpar rascunho” depois.', 'Rascunho preservado');
+          console.error('Dados salvos, mas o rascunho não pôde ser removido:', draftDeleteError);
+          showToast.warning('Alterações salvas. Não foi possível remover o rascunho salvo; use “Limpar rascunho” depois.', 'Rascunho preservado');
         }
       } else {
         try {
           localStorage.removeItem(DRAFT_KEY);
         } catch (error) {
-          console.error('Cadastro foi enviado, mas o rascunho local não pôde ser removido:', error);
-          showToast.warning('Cadastro enviado, mas o rascunho não pôde ser removido deste navegador.', 'Rascunho preservado');
+          console.error('Dados salvos, mas o rascunho local não pôde ser removido:', error);
+          showToast.warning('Alterações salvas, mas o rascunho não pôde ser removido deste navegador.', 'Rascunho preservado');
         }
       }
       setDraftSavedAt(null);
       setDraftRestored(false);
-      if (adminMode) navigate('/religiosos');
-      else if (memberMode) onSaved?.();
-      else setSuccess(true);
+      if (adminMode) {
+        showToast.success(isEditing ? 'Dados do religioso atualizados com sucesso!' : 'Novo religioso cadastrado com sucesso!');
+        navigate('/religiosos');
+      } else if (memberMode) {
+        showToast.success(isEditing ? 'Dados cadastrais atualizados com sucesso!' : 'Cadastro enviado com sucesso!');
+        onSaved?.();
+      } else {
+        showToast.success(isEditing ? 'Dados cadastrais atualizados com sucesso!' : 'Cadastro enviado com sucesso!');
+        setSuccess(true);
+      }
     } catch (error) {
-      console.error('Erro detalhado ao enviar cadastro de religioso:', error);
-      const message = extractErrorMessage(error);
+      console.error('Erro detalhado ao salvar cadastro de religioso:', error);
+      const defaultErrorMsg = isEditing ? 'Não foi possível atualizar os dados cadastrais.' : 'Não foi possível enviar o cadastro.';
+      const message = extractErrorMessage(error, defaultErrorMsg);
       setErrorMessage(message);
       showToast.error(message);
     } finally { setSubmitting(false); }
@@ -1732,8 +1740,14 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
           <div className="flex items-center justify-center w-16 h-16 rounded-[6px] border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mx-auto mb-4">
             <CheckCircle2 className="h-8 w-8" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f] dark:text-white font-serif">Cadastro enviado com sucesso</h1>
-          <p className="mt-3 text-sm text-[#707070] dark:text-[#86868b] leading-relaxed">{publicConfig.mensagem_confirmacao}</p>
+          <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f] dark:text-white font-serif">
+            {isEditing ? 'Dados atualizados com sucesso' : 'Cadastro enviado com sucesso'}
+          </h1>
+          <p className="mt-3 text-sm text-[#707070] dark:text-[#86868b] leading-relaxed">
+            {isEditing
+              ? 'As informações da sua ficha cadastral foram atualizadas com sucesso no sistema provincial.'
+              : publicConfig.mensagem_confirmacao}
+          </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               to="/portal-religioso"
@@ -1787,11 +1801,15 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
 
           <div className="text-center mt-4">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1d1d1f] dark:text-white font-serif">
-              {adminMode ? (religiosoId ? 'Editar Religioso' : 'Novo Religioso') : publicConfig.titulo}
+              {adminMode
+                ? (religiosoId ? 'Editar Religioso' : 'Novo Religioso')
+                : (isEditing ? 'Atualização Cadastral do Religioso' : publicConfig.titulo)}
             </h1>
-            {!adminMode && publicConfig.mensagem_abertura && (
+            {!adminMode && (
               <p className="mx-auto mt-2 max-w-2xl text-sm text-[#707070] dark:text-[#86868b] leading-relaxed">
-                {publicConfig.mensagem_abertura}
+                {isEditing
+                  ? 'Atualize e mantenha os seus dados civis, canônicos, formativos e ministeriais em dia junto à Província BRM.'
+                  : (publicConfig.mensagem_abertura || 'Preencha os dados para o cadastro oficial na Província BRM.')}
               </p>
             )}
           </div>
@@ -1846,7 +1864,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                 Etapa {step} de {etapas.length}
               </span>
               <p className="mt-0.5 text-sm font-semibold text-[#1d1d1f] dark:text-white">
-                {etapas[step - 1]}
+                {(step === 6 && isEditing) ? 'Saúde, documentos e atualização' : etapas[step - 1]}
               </p>
             </div>
             <span className="shrink-0 text-xs font-semibold text-[#226380] dark:text-[#A3C3C7]">
@@ -1871,7 +1889,10 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         {/* Stepper detalhado para telas maiores */}
         <div className="mb-8 hidden overflow-x-auto pb-2 -mx-2 px-2 sm:block">
           <div className="flex items-center gap-2 min-w-max">
-            {etapas.map((label, index) => ({ label, stepIndex: index + 1 }))
+            {etapas.map((rawLabel, index) => {
+              const label = (index === 5 && isEditing) ? 'Saúde, documentos e atualização' : rawLabel;
+              return { label, stepIndex: index + 1 };
+            })
               .map(({ label, stepIndex }) => {
               const complete = step > stepIndex;
               const active = step === stepIndex;
@@ -2601,9 +2622,11 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
 
         {step === 6 && (
           <>
-          <Section title="6. Saúde, Documentos, Revisão e Envio">
+          <Section title={isEditing ? "6. Saúde, Documentos, Revisão e Atualização" : "6. Saúde, Documentos, Revisão e Envio"}>
             <div className="mb-8 rounded-[6px] border border-[#226380]/20 bg-[#226380]/[0.04] p-5 dark:border-[#A3C3C7]/20 dark:bg-[#A3C3C7]/[0.04]">
-              <h3 className="mb-4 text-sm font-semibold text-[#1d1d1f] dark:text-white">Revise os principais dados antes de enviar</h3>
+              <h3 className="mb-4 text-sm font-semibold text-[#1d1d1f] dark:text-white">
+                {isEditing ? 'Revise os dados antes de salvar as alterações' : 'Revise os principais dados antes de enviar'}
+              </h3>
               <dl className="grid gap-3 text-xs sm:grid-cols-2">
                 <div><dt className="text-[#707070] dark:text-[#a1a1aa]">Nome</dt><dd className="font-medium">{base.nome_civil || '—'}</dd></div>
                 <div><dt className="text-[#707070] dark:text-[#a1a1aa]">Grau</dt><dd className="font-medium">{base.grau || '—'}</dd></div>
@@ -2753,7 +2776,13 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               <label className="flex items-start gap-3 rounded-[6px] bg-slate-50 dark:bg-white/5 p-5 text-xs text-[#1d1d1f] dark:text-white cursor-pointer leading-relaxed border border-slate-200 dark:border-slate-800">
                 <input type="checkbox" className="mt-0.5 h-4 w-4 rounded-[4px] accent-slate-900 shrink-0" checked={!!base.consentimento_dados} onChange={event => updateBase('consentimento_dados', event.target.checked ? 'true' : '')} />
                 <div className="space-y-1">
-                  <span>{adminMode ? 'Confirmo a conferência e exatidão dos dados deste cadastro religioso.' : publicConfig.termos}</span>
+                  <span>
+                    {adminMode
+                      ? 'Confirmo a conferência e exatidão dos dados deste cadastro religioso.'
+                      : (isEditing
+                        ? 'Confirmo a exatidão e a atualização das informações fornecidas nesta ficha cadastral.'
+                        : publicConfig.termos)}
+                  </span>
                   {!adminMode && (
                     <div className="pt-1">
                       <Link to="/privacidade" target="_blank" className="text-[11px] font-medium text-slate-900 dark:text-white underline">
@@ -2803,7 +2832,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               className="inline-flex min-h-12 flex-1 sm:flex-none items-center justify-center gap-2 rounded-[6px] bg-slate-900 hover:bg-black dark:bg-white dark:text-slate-900 text-white px-5 sm:px-8 py-3 text-sm sm:text-xs font-semibold transition-all cursor-pointer shadow-none active:scale-[0.98] disabled:opacity-50"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-              <span>Enviar cadastro</span>
+              <span>{isEditing ? 'Atualizar dados' : 'Enviar cadastro'}</span>
             </button>
           )}
         </footer>
