@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabaseClient';
 import { showToast } from '../hooks/useFeedback';
 import { useAuth } from '../contexts/AuthContext';
 import { siteSyncService, type SiteReligiosoItem, type SiteLocalItem } from '../services/siteSyncService';
+import { parseAddressString } from '../utils/addressParser';
 
 import type { 
   ReligiosoDossieData, 
@@ -753,9 +754,25 @@ export const ReligiosoDossie: React.FC = () => {
             <div className="col-span-3">
               <p className="text-[6pt] font-mono uppercase text-slate-500">Endereço Residencial / Comunidade</p>
               <p className="font-medium text-slate-900">
-                {canonicalData.residencia?.logradouro
-                  ? `${canonicalData.residencia.logradouro}, ${canonicalData.residencia.numero || 's/n'}${canonicalData.residencia.complemento ? ` (${canonicalData.residencia.complemento})` : ''} - ${canonicalData.residencia.bairro || ''}, ${canonicalData.residencia.cidade || ''}/${canonicalData.residencia.estado || ''} - CEP: ${canonicalData.residencia.cep || ''}`
-                  : `Comunidade: ${religioso?.comunidade_atual_nome || 'Sede Provincial BRM'}`}
+                {(() => {
+                  const res = canonicalData.residencia;
+                  if (!res) return `Comunidade: ${religioso?.comunidade_atual_nome || 'Sede Provincial BRM'}`;
+                  const p = res.logradouro?.includes('|') ? parseAddressString(res.logradouro) : null;
+                  const logr = p?.logradouro || res.logradouro || '';
+                  const num = res.numero || p?.numero || '';
+                  const comp = res.complemento || p?.complemento || '';
+                  const bair = res.bairro || p?.bairro || '';
+                  const cid = res.cidade || p?.cidade || '';
+                  const est = res.estado || p?.uf || '';
+                  const cep = res.cep || p?.cep || '';
+                  const parts: string[] = [];
+                  if (logr) parts.push(logr + (num ? `, ${num}` : ''));
+                  if (comp) parts.push(`(${comp})`);
+                  if (bair) parts.push(bair);
+                  if (cid || est) parts.push(`${cid}${est ? `/${est}` : ''}`);
+                  if (cep) parts.push(`CEP: ${cep}`);
+                  return parts.length > 0 ? parts.join(' - ') : `Comunidade: ${religioso?.comunidade_atual_nome || 'Sede Provincial BRM'}`;
+                })()}
               </p>
             </div>
           </div>
@@ -827,9 +844,11 @@ export const ReligiosoDossie: React.FC = () => {
           </p>
           <div className="grid grid-cols-3 gap-x-4 gap-y-1.5 text-[8pt]">
             <div>
-              <p className="text-[6pt] font-mono uppercase text-slate-500">Paróquia / Diocese de Origem</p>
+              <p className="text-[6pt] font-mono uppercase text-slate-500">Paróquia / Cidade / Diocese de Origem</p>
               <p className="font-medium text-slate-900">
-                {canonicalData.origemVocacional?.paroquia_origem || '—'} {canonicalData.origemVocacional?.diocese ? `(${canonicalData.origemVocacional.diocese})` : ''}
+                {canonicalData.origemVocacional?.paroquia_origem || '—'}
+                {canonicalData.origemVocacional?.cidade ? ` · ${canonicalData.origemVocacional.cidade}` : ''}
+                {canonicalData.origemVocacional?.diocese ? ` (${canonicalData.origemVocacional.diocese})` : ''}
               </p>
             </div>
             <div>

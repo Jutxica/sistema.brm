@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileUp, Info, Loader2, Plus, Trash2, Printer, Camera, Star, Check, Upload } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileUp, Info, Loader2, Plus, Trash2, Printer, Camera, Star, Check, Upload, Sparkles, Wrench } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { confirmAction, showToast } from '../hooks/useFeedback';
 import { useAuth } from '../contexts/AuthContext';
 import { formatCep, lookupCep } from '../lib/cep';
 import { validateCpf } from '../lib/cpf';
+import { parseAddressString } from '../utils/addressParser';
 
 interface FotoReligiosoItem {
   id: string;
@@ -168,7 +169,7 @@ const fieldLabels: Record<string, string> = {
   cep: 'CEP', logradouro: 'Logradouro', numero: 'Número', complemento: 'Complemento', bairro: 'Bairro',
   titulo_eleitor: 'Título de eleitor', pis: 'PIS', cnh: 'CNH', cnh_categoria: 'Categoria da CNH', passaporte: 'Passaporte',
   contato_nome: 'Nome do contato', contato_parentesco: 'Parentesco', contato_1: 'Telefone / WhatsApp', contato_2: 'Contato adicional',
-  paroquia_origem: 'Paróquia de origem', diocese_origem: 'Diocese', grupo_movimento_pastoral: 'Grupo ou movimento pastoral', promotor_vocacional: 'Promotor vocacional',
+  paroquia_origem: 'Paróquia de origem', cidade_origem: 'Cidade', diocese_origem: 'Diocese', grupo_movimento_pastoral: 'Grupo ou movimento pastoral', promotor_vocacional: 'Promotor vocacional',
   obra_atual_id: 'Obra atual', comunidade_atual_nome: 'Comunidade atual', email_institucional: 'E-mail institucional', email_pessoal: 'E-mail pessoal',
   telefone_celular: 'Celular', whatsapp: 'WhatsApp', redes_sociais: 'Redes sociais', plano_saude: 'Plano de saúde', numero_plano_saude: 'Número do plano',
   local_plano_saude: 'Local do plano', sus: 'SUS', tipo_sanguineo: 'Tipo sanguíneo', fator_rh: 'Fator Rh', alergias: 'Alergias',
@@ -176,10 +177,10 @@ const fieldLabels: Record<string, string> = {
   informacoes_clinicas: 'Informações clínicas', cirurgias: 'Cirurgias', proteses: 'Próteses', observacoes_saude: 'Observações',
   nome: 'Nome', data: 'Data', data_evento: 'Data de falecimento', paroquia: 'Paróquia', diocese: 'Diocese', cidade: 'Cidade', uf: 'Estado / UF', livro: 'Livro', folha: 'Folha',
   numero_registro: 'Número do registro', celebrante: 'Celebrante', observacoes: 'Observações', ano: 'Ano', titulo: 'Título', descricao: 'Descrição',
-  local: 'Cidade', responsavel: 'Responsável', etapa: 'Etapa', instituicao: 'Instituição', inicio: 'Data de ingresso', fim: 'Data de conclusão',
+  local: 'Local', responsavel: 'Responsável', etapa: 'Etapa', instituicao: 'Instituição', inicio: 'Data de ingresso', fim: 'Data de conclusão',
   formador: 'Formador responsável', voto_tipo: 'Tipo de voto', renovacao: 'Número da renovação', ministerio: 'Ministério ou ordem', bispo_ordenante: 'Bispo ordenante',
   categoria: 'Categoria', periodo: 'Período', pais: 'País', estado: 'Estado', idioma: 'Idioma', nivel: 'Nível de conhecimento', fala: 'Fala', audicao: 'Compreensão oral', leitura: 'Leitura', escrita: 'Escrita',
-  competencia: 'Competência', funcao: 'Função', servico_tipo: 'Tipo de serviço', documento: 'Documento', observacao: 'Observação',
+  competencia: 'Habilidade / Competência Técnica', funcao: 'Função', servico_tipo: 'Tipo de serviço', documento: 'Documento', observacao: 'Observação',
 };
 const getFieldLabel = (field: string) => fieldLabels[field] || field.replaceAll('_', ' ').replace(/^./, character => character.toUpperCase());
 const rowHasValue = (row: Record<string, string>, fields: string[]) => fields.some(field => row[field]?.trim());
@@ -357,7 +358,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   const [sacramentos, setSacramentos] = useState<Sacrament[]>([emptySacrament('Batismo'), emptySacrament('Primeira Eucaristia'), emptySacrament('Crisma')]);
   const [base, setBase] = useState<Record<string, string>>({
     grau: 'Padre', nome_civil: '', nome_religioso: '', nome_elenco: '', situacao_elenco: 'Ativo', data_nascimento: '', local_nascimento: '', municipio_nascimento: '', estado_nascimento: '', estado_nascimento_outro: '', pais_nascimento: 'Brasil', nacionalidade: 'Brasileira', cpf: '', rg: '', rg_orgao_expedidor: '', rg_data_emissao: '', titulo_eleitor: '', pis: '', cnh: '', cnh_categoria: '', passaporte: '', obra_atual_id: '', comunidade_atual_nome: '', cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', estado_outro: '', email_institucional: '', email_pessoal: '', telefone_celular: '', whatsapp: '', redes_sociais: '', status: 'Ativo', status_cadastro: 'Aprovado',
-    contato_nome: '', contato_parentesco: '', contato_1: '', contato_2: '', paroquia_origem: '', diocese_origem: '', grupo_movimento_pastoral: '', promotor_vocacional: '', plano_saude: '', numero_plano_saude: '', local_plano_saude: '', sus: '', tipo_sanguineo: '', fator_rh: '', alergias: '', medicamentos_continuos: '', medico_responsavel: '', contato_emergencia: '', informacoes_clinicas: '', cirurgias: '', proteses: '', observacoes_saude: '', consentimento_dados: '', consentimento_em: '',
+    contato_nome: '', contato_parentesco: '', contato_1: '', contato_2: '', paroquia_origem: '', cidade_origem: '', diocese_origem: '', grupo_movimento_pastoral: '', promotor_vocacional: '', plano_saude: '', numero_plano_saude: '', local_plano_saude: '', sus: '', tipo_sanguineo: '', fator_rh: '', alergias: '', medicamentos_continuos: '', medico_responsavel: '', contato_emergencia: '', informacoes_clinicas: '', cirurgias: '', proteses: '', observacoes_saude: '', consentimento_dados: '', consentimento_em: '',
   });
   const [rows, setRows] = useState<Record<string, string>[]>([]);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
@@ -461,7 +462,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         })));
         if (sacramentoData.data?.length) setSacramentos(sacramentoData.data as Sacrament[]);
         const origem = origemData.data;
-        if (origem) setBase(previous => ({ ...previous, paroquia_origem: origem.paroquia_origem || '', diocese_origem: origem.diocese || '', grupo_movimento_pastoral: origem.grupo_movimento_pastoral || '', promotor_vocacional: origem.promotor_vocacional || '' }));
+        if (origem) setBase(previous => ({ ...previous, paroquia_origem: origem.paroquia_origem || '', cidade_origem: origem.cidade || '', diocese_origem: origem.diocese || '', grupo_movimento_pastoral: origem.grupo_movimento_pastoral || '', promotor_vocacional: origem.promotor_vocacional || '' }));
         setRows([
           ...(vocacaoData.data || []).map(row => ({ ...row, tipo: 'vocacional' })),
           ...(formacaoData.data || []).map(row => ({
@@ -558,7 +559,46 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         }
         const saude = saudeData.data;
         const endereco = enderecoData.data;
-        setBase(previous => ({ ...previous, ...(saude ? Object.fromEntries(Object.entries(saude).filter(([key]) => key in previous).map(([key, value]) => [key, value == null ? '' : String(value)])) : {}), ...(endereco ? { obra_atual_id: endereco.obra_id || previous.obra_atual_id, telefone_celular: endereco.celular || previous.telefone_celular, email_institucional: endereco.email || previous.email_institucional, whatsapp: endereco.whatsapp || previous.whatsapp, redes_sociais: endereco.redes_sociais || previous.redes_sociais } : {}) }));
+        if (endereco) {
+          let logr = endereco.logradouro || '';
+          let num = endereco.numero || '';
+          let comp = endereco.complemento || '';
+          let bair = endereco.bairro || '';
+          let cid = endereco.cidade || '';
+          let est = endereco.estado || '';
+          let cepVal = endereco.cep || '';
+          if (logr && logr.includes('|')) {
+            const parsed = parseAddressString(logr);
+            logr = parsed.logradouro || logr;
+            if (!num) num = parsed.numero || '';
+            if (!comp) comp = parsed.complemento || '';
+            if (!bair) bair = parsed.bairro || '';
+            if (!cid) cid = parsed.cidade || '';
+            if (!est) est = parsed.uf || '';
+            if (!cepVal) cepVal = parsed.cep || '';
+          }
+          setBase(previous => ({
+            ...previous,
+            obra_atual_id: endereco.obra_id || previous.obra_atual_id,
+            telefone_celular: endereco.celular || previous.telefone_celular,
+            email_institucional: endereco.email || previous.email_institucional,
+            whatsapp: endereco.whatsapp || previous.whatsapp,
+            redes_sociais: endereco.redes_sociais || previous.redes_sociais,
+            cep: cepVal || previous.cep,
+            logradouro: logr || previous.logradouro,
+            numero: num || previous.numero,
+            complemento: comp || previous.complemento,
+            bairro: bair || previous.bairro,
+            cidade: cid || previous.cidade,
+            estado: est || previous.estado,
+          }));
+        }
+        if (saude) {
+          setBase(previous => ({
+            ...previous,
+            ...Object.fromEntries(Object.entries(saude).filter(([key]) => key in previous).map(([key, value]) => [key, value == null ? '' : String(value)])),
+          }));
+        }
       } else if (!adminMode && !religiosoId) {
         try {
           const savedStr = localStorage.getItem(DRAFT_KEY);
@@ -758,7 +798,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
     setStep(1);
     setBase({
       grau: 'Padre', nome_civil: '', nome_religioso: '', nome_elenco: '', situacao_elenco: 'Ativo', data_nascimento: '', local_nascimento: '', municipio_nascimento: '', estado_nascimento: '', pais_nascimento: 'Brasil', nacionalidade: 'Brasileira', cpf: '', rg: '', rg_orgao_expedidor: '', rg_data_emissao: '', titulo_eleitor: '', pis: '', cnh: '', cnh_categoria: '', passaporte: '', obra_atual_id: '', comunidade_atual_nome: '', cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', email_institucional: '', email_pessoal: '', telefone_celular: '', whatsapp: '', redes_sociais: '', status: 'Ativo', status_cadastro: 'Aprovado',
-      contato_nome: '', contato_parentesco: '', contato_1: '', contato_2: '', paroquia_origem: '', diocese_origem: '', grupo_movimento_pastoral: '', promotor_vocacional: '', plano_saude: '', numero_plano_saude: '', local_plano_saude: '', sus: '', tipo_sanguineo: '', fator_rh: '', alergias: '', medicamentos_continuos: '', medico_responsavel: '', contato_emergencia: '', informacoes_clinicas: '', cirurgias: '', proteses: '', observacoes_saude: '', consentimento_dados: '', consentimento_em: '',
+      contato_nome: '', contato_parentesco: '', contato_1: '', contato_2: '', paroquia_origem: '', cidade_origem: '', diocese_origem: '', grupo_movimento_pastoral: '', promotor_vocacional: '', plano_saude: '', numero_plano_saude: '', local_plano_saude: '', sus: '', tipo_sanguineo: '', fator_rh: '', alergias: '', medicamentos_continuos: '', medico_responsavel: '', contato_emergencia: '', informacoes_clinicas: '', cirurgias: '', proteses: '', observacoes_saude: '', consentimento_dados: '', consentimento_em: '',
     });
     setFamiliares([emptyFamiliar('Pai'), emptyFamiliar('Mãe')]);
     setContatosFamiliares([]);
@@ -772,6 +812,20 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       cepRequest.current?.abort();
       cepRequest.current = null;
       setCepLoading(false);
+    }
+    if (field === 'logradouro' && value.includes('|')) {
+      const parsed = parseAddressString(value);
+      setBase(previous => ({
+        ...previous,
+        logradouro: parsed.logradouro || value,
+        numero: parsed.numero || previous.numero,
+        complemento: parsed.complemento || previous.complemento,
+        bairro: parsed.bairro || previous.bairro,
+        cidade: parsed.cidade || previous.cidade,
+        estado: parsed.uf || previous.estado,
+        cep: parsed.cep || previous.cep,
+      }));
+      return;
     }
     setBase(previous => ({ ...previous, [field]: value }));
     if (field === 'cep') setCepError(null);
@@ -1086,6 +1140,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
 
       const origemVocacionalPayload = {
         paroquia_origem: base.paroquia_origem || null,
+        cidade: base.cidade_origem || null,
         diocese: base.diocese_origem || null,
         grupo_movimento_pastoral: base.grupo_movimento_pastoral || null,
         promotor_vocacional: base.promotor_vocacional || null,
@@ -1864,17 +1919,19 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                       value={base.obra_atual_id || ''}
                       onChange={event => {
                         const selectedObra = obras.find(obra => obra.id === event.target.value);
+                        const rawAddr = selectedObra?.endereco || selectedObra?.logradouro || '';
+                        const parsed = parseAddressString(rawAddr);
                         setBase(previous => ({
                           ...previous,
                           obra_atual_id: selectedObra?.id || '',
                           comunidade_atual_nome: selectedObra?.nome || '',
-                          cep: selectedObra?.cep || previous.cep,
-                          logradouro: selectedObra?.logradouro || selectedObra?.endereco || previous.logradouro,
-                          numero: selectedObra?.numero || previous.numero,
-                          complemento: selectedObra?.complemento || previous.complemento,
-                          bairro: selectedObra?.bairro || previous.bairro,
-                          cidade: selectedObra?.localidade || selectedObra?.cidade || previous.cidade,
-                          estado: selectedObra?.uf || selectedObra?.estado || previous.estado,
+                          cep: selectedObra?.cep || parsed.cep || previous.cep,
+                          logradouro: (selectedObra?.logradouro && !selectedObra.logradouro.includes('|')) ? selectedObra.logradouro : (parsed.logradouro || selectedObra?.endereco || previous.logradouro),
+                          numero: selectedObra?.numero || parsed.numero || previous.numero,
+                          complemento: selectedObra?.complemento || parsed.complemento || previous.complemento,
+                          bairro: selectedObra?.bairro || parsed.bairro || previous.bairro,
+                          cidade: selectedObra?.localidade || selectedObra?.cidade || parsed.cidade || previous.cidade,
+                          estado: selectedObra?.uf || selectedObra?.estado || parsed.uf || previous.estado,
                           estado_outro: '',
                           telefone_celular: previous.telefone_celular || selectedObra?.telefone || '',
                           whatsapp: previous.whatsapp || selectedObra?.whatsapp || selectedObra?.telefone || '',
@@ -1984,7 +2041,18 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
           <Section title="3. Vocação, Formação e Votos">
             <div className="mb-6 pb-6 border-b border-[#e5e5ea] dark:border-white/10">
               <h3 className="text-sm font-semibold text-[#1d1d1f] dark:text-white mb-4">Origem Vocacional</h3>
-              <Fields fields={['paroquia_origem', 'diocese_origem', 'grupo_movimento_pastoral', 'promotor_vocacional']} base={base} update={updateBase} />
+              <Fields
+                fields={['paroquia_origem', 'cidade_origem', 'diocese_origem', 'grupo_movimento_pastoral', 'promotor_vocacional']}
+                base={base}
+                update={updateBase}
+                placeholders={{
+                  paroquia_origem: 'Ex.: Paróquia Sagrado Coração de Jesus',
+                  cidade_origem: 'Ex.: Joinville',
+                  diocese_origem: 'Ex.: Diocese de Joinville',
+                  grupo_movimento_pastoral: 'Ex.: Grupo de Jovens, Acólitos',
+                  promotor_vocacional: 'Ex.: Pe. João Silva, scj',
+                }}
+              />
             </div>
             <DynamicSection title="Histórico Vocacional" type="vocacional" fields={['ano', 'data', 'titulo', 'descricao', 'local', 'responsavel']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} />
             <div className="mt-8 border-t border-[#e5e5ea] pt-6 dark:border-white/10">
@@ -2001,6 +2069,14 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                 updateRow={updateRow}
                 removeRow={removeRow}
                 selects={{ voto_tipo: base.grau === 'Frater' ? votoOptions.slice(0, 2) : votoOptions, renovacao: renewalOptions.map(value => ({ value, label: `${value}ª Renovação` })) }}
+                labels={{
+                  local: 'Local dos votos (paróquia, convento ou cidade)',
+                  celebrante: 'Celebrante / Superior que acolheu os votos',
+                }}
+                placeholders={{
+                  local: 'Ex.: Convento Sagrado Coração de Jesus, Brusque-SC',
+                  celebrante: 'Ex.: Pe. Superior Provincial',
+                }}
                 visibleFields={row => {
                   if (base.grau === 'Frater' && row.voto_tipo === 'Profissão Perpétua') return [];
                   return row.voto_tipo === 'Renovação de Votos' ? ['voto_tipo', 'renovacao', 'data', 'local', 'celebrante'] : ['voto_tipo', 'data', 'local', 'celebrante'];
@@ -2078,7 +2154,39 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               </DynamicSection>
             </div>
             <div className="mt-8 border-t border-[#e5e5ea] pt-6 dark:border-white/10">
-              <DynamicSection title="Competências Especiais" type="competencia" fields={['competencia', 'observacoes']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} />
+              <div className="mb-4 rounded-[6px] border border-blue-200 bg-blue-50/70 p-4 text-xs dark:border-blue-900/40 dark:bg-blue-950/20">
+                <div className="flex items-start gap-3">
+                  <Wrench className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-semibold text-blue-950 dark:text-blue-200">
+                      Habilidades, Técnicas e Competências Práticas
+                    </p>
+                    <p className="mt-1 text-slate-700 dark:text-slate-300 leading-relaxed">
+                      Preencha aqui suas habilidades manuais, conhecimentos práticos e qualificações técnicas que você possui e que possam colaborar com a vida fraterna comunitária e com as diversas obras e frentes da Província BRM.
+                    </p>
+                    <p className="mt-1.5 text-slate-600 dark:text-slate-400">
+                      <strong>Exemplos de preenchimento:</strong> Construção civil, marcenaria/carpintaria, eletricista predial, hidráulica/encanamento, mecânica, culinária/panificação, agricultura/jardinagem, música/instrumentos musicais, sonorização, informática/redes, áudio e vídeo, contabilidade/gestão, primeiros socorros, etc.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <DynamicSection
+                title="Habilidades e Competências Técnicas"
+                type="competencia"
+                fields={['competencia', 'observacoes']}
+                rows={rows}
+                addRow={addRow}
+                updateRow={updateRow}
+                removeRow={removeRow}
+                labels={{
+                  competencia: 'Habilidade ou Competência Técnica',
+                  observacoes: 'Detalhes ou experiência prática (opcional)',
+                }}
+                placeholders={{
+                  competencia: 'Ex.: Eletricista predial, Marcenaria, Edição de vídeo...',
+                  observacoes: 'Ex.: Prática em manutenção residencial e painéis...',
+                }}
+              />
             </div>
           </Section>
         )}
@@ -2107,7 +2215,62 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                 </div>
               )}
               <div className="mt-6 border-t border-[#e5e5ea] pt-6 dark:border-white/10">
-                <h3 className="mb-4 text-sm font-semibold text-[#1d1d1f] dark:text-white font-serif">Endereço da residência atual</h3>
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-[#1d1d1f] dark:text-white font-serif">Endereço da residência atual</h3>
+                    <p className="text-xs text-[#707070] dark:text-[#a1a1aa]">Logradouro, número, bairro, cidade, estado e CEP devem estar preenchidos em seus campos individuais.</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {base.obra_atual_id && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentObra = obras.find(o => o.id === base.obra_atual_id);
+                          if (currentObra) {
+                            const raw = currentObra.endereco || currentObra.logradouro || '';
+                            const p = parseAddressString(raw);
+                            setBase(prev => ({
+                              ...prev,
+                              cep: currentObra.cep || p.cep || prev.cep,
+                              logradouro: (currentObra.logradouro && !currentObra.logradouro.includes('|')) ? currentObra.logradouro : (p.logradouro || currentObra.endereco || prev.logradouro),
+                              numero: currentObra.numero || p.numero || prev.numero,
+                              complemento: currentObra.complemento || p.complemento || prev.complemento,
+                              bairro: currentObra.bairro || p.bairro || prev.bairro,
+                              cidade: currentObra.localidade || currentObra.cidade || p.cidade || prev.cidade,
+                              estado: currentObra.uf || currentObra.estado || p.uf || prev.estado,
+                            }));
+                            showToast.success('Endereço preenchido com base na comunidade atual!');
+                          }
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-[6px] border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] px-3 py-1.5 text-xs font-semibold text-[#1d1d1f] dark:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                      >
+                        Carregar endereço da comunidade
+                      </button>
+                    )}
+                    {base.logradouro && base.logradouro.includes('|') && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const p = parseAddressString(base.logradouro);
+                          setBase(prev => ({
+                            ...prev,
+                            logradouro: p.logradouro || prev.logradouro,
+                            numero: p.numero || prev.numero,
+                            complemento: p.complemento || prev.complemento,
+                            bairro: p.bairro || prev.bairro,
+                            cidade: p.cidade || prev.cidade,
+                            estado: p.uf || prev.estado,
+                            cep: p.cep || prev.cep,
+                          }));
+                          showToast.success('Campos do endereço separados com sucesso!');
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-[6px] bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 px-3 py-1.5 text-xs font-semibold cursor-pointer hover:bg-amber-200"
+                      >
+                        Separar campos do endereço
+                      </button>
+                    )}
+                  </div>
+                </div>
                 <Fields
                   fields={['cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado']}
                   base={base}
@@ -2281,7 +2444,9 @@ const Fields: React.FC<{
   onBlur?: (field: string) => void;
   idPrefix?: string;
   afterField?: Record<string, React.ReactNode>;
-}> = ({ fields, base, update, selects = {}, invalidFields = [], readOnlyFields = [], requiredFields = [], otherFields = {}, onBlur, idPrefix = '', afterField = {} }) => (
+  labels?: Record<string, string>;
+  placeholders?: Record<string, string>;
+}> = ({ fields, base, update, selects = {}, invalidFields = [], readOnlyFields = [], requiredFields = [], otherFields = {}, onBlur, idPrefix = '', afterField = {}, labels = {}, placeholders = {} }) => (
   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
     {fields.map(field => {
       const isRequired = requiredFields.includes(field);
@@ -2293,7 +2458,7 @@ const Fields: React.FC<{
           <label className="space-y-1.5 block" htmlFor={fieldId}>
             <span className="text-[12px] font-medium text-[#707070] dark:text-[#86868b] flex items-center justify-between">
               <span>
-                {getFieldLabel(field)}
+                {labels[field] || getFieldLabel(field)}
                 {isRequired && <span className="text-rose-500 ml-1 font-bold">*</span>}
               </span>
               {!isRequired && <span className="text-[10px] text-[#86868b] font-normal lowercase">(opcional)</span>}
@@ -2331,7 +2496,7 @@ const Fields: React.FC<{
                 step={field === 'renovacao' || field === 'ano' ? 1 : undefined}
                 value={base[field] || ''}
                 disabled={isReadOnly}
-                placeholder={field === 'cpf' ? '000.000.000-00' : field === 'cep' ? '00000-000' : isRequired ? '' : 'Opcional'}
+                placeholder={placeholders[field] || (field === 'cpf' ? '000.000.000-00' : field === 'cep' ? '00000-000' : isRequired ? '' : 'Opcional')}
                 onChange={event => update(field, field === 'cpf' ? formatCpf(event.target.value) : field === 'cep' ? formatCep(event.target.value) : event.target.value)}
                 onBlur={() => onBlur?.(field)}
               />
@@ -2366,8 +2531,10 @@ const DynamicSection: React.FC<{
   removeRow: (index: number) => void;
   selects?: Record<string, string[] | { value: string; label: string }[]>;
   visibleFields?: (row: Record<string, string>) => string[];
+  labels?: Record<string, string>;
+  placeholders?: Record<string, string>;
   children?: React.ReactNode;
-}> = ({ title, type, rowTypes = [type], fields, rows, addRow, updateRow, removeRow, selects = {}, visibleFields, children }) => (
+}> = ({ title, type, rowTypes = [type], fields, rows, addRow, updateRow, removeRow, selects = {}, visibleFields, labels, placeholders, children }) => (
   <Section title={title}>
     {children}
     <div className="space-y-4">
@@ -2389,6 +2556,8 @@ const DynamicSection: React.FC<{
             update={(field, value) => updateRow(index, field, value)}
             selects={selects}
             idPrefix={`${type}-${index}-`}
+            labels={labels}
+            placeholders={placeholders}
             requiredFields={[
               ...(rowHasValue(row, fields) && dynamicRequiredFields[type] ? [dynamicRequiredFields[type]] : []),
               ...(rowHasValue(row, fields) && type === 'voto' && (row.voto_tipo === 'Voto temporário' || row.voto_tipo === 'Renovação de Votos') ? ['renovacao'] : []),

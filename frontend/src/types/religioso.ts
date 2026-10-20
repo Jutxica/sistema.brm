@@ -112,6 +112,7 @@ export interface ReligiosoDossieData {
   passaporte?: string | null;
   whatsapp?: string | null;
   email_pessoal?: string | null;
+  cidade_origem?: string | null;
   foto_path?: string | null;
   publicado_site_em?: string | null;
   publicado_site_id?: string | null;
