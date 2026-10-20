@@ -1,10 +1,25 @@
 -- ==============================================================================
--- MIGRATION: CORREÇÃO DE ENDEREÇOS (OBRAS E RELIGIOSOS) E ORIGEM VOCACIONAL
+-- MIGRATION: CORREÇÃO DE ENDEREÇOS (OBRAS E RELIGIOSOS), ORIGEM VOCACIONAL E CAMPOS CIDADE/LOCAL
 -- Província Brasil Meridional (BRM)
 -- ==============================================================================
 
--- 1. Adicionar campo 'cidade' na tabela religiosos_origem_vocacional
+-- 1. Adicionar campo 'cidade' nas tabelas canônicas e de trajetória
 ALTER TABLE public.religiosos_origem_vocacional
+  ADD COLUMN IF NOT EXISTS cidade TEXT;
+
+ALTER TABLE public.religiosos_profissoes_votos
+  ADD COLUMN IF NOT EXISTS cidade TEXT;
+
+ALTER TABLE public.religiosos_historico_vocacional
+  ADD COLUMN IF NOT EXISTS cidade TEXT;
+
+ALTER TABLE public.religiosos_ministerios_ordens
+  ADD COLUMN IF NOT EXISTS cidade TEXT;
+
+ALTER TABLE public.religiosos_historico_comunidades
+  ADD COLUMN IF NOT EXISTS cidade TEXT;
+
+ALTER TABLE public.religiosos_missoes_servicos
   ADD COLUMN IF NOT EXISTS cidade TEXT;
 
 -- 2. Separar e normalizar endereços nas obras de referência (religiosos_obras_referencia)
@@ -91,7 +106,7 @@ SET
   END
 WHERE logradouro LIKE '%|%';
 
--- 4. Atualizar a RPC salvar_ficha_religioso para contemplar o campo 'cidade' em origem_vocacional
+-- 4. Atualizar a RPC salvar_ficha_religioso para persistir 'cidade' e 'local'
 CREATE OR REPLACE FUNCTION public.salvar_ficha_religioso(p_payload JSONB)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -216,24 +231,81 @@ BEGIN
     );
   END IF;
 
-  -- 3. Profissões e Votos (com campo 'local')
+  -- 3. Histórico Vocacional (com cidade e local)
+  IF p_payload ? 'historico_vocacional' AND jsonb_typeof(p_payload->'historico_vocacional') = 'array' THEN
+    FOR v_item IN SELECT * FROM jsonb_array_elements(p_payload->'historico_vocacional')
+    LOOP
+      INSERT INTO public.religiosos_historico_vocacional (
+        religioso_id, data_evento, ano, titulo, descricao, cidade, local, responsavel
+      ) VALUES (
+        v_religioso_id,
+        NULLIF(v_item->>'data_evento', '')::DATE,
+        NULLIF(v_item->>'ano', '')::INTEGER,
+        v_item->>'titulo',
+        v_item->>'descricao',
+        v_item->>'cidade',
+        v_item->>'local',
+        v_item->>'responsavel'
+      );
+    END LOOP;
+  END IF;
+
+  -- 4. Etapas da Formação Religiosa (com cidade e local)
+  IF p_payload ? 'formacao_religiosa' AND jsonb_typeof(p_payload->'formacao_religiosa') = 'array' THEN
+    FOR v_item IN SELECT * FROM jsonb_array_elements(p_payload->'formacao_religiosa')
+    LOOP
+      INSERT INTO public.religiosos_formacao_religiosa (
+        religioso_id, etapa, instituicao, cidade, local, data_ingresso, data_conclusao, formador
+      ) VALUES (
+        v_religioso_id,
+        COALESCE(v_item->>'etapa', 'Postulado'),
+        v_item->>'instituicao',
+        v_item->>'cidade',
+        v_item->>'local',
+        NULLIF(v_item->>'data_ingresso', '')::DATE,
+        NULLIF(v_item->>'data_conclusao', '')::DATE,
+        v_item->>'formador'
+      );
+    END LOOP;
+  END IF;
+
+  -- 5. Profissões e Votos (com cidade e local)
   IF p_payload ? 'profissoes_votos' AND jsonb_typeof(p_payload->'profissoes_votos') = 'array' THEN
     FOR v_item IN SELECT * FROM jsonb_array_elements(p_payload->'profissoes_votos')
     LOOP
       INSERT INTO public.religiosos_profissoes_votos (
-        religioso_id, tipo, renovacao, data, local, celebrante
+        religioso_id, tipo, renovacao, data, cidade, local, celebrante
       ) VALUES (
         v_religioso_id,
         COALESCE(v_item->>'tipo', 'Primeira profissão'),
         NULLIF(v_item->>'renovacao', '')::INTEGER,
         NULLIF(v_item->>'data', '')::DATE,
+        v_item->>'cidade',
         v_item->>'local',
         v_item->>'celebrante'
       );
     END LOOP;
   END IF;
 
-  -- 4. Competências e Habilidades Técnicas
+  -- 6. Ministérios e Ordens (com cidade e local)
+  IF p_payload ? 'ministerios_ordens' AND jsonb_typeof(p_payload->'ministerios_ordens') = 'array' THEN
+    FOR v_item IN SELECT * FROM jsonb_array_elements(p_payload->'ministerios_ordens')
+    LOOP
+      INSERT INTO public.religiosos_ministerios_ordens (
+        religioso_id, tipo, data, cidade, local, celebrante, bispo_ordenante
+      ) VALUES (
+        v_religioso_id,
+        COALESCE(v_item->>'tipo', 'Leitorado'),
+        NULLIF(v_item->>'data', '')::DATE,
+        v_item->>'cidade',
+        v_item->>'local',
+        v_item->>'celebrante',
+        v_item->>'bispo_ordenante'
+      );
+    END LOOP;
+  END IF;
+
+  -- 7. Competências e Habilidades Técnicas
   IF p_payload ? 'competencias' AND jsonb_typeof(p_payload->'competencias') = 'array' THEN
     FOR v_item IN SELECT * FROM jsonb_array_elements(p_payload->'competencias')
     LOOP
@@ -249,7 +321,46 @@ BEGIN
     END LOOP;
   END IF;
 
-  -- 5. Endereços e Contatos
+  -- 8. Histórico de Comunidades (com cidade e local)
+  IF p_payload ? 'historico_comunidades' AND jsonb_typeof(p_payload->'historico_comunidades') = 'array' THEN
+    FOR v_item IN SELECT * FROM jsonb_array_elements(p_payload->'historico_comunidades')
+    LOOP
+      INSERT INTO public.religiosos_historico_comunidades (
+        religioso_id, periodo_inicio, periodo_fim, instituicao, funcao, cidade, local, observacoes
+      ) VALUES (
+        v_religioso_id,
+        NULLIF(v_item->>'periodo_inicio', '')::DATE,
+        NULLIF(v_item->>'periodo_fim', '')::DATE,
+        v_item->>'instituicao',
+        v_item->>'funcao',
+        v_item->>'cidade',
+        v_item->>'local',
+        v_item->>'observacoes'
+      );
+    END LOOP;
+  END IF;
+
+  -- 9. Missões e Serviços (com cidade e local)
+  IF p_payload ? 'missoes_servicos' AND jsonb_typeof(p_payload->'missoes_servicos') = 'array' THEN
+    FOR v_item IN SELECT * FROM jsonb_array_elements(p_payload->'missoes_servicos')
+    LOOP
+      INSERT INTO public.religiosos_missoes_servicos (
+        religioso_id, tipo, instituicao, funcao, periodo, cidade, local, documento, observacao
+      ) VALUES (
+        v_religioso_id,
+        COALESCE(v_item->>'tipo', 'Missão'),
+        v_item->>'instituicao',
+        v_item->>'funcao',
+        v_item->>'periodo',
+        v_item->>'cidade',
+        v_item->>'local',
+        v_item->>'documento',
+        v_item->>'observacao'
+      );
+    END LOOP;
+  END IF;
+
+  -- 10. Endereços e Contatos
   IF p_payload ? 'enderecos_contatos' AND jsonb_typeof(p_payload->'enderecos_contatos') = 'object' THEN
     v_item := p_payload->'enderecos_contatos';
     INSERT INTO public.religiosos_enderecos_contatos (

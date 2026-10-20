@@ -182,6 +182,91 @@ const fieldLabels: Record<string, string> = {
   categoria: 'Categoria', periodo: 'Período', pais: 'País', estado: 'Estado', idioma: 'Idioma', nivel: 'Nível de conhecimento', fala: 'Fala', audicao: 'Compreensão oral', leitura: 'Leitura', escrita: 'Escrita',
   competencia: 'Habilidade / Competência Técnica', funcao: 'Função', servico_tipo: 'Tipo de serviço', documento: 'Documento', observacao: 'Observação',
 };
+
+const defaultFieldPlaceholders: Record<string, string> = {
+  nome_civil: 'Ex.: João Paulo da Silva',
+  nome_religioso: 'Ex.: Frater Lucas, Pe. André (se houver)',
+  nome_elenco: 'Ex.: Pe. João Silva',
+  data_nascimento: 'AAAA-MM-DD',
+  local_nascimento: 'Ex.: Hospital São José ou Distrito',
+  municipio_nascimento: 'Ex.: Jaraguá do Sul',
+  estado_nascimento: 'Selecione o estado...',
+  pais_nascimento: 'Ex.: Brasil',
+  nacionalidade: 'Ex.: Brasileira',
+  cpf: '000.000.000-00',
+  rg: 'Ex.: 12.345.678-9',
+  rg_orgao_expedidor: 'Ex.: SSP/SC, DETRAN/PR',
+  rg_data_emissao: 'AAAA-MM-DD',
+  titulo_eleitor: 'Ex.: 123456789012',
+  pis: 'Ex.: 123.45678.90-1',
+  cnh: 'Ex.: 12345678900',
+  cnh_categoria: 'Ex.: B, AB, C, D',
+  passaporte: 'Ex.: BR123456',
+  email_institucional: 'Ex.: nome@brm.org.br',
+  email_pessoal: 'Ex.: seu.email@gmail.com',
+  telefone_celular: 'Ex.: (47) 99999-8888',
+  whatsapp: 'Ex.: (47) 99999-8888',
+  redes_sociais: 'Ex.: @usuario no Instagram / Facebook',
+  nome: 'Ex.: Nome completo',
+  contato_1: 'Ex.: (47) 98888-7777',
+  contato_2: 'Ex.: (47) 3333-2222',
+  data: 'AAAA-MM-DD',
+  data_evento: 'AAAA-MM-DD',
+  paroquia: 'Ex.: Paróquia Sagrado Coração de Jesus',
+  diocese: 'Ex.: Diocese de Joinville',
+  cidade: 'Ex.: Jaraguá do Sul',
+  uf: 'Ex.: SC',
+  livro: 'Ex.: 12-B',
+  folha: 'Ex.: 45v',
+  numero_registro: 'Ex.: 789',
+  celebrante: 'Ex.: Pe. Marcos Aurélio',
+  observacoes: 'Informações adicionais ou anotações complementares',
+  paroquia_origem: 'Ex.: Paróquia Sagrado Coração de Jesus',
+  cidade_origem: 'Ex.: Joinville',
+  diocese_origem: 'Ex.: Diocese de Joinville',
+  grupo_movimento_pastoral: 'Ex.: Grupo de Coroinhas, Pastoral Juvenil',
+  promotor_vocacional: 'Ex.: Pe. João Silva, scj',
+  ano: 'Ex.: 2018',
+  titulo: 'Ex.: Despertar Vocacional, Convivência',
+  descricao: 'Ex.: Retiro vocacional e acompanhamento na casa formativa',
+  responsavel: 'Ex.: Pe. Coordenador Vocacional',
+  instituicao: 'Ex.: Seminário São José, Convento SCJ',
+  formador: 'Ex.: Pe. Mestre dos Noviços',
+  inicio: 'AAAA-MM-DD',
+  fim: 'AAAA-MM-DD',
+  voto_tipo: 'Selecione o tipo de voto...',
+  renovacao: 'Ex.: 1',
+  local: 'Ex.: Noviciado N. Sra. de Fátima, Convento SCJ, Paróquia N. Sra. das Graças...',
+  ministerio: 'Selecione o ministério ou ordem...',
+  bispo_ordenante: 'Ex.: Dom Murilo Krieger, SCJ',
+  categoria: 'Selecione a formação (Filosofia, Teologia, etc.)...',
+  periodo: 'Ex.: 2020 a 2023',
+  pais: 'Ex.: Brasil',
+  estado: 'Ex.: SC, PR, SP',
+  idioma: 'Ex.: Italiano, Francês, Inglês, Espanhol, Alemão, Latim',
+  competencia: 'Ex.: Eletricista predial, Marcenaria, Edição de vídeo...',
+  funcao: 'Ex.: Vigário Paroquial, Diretor Espiritual, Formador, Pároco',
+  servico_tipo: 'Selecione o tipo de serviço...',
+  documento: 'Ex.: Decreto de Provisão nº 12/2024',
+  observacao: 'Observações adicionais sobre o serviço ou missão',
+  cep: '00000-000',
+  logradouro: 'Ex.: Rua Padre Dehon',
+  numero: 'Ex.: 728 ou S/N',
+  complemento: 'Ex.: Apto 201, Bloco B, Casa Paroquial',
+  bairro: 'Ex.: Centro, Hauer, América',
+  plano_saude: 'Ex.: Unimed, Bradesco Saúde, Agemed',
+  numero_plano_saude: 'Ex.: 0 123 4567 890123 00',
+  local_plano_saude: 'Ex.: Unimed Grande Florianópolis / Curitiba',
+  sus: 'Ex.: 700000000000000',
+  alergias: 'Ex.: Penicilina, Dipirona, Glúten (ou Nenhuma)',
+  medicamentos_continuos: 'Ex.: Losartana 50mg, Levotiroxina 75mcg (ou Nenhum)',
+  medico_responsavel: 'Ex.: Dr. Carlos Eduardo (Clínico Geral)',
+  contato_emergencia: 'Ex.: Ir. Marcos (47) 99999-1111 / Irmã Maria (47) 98888-2222',
+  informacoes_clinicas: 'Ex.: Hipertensão controlada, diabetes tipo 2',
+  cirurgias: 'Ex.: Apendicectomia (2015), Cirurgia no joelho (2020)',
+  proteses: 'Ex.: Prótese dentária, lente intraocular (ou Nenhuma)',
+  observacoes_saude: 'Outras informações de saúde relevantes para a Província',
+};
 const getFieldLabel = (field: string) => fieldLabels[field] || field.replaceAll('_', ' ').replace(/^./, character => character.toUpperCase());
 const rowHasValue = (row: Record<string, string>, fields: string[]) => fields.some(field => row[field]?.trim());
 const hasAnyValues = (row: Record<string, string>, fields: string[]) => fields.some(field => row[field]?.trim());
@@ -1012,13 +1097,13 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       }
     }
     if (targetStep === 3) {
-      if (rows.some(row => row.tipo === 'vocacional' && hasAnyValues(row, ['ano', 'data', 'titulo', 'descricao', 'local', 'responsavel']) && !row.titulo?.trim())) {
+      if (rows.some(row => row.tipo === 'vocacional' && hasAnyValues(row, ['ano', 'data', 'titulo', 'descricao', 'cidade', 'local', 'responsavel']) && !row.titulo?.trim())) {
         return 'Informe o título de cada evento vocacional iniciado.';
       }
       if (rows.some(row => row.tipo === 'formacao' && hasAnyValues(row, ['etapa', 'instituicao', 'cidade', 'local', 'inicio', 'fim', 'formador']) && !row.etapa?.trim())) {
         return 'Selecione a etapa de cada formação iniciada.';
       }
-      if (rows.some(row => row.tipo === 'voto' && hasAnyValues(row, ['voto_tipo', 'renovacao', 'data', 'local', 'celebrante']) && !row.voto_tipo?.trim())) {
+      if (rows.some(row => row.tipo === 'voto' && hasAnyValues(row, ['voto_tipo', 'renovacao', 'data', 'cidade', 'local', 'celebrante']) && !row.voto_tipo?.trim())) {
         return 'Selecione o tipo de cada profissão ou voto iniciado.';
       }
       if (rows.some(row => row.tipo === 'voto' && row.voto_tipo === 'Renovação de Votos' && !row.renovacao?.trim())) {
@@ -1026,7 +1111,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       }
     }
     if (targetStep === 4) {
-      if (rows.some(row => ['ministerio', 'ordem'].includes(row.tipo) && hasAnyValues(row, ['ministerio', 'data', 'local', 'celebrante', 'bispo_ordenante']) && !row.ministerio?.trim())) {
+      if (rows.some(row => ['ministerio', 'ordem'].includes(row.tipo) && hasAnyValues(row, ['ministerio', 'data', 'cidade', 'local', 'celebrante', 'bispo_ordenante']) && !row.ministerio?.trim())) {
         return 'Selecione o ministério ou grau da ordem para cada registro iniciado.';
       }
       if (rows.some(row => row.tipo === 'academica' && hasAnyValues(row, ['categoria', 'instituicao', 'periodo', 'pais', 'cidade', 'estado', 'observacoes']) && !row.categoria?.trim())) {
@@ -1043,10 +1128,10 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       }
     }
     if (targetStep === 5) {
-      if (rows.some(row => row.tipo === 'historico' && hasAnyValues(row, ['instituicao', 'funcao', 'inicio', 'fim', 'local', 'observacoes']) && !row.instituicao?.trim())) {
+      if (rows.some(row => row.tipo === 'historico' && hasAnyValues(row, ['instituicao', 'funcao', 'inicio', 'fim', 'cidade', 'local', 'observacoes']) && !row.instituicao?.trim())) {
         return 'Informe a instituição de cada registro do histórico iniciado.';
       }
-      if (rows.some(row => row.tipo === 'servico' && hasAnyValues(row, ['servico_tipo', 'instituicao', 'funcao', 'periodo', 'local', 'documento', 'observacao']) && !row.servico_tipo?.trim())) {
+      if (rows.some(row => row.tipo === 'servico' && hasAnyValues(row, ['servico_tipo', 'instituicao', 'funcao', 'periodo', 'cidade', 'local', 'documento', 'observacao']) && !row.servico_tipo?.trim())) {
         return 'Selecione o tipo de cada missão ou serviço iniciado.';
       }
       if (base.estado === OTHER_LOCATION_VALUE && !base.estado_outro?.trim()) {
@@ -1151,15 +1236,16 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         ano: row.ano ? Number(row.ano) : null,
         titulo: row.titulo,
         descricao: row.descricao,
-        local: row.local,
+        cidade: row.cidade || null,
+        local: row.local || null,
         responsavel: row.responsavel,
       }));
 
       const formacaoReligiosaPayload = rows.filter(row => row.tipo === 'formacao').map(row => ({
         etapa: row.etapa,
         instituicao: row.instituicao,
-        cidade: row.cidade || row.local,
-        local: row.local || row.cidade,
+        cidade: row.cidade || null,
+        local: row.local || null,
         data_ingresso: row.inicio || null,
         data_conclusao: row.fim || null,
         formador: row.formador,
@@ -1169,6 +1255,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         tipo: votoTypeToDatabase[row.voto_tipo] || row.voto_tipo,
         renovacao: (row.voto_tipo === 'Renovação de Votos' || row.voto_tipo === 'Voto temporário') && row.renovacao ? Number(row.renovacao) : null,
         data: row.data || null,
+        cidade: row.cidade || null,
         local: row.local || null,
         celebrante: row.celebrante || null,
       }));
@@ -1176,6 +1263,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       const ministeriosOrdensPayload = rows.filter(row => row.tipo === 'ministerio' || row.tipo === 'ordem').map(row => ({
         tipo: ministryTypeToDatabase[row.ministerio] || row.ministerio,
         data: row.data || null,
+        cidade: row.cidade || null,
         local: row.local || null,
         celebrante: row.celebrante || null,
         bispo_ordenante: row.bispo_ordenante || null,
@@ -1211,7 +1299,8 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         periodo_fim: row.fim || null,
         instituicao: row.instituicao,
         funcao: row.funcao,
-        local: row.local,
+        cidade: row.cidade || null,
+        local: row.local || null,
         observacoes: row.observacoes,
       }));
 
@@ -1220,7 +1309,8 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         instituicao: row.instituicao,
         funcao: row.funcao,
         periodo: row.periodo,
-        local: row.local,
+        cidade: row.cidade || null,
+        local: row.local || null,
         documento: row.documento,
         observacao: row.observacao,
       }));
@@ -2054,32 +2144,71 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                 }}
               />
             </div>
-            <DynamicSection title="Histórico Vocacional" type="vocacional" fields={['ano', 'data', 'titulo', 'descricao', 'local', 'responsavel']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} />
+            <DynamicSection
+              title="Histórico Vocacional"
+              type="vocacional"
+              fields={['ano', 'data', 'titulo', 'descricao', 'cidade', 'local', 'responsavel']}
+              rows={rows}
+              addRow={addRow}
+              updateRow={updateRow}
+              removeRow={removeRow}
+              labels={{
+                cidade: 'Cidade',
+                local: 'Local / Paróquia / Casa',
+                responsavel: 'Responsável / Orientador',
+              }}
+              placeholders={{
+                cidade: 'Ex.: Jaraguá do Sul',
+                local: 'Ex.: Paróquia São Sebastião, Seminário SCJ',
+              }}
+            />
             <div className="mt-8 border-t border-[#e5e5ea] pt-6 dark:border-white/10">
               <p className="mb-4 text-sm text-[#707070] dark:text-[#a1a1aa]">Adicione somente as etapas que realizou, na ordem que corresponde à sua trajetória.</p>
-              <DynamicSection title="Etapas da Formação" type="formacao" fields={['etapa', 'instituicao', 'cidade', 'inicio', 'fim', 'formador']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} selects={{ etapa: formationOptions }} />
+              <DynamicSection
+                title="Etapas da Formação"
+                type="formacao"
+                fields={['etapa', 'instituicao', 'cidade', 'local', 'inicio', 'fim', 'formador']}
+                rows={rows}
+                addRow={addRow}
+                updateRow={updateRow}
+                removeRow={removeRow}
+                selects={{ etapa: formationOptions }}
+                labels={{
+                  instituicao: 'Instituição / Seminário',
+                  cidade: 'Cidade',
+                  local: 'Local / Casa / Campus',
+                  formador: 'Formador responsável',
+                }}
+                placeholders={{
+                  instituicao: 'Ex.: Noviciado N. Sra. de Fátima',
+                  cidade: 'Ex.: Jaraguá do Sul',
+                  local: 'Ex.: Casa de Formação',
+                }}
+              />
             </div>
             <div className="mt-8 pt-6 border-t border-[#e5e5ea] dark:border-white/10">
               <DynamicSection
                 title="Profissões e Votos"
                 type="voto"
-                fields={['voto_tipo', 'renovacao', 'data', 'local', 'celebrante']}
+                fields={['voto_tipo', 'renovacao', 'data', 'cidade', 'local', 'celebrante']}
                 rows={rows}
                 addRow={addRow}
                 updateRow={updateRow}
                 removeRow={removeRow}
                 selects={{ voto_tipo: base.grau === 'Frater' ? votoOptions.slice(0, 2) : votoOptions, renovacao: renewalOptions.map(value => ({ value, label: `${value}ª Renovação` })) }}
                 labels={{
-                  local: 'Local dos votos (paróquia, convento ou cidade)',
+                  cidade: 'Cidade dos votos',
+                  local: 'Local dos votos (Noviciado, Paróquia, Convento)',
                   celebrante: 'Celebrante / Superior que acolheu os votos',
                 }}
                 placeholders={{
-                  local: 'Ex.: Convento Sagrado Coração de Jesus, Brusque-SC',
+                  cidade: 'Ex.: Jaraguá do Sul',
+                  local: 'Ex.: Noviciado N. Sra. de Fátima ou Paróquia N. Sra. das Graças',
                   celebrante: 'Ex.: Pe. Superior Provincial',
                 }}
                 visibleFields={row => {
                   if (base.grau === 'Frater' && row.voto_tipo === 'Profissão Perpétua') return [];
-                  return row.voto_tipo === 'Renovação de Votos' ? ['voto_tipo', 'renovacao', 'data', 'local', 'celebrante'] : ['voto_tipo', 'data', 'local', 'celebrante'];
+                  return row.voto_tipo === 'Renovação de Votos' ? ['voto_tipo', 'renovacao', 'data', 'cidade', 'local', 'celebrante'] : ['voto_tipo', 'data', 'cidade', 'local', 'celebrante'];
                 }}
               />
             </div>
@@ -2098,13 +2227,23 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               title="Ministérios Instituídos"
               type="ministerio"
               rowTypes={['ministerio']}
-              fields={['ministerio', 'data', 'local', 'celebrante']}
+              fields={['ministerio', 'data', 'cidade', 'local', 'celebrante']}
               rows={rows}
               addRow={addRow}
               updateRow={updateRow}
               removeRow={removeRow}
               selects={{ ministerio: ['Leitorado', 'Acolitado', 'Ministério da Palavra', 'Ministério do Altar'] }}
-              visibleFields={() => ['ministerio', 'data', 'local', 'celebrante']}
+              labels={{
+                cidade: 'Cidade',
+                local: 'Local (paróquia, convento ou capela)',
+                celebrante: 'Celebrante / Bispo',
+              }}
+              placeholders={{
+                cidade: 'Ex.: Taubaté',
+                local: 'Ex.: Convento SCJ ou Paróquia Sagrado Coração',
+                celebrante: 'Ex.: Dom Carmo João Rhoden, SCJ',
+              }}
+              visibleFields={() => ['ministerio', 'data', 'cidade', 'local', 'celebrante']}
             />
 
             {base.grau !== 'Frater' && base.grau !== 'Irmão' && (
@@ -2113,7 +2252,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                   title={base.grau === 'Diácono' ? 'Ordenação Diaconal' : 'Ordens Sacras (Ordenações)'}
                   type="ordem"
                   rowTypes={['ordem']}
-                  fields={['ministerio', 'data', 'local', 'celebrante', 'bispo_ordenante']}
+                  fields={['ministerio', 'data', 'cidade', 'local', 'celebrante', 'bispo_ordenante']}
                   rows={rows}
                   addRow={addRow}
                   updateRow={updateRow}
@@ -2125,7 +2264,18 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                         ? ['Diaconato', 'Presbiterado']
                         : ['Diaconato', 'Presbiterado', 'Episcopado']
                   }}
-                  visibleFields={() => ['ministerio', 'data', 'local', 'celebrante', 'bispo_ordenante']}
+                  labels={{
+                    cidade: 'Cidade da ordenação',
+                    local: 'Local da ordenação (Catedral, Paróquia, Santuário)',
+                    celebrante: 'Celebrante',
+                    bispo_ordenante: 'Bispo ordenante',
+                  }}
+                  placeholders={{
+                    cidade: 'Ex.: Curitiba',
+                    local: 'Ex.: Santuário Santa Rita de Cássia',
+                    bispo_ordenante: 'Ex.: Dom Wilson Tadeu Jönck, SCJ',
+                  }}
+                  visibleFields={() => ['ministerio', 'data', 'cidade', 'local', 'celebrante', 'bispo_ordenante']}
                 />
               </div>
             )}
@@ -2196,9 +2346,48 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
             <p className="mb-5 text-sm leading-relaxed text-[#707070] dark:text-[#a1a1aa]">
               Registre comunidades, transferências, nomeações, missões e serviços em ordem cronológica, informando período, cidade, instituição e função.
             </p>
-            <DynamicSection title="Transferências, Nomeações e Histórico de Comunidades" type="historico" fields={['inicio', 'fim', 'instituicao', 'funcao', 'local', 'observacoes']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} />
+            <DynamicSection
+              title="Transferências, Nomeações e Histórico de Comunidades"
+              type="historico"
+              fields={['inicio', 'fim', 'instituicao', 'funcao', 'cidade', 'local', 'observacoes']}
+              rows={rows}
+              addRow={addRow}
+              updateRow={updateRow}
+              removeRow={removeRow}
+              labels={{
+                instituicao: 'Instituição / Paróquia / Comunidade',
+                funcao: 'Função / Ofício exercido',
+                cidade: 'Cidade',
+                local: 'Local / Bairro / Setor',
+              }}
+              placeholders={{
+                instituicao: 'Ex.: Paróquia São Judas Tadeu',
+                funcao: 'Ex.: Vigário Paroquial',
+                cidade: 'Ex.: Curitiba',
+                local: 'Ex.: Hauer',
+              }}
+            />
             <div className="mt-8 border-t border-[#e5e5ea] pt-6 dark:border-white/10">
-              <DynamicSection title="Missões e Serviços" type="servico" fields={['servico_tipo', 'instituicao', 'funcao', 'periodo', 'local', 'documento', 'observacao']} rows={rows} addRow={addRow} updateRow={updateRow} removeRow={removeRow} selects={{ servico_tipo: ['Missão', 'Serviço à Congregação', 'Serviço à Igreja', 'CNBB', 'Diocese', 'Organismo', 'Assessoria', 'Cargo externo'] }} />
+              <DynamicSection
+                title="Missões e Serviços"
+                type="servico"
+                fields={['servico_tipo', 'instituicao', 'funcao', 'periodo', 'cidade', 'local', 'documento', 'observacao']}
+                rows={rows}
+                addRow={addRow}
+                updateRow={updateRow}
+                removeRow={removeRow}
+                selects={{ servico_tipo: ['Missão', 'Serviço à Congregação', 'Serviço à Igreja', 'CNBB', 'Diocese', 'Organismo', 'Assessoria', 'Cargo externo'] }}
+                labels={{
+                  instituicao: 'Instituição / Organismo',
+                  cidade: 'Cidade',
+                  local: 'Local / Setor',
+                }}
+                placeholders={{
+                  instituicao: 'Ex.: Conferência Nacional dos Bispos do Brasil (CNBB)',
+                  cidade: 'Ex.: Brasília',
+                  local: 'Ex.: Sede da CNBB',
+                }}
+              />
             </div>
             <div className="mt-8 border-t border-[#e5e5ea] pt-6 dark:border-white/10">
               <h3 className="mb-4 text-sm font-semibold text-[#1d1d1f] dark:text-white font-serif">Obra / Comunidade atual</h3>
@@ -2496,7 +2685,7 @@ const Fields: React.FC<{
                 step={field === 'renovacao' || field === 'ano' ? 1 : undefined}
                 value={base[field] || ''}
                 disabled={isReadOnly}
-                placeholder={placeholders[field] || (field === 'cpf' ? '000.000.000-00' : field === 'cep' ? '00000-000' : isRequired ? '' : 'Opcional')}
+                placeholder={placeholders[field] || defaultFieldPlaceholders[field] || (field === 'cpf' ? '000.000.000-00' : field === 'cep' ? '00000-000' : isRequired ? '' : 'Opcional')}
                 onChange={event => update(field, field === 'cpf' ? formatCpf(event.target.value) : field === 'cep' ? formatCep(event.target.value) : event.target.value)}
                 onBlur={() => onBlur?.(field)}
               />

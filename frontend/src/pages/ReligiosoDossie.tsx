@@ -508,10 +508,25 @@ export const ReligiosoDossie: React.FC = () => {
   // Apenas Diácono, Padre ou Bispo exibem card de ordenação (NUNCA Frater nem Irmão)
   const podeTerOrdenacao = !isFrater && !isIrmao && (isDiacono || isPadre || isBispo || Boolean(ordenacaoPresbiteral || ordenacaoDiaconal || ordenacaoEpiscopal));
   const ordenacaoExibida = isDiacono
-    ? { titulo: 'ORDENAÇÃO DIACONAL', data: ordenacaoDiaconal?.data, local: ordenacaoDiaconal?.local || ordenacaoDiaconal?.bispo_ordenante || '—' }
+    ? {
+        titulo: 'ORDENAÇÃO DIACONAL',
+        data: ordenacaoDiaconal?.data,
+        cidade: ordenacaoDiaconal?.cidade,
+        local: ordenacaoDiaconal?.local || ordenacaoDiaconal?.bispo_ordenante || '—'
+      }
     : isBispo
-      ? { titulo: 'ORDENAÇÃO EPISCOPAL', data: ordenacaoEpiscopal?.data || ordenacaoPresbiteral?.data, local: ordenacaoEpiscopal?.local || '—' }
-      : { titulo: 'ORDENAÇÃO PRESBITERAL', data: ordenacaoPresbiteral?.data, local: ordenacaoPresbiteral?.local || ordenacaoPresbiteral?.bispo_ordenante || '—' };
+      ? {
+          titulo: 'ORDENAÇÃO EPISCOPAL',
+          data: ordenacaoEpiscopal?.data || ordenacaoPresbiteral?.data,
+          cidade: ordenacaoEpiscopal?.cidade || ordenacaoPresbiteral?.cidade,
+          local: ordenacaoEpiscopal?.local || '—'
+        }
+      : {
+          titulo: 'ORDENAÇÃO PRESBITERAL',
+          data: ordenacaoPresbiteral?.data,
+          cidade: ordenacaoPresbiteral?.cidade,
+          local: ordenacaoPresbiteral?.local || ordenacaoPresbiteral?.bispo_ordenante || '—'
+        };
 
   // Contato de emergência formatado
   const contatoEmergenciaTexto = canonicalData.saude?.contato_emergencia || (
@@ -797,7 +812,11 @@ export const ReligiosoDossie: React.FC = () => {
               <span className="inline-block w-3 h-3 rounded-full border-2 border-slate-800 mb-0.5" />
               <p className="text-[6pt] font-mono uppercase font-bold text-slate-600">Primeira Profissão</p>
               <p className="text-[7.5pt] font-bold text-slate-900 mt-0.5">{primVotos?.data ? formatDate(primVotos.data) : '—'}</p>
-              {primVotos?.local && <p className="text-[6pt] text-slate-500 truncate">{primVotos.local}</p>}
+              {(primVotos?.cidade || primVotos?.local) && (
+                <p className="text-[6pt] text-slate-500 truncate">
+                  {[primVotos.cidade, primVotos.local].filter(Boolean).join(' · ')}
+                </p>
+              )}
             </div>
 
             {/* Card 3: Profissão Perpétua */}
@@ -805,7 +824,11 @@ export const ReligiosoDossie: React.FC = () => {
               <span className="inline-block w-3 h-3 rounded-full border-2 border-slate-800 mb-0.5" />
               <p className="text-[6pt] font-mono uppercase font-bold text-slate-600">Profissão Perpétua</p>
               <p className="text-[7.5pt] font-bold text-slate-900 mt-0.5">{perpVotos?.data ? formatDate(perpVotos.data) : '—'}</p>
-              {perpVotos?.local && <p className="text-[6pt] text-slate-500 truncate">{perpVotos.local}</p>}
+              {(perpVotos?.cidade || perpVotos?.local) && (
+                <p className="text-[6pt] text-slate-500 truncate">
+                  {[perpVotos.cidade, perpVotos.local].filter(Boolean).join(' · ')}
+                </p>
+              )}
             </div>
 
             {/* Card 4: Ministérios (Leitorado / Acolitado) */}
@@ -817,6 +840,9 @@ export const ReligiosoDossie: React.FC = () => {
                   {ministeriosList.map((m, idx) => (
                     <div key={idx} className="text-[6.5pt] text-slate-800">
                       <span className="font-semibold">{m.tipo}:</span> {formatDate(m.data)}
+                      {(m.cidade || m.local) && (
+                        <span className="text-slate-500 text-[6pt]"> · {[m.cidade, m.local].filter(Boolean).join(', ')}</span>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -831,7 +857,11 @@ export const ReligiosoDossie: React.FC = () => {
                 <span className="inline-block w-3 h-3 rounded-full border-2 border-amber-600 mb-0.5" />
                 <p className="text-[6pt] font-mono uppercase font-bold text-amber-700">{ordenacaoExibida.titulo}</p>
                 <p className="text-[7.5pt] font-bold text-slate-900 mt-0.5">{ordenacaoExibida.data ? formatDate(ordenacaoExibida.data) : '—'}</p>
-                {ordenacaoExibida.local && <p className="text-[6pt] text-slate-500 truncate">{ordenacaoExibida.local}</p>}
+                {(ordenacaoExibida.cidade || ordenacaoExibida.local) && (
+                  <p className="text-[6pt] text-slate-500 truncate">
+                    {[ordenacaoExibida.cidade, ordenacaoExibida.local].filter(Boolean).join(' · ')}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -876,7 +906,7 @@ export const ReligiosoDossie: React.FC = () => {
             <div>
               <p className="text-[6pt] font-mono uppercase text-slate-500">Ordenação Diaconal (se aplicável)</p>
               <p className="font-medium text-slate-900">
-                {ordenacaoDiaconal?.data ? `${formatDate(ordenacaoDiaconal.data)} (${ordenacaoDiaconal.local || ''})` : '—'}
+                {ordenacaoDiaconal?.data ? `${formatDate(ordenacaoDiaconal.data)} (${[ordenacaoDiaconal.cidade, ordenacaoDiaconal.local].filter(Boolean).join(' · ') || '—'})` : '—'}
               </p>
             </div>
           </div>
