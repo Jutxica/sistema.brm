@@ -1273,23 +1273,57 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
           const filtered = values.filter(value => Object.values(value).some(item => item !== '' && item !== null && item !== undefined));
           if (!filtered.length) return;
           let insertPayload: Record<string, unknown>[] = filtered.map(value => ({ ...value, religioso_id: id }));
-          let { error } = await supabase.from(table).insert(insertPayload);
-          if (error && typeof error.message === 'string' && (error.message.includes('obra_id') || error.message.includes('fkey'))) {
-            console.warn(`Tentando reinserir em ${table} sem obra_id devido a foreign key legada:`, error.message);
-            insertPayload = insertPayload.map(item => {
-              const copy = { ...item };
-              delete copy.obra_id;
-              return copy;
-            });
-            const retry = await supabase.from(table).insert(insertPayload);
-            error = retry.error;
+
+          let subRetry = 0;
+          while (subRetry < 10) {
+            const { error } = await supabase.from(table).insert(insertPayload);
+            if (!error) break;
+
+            const errMsg = typeof error?.message === 'string' ? error.message : '';
+            const matchCol = errMsg.match(/Could not find the '([^']+)' column of '([^']+)'/i);
+            if (matchCol && matchCol[1]) {
+              const missingCol = matchCol[1];
+              console.warn(`Coluna '${missingCol}' não existe na tabela '${table}'. Removendo do payload e tentando novamente...`);
+              insertPayload = insertPayload.map(item => {
+                const copy = { ...item };
+                delete copy[missingCol];
+                return copy;
+              });
+              subRetry++;
+              continue;
+            }
+
+            if (errMsg.includes('obra_id') || errMsg.includes('fkey')) {
+              console.warn(`Tentando reinserir em ${table} sem obra_id devido a foreign key legada:`, errMsg);
+              insertPayload = insertPayload.map(item => {
+                const copy = { ...item };
+                delete copy.obra_id;
+                return copy;
+              });
+              subRetry++;
+              continue;
+            }
+
+            // Se a tabela inteira não existir no banco, apenas registra aviso e segue para não travar o cadastro principal
+            if (errMsg.includes('relation') || errMsg.includes('does not exist') || errMsg.includes('schema cache')) {
+              console.warn(`Aviso: tabela '${table}' indisponível no banco (${errMsg}). Prosseguindo com os demais registros.`);
+              break;
+            }
+
+            console.error(`Erro ao inserir em ${table}:`, error);
+            throw error;
           }
-          if (error) throw error;
         };
         if (religiosoId) {
           for (const table of ['religiosos_familiares', 'religiosos_contatos_familiares', 'religiosos_sacramentos', 'religiosos_historico_vocacional', 'religiosos_origem_vocacional', 'religiosos_formacao_religiosa', 'religiosos_profissoes_votos', 'religiosos_ministerios_ordens', 'religiosos_formacao_academica', 'religiosos_idiomas', 'religiosos_competencias', 'religiosos_historico_comunidades', 'religiosos_missoes_servicos', 'religiosos_enderecos_contatos', 'religiosos_saude']) {
-            const { error } = await supabase.from(table).delete().eq('religioso_id', id);
-            if (error) throw error;
+            try {
+              const { error } = await supabase.from(table).delete().eq('religioso_id', id);
+              if (error) {
+                console.warn(`Aviso ao limpar ${table}:`, error.message);
+              }
+            } catch (delErr) {
+              console.warn(`Não foi possível limpar a tabela ${table}:`, delErr);
+            }
           }
         }
         await insertMany('religiosos_familiares', familiaresPayload);
