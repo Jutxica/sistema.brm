@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileUp, Info, Loader2, Plus, Trash2, Printer, Camera, Star, Check, Upload, Sparkles, Wrench } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileUp, Info, Loader2, Plus, Trash2, Printer, Camera, Star, Check, Upload, Sparkles, Wrench, Eye, RefreshCw, FileText } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { confirmAction, showToast } from '../hooks/useFeedback';
 import { useAuth } from '../contexts/AuthContext';
@@ -78,6 +78,15 @@ const DRAFT_KEY = 'brm_rascunho_cadastro_religioso_v1';
 const etapas = [
   'Identificação', 'Família e sacramentos', 'Vocação e formação', 'Ministérios, estudos e idiomas',
   'Histórico e endereço', 'Saúde, documentos e envio',
+];
+
+const CATEGORIAS_DOCUMENTOS = [
+  'RG', 'CPF', 'CNH', 'Passaporte', 'Título de eleitor', 'Certidão de nascimento',
+  'Batismo', 'Primeira Eucaristia', 'Crisma',
+  'Admissão ao Postulantado', 'Admissão ao Noviciado', 'Primeira Profissão Religiosa',
+  'Renovações', 'Votos perpétuos', 'Diaconado', 'Presbiterado', 'Episcopado',
+  'Histórico escolar', 'Diplomas', 'Certificados', 'Decretos', 'Licenças',
+  'Dispensas', 'Indultos', 'Contratos', 'Procurações', 'Fotografia', 'Outros',
 ];
 const OTHER_LOCATION_VALUE = '__outro__';
 const brazilianStates = [
@@ -433,6 +442,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   const [profileUnavailable, setProfileUnavailable] = useState(false);
   const [documentos, setDocumentos] = useState<DocumentoSelecionado[]>([]);
   const [documentosExistentes, setDocumentosExistentes] = useState<DocumentoExistente[]>([]);
+  const [updatingDocId, setUpdatingDocId] = useState<string | null>(null);
   const [fotosReligioso, setFotosReligioso] = useState<FotoReligiosoItem[]>([]);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [publicConfig, setPublicConfig] = useState(defaultPublicConfig);
@@ -1066,6 +1076,112 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
     }
     setDocumentosExistentes(previous => previous.filter(item => item.id !== documento.id));
     showToast.success(`Documento "${documento.nome_arquivo}" excluído.`);
+  };
+
+  const handleUpdateExistingDocumentCategory = async (docId: string, novaCategoria: string) => {
+    try {
+      const { error } = await supabase
+        .from('religiosos_documentos')
+        .update({ categoria: novaCategoria })
+        .eq('id', docId);
+
+      if (error) {
+        showToast.error(`Erro ao atualizar categoria: ${error.message}`);
+        return;
+      }
+
+      setDocumentosExistentes(previous =>
+        previous.map(item => item.id === docId ? { ...item, categoria: novaCategoria } : item)
+      );
+      showToast.success('Categoria do documento atualizada com sucesso!');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Falha inesperada';
+      showToast.error(`Erro ao atualizar categoria: ${message}`);
+    }
+  };
+
+  const handleReplaceExistingDocumentFile = async (documento: DocumentoExistente, file: File) => {
+    if (!/\.(pdf|png|jpe?g)$/i.test(file.name) || file.size > 10 * 1024 * 1024) {
+      showToast.error('Selecione arquivos PDF, PNG ou JPG de até 10 MB.');
+      return;
+    }
+
+    setUpdatingDocId(documento.id);
+    try {
+      const targetReligiosoId = religiosoId || 'temp';
+      const uniqueId = Math.random().toString(36).substring(2, 9);
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const newPath = `${targetReligiosoId}/${uniqueId}-${safeName}`;
+
+      const uploadRes = await supabase.storage
+        .from('religiosos-documentos')
+        .upload(newPath, file, { upsert: true });
+
+      if (uploadRes.error) {
+        showToast.error(`Falha no upload do novo arquivo: ${uploadRes.error.message}`);
+        return;
+      }
+
+      const { error: dbError } = await supabase
+        .from('religiosos_documentos')
+        .update({
+          nome_arquivo: file.name,
+          caminho_storage: newPath,
+          mime_type: file.type,
+          tamanho_bytes: file.size,
+        })
+        .eq('id', documento.id);
+
+      if (dbError) {
+        showToast.error(`Erro ao atualizar dados do documento: ${dbError.message}`);
+        return;
+      }
+
+      if (documento.caminho_storage && documento.caminho_storage !== newPath) {
+        await supabase.storage.from('religiosos-documentos').remove([documento.caminho_storage]);
+      }
+
+      setDocumentosExistentes(previous =>
+        previous.map(item => item.id === documento.id ? {
+          ...item,
+          nome_arquivo: file.name,
+          caminho_storage: newPath,
+        } : item)
+      );
+
+      showToast.success(`Arquivo do documento atualizado para "${file.name}".`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Falha inesperada';
+      showToast.error(`Erro ao substituir arquivo: ${message}`);
+    } finally {
+      setUpdatingDocId(null);
+    }
+  };
+
+  const handleViewDocument = async (documento: DocumentoExistente) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('religiosos-documentos')
+        .createSignedUrl(documento.caminho_storage, 3600);
+
+      if (!error && data?.signedUrl) {
+        window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
+      const { data: pubData } = supabase.storage
+        .from('religiosos-documentos')
+        .getPublicUrl(documento.caminho_storage);
+
+      if (pubData?.publicUrl) {
+        window.open(pubData.publicUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
+      showToast.error('Não foi possível obter link de visualização do documento.');
+    } catch {
+      showToast.error('Erro ao abrir documento.');
+    }
   };
 
   const validateStep = (targetStep = step) => {
@@ -2507,20 +2623,104 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
             <p className="mb-6 text-sm text-[#707070] dark:text-[#86868b] leading-relaxed">
               {publicConfig.instrucoes_documentos || 'Anexe documentos pessoais (RG, CPF, CNH, Passaporte), certidões, sacramentos, registros canônicos e acadêmicos.'}
             </p>
-            {(adminMode || profileReligiosoId || memberMode) && documentosExistentes.length > 0 && (
-              <div className="mb-6 space-y-2">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#707070]">Documentos já anexados</h3>
-                <div className="grid gap-2">
+            {(adminMode || profileReligiosoId || memberMode || Boolean(religiosoId)) && documentosExistentes.length > 0 && (
+              <div className="mb-6 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#707070] dark:text-[#a1a1aa]">
+                    Documentos já anexados ({documentosExistentes.length})
+                  </h3>
+                  <span className="text-[11px] text-[#707070] dark:text-[#86868b]">
+                    Você pode alterar a categoria, atualizar/substituir o arquivo ou excluir documentos.
+                  </span>
+                </div>
+                <div className="grid gap-2.5">
                   {documentosExistentes.map(documento => (
-                    <div className="flex items-center justify-between rounded-[6px] bg-slate-50 dark:bg-white/5 p-3.5 text-xs border border-slate-200 dark:border-slate-800" key={documento.id}>
-                      <span className="font-medium text-[#1d1d1f] dark:text-white">
-                        <strong className="text-slate-900 dark:text-white">{documento.categoria}</strong> · {documento.nome_arquivo}
-                      </span>
-                      {adminMode && (
-                        <button type="button" onClick={() => removeExistingDocument(documento)} className="text-rose-500 hover:text-rose-600 transition-colors cursor-pointer">
-                          <Trash2 className="h-4 w-4" />
+                    <div
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-[6px] bg-slate-50 dark:bg-white/5 p-3.5 text-xs border border-slate-200 dark:border-slate-800 transition-colors"
+                      key={documento.id}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="p-2 rounded-[6px] bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shrink-0">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <select
+                              value={documento.categoria}
+                              onChange={(e) => void handleUpdateExistingDocumentCategory(documento.id, e.target.value)}
+                              className="font-semibold text-slate-900 dark:text-white bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs cursor-pointer focus:ring-1 focus:ring-slate-400"
+                              title="Alterar categoria do documento"
+                            >
+                              {!CATEGORIAS_DOCUMENTOS.includes(documento.categoria) && (
+                                <option value={documento.categoria}>{documento.categoria}</option>
+                              )}
+                              {CATEGORIAS_DOCUMENTOS.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                              ))}
+                            </select>
+                            {documento.data_cadastro && (
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                                {new Date(documento.data_cadastro).toLocaleDateString('pt-BR')}
+                              </span>
+                            )}
+                          </div>
+                          <p className="font-medium text-slate-700 dark:text-slate-200 truncate" title={documento.nome_arquivo}>
+                            {documento.nome_arquivo}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                        {/* Visualizar documento */}
+                        <button
+                          type="button"
+                          onClick={() => void handleViewDocument(documento)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+                          title="Visualizar documento em nova aba"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Visualizar</span>
                         </button>
-                      )}
+
+                        {/* Substituir / Atualizar Arquivo */}
+                        <label
+                          className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] text-xs font-medium bg-[#226380]/10 hover:bg-[#226380]/20 text-[#226380] dark:bg-[#A3C3C7]/15 dark:hover:bg-[#A3C3C7]/25 dark:text-[#A3C3C7] cursor-pointer transition-colors ${
+                            updatingDocId === documento.id ? 'opacity-50 pointer-events-none' : ''
+                          }`}
+                          title="Substituir arquivo por uma nova versão (PDF, PNG ou JPG até 10MB)"
+                        >
+                          {updatingDocId === documento.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-3.5 w-3.5" />
+                          )}
+                          <span className="hidden sm:inline">Atualizar Arquivo</span>
+                          <input
+                            type="file"
+                            accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+                            className="hidden"
+                            disabled={updatingDocId === documento.id}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                void handleReplaceExistingDocumentFile(documento, file);
+                              }
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+
+                        {/* Excluir documento */}
+                        <button
+                          type="button"
+                          onClick={() => void removeExistingDocument(documento)}
+                          className="inline-flex items-center gap-1 p-1.5 sm:px-2 sm:py-1.5 rounded-[6px] text-xs font-medium text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                          title="Excluir este documento anexo"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Excluir</span>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -2539,7 +2739,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                 {documentos.map((documento, index) => (
                   <div className="flex items-center gap-2 rounded-[6px] bg-slate-50 dark:bg-white/5 p-3 text-xs border border-slate-200 dark:border-slate-800" key={`${documento.arquivo.name}-${index}`}>
                     <select className="px-3 py-1.5 rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] text-xs outline-none" value={documento.categoria} onChange={event => setDocumentos(previous => previous.map((item, itemIndex) => itemIndex === index ? { ...item, categoria: event.target.value } : item))}>
-                      {['RG', 'CPF', 'CNH', 'Passaporte', 'Título de eleitor', 'Certidão de nascimento', 'Batismo', 'Primeira Eucaristia', 'Crisma', 'Admissão ao Postulantado', 'Admissão ao Noviciado', 'Primeira Profissão Religiosa', 'Renovações', 'Votos perpétuos', 'Diaconado', 'Presbiterado', 'Episcopado', 'Histórico escolar', 'Diplomas', 'Certificados', 'Decretos', 'Licenças', 'Dispensas', 'Indultos', 'Contratos', 'Procurações', 'Outros'].map(option => <option key={option}>{option}</option>)}
+                      {CATEGORIAS_DOCUMENTOS.map(option => <option key={option} value={option}>{option}</option>)}
                     </select>
                     <span className="flex-1 truncate text-[#1d1d1f] dark:text-white font-medium">{documento.arquivo.name}</span>
                     <button type="button" onClick={() => setDocumentos(previous => previous.filter((_, itemIndex) => itemIndex !== index))} className="text-rose-500 hover:text-rose-600 transition-colors cursor-pointer">
