@@ -1692,6 +1692,20 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       }
       setDraftSavedAt(null);
       setDraftRestored(false);
+
+      // Disparar envio de e-mail de confirmação com cópia da ficha via Resend
+      void supabase.functions.invoke('enviar-ficha-religioso', {
+        body: { religioso_id: id }
+      }).then(res => {
+        if (res.error) {
+          console.warn('Aviso: e-mail de confirmação não pôde ser enviado:', res.error);
+        } else {
+          console.log('E-mail de confirmação com cópia da ficha enviado com sucesso via Resend.');
+        }
+      }).catch(err => {
+        console.warn('Falha na chamada da Edge Function enviar-ficha-religioso:', err);
+      });
+
       if (adminMode) {
         showToast.success(isEditing ? 'Dados do religioso atualizados com sucesso!' : 'Novo religioso cadastrado com sucesso!');
         navigate('/religiosos');
