@@ -4,6 +4,10 @@
 begin;
 
 alter table public.religiosos
+  add column if not exists comunidade_atual_nome text,
+  add column if not exists obra_atual_id uuid,
+  add column if not exists nome_elenco text,
+  add column if not exists cadastro_elenco_provisorio boolean not null default false,
   add column if not exists situacao_elenco text not null default 'Ativo'
     check (situacao_elenco in ('Ativo', 'Ausente'));
 
@@ -138,17 +142,18 @@ begin
   end if;
 
   if tg_op = 'INSERT' then
-    new.situacao_elenco := 'Ativo';
-    new.comunidade_atual_nome := null;
-    new.obra_atual_id := null;
+    new.situacao_elenco := coalesce(new.situacao_elenco, 'Ativo');
     return new;
   end if;
 
-  if new.situacao_elenco is distinct from old.situacao_elenco
-    or new.comunidade_atual_nome is distinct from old.comunidade_atual_nome
-    or new.obra_atual_id is distinct from old.obra_atual_id then
-    raise exception 'A situação e a alocação do religioso só podem ser alteradas pela Secretaria.'
-      using errcode = '42501';
+  if tg_op = 'UPDATE' then
+    new.situacao_elenco := coalesce(old.situacao_elenco, 'Ativo');
+    if old.obra_atual_id is not null and new.obra_atual_id is distinct from old.obra_atual_id then
+      new.obra_atual_id := old.obra_atual_id;
+    end if;
+    if old.comunidade_atual_nome is not null and new.comunidade_atual_nome is distinct from old.comunidade_atual_nome then
+      new.comunidade_atual_nome := old.comunidade_atual_nome;
+    end if;
   end if;
 
   return new;

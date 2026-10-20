@@ -13,6 +13,9 @@ begin;
 
 -- 1. Garantir que todas as colunas necessárias existam na tabela public.religiosos
 alter table public.religiosos
+  add column if not exists comunidade_atual_nome text,
+  add column if not exists obra_atual_id uuid,
+  add column if not exists comunidade_atual_id uuid,
   add column if not exists nome_elenco text,
   add column if not exists cadastro_elenco_provisorio boolean not null default false,
   add column if not exists situacao_elenco text not null default 'Ativo',
