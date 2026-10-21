@@ -24,6 +24,8 @@ export interface OpcoesDocumentoGotenberg {
   orientacao?: 'portrait' | 'landscape';
   codigoAutenticidade?: string;
   formatoPdfA?: boolean;
+  omitirTituloPadrao?: boolean;
+  cabecalhoCompacto?: boolean;
 }
 
 export interface TrabalhoTrajetoria {
@@ -237,23 +239,61 @@ export const gotenbergService = {
   /**
    * Constrói o HTML do Cabeçalho Oficial do Papel Timbrado BRM com Brasão Dehoniano.
    */
-  gerarCabecalhoHtml(tituloDoc?: string, protocolo?: string, dataEmissao?: string): string {
+  gerarCabecalhoHtml(tituloDoc?: string, protocolo?: string, dataEmissao?: string, compacto: boolean = false): string {
+    if (compacto) {
+      return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 100%;
+    padding: 0 0.5in;
+    font-family: Georgia, 'Times New Roman', serif;
+    -webkit-print-color-adjust: exact;
+  }
+  .header-compacto {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 0.8pt solid #113240;
+    padding-bottom: 4px;
+    font-size: 7pt;
+    color: #475569;
+    font-family: monospace;
+    width: 100%;
+  }
+  .header-compacto strong {
+    color: #113240;
+  }
+</style>
+</head>
+<body>
+  <div class="header-compacto">
+    <span>CONGREGAÇÃO SCJ • PROVÍNCIA BRM</span>
+    <span>${tituloDoc ? tituloDoc + ' • ' : ''}${protocolo ? protocolo + ' • ' : ''}Emissão: ${dataEmissao || ''}</span>
+  </div>
+</body>
+</html>`;
+    }
+
     return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
 <style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    margin: 0;
-    padding: 0 16mm;
+    width: 100%;
+    padding: 0 0.5in;
     font-family: Georgia, 'Times New Roman', serif;
     -webkit-print-color-adjust: exact;
-    width: 100%;
   }
   .header-container {
     text-align: center;
     border-bottom: 1.2pt solid #113240;
-    padding-bottom: 6px;
+    padding-bottom: 5px;
     position: relative;
     width: 100%;
   }
@@ -308,7 +348,7 @@ export const gotenbergService = {
     <h2 class="provincia">Província Brasileira Meridional</h2>
     ${(protocolo || dataEmissao || tituloDoc) ? `
     <div class="meta">
-      <span>${tituloDoc ? '<strong>' + tituloDoc + '</strong>' : ''}</span>
+      <span>Província BRM • Chancelaria</span>
       <span>${protocolo ? 'Protocolo: ' + protocolo : ''} ${dataEmissao ? '• Emissão: ' + dataEmissao : ''}</span>
     </div>` : ''}
   </div>
@@ -325,37 +365,43 @@ export const gotenbergService = {
 <head>
 <meta charset="utf-8">
 <style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    margin: 0;
-    padding: 0 16mm;
+    width: 100%;
+    padding: 0 0.5in;
     font-family: Georgia, 'Times New Roman', serif;
     -webkit-print-color-adjust: exact;
-    width: 100%;
   }
   .footer-container {
-    text-align: center;
     border-top: 1px solid #94a3b8;
     padding-top: 5px;
-    font-size: 8pt;
+    font-size: 7.5pt;
     color: #475569;
     line-height: 1.35;
     position: relative;
     width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-left {
+    text-align: left;
   }
   .page-number {
-    position: absolute;
-    right: 0;
-    top: 5px;
     font-size: 7.5pt;
-    color: #94a3b8;
+    color: #64748b;
     font-family: monospace;
+    white-space: nowrap;
+    margin-left: 10px;
   }
 </style>
 </head>
 <body>
   <div class="footer-container">
-    <div>Rua Padre Gabriel Lux, 900 – Caixa Postal 21 – Corupá/SC | CEP 89278-000</div>
-    <div>Telefone: +55 (47) 3375-1194 | E-mail: secretaria@brm.org.br | Site: scj.org.br</div>
+    <div class="footer-left">
+      <div>Rua Padre Gabriel Lux, 900 – Caixa Postal 21 – Corupá/SC | CEP 89278-000</div>
+      <div>Telefone: +55 (47) 3375-1194 • E-mail: secretaria@brm.org.br • Site: scj.org.br</div>
+    </div>
     <div class="page-number">Página <span class="pageNumber"></span> de <span class="totalPages"></span></div>
   </div>
 </body>
@@ -372,6 +418,9 @@ export const gotenbergService = {
   <meta charset="utf-8">
   <title>${opcoes.titulo}</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
       font-family: Georgia, 'Times New Roman', serif;
       font-size: 11pt;
@@ -460,8 +509,8 @@ export const gotenbergService = {
   </div>
 
   <div class="doc-conteudo">
-    ${opcoes.titulo ? `<div class="doc-titulo">${opcoes.titulo}</div>` : ''}
-    ${opcoes.subtitulo ? `<div class="doc-subtitulo">${opcoes.subtitulo}</div>` : ''}
+    ${!opcoes.omitirTituloPadrao && opcoes.titulo ? `<div class="doc-titulo">${opcoes.titulo}</div>` : ''}
+    ${!opcoes.omitirTituloPadrao && opcoes.subtitulo ? `<div class="doc-subtitulo">${opcoes.subtitulo}</div>` : ''}
 
     ${opcoes.corpoHtml}
 
@@ -477,7 +526,12 @@ export const gotenbergService = {
 </body>
 </html>`;
 
-    const headerHtml = this.gerarCabecalhoHtml(opcoes.titulo, opcoes.protocolo, opcoes.dataEmissao);
+    const headerHtml = this.gerarCabecalhoHtml(
+      opcoes.titulo,
+      opcoes.protocolo,
+      opcoes.dataEmissao,
+      opcoes.cabecalhoCompacto
+    );
     const footerHtml = this.gerarRodapeHtml();
 
     const formData = new FormData();
@@ -486,10 +540,11 @@ export const gotenbergService = {
     formData.append('files', new Blob([footerHtml], { type: 'text/html' }), 'footer.html');
 
     // Margens e configurações do Chromium
-    formData.append('marginTop', '1.45');
-    formData.append('marginBottom', '1.0');
-    formData.append('marginLeft', '0.7');
-    formData.append('marginRight', '0.7');
+    const marginTop = opcoes.cabecalhoCompacto ? '0.45' : '1.35';
+    formData.append('marginTop', marginTop);
+    formData.append('marginBottom', '0.65');
+    formData.append('marginLeft', '0.5');
+    formData.append('marginRight', '0.5');
     formData.append('paperWidth', '8.27'); // A4
     formData.append('paperHeight', '11.69');
     if (opcoes.orientacao === 'landscape') {
@@ -803,6 +858,16 @@ export const gotenbergService = {
       : '<p style="font-style: italic; color: #64748b; font-size: 9pt;">Filosofia e Teologia nos centros formativos da Congregação.</p>';
 
     const corpo = `
+      <!-- Cabeçalho Oficial no topo da Página 1 -->
+      <div style="text-align: center; border-bottom: 1.5pt solid #113240; padding-bottom: 6px; margin-bottom: 12px; position: relative;">
+        <span style="position: absolute; top: 0; right: 0; font-size: 6.5pt; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; font-family: monospace;">Secretaria Provincial</span>
+        <img src="${LOGO_TIMBRADO_DATA_URI}" style="height: 44px; width: auto; margin: 0 auto 3px auto; display: block; object-fit: contain;" alt="Brasão Dehoniano" />
+        <h1 style="font-size: 9.5pt; font-weight: normal; color: #113240; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; line-height: 1.2;">CONGREGAÇÃO DOS SACERDOTES DO SAGRADO CORAÇÃO DE JESUS</h1>
+        <h2 style="font-size: 11pt; font-weight: bold; color: #113240; margin: 1px 0 0 0; line-height: 1.2;">Província Brasileira Meridional</h2>
+        <div style="font-size: 11.5pt; font-weight: bold; color: #113240; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.05em;">FICHA CADASTRAL CANÔNICA DO RELIGIOSO</div>
+        <div style="font-size: 7.5pt; color: #64748b; font-family: monospace; margin-top: 1px;">Dossiê Canônico Completo • ${nomeExibido}</div>
+      </div>
+
       <!-- Identificação Principal & Foto Oficial -->
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5pt solid #113240; padding-bottom: 12px; margin-bottom: 14px;">
         <div style="display: flex; align-items: center; gap: 16px;">
@@ -983,7 +1048,9 @@ export const gotenbergService = {
       dataEmissao,
       corpoHtml: corpo,
       codigoAutenticidade: `BRM-FICH-${Date.now().toString(36).toUpperCase()}`,
-      formatoPdfA: true
+      formatoPdfA: true,
+      omitirTituloPadrao: true,
+      cabecalhoCompacto: true
     });
   },
 

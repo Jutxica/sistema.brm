@@ -15,6 +15,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { showToast } from '../../hooks/useFeedback';
 import { CabecalhoTimbradoBRM, RodapeTimbradoBRM, type OrientacaoDocumento } from '../../components/PapelTimbradoBRM';
 import { gotenbergService } from '../../services/gotenbergService';
+import { obterFotoReligiosoBase64 } from '../../services/religiosoFotoService';
 import { LOGO_TIMBRADO_DATA_URI } from '../../assets/logoTimbradoBase64';
 
 interface FichaCanonicaPDFProps {
@@ -259,6 +260,8 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         });
       }
 
+      const fotoBase64 = await obterFotoReligiosoBase64(data);
+
       const blob = await gotenbergService.gerarFichaReligiosoPdf({
         nomeCivil: data.nome_civil,
         nomeReligioso: data.nome_religioso || undefined,
@@ -277,7 +280,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         cnhCategoria: data.cnh_categoria || undefined,
         filiacaoPai: pai || undefined,
         filiacaoMae: mae || undefined,
-        fotoUrl: data.foto_url || undefined,
+        fotoUrl: fotoBase64 || data.foto_url || undefined,
         comunidadeAtualNome: data.comunidade_atual_nome || undefined,
         oficioAtual: data.designacoes?.[0]?.funcao || undefined,
         telefoneCelular: data.telefone_celular || undefined,

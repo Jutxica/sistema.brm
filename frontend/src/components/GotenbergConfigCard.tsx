@@ -4,6 +4,7 @@ import {
   AlertCircle, Sparkles, ExternalLink, FileText, X, Check, BookOpen, User 
 } from 'lucide-react';
 import { gotenbergService } from '../services/gotenbergService';
+import { obterFotoReligiosoBase64 } from '../services/religiosoFotoService';
 import { showToast } from '../hooks/useFeedback';
 import { supabase } from '../lib/supabaseClient';
 
@@ -213,6 +214,12 @@ export const GotenbergConfigCard: React.FC = () => {
           const pai = (famData || []).find(f => (f.tipo || f.parentesco || '').toLowerCase().includes('pai'))?.nome;
           const mae = (famData || []).find(f => (f.tipo || f.parentesco || '').toLowerCase().includes('mãe') || (f.tipo || f.parentesco || '').toLowerCase().includes('mae'))?.nome;
 
+          // Obtém a foto oficial em Base64 para garantir renderização no Gotenberg
+          let fotoBase64: string | null = null;
+          if (relData) {
+            fotoBase64 = await obterFotoReligiosoBase64(relData);
+          }
+
           blob = await gotenbergService.gerarFichaReligiosoPdf({
             nomeCivil: relData?.nome_civil || religiosoNome,
             nomeReligioso: relData?.nome_religioso || undefined,
@@ -230,6 +237,7 @@ export const GotenbergConfigCard: React.FC = () => {
             cnh: relData?.cnh || undefined,
             filiacaoPai: pai,
             filiacaoMae: mae,
+            fotoUrl: fotoBase64 || undefined,
             comunidadeAtualNome: relData?.comunidade_atual_nome || undefined,
             oficioAtual: desigData?.[0]?.funcao || oficioReligioso,
             telefoneCelular: relData?.telefone_celular || undefined,

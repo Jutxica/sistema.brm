@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { siteSyncService, type SiteReligiosoItem, type SiteLocalItem } from '../services/siteSyncService';
 import { parseAddressString } from '../utils/addressParser';
 import { gotenbergService } from '../services/gotenbergService';
+import { obterFotoReligiosoBase64 } from '../services/religiosoFotoService';
 import { LOGO_TIMBRADO_DATA_URI } from '../assets/logoTimbradoBase64';
 
 import type { 
@@ -645,6 +646,9 @@ export const ReligiosoDossie: React.FC = () => {
       // 4. Mapeia idiomas
       const idiomas = (canonicalData.idiomas || []).map(i => `${i.idioma} (${i.nivel || i.fala || 'Fluente'})`);
 
+      // 5. Obtém a foto oficial em Base64 para garantir renderização no Gotenberg
+      const fotoBase64 = await obterFotoReligiosoBase64(religioso);
+
       const blob = await gotenbergService.gerarFichaReligiosoPdf({
         nomeCivil: religioso.nome_civil,
         nomeReligioso: religioso.nome_religioso || undefined,
@@ -663,7 +667,7 @@ export const ReligiosoDossie: React.FC = () => {
         cnhCategoria: religioso.cnh_categoria || undefined,
         filiacaoPai: paiNome !== '—' ? paiNome : undefined,
         filiacaoMae: maeNome !== '—' ? maeNome : undefined,
-        fotoUrl: fotoUrl || undefined,
+        fotoUrl: fotoBase64 || fotoUrl || undefined,
 
         comunidadeAtualNome: religioso.comunidade_atual_nome || undefined,
         oficioAtual: canonicalData.designacoes[0]?.funcao || undefined,
