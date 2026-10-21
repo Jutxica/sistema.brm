@@ -6,12 +6,16 @@ import {
   Check, 
   FileText,
   ShieldCheck,
-  RotateCw
+  RotateCw,
+  Download,
+  Loader2
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { showToast } from '../../hooks/useFeedback';
 import { CabecalhoTimbradoBRM, RodapeTimbradoBRM, type OrientacaoDocumento } from '../../components/PapelTimbradoBRM';
+import { gotenbergService } from '../../services/gotenbergService';
+import { LOGO_TIMBRADO_DATA_URI } from '../../assets/logoTimbradoBase64';
 
 interface FichaCanonicaPDFProps {
   religiosoId?: string;
@@ -27,6 +31,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
   const [data, setData] = useState<any>(null);
   const [copiado, setCopiado] = useState(false);
   const [orientacao, setOrientacao] = useState<OrientacaoDocumento>('vertical');
+  const [exportandoGotenberg, setExportandoGotenberg] = useState(false);
   const isE2E = import.meta.env.DEV && typeof window !== 'undefined' && localStorage.getItem('brm_e2e_preview') === 'true';
 
   useEffect(() => {
@@ -136,6 +141,23 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
             .select('*')
             .eq('religioso_id', targetId);
 
+          const { data: designacoes } = await supabase
+            .from('religiosos_designacoes')
+            .select('*, comunidades(nome), religiosos_obras_referencia(nome)')
+            .eq('religioso_id', targetId);
+
+          const { data: historicoComunidades } = await supabase
+            .from('religiosos_historico_comunidades')
+            .select('*')
+            .eq('religioso_id', targetId)
+            .order('periodo_inicio', { ascending: true });
+
+          const { data: missoesServicos } = await supabase
+            .from('religiosos_missoes_servicos')
+            .select('*')
+            .eq('religioso_id', targetId)
+            .order('created_at', { ascending: true });
+
           // Obter foto assinada se foto_path existir
           let resolvedFotoUrl = relRecord.foto_url || null;
           if (relRecord.foto_path) {
@@ -173,7 +195,10 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
             ordensList: ordens || [],
             formacaoReligiosa: formacaoReligiosa || [],
             formacoes: formacoes || [],
-            familiares: familiares || []
+            familiares: familiares || [],
+            designacoes: designacoes || [],
+            historicoComunidades: historicoComunidades || [],
+            missoesServicos: missoesServicos || []
           });
         }
       } catch (err) {
@@ -185,6 +210,103 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
 
     carregarDadosFicha();
   }, [religiosoId, user, isE2E]);
+
+  const handleExportarGotenberg = async () => {
+    if (!data) return;
+    setExportandoGotenberg(true);
+    try {
+      const trabalhos: Array<{
+        periodo: string;
+        instituicao: string;
+        funcao: string;
+        local?: string;
+        observacoes?: string;
+      }> = [];
+
+      (data.designacoes || []).forEach((d: any) => {
+        const nomeInst = d.comunidades?.nome || d.religiosos_obras_referencia?.nome || 'Comunidade Provincial';
+        const ano = d.ano_referencia || (d.vigencia_inicio ? new Date(d.vigencia_inicio).getFullYear() : '');
+        const fim = d.vigencia_fim ? new Date(d.vigencia_fim).getFullYear() : 'Atual';
+        const periodoStr = ano ? (ano === fim ? String(ano) : `${ano} - ${fim}`) : 'Vigente';
+        trabalhos.push({
+          periodo: periodoStr,
+          instituicao: nomeInst,
+          funcao: d.funcao || d.tipo_vinculo || 'Membro',
+          local: 'Província BRM',
+          observacoes: d.tipo_vinculo ? `Vínculo: ${d.tipo_vinculo}` : undefined
+        });
+      });
+
+      (data.historicoComunidades || []).forEach((h: any) => {
+        const pIni = h.periodo_inicio ? new Date(h.periodo_inicio).getFullYear() : '';
+        const pFim = h.periodo_fim ? new Date(h.periodo_fim).getFullYear() : '';
+        const periodoStr = pIni && pFim ? (pIni === pFim ? String(pIni) : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Atual` : '—');
+        trabalhos.push({
+          periodo: periodoStr,
+          instituicao: h.instituicao || 'Instituição SCJ',
+          funcao: h.funcao || 'Atuação Pastoral',
+          local: h.local || undefined,
+          observacoes: h.observacoes || undefined
+        });
+      });
+
+      if (trabalhos.length === 0 && data.comunidade_atual_nome) {
+        trabalhos.push({
+          periodo: 'Atual',
+          instituicao: data.comunidade_atual_nome,
+          funcao: data.grau || 'Confrade',
+          local: 'Província BRM'
+        });
+      }
+
+      const blob = await gotenbergService.gerarFichaReligiosoPdf({
+        nomeCivil: data.nome_civil,
+        nomeReligioso: data.nome_religioso || undefined,
+        grau: data.grau || 'Padre',
+        numeroCadastro: data.numero_cadastro || undefined,
+        statusCadastro: data.status_cadastro || 'Aprovado',
+        dataNascimento: formatarData(data.data_nascimento),
+        naturalidade: naturalidadeTexto,
+        nacionalidade: data.nacionalidade || 'Brasileira',
+        cpf: formatCpfMask(data.cpf),
+        rg: data.rg || undefined,
+        rgOrgao: data.rg_orgao_expedidor || undefined,
+        tituloEleitor: data.titulo_eleitor || undefined,
+        pis: data.pis || undefined,
+        cnh: data.cnh || undefined,
+        cnhCategoria: data.cnh_categoria || undefined,
+        filiacaoPai: pai || undefined,
+        filiacaoMae: mae || undefined,
+        fotoUrl: data.foto_url || undefined,
+        comunidadeAtualNome: data.comunidade_atual_nome || undefined,
+        oficioAtual: data.designacoes?.[0]?.funcao || undefined,
+        telefoneCelular: data.telefone_celular || undefined,
+        whatsapp: data.whatsapp || undefined,
+        emailInstitucional: data.email_institucional || undefined,
+        emailPessoal: data.email_pessoal || undefined,
+        dataBatismo: batismo?.data ? formatarData(batismo.data) : undefined,
+        paroquiaBatismo: batismo?.paroquia || undefined,
+        dataPrimeirosVotos: formatarData(data.data_primeiros_votos),
+        dataVotosPerpetuos: formatarData(data.data_votos_perpetuos),
+        dataDiaconato: formatarData(data.data_diaconato),
+        dataPresbiterato: formatarData(data.data_presbiterato),
+        bispoOrdenante: data.bispo_ordenante || undefined,
+        localPresbiterato: data.local_ordenacao || undefined,
+        historicoTrabalhos: trabalhos,
+        missoesServicos: (data.missoesServicos || []).map((m: any) => ({ tipo: m.tipo, instituicao: m.instituicao, funcao: m.funcao, periodo: m.periodo, local: m.local })),
+        formacoesAcademicas: (data.formacoes || []).map((f: any) => ({ curso: f.curso || f.categoria || '', instituicao: f.instituicao || '', anoOuPeriodo: f.ano || f.periodo })),
+        dataEmissao: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+      });
+
+      const nomeLimpo = (data.nome_religioso || data.nome_civil).replace(/[^a-zA-Z0-9]/g, '_');
+      gotenbergService.baixarBlob(blob, `Ficha_Canonica_${nomeLimpo}.pdf`);
+      showToast.success('Ficha Canônica com Trajetória e Brasão gerada com sucesso!', 'Gotenberg PDF');
+    } catch (err: any) {
+      showToast.error(`Erro ao gerar PDF: ${err.message || 'Verifique o serviço Gotenberg.'}`, 'Erro Gotenberg');
+    } finally {
+      setExportandoGotenberg(false);
+    }
+  };
 
   const handlePrint = () => {
     window.print();
@@ -327,6 +449,28 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
 
           <button
             type="button"
+            onClick={handleExportarGotenberg}
+            disabled={exportandoGotenberg}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-50"
+            title="Emitir Ficha Oficial Canônica via microserviço Gotenberg com Brasão Dehoniano"
+          >
+            {exportandoGotenberg ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#226380]" /> : <Download className="w-3.5 h-3.5 text-[#226380]" />}
+            <span>Exportar Gotenberg (PDF com Brasão)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportarGotenberg}
+            disabled={exportandoGotenberg}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-50"
+            title="Emitir Ficha Oficial Canônica via microserviço Gotenberg com Brasão Dehoniano"
+          >
+            {exportandoGotenberg ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#226380]" /> : <Download className="w-3.5 h-3.5 text-[#226380]" />}
+            <span>Exportar Gotenberg (PDF com Brasão)</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handlePrint}
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-[6px] bg-[#113240] hover:bg-[#226380] text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
           >
@@ -359,7 +503,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         <header className="border-b border-slate-300 pb-3 mb-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <img src="/logo-timbrado-brm.png" alt="Província BRM" className="h-14 w-auto object-contain" />
+              <img src={LOGO_TIMBRADO_DATA_URI} alt="Província BRM" className="h-14 w-auto object-contain" />
               <div>
                 <p className="font-mono text-[8pt] uppercase tracking-[0.15em] text-slate-500 font-semibold">
                   Congregação dos Sacerdotes do Sagrado Coração de Jesus
@@ -529,10 +673,54 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
           </div>
         </div>
 
-        {/* Bloco 4: Formação Acadêmica & Graus Obtidos */}
+        {/* Bloco 04: Trajetória de Comunidades e Trabalhos */}
+        <div className="mb-4">
+          <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
+            04. Trajetória de Comunidades e Trabalhos (Onde Trabalhou • Ofícios e Funções)
+          </p>
+          <div className="space-y-1 text-[8pt]">
+            {(data?.historicoComunidades && data.historicoComunidades.length > 0) || (data?.designacoes && data.designacoes.length > 0) ? (
+              <table className="w-full border-collapse text-[8pt]">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-500 font-mono text-[7pt] uppercase text-left">
+                    <th className="py-1 w-24">Período</th>
+                    <th className="py-1">Comunidade / Paróquia / Casa</th>
+                    <th className="py-1">Ofício / Função</th>
+                    <th className="py-1">Local</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {(data.designacoes || []).map((d: any, idx: number) => (
+                    <tr key={`desig-${idx}`} className="py-1">
+                      <td className="font-mono text-slate-500 py-1">{d.ano_referencia || 'Vigente'}</td>
+                      <td className="font-semibold text-slate-900 py-1">{d.comunidades?.nome || d.religiosos_obras_referencia?.nome || 'Comunidade Provincial'}</td>
+                      <td className="text-[#226380] font-medium py-1">{d.funcao || d.tipo_vinculo || 'Membro'}</td>
+                      <td className="text-slate-600 py-1">Província BRM</td>
+                    </tr>
+                  ))}
+                  {(data.historicoComunidades || []).map((h: any, idx: number) => (
+                    <tr key={`hist-${idx}`} className="py-1">
+                      <td className="font-mono text-slate-500 py-1">
+                        {h.periodo_inicio ? new Date(h.periodo_inicio).getFullYear() : '—'}
+                        {h.periodo_fim ? ` - ${new Date(h.periodo_fim).getFullYear()}` : ' - Atual'}
+                      </td>
+                      <td className="font-semibold text-slate-900 py-1">{h.instituicao}</td>
+                      <td className="text-[#226380] font-medium py-1">{h.funcao || 'Atuação Pastoral'}</td>
+                      <td className="text-slate-600 py-1">{h.local || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-slate-500 italic py-1">Comunidade Atual: <strong>{data?.comunidade_atual_nome || 'Sede Provincial BRM'}</strong></p>
+            )}
+          </div>
+        </div>
+
+        {/* Bloco 5: Formação Acadêmica & Graus Obtidos */}
         <div className="mb-6">
           <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
-            04. Formação Acadêmica & Graus Obtidos
+            05. Formação Acadêmica & Graus Obtidos
           </p>
           <div className="space-y-1 text-[8pt]">
             {data?.formacoes && data.formacoes.length > 0 ? (

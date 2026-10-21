@@ -5,6 +5,16 @@
  * Certidões Sacramentais, Votos Religiosos e Ofícios Canônicos no Papel Timbrado Oficial BRM.
  */
 
+/**
+ * gotenbergService.ts
+ * Cliente completo para o microserviço Gotenberg (instalado via Template no Easypanel).
+ * Gera PDFs de alta fidelidade para Decretos, Portarias, Celebret (Idoneidade),
+ * Certidões Sacramentais, Votos Religiosos, Circulares e Ficha Cadastral do Religioso (Dossiê Canônico)
+ * no Papel Timbrado Oficial BRM com Brasão Dehoniano.
+ */
+
+import { LOGO_TIMBRADO_DATA_URI } from '../assets/logoTimbradoBase64';
+
 export interface OpcoesDocumentoGotenberg {
   titulo: string;
   subtitulo?: string;
@@ -14,6 +24,85 @@ export interface OpcoesDocumentoGotenberg {
   orientacao?: 'portrait' | 'landscape';
   codigoAutenticidade?: string;
   formatoPdfA?: boolean;
+}
+
+export interface TrabalhoTrajetoria {
+  periodo: string; // Ex: '2015 - 2020' ou '2023 - Atual'
+  instituicao: string; // Ex: 'Paróquia São Luiz Gonzaga', 'Seminário São José'
+  funcao: string; // Ex: 'Pároco', 'Vigário Paroquial', 'Reitor', 'Formador', 'Ecônomo'
+  local?: string; // Ex: 'Brusque / SC', 'Corupá / SC'
+  observacoes?: string;
+}
+
+export interface MissaoServicoTrajetoria {
+  tipo?: string; // Missão, Comissão Provincial, Assessoria
+  instituicao?: string;
+  funcao?: string;
+  periodo?: string;
+  local?: string;
+}
+
+export interface FormacaoAcademicaFicha {
+  curso: string;
+  instituicao: string;
+  anoOuPeriodo?: string;
+}
+
+export interface DadosFichaReligioso {
+  nomeCivil: string;
+  nomeReligioso?: string;
+  grau?: string; // Padre, Diácono, Frater, Irmão, Bispo
+  numeroCadastro?: string | number;
+  statusCadastro?: string;
+  dataNascimento?: string;
+  naturalidade?: string;
+  nacionalidade?: string;
+  cpf?: string;
+  rg?: string;
+  rgOrgao?: string;
+  tituloEleitor?: string;
+  pis?: string;
+  cnh?: string;
+  cnhCategoria?: string;
+  filiacaoPai?: string;
+  filiacaoMae?: string;
+  fotoUrl?: string | null;
+
+  // Contatos e Residência
+  comunidadeAtualNome?: string;
+  oficioAtual?: string;
+  enderecoResidencial?: string;
+  telefoneCelular?: string;
+  whatsapp?: string;
+  emailInstitucional?: string;
+  emailPessoal?: string;
+  tipoSanguineo?: string;
+  planoSaude?: string;
+  contatoEmergencia?: string;
+
+  // Trajetória Canônica / Linha do Tempo
+  dataBatismo?: string;
+  paroquiaBatismo?: string;
+  dataPrimeiraEucaristia?: string;
+  dataCrisma?: string;
+  dataIngresso?: string;
+  dataPrimeirosVotos?: string;
+  localPrimeirosVotos?: string;
+  dataVotosPerpetuos?: string;
+  localVotosPerpetuos?: string;
+  dataDiaconato?: string;
+  localDiaconato?: string;
+  dataPresbiterato?: string;
+  localPresbiterato?: string;
+  bispoOrdenante?: string;
+  ministeriosInstituidos?: Array<{ tipo: string; data?: string; local?: string }>;
+
+  // Onde já trabalhou, com o que trabalhou (Trajetória & Obras)
+  historicoTrabalhos: TrabalhoTrajetoria[];
+  missoesServicos?: MissaoServicoTrajetoria[];
+  formacoesAcademicas?: FormacaoAcademicaFicha[];
+  idiomas?: string[];
+  dataEmissao?: string;
 }
 
 export interface DadosDecretoProvincial {
@@ -146,7 +235,7 @@ export const gotenbergService = {
   },
 
   /**
-   * Constrói o HTML do Cabeçalho Oficial do Papel Timbrado BRM.
+   * Constrói o HTML do Cabeçalho Oficial do Papel Timbrado BRM com Brasão Dehoniano.
    */
   gerarCabecalhoHtml(tituloDoc?: string, protocolo?: string, dataEmissao?: string): string {
     return `<!DOCTYPE html>
@@ -156,45 +245,57 @@ export const gotenbergService = {
 <style>
   body {
     margin: 0;
-    padding: 0 40px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 0 16mm;
+    font-family: Georgia, 'Times New Roman', serif;
     -webkit-print-color-adjust: exact;
+    width: 100%;
   }
   .header-container {
     text-align: center;
-    border-bottom: 1px solid #d1d5db;
-    padding-bottom: 12px;
+    border-bottom: 1.2pt solid #113240;
+    padding-bottom: 6px;
     position: relative;
+    width: 100%;
   }
   .system-label {
     position: absolute;
     top: 0;
     right: 0;
-    font-size: 7pt;
+    font-size: 6.5pt;
     color: #94a3b8;
     text-transform: uppercase;
     letter-spacing: 0.1em;
+    font-family: monospace;
+  }
+  .emblem {
+    height: 48px;
+    width: auto;
+    margin: 0 auto 3px auto;
+    display: block;
+    object-fit: contain;
   }
   .congregacao {
-    font-size: 11pt;
-    font-weight: 500;
+    font-size: 10.5pt;
+    font-weight: normal;
     color: #113240;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin: 0;
+    line-height: 1.2;
   }
   .provincia {
-    font-size: 13pt;
-    font-weight: 700;
+    font-size: 12pt;
+    font-weight: bold;
     color: #113240;
-    margin: 3px 0 0 0;
+    margin: 2px 0 0 0;
+    line-height: 1.2;
   }
   .meta {
-    margin-top: 8px;
+    margin-top: 5px;
     display: flex;
     justify-content: space-between;
-    font-size: 8pt;
-    color: #64748b;
+    font-size: 7.5pt;
+    color: #475569;
     font-family: monospace;
   }
 </style>
@@ -202,9 +303,10 @@ export const gotenbergService = {
 <body>
   <div class="header-container">
     <span class="system-label">Secretaria Provincial</span>
+    <img src="${LOGO_TIMBRADO_DATA_URI}" class="emblem" alt="Brasão Dehoniano" />
     <h1 class="congregacao">CONGREGAÇÃO DOS SACERDOTES DO SAGRADO CORAÇÃO DE JESUS</h1>
     <h2 class="provincia">Província Brasileira Meridional</h2>
-    ${protocolo || dataEmissao ? `
+    ${(protocolo || dataEmissao || tituloDoc) ? `
     <div class="meta">
       <span>${tituloDoc ? '<strong>' + tituloDoc + '</strong>' : ''}</span>
       <span>${protocolo ? 'Protocolo: ' + protocolo : ''} ${dataEmissao ? '• Emissão: ' + dataEmissao : ''}</span>
@@ -225,23 +327,25 @@ export const gotenbergService = {
 <style>
   body {
     margin: 0;
-    padding: 0 40px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 0 16mm;
+    font-family: Georgia, 'Times New Roman', serif;
     -webkit-print-color-adjust: exact;
+    width: 100%;
   }
   .footer-container {
     text-align: center;
     border-top: 1px solid #94a3b8;
-    padding-top: 8px;
+    padding-top: 5px;
     font-size: 8pt;
     color: #475569;
-    line-height: 1.4;
+    line-height: 1.35;
     position: relative;
+    width: 100%;
   }
   .page-number {
     position: absolute;
     right: 0;
-    top: 8px;
+    top: 5px;
     font-size: 7.5pt;
     color: #94a3b8;
     font-family: monospace;
@@ -268,17 +372,15 @@ export const gotenbergService = {
   <meta charset="utf-8">
   <title>${opcoes.titulo}</title>
   <style>
-    @page {
-      margin: 110px 40px 80px 40px;
-    }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-family: Georgia, 'Times New Roman', serif;
       font-size: 11pt;
       line-height: 1.7;
       color: #1e293b;
       margin: 0;
       padding: 0;
       -webkit-print-color-adjust: exact;
+      position: relative;
     }
     h1, h2, h3 { color: #113240; }
     .doc-titulo {
@@ -294,6 +396,28 @@ export const gotenbergService = {
       text-align: center;
       color: #64748b;
       margin-bottom: 25px;
+      font-style: italic;
+    }
+    .watermark {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0.035;
+      pointer-events: none;
+      z-index: 0;
+      width: 320px;
+      height: 320px;
+    }
+    .watermark img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: grayscale(100%);
+    }
+    .doc-conteudo {
+      position: relative;
+      z-index: 1;
     }
     .selo-autenticidade {
       margin-top: 35px;
@@ -306,41 +430,50 @@ export const gotenbergService = {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      page-break-inside: avoid;
     }
     table {
       width: 100%;
       border-collapse: collapse;
       margin: 15px 0;
+      page-break-inside: auto;
     }
+    tr { page-break-inside: avoid; }
     th, td {
       border: 1px solid #cbd5e1;
-      padding: 8px 12px;
+      padding: 7px 10px;
       text-align: left;
-      font-size: 10pt;
+      font-size: 9.5pt;
     }
     th {
       background-color: #f1f5f9;
       font-weight: 600;
       color: #0f172a;
+      text-transform: uppercase;
+      font-size: 8.5pt;
     }
   </style>
 </head>
 <body>
-  ${opcoes.titulo ? `<div class="doc-titulo">${opcoes.titulo}</div>` : ''}
-  ${opcoes.subtitulo ? `<div class="doc-subtitulo">${opcoes.subtitulo}</div>` : ''}
-
-  <div class="doc-conteudo">
-    ${opcoes.corpoHtml}
+  <div class="watermark">
+    <img src="${LOGO_TIMBRADO_DATA_URI}" alt="" />
   </div>
 
-  ${opcoes.codigoAutenticidade ? `
-  <div class="selo-autenticidade">
-    <div>
-      <strong>Documento Canônico Autenticado Digitalmente</strong><br>
-      Código de Validação: <code>${opcoes.codigoAutenticidade}</code><br>
-      Verificação disponível no Portal BRM: <em>https://sistema.brm.org.br/validar/${opcoes.codigoAutenticidade}</em>
-    </div>
-  </div>` : ''}
+  <div class="doc-conteudo">
+    ${opcoes.titulo ? `<div class="doc-titulo">${opcoes.titulo}</div>` : ''}
+    ${opcoes.subtitulo ? `<div class="doc-subtitulo">${opcoes.subtitulo}</div>` : ''}
+
+    ${opcoes.corpoHtml}
+
+    ${opcoes.codigoAutenticidade ? `
+    <div class="selo-autenticidade">
+      <div>
+        <strong>Documento Canônico Autenticado Digitalmente</strong><br>
+        Código de Validação: <code>${opcoes.codigoAutenticidade}</code><br>
+        Verificação disponível no Portal BRM: <em>https://sistema.brm.org.br/validar/${opcoes.codigoAutenticidade}</em>
+      </div>
+    </div>` : ''}
+  </div>
 </body>
 </html>`;
 
@@ -353,10 +486,10 @@ export const gotenbergService = {
     formData.append('files', new Blob([footerHtml], { type: 'text/html' }), 'footer.html');
 
     // Margens e configurações do Chromium
-    formData.append('marginTop', '1.4');
-    formData.append('marginBottom', '1.1');
-    formData.append('marginLeft', '0.8');
-    formData.append('marginRight', '0.8');
+    formData.append('marginTop', '1.45');
+    formData.append('marginBottom', '1.0');
+    formData.append('marginLeft', '0.7');
+    formData.append('marginRight', '0.7');
     formData.append('paperWidth', '8.27'); // A4
     formData.append('paperHeight', '11.69');
     if (opcoes.orientacao === 'landscape') {
@@ -409,7 +542,7 @@ export const gotenbergService = {
         <p style="margin-top: 30px;">Dado e passado na Sede Provincial da Província BRM, aos ${dados.dataEmissao}.</p>
       </div>
 
-      <div style="margin-top: 70px; display: flex; justify-content: space-around; text-align: center; font-size: 10pt;">
+      <div style="margin-top: 70px; display: flex; justify-content: space-around; text-align: center; font-size: 10pt; page-break-inside: avoid;">
         <div style="width: 40%; border-top: 1px solid #1e293b; padding-top: 8px;">
           <strong>${dados.provincialNome || 'Pe. Superior Provincial, scj'}</strong><br>
           Superior Provincial • Província BRM
@@ -451,7 +584,7 @@ export const gotenbergService = {
         <p style="margin-top: 30px;">Sede Provincial, Corupá/SC, ${dados.dataEmissao}.</p>
       </div>
 
-      <div style="margin-top: 70px; display: flex; justify-content: space-around; text-align: center; font-size: 10pt;">
+      <div style="margin-top: 70px; display: flex; justify-content: space-around; text-align: center; font-size: 10pt; page-break-inside: avoid;">
         <div style="width: 40%; border-top: 1px solid #1e293b; padding-top: 8px;">
           <strong>${dados.provincialNome || 'Pe. Superior Provincial, scj'}</strong><br>
           Superior Provincial
@@ -501,7 +634,7 @@ export const gotenbergService = {
         <p style="margin-top: 30px;">Corupá/SC, ${dados.dataEmissao}.</p>
       </div>
 
-      <div style="margin-top: 60px; display: flex; justify-content: center; text-align: center; font-size: 10pt;">
+      <div style="margin-top: 60px; display: flex; justify-content: center; text-align: center; font-size: 10pt; page-break-inside: avoid;">
         <div style="width: 50%; border-top: 1px solid #1e293b; padding-top: 8px;">
           <strong>${dados.provincialNome || 'Pe. Superior Provincial, scj'}</strong><br>
           Superior Provincial • Província BRM
@@ -547,7 +680,7 @@ export const gotenbergService = {
         <p style="margin-top: 30px;">Chancelaria Provincial, Corupá/SC, ${dados.dataEmissao}.</p>
       </div>
 
-      <div style="margin-top: 60px; display: flex; justify-content: center; text-align: center; font-size: 10pt;">
+      <div style="margin-top: 60px; display: flex; justify-content: center; text-align: center; font-size: 10pt; page-break-inside: avoid;">
         <div style="width: 50%; border-top: 1px solid #1e293b; padding-top: 8px;">
           <strong>${dados.secretarioNome || 'Pe. Secretário Provincial, scj'}</strong><br>
           Chanceler / Secretário Provincial
@@ -582,7 +715,7 @@ export const gotenbergService = {
         <p>Sede Provincial, Corupá/SC, ${dados.dataEmissao}.</p>
       </div>
 
-      <div style="margin-top: 70px; display: flex; justify-content: center; text-align: center; font-size: 10pt;">
+      <div style="margin-top: 70px; display: flex; justify-content: center; text-align: center; font-size: 10pt; page-break-inside: avoid;">
         <div style="width: 50%; border-top: 1px solid #1e293b; padding-top: 8px;">
           <strong>${dados.provincialNome || 'Pe. Superior Provincial, scj'}</strong><br>
           Superior Provincial • Província BRM
@@ -597,6 +730,259 @@ export const gotenbergService = {
       dataEmissao: dados.dataEmissao,
       corpoHtml: corpo,
       codigoAutenticidade: `BRM-CIRC-${Date.now().toString(36).toUpperCase()}`,
+      formatoPdfA: true
+    });
+  },
+
+  /**
+   * 6. Gera a Ficha Cadastral Canônica Completa do Religioso (Dossiê com Trajetória e Trabalhos)
+   */
+  async gerarFichaReligiosoPdf(dados: DadosFichaReligioso): Promise<Blob> {
+    const dataEmissao = dados.dataEmissao || new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+    const nomeExibido = dados.nomeReligioso || dados.nomeCivil;
+    const filiacaoTexto = [dados.filiacaoPai, dados.filiacaoMae].filter(Boolean).join(' e ') || '—';
+
+    // Monta tabela de Onde já trabalhou e Funções
+    const linhasTrabalhos = dados.historicoTrabalhos && dados.historicoTrabalhos.length > 0
+      ? dados.historicoTrabalhos.map(t => `
+        <tr>
+          <td style="font-family: monospace; font-weight: bold; white-space: nowrap;">${t.periodo || '—'}</td>
+          <td><strong>${t.instituicao}</strong></td>
+          <td style="color: #113240; font-weight: 600;">${t.funcao || '—'}</td>
+          <td>${t.local || '—'}</td>
+          <td style="font-size: 8.5pt; color: #555;">${t.observacoes || '—'}</td>
+        </tr>
+      `).join('')
+      : `
+        <tr>
+          <td colspan="5" style="text-align: center; font-style: italic; color: #64748b; padding: 12px;">
+            Nenhum histórico anterior registrado nos livros digitais da Província até o momento.
+          </td>
+        </tr>
+      `;
+
+    // Monta missões e serviços provinciais
+    const linhasMissoes = dados.missoesServicos && dados.missoesServicos.length > 0
+      ? `
+        <div style="margin-top: 20px;">
+          <p style="font-family: monospace; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 6px;">
+            05. Missões, Encargos & Serviços Confiados
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 18%;">Tipo</th>
+                <th style="width: 32%;">Instituição / Comissão</th>
+                <th style="width: 25%;">Função</th>
+                <th style="width: 25%;">Período / Local</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${dados.missoesServicos.map(m => `
+                <tr>
+                  <td><strong>${m.tipo || 'Missão'}</strong></td>
+                  <td>${m.instituicao || '—'}</td>
+                  <td>${m.funcao || '—'}</td>
+                  <td>${[m.periodo, m.local].filter(Boolean).join(' • ') || '—'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `
+      : '';
+
+    // Monta formação acadêmica
+    const listaFormacoes = dados.formacoesAcademicas && dados.formacoesAcademicas.length > 0
+      ? dados.formacoesAcademicas.map(f => `
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding: 4px 0; font-size: 9pt;">
+          <span><strong>${f.curso}</strong> — ${f.instituicao}</span>
+          <span style="font-family: monospace; color: #64748b;">${f.anoOuPeriodo || ''}</span>
+        </div>
+      `).join('')
+      : '<p style="font-style: italic; color: #64748b; font-size: 9pt;">Filosofia e Teologia nos centros formativos da Congregação.</p>';
+
+    const corpo = `
+      <!-- Identificação Principal & Foto Oficial -->
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5pt solid #113240; padding-bottom: 12px; margin-bottom: 14px;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          ${dados.fotoUrl ? `
+            <div style="width: 75px; height: 95px; border: 1.5pt solid #113240; overflow: hidden; background: #f8fafc; flex-shrink: 0;">
+              <img src="${dados.fotoUrl}" style="width: 100%; height: 100%; object-fit: cover;" alt="Foto Oficial" />
+            </div>
+          ` : `
+            <div style="width: 75px; height: 95px; border: 1.5pt dashed #94a3b8; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; font-family: monospace; font-size: 7pt; color: #64748b; text-align: center; flex-shrink: 0;">
+              <span>FOTO OFICIAL</span>
+              <strong style="color: #113240; font-size: 8pt;">4x4</strong>
+            </div>
+          `}
+          <div>
+            <div style="font-family: monospace; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.15em; color: #226380; font-weight: bold;">
+              ${dados.grau || 'Confrade'} Dehoniano • Província BRM
+            </div>
+            <h2 style="font-size: 17pt; font-weight: bold; margin: 2px 0; color: #113240; letter-spacing: -0.01em;">
+              ${nomeExibido}
+            </h2>
+            <div style="font-size: 9pt; color: #475569;">
+              Nome Civil: <strong>${dados.nomeCivil}</strong>
+            </div>
+            <div style="font-size: 8.5pt; color: #475569; margin-top: 2px;">
+              Comunidade Atual: <strong style="color: #113240;">${dados.comunidadeAtualNome || 'Província BRM'}</strong>
+              ${dados.oficioAtual ? ` • Ofício: <em>${dados.oficioAtual}</em>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <div style="text-align: right;">
+          <div style="display: inline-block; border: 1.5pt solid #113240; padding: 4px 10px; font-family: monospace; font-size: 8pt; font-weight: bold; text-transform: uppercase; background: #f8fafc;">
+            CADASTRO ${dados.statusCadastro || 'APROVADO'}
+          </div>
+          <div style="font-family: monospace; font-size: 8.5pt; color: #64748b; margin-top: 4px;">
+            Nº Registro: <strong>${dados.numeroCadastro ? 'BRM-' + String(dados.numeroCadastro).padStart(4, '0') : 'BRM-2026'}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid de Indicadores Canônicos Rápidos -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); border: 1pt solid #cbd5e1; background: #f8fafc; text-align: center; margin-bottom: 16px;">
+        <div style="padding: 6px 8px; border-right: 1pt solid #cbd5e1;">
+          <div style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b;">Grau Canônico</div>
+          <div style="font-size: 9.5pt; font-weight: bold; color: #113240; margin-top: 2px;">${dados.grau || 'Padre'}</div>
+        </div>
+        <div style="padding: 6px 8px; border-right: 1pt solid #cbd5e1;">
+          <div style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b;">Ingresso na SCJ</div>
+          <div style="font-size: 9.5pt; font-weight: bold; color: #113240; margin-top: 2px;">${dados.dataIngresso ? dados.dataIngresso.slice(0, 4) : '—'}</div>
+        </div>
+        <div style="padding: 6px 8px; border-right: 1pt solid #cbd5e1;">
+          <div style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b;">Votos Perpétuos</div>
+          <div style="font-size: 9.5pt; font-weight: bold; color: #113240; margin-top: 2px;">${dados.dataVotosPerpetuos || '—'}</div>
+        </div>
+        <div style="padding: 6px 8px;">
+          <div style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b;">Ordenação</div>
+          <div style="font-size: 9.5pt; font-weight: bold; color: #113240; margin-top: 2px;">${dados.dataPresbiterato || dados.dataDiaconato || '—'}</div>
+        </div>
+      </div>
+
+      <!-- 01. Dados Pessoais & Documentação Civil -->
+      <div style="margin-bottom: 14px;">
+        <p style="font-family: monospace; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 6px;">
+          01. Dados Pessoais & Documentação Civil
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 14px; font-size: 8.5pt;">
+          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">Data de Nascimento</span><strong>${dados.dataNascimento || '—'}</strong></div>
+          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">Naturalidade</span><strong>${dados.naturalidade || '—'}</strong></div>
+          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">Nacionalidade</span><strong>${dados.nacionalidade || 'Brasileira'}</strong></div>
+          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">CPF</span><strong style="font-family: monospace;">${dados.cpf || '—'}</strong></div>
+          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">RG / Órgão</span><strong style="font-family: monospace;">${dados.rg || '—'} ${dados.rgOrgao ? `(${dados.rgOrgao})` : ''}</strong></div>
+          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">Título de Eleitor / PIS</span><strong style="font-family: monospace;">${[dados.tituloEleitor, dados.pis].filter(Boolean).join(' • ') || '—'}</strong></div>
+          <div style="grid-column: span 3;"><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">Filiação (Pai e Mãe)</span><strong>${filiacaoTexto}</strong></div>
+        </div>
+      </div>
+
+      <!-- 02. Contatos, Residência & Saúde -->
+      <div style="margin-bottom: 14px;">
+        <p style="font-family: monospace; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 6px;">
+          02. Contatos, Residência Canônica & Saúde
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 14px; font-size: 8.5pt;">
+          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">Telefones</span><strong>${[dados.telefoneCelular, dados.whatsapp && dados.whatsapp !== dados.telefoneCelular ? `Zap: ${dados.whatsapp}` : null].filter(Boolean).join(' • ') || '—'}</strong></div>
+          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">E-mail Institucional</span><strong style="font-family: monospace;">${dados.emailInstitucional || '—'}</strong></div>
+          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">Tipo Sanguíneo / Plano</span><strong>${[dados.tipoSanguineo, dados.planoSaude].filter(Boolean).join(' • ') || '—'}</strong></div>
+          <div style="grid-column: span 2;"><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">Endereço Residencial</span><strong>${dados.enderecoResidencial || dados.comunidadeAtualNome || 'Sede Provincial BRM'}</strong></div>
+          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">Contato de Emergência</span><strong>${dados.contatoEmergencia || '—'}</strong></div>
+        </div>
+      </div>
+
+      <!-- 03. Trajetória Canônica (Linha do Tempo) -->
+      <div style="margin-bottom: 16px;">
+        <p style="font-family: monospace; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 8px;">
+          03. Trajetória Canônica & Sacramentos
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center;">
+          <div style="border: 1pt solid #cbd5e1; padding: 6px; background: #fff;">
+            <div style="font-family: monospace; font-size: 6.5pt; font-weight: bold; text-transform: uppercase; color: #64748b;">Batismo</div>
+            <div style="font-size: 8pt; font-weight: bold; margin-top: 2px;">${dados.dataBatismo || '—'}</div>
+            <div style="font-size: 6.5pt; color: #64748b; margin-top: 1px;">${dados.paroquiaBatismo || '—'}</div>
+          </div>
+          <div style="border: 1pt solid #cbd5e1; padding: 6px; background: #fff;">
+            <div style="font-family: monospace; font-size: 6.5pt; font-weight: bold; text-transform: uppercase; color: #64748b;">Primeira Profissão</div>
+            <div style="font-size: 8pt; font-weight: bold; margin-top: 2px;">${dados.dataPrimeirosVotos || '—'}</div>
+            <div style="font-size: 6.5pt; color: #64748b; margin-top: 1px;">${dados.localPrimeirosVotos || '—'}</div>
+          </div>
+          <div style="border: 1pt solid #cbd5e1; padding: 6px; background: #fff;">
+            <div style="font-family: monospace; font-size: 6.5pt; font-weight: bold; text-transform: uppercase; color: #64748b;">Profissão Perpétua</div>
+            <div style="font-size: 8pt; font-weight: bold; margin-top: 2px;">${dados.dataVotosPerpetuos || '—'}</div>
+            <div style="font-size: 6.5pt; color: #64748b; margin-top: 1px;">${dados.localVotosPerpetuos || '—'}</div>
+          </div>
+          <div style="border: 1pt solid #cbd5e1; padding: 6px; background: #fff;">
+            <div style="font-family: monospace; font-size: 6.5pt; font-weight: bold; text-transform: uppercase; color: #64748b;">Ordenação Presbiteral</div>
+            <div style="font-size: 8pt; font-weight: bold; margin-top: 2px;">${dados.dataPresbiterato || dados.dataDiaconato || '—'}</div>
+            <div style="font-size: 6.5pt; color: #64748b; margin-top: 1px;">${dados.bispoOrdenante || dados.localPresbiterato || '—'}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 04. Trajetória de Comunidades e Trabalhos (Onde já trabalhou e Funções) -->
+      <div style="margin-bottom: 16px; page-break-inside: auto;">
+        <p style="font-family: monospace; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 6px;">
+          04. Trajetória de Comunidades e Trabalhos (Onde Trabalhou • Ofícios e Cargos)
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 15%;">Período</th>
+              <th style="width: 30%;">Comunidade / Paróquia / Casa</th>
+              <th style="width: 25%;">Ofício / Função</th>
+              <th style="width: 15%;">Localidade</th>
+              <th style="width: 15%;">Notas</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linhasTrabalhos}
+          </tbody>
+        </table>
+      </div>
+
+      ${linhasMissoes}
+
+      <!-- 05/06. Formação Acadêmica & Idiomas -->
+      <div style="margin-top: 14px; margin-bottom: 24px; display: grid; grid-template-columns: 2fr 1fr; gap: 14px;">
+        <div>
+          <p style="font-family: monospace; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 6px;">
+            Formação Acadêmica & Graus
+          </p>
+          ${listaFormacoes}
+        </div>
+        <div>
+          <p style="font-family: monospace; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 6px;">
+            Idiomas
+          </p>
+          <div style="font-size: 8.5pt; color: #334155; line-height: 1.6;">
+            ${dados.idiomas && dados.idiomas.length > 0 ? dados.idiomas.map(i => `<span style="display: inline-block; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 2px 6px; margin: 2px; border-radius: 3px;">${i}</span>`).join('') : 'Português (nativo)'}
+          </div>
+        </div>
+      </div>
+
+      <!-- Assinaturas Canônicas -->
+      <div style="margin-top: 45px; display: flex; justify-content: space-around; text-align: center; font-size: 9pt; page-break-inside: avoid;">
+        <div style="width: 42%; border-top: 1px solid #113240; padding-top: 6px;">
+          <strong>${nomeExibido}</strong><br>
+          <span style="font-size: 7.5pt; color: #64748b;">Assinatura do Religioso</span>
+        </div>
+        <div style="width: 42%; border-top: 1px solid #113240; padding-top: 6px;">
+          <strong>Chancelaria Provincial • Província BRM</strong><br>
+          <span style="font-size: 7.5pt; color: #64748b;">Arquivo Canônico & Secretaria</span>
+        </div>
+      </div>
+    `;
+
+    return await this.gerarPdfDocumento({
+      titulo: 'FICHA CADASTRAL CANÔNICA DO RELIGIOSO',
+      subtitulo: `Dossiê Canônico Completo • ${nomeExibido}`,
+      protocolo: dados.numeroCadastro ? `BRM-${String(dados.numeroCadastro).padStart(4, '0')}` : undefined,
+      dataEmissao,
+      corpoHtml: corpo,
+      codigoAutenticidade: `BRM-FICH-${Date.now().toString(36).toUpperCase()}`,
       formatoPdfA: true
     });
   },
