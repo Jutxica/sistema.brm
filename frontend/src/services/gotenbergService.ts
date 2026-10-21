@@ -520,7 +520,7 @@ export const gotenbergService = {
       <div>
         <strong>Documento Canônico Autenticado Digitalmente</strong><br>
         Código de Validação: <code>${opcoes.codigoAutenticidade}</code><br>
-        Verificação disponível no Portal BRM: <em>https://sistema.brm.org.br/validar/${opcoes.codigoAutenticidade}</em>
+        Conferência de Fé Pública Notarial: <em>sistema.brm.org.br/validar</em>
       </div>
     </div>` : ''}
   </div>

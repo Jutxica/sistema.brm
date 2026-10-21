@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useParams, Link } from 'react-router-dom';
+import { useSearchParams, useParams } from 'react-router-dom';
 import { 
   ShieldCheck, 
   Search, 
   CheckCircle2, 
-  AlertTriangle,
-  ArrowLeft
+  AlertTriangle 
 } from 'lucide-react';
 import { consultarAutenticidade, type RegistroAutenticidade } from '../lib/autenticacaoDocumental';
 import { RodapeTimbradoBRM } from '../components/PapelTimbradoBRM';
@@ -32,6 +31,11 @@ export const ValidarDocumento: React.FC = () => {
       const reg = await consultarAutenticidade(codigoParaValidar.trim());
       setResultado(reg);
       setConsultado(true);
+
+      // Oculta o código da barra de endereço do navegador, exibindo apenas o domínio limpo /validar
+      if (typeof window !== 'undefined' && (window.location.pathname !== '/validar' || window.location.search)) {
+        window.history.replaceState(null, '', '/validar');
+      }
     } catch (err) {
       console.error('Erro ao validar documento:', err);
       setResultado(null);
@@ -58,7 +62,7 @@ export const ValidarDocumento: React.FC = () => {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between">
       {/* CABEÇALHO OFICIAL INSTITUCIONAL */}
       <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 px-4 shadow-sm">
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-4 text-center sm:text-left">
           <div className="flex items-center gap-4">
             <img 
               src="/logo-timbrado-brm.png" 
@@ -77,14 +81,6 @@ export const ValidarDocumento: React.FC = () => {
               </p>
             </div>
           </div>
-
-          <Link 
-            to="/login" 
-            className="text-xs font-mono text-slate-500 hover:text-[#113240] dark:hover:text-white flex items-center gap-1 transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Acesso ao Sistema</span>
-          </Link>
         </div>
       </header>
 
