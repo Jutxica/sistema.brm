@@ -14,6 +14,7 @@
  */
 
 import { LOGO_TIMBRADO_DATA_URI } from '../assets/logoTimbradoBase64';
+import { registrarDocumentoOficial } from '../lib/autenticacaoDocumental';
 
 export interface OpcoesDocumentoGotenberg {
   titulo: string;
@@ -609,13 +610,24 @@ export const gotenbergService = {
       </div>
     `;
 
+    const codigoAutenticidade = `BRM-DEC-${Date.now().toString(36).toUpperCase()}`;
+    void registrarDocumentoOficial({
+      codigo: codigoAutenticidade,
+      tipo: 'Decreto Canônico Provincial',
+      titulo: `Decreto Provincial Nº ${dados.numeroDecreto} • ${dados.assunto}`,
+      identificador_oficial: dados.numeroDecreto,
+      comunidade_obra: dados.destinoComunidade,
+      religioso_nome: dados.religiosoNome,
+      situacao: 'Em Vigor / Assento Canônico Válido com Fé Pública'
+    });
+
     return await this.gerarPdfDocumento({
       titulo: `DECRETO PROVINCIAL Nº ${dados.numeroDecreto}`,
       subtitulo: `Provisão Canônica • ${dados.assunto}`,
       protocolo: dados.numeroDecreto,
       dataEmissao: dados.dataEmissao,
       corpoHtml: corpo,
-      codigoAutenticidade: `BRM-DEC-${Date.now().toString(36).toUpperCase()}`,
+      codigoAutenticidade,
       formatoPdfA: true
     });
   },
@@ -651,13 +663,23 @@ export const gotenbergService = {
       </div>
     `;
 
+    const codigoAutenticidade = `BRM-PORT-${Date.now().toString(36).toUpperCase()}`;
+    void registrarDocumentoOficial({
+      codigo: codigoAutenticidade,
+      tipo: 'Portaria Provincial',
+      titulo: `Portaria Provincial Nº ${dados.numeroPortaria} • ${dados.assunto}`,
+      identificador_oficial: dados.numeroPortaria,
+      comunidade_obra: 'Província BRM',
+      situacao: 'Em Vigor / Instrumento Administrativo Válido'
+    });
+
     return await this.gerarPdfDocumento({
       titulo: `PORTARIA PROVINCIAL Nº ${dados.numeroPortaria}`,
       subtitulo: dados.assunto,
       protocolo: dados.numeroPortaria,
       dataEmissao: dados.dataEmissao,
       corpoHtml: corpo,
-      codigoAutenticidade: `BRM-PORT-${Date.now().toString(36).toUpperCase()}`,
+      codigoAutenticidade,
       formatoPdfA: true
     });
   },
@@ -697,13 +719,23 @@ export const gotenbergService = {
       </div>
     `;
 
+    const codigoAutenticidade = `BRM-CEL-${Date.now().toString(36).toUpperCase()}`;
+    void registrarDocumentoOficial({
+      codigo: codigoAutenticidade,
+      tipo: 'Celebret (Certidão de Idoneidade Canônica)',
+      titulo: `Declaração Canônica de Uso Legítimo de Ordens Sagradas (Celebret) • ${dados.religiosoNome}`,
+      identificador_oficial: dados.numeroCertidao,
+      religioso_nome: dados.religiosoNome,
+      situacao: `Regular / Válido até ${dados.validadeAte}`
+    });
+
     return await this.gerarPdfDocumento({
       titulo: 'CERTIDÃO DE USO DE ORDENS SAGRADAS',
       subtitulo: 'Celebret Canônico • Província Brasil Meridional',
       protocolo: dados.numeroCertidao,
       dataEmissao: dados.dataEmissao,
       corpoHtml: corpo,
-      codigoAutenticidade: `BRM-CEL-${Date.now().toString(36).toUpperCase()}`,
+      codigoAutenticidade,
       formatoPdfA: true
     });
   },
@@ -743,13 +775,24 @@ export const gotenbergService = {
       </div>
     `;
 
+    const codigoAutenticidade = `BRM-VOT-${Date.now().toString(36).toUpperCase()}`;
+    void registrarDocumentoOficial({
+      codigo: codigoAutenticidade,
+      tipo: 'Certidão de Votos Religiosos',
+      titulo: `Certidão de Votos ${dados.tipoVotos} • ${dados.religiosoNome}`,
+      identificador_oficial: dados.numeroRegistro,
+      religioso_nome: dados.religiosoNome,
+      comunidade_obra: dados.localProfissao,
+      situacao: 'Regular / Assento Notarial Válido com Fé Pública'
+    });
+
     return await this.gerarPdfDocumento({
       titulo: `CERTIDÃO DE VOTOS RELIGIOSOS ${dados.tipoVotos.toUpperCase()}`,
       subtitulo: 'Registro nos Arquivos Provinciais BRM',
       protocolo: dados.numeroRegistro,
       dataEmissao: dados.dataEmissao,
       corpoHtml: corpo,
-      codigoAutenticidade: `BRM-VOT-${Date.now().toString(36).toUpperCase()}`,
+      codigoAutenticidade,
       formatoPdfA: true
     });
   },
@@ -778,13 +821,23 @@ export const gotenbergService = {
       </div>
     `;
 
+    const codigoAutenticidade = `BRM-CIRC-${Date.now().toString(36).toUpperCase()}`;
+    void registrarDocumentoOficial({
+      codigo: codigoAutenticidade,
+      tipo: 'Circular Provincial Oficial',
+      titulo: `Circular Provincial Nº ${dados.numeroCircular} • ${dados.assunto}`,
+      identificador_oficial: dados.numeroCircular,
+      comunidade_obra: 'Província BRM',
+      situacao: 'Publicação Oficial Autêntica'
+    });
+
     return await this.gerarPdfDocumento({
       titulo: `CIRCULAR PROVINCIAL Nº ${dados.numeroCircular}`,
       subtitulo: dados.assunto,
       protocolo: dados.numeroCircular,
       dataEmissao: dados.dataEmissao,
       corpoHtml: corpo,
-      codigoAutenticidade: `BRM-CIRC-${Date.now().toString(36).toUpperCase()}`,
+      codigoAutenticidade,
       formatoPdfA: true
     });
   },
@@ -1041,13 +1094,26 @@ export const gotenbergService = {
       </div>
     `;
 
+    const codigoAutenticidade = `BRM-FICH-${Date.now().toString(36).toUpperCase()}`;
+
+    // Registra no sistema central de conferência pública e fé pública notarial
+    void registrarDocumentoOficial({
+      codigo: codigoAutenticidade,
+      tipo: 'Ficha Cadastral Canônica do Religioso',
+      titulo: `Ficha Cadastral Canônica • ${nomeExibido}`,
+      identificador_oficial: dados.numeroCadastro ? `BRM-${String(dados.numeroCadastro).padStart(4, '0')}` : undefined,
+      comunidade_obra: dados.comunidadeAtualNome || 'Província BRM',
+      religioso_nome: nomeExibido,
+      situacao: `Regular / Cadastro ${dados.statusCadastro || 'Aprovado'}`
+    });
+
     return await this.gerarPdfDocumento({
       titulo: 'FICHA CADASTRAL CANÔNICA DO RELIGIOSO',
       subtitulo: `Dossiê Canônico Completo • ${nomeExibido}`,
       protocolo: dados.numeroCadastro ? `BRM-${String(dados.numeroCadastro).padStart(4, '0')}` : undefined,
       dataEmissao,
       corpoHtml: corpo,
-      codigoAutenticidade: `BRM-FICH-${Date.now().toString(36).toUpperCase()}`,
+      codigoAutenticidade,
       formatoPdfA: true,
       omitirTituloPadrao: true,
       cabecalhoCompacto: true

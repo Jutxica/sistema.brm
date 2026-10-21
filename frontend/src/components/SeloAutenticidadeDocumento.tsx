@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  gerarCodigoVerificador, 
   registrarDocumentoOficial, 
   gerarQrCodeDataUrl 
 } from '../lib/autenticacaoDocumental';
@@ -29,31 +28,44 @@ export const SeloAutenticidadeDocumento: React.FC<SeloAutenticidadeDocumentoProp
   const [dataEmissaoFormatada, setDataEmissaoFormatada] = useState('');
 
   useEffect(() => {
-    // 1. Gera e registra formalmente o documento
-    const reg = registrarDocumentoOficial({
-      tipo,
-      id,
-      titulo,
-      identificador_oficial: identificadorOficial,
-      comunidade_obra: comunidadeObra,
-      situacao
-    });
+    let ativo = true;
 
-    setCodigo(reg.codigo);
-    
-    // Formatação da data de emissão
-    const agora = new Date();
-    const dataFmt = `${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
-    setDataEmissaoFormatada(dataFmt);
+    async function inicializar() {
+      // 1. Gera e registra formalmente o documento
+      const reg = await registrarDocumentoOficial({
+        tipo,
+        id,
+        titulo,
+        identificador_oficial: identificadorOficial,
+        comunidade_obra: comunidadeObra,
+        situacao
+      });
 
-    // 2. Constrói a URL oficial de conferência pública
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://sistema.brm.org.br';
-    const urlValidacao = `${baseUrl}/validar?codigo=${encodeURIComponent(reg.codigo)}`;
+      if (!ativo) return;
 
-    // 3. Gera o QR Code visual
-    gerarQrCodeDataUrl(urlValidacao).then(url => {
-      setQrCodeUrl(url);
-    });
+      setCodigo(reg.codigo);
+      
+      // Formatação da data de emissão
+      const agora = new Date();
+      const dataFmt = `${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+      setDataEmissaoFormatada(dataFmt);
+
+      // 2. Constrói a URL oficial de conferência pública
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://sistema.brm.org.br';
+      const urlValidacao = `${baseUrl}/validar?codigo=${encodeURIComponent(reg.codigo)}`;
+
+      // 3. Gera o QR Code visual
+      const url = await gerarQrCodeDataUrl(urlValidacao);
+      if (ativo) {
+        setQrCodeUrl(url);
+      }
+    }
+
+    void inicializar();
+
+    return () => {
+      ativo = false;
+    };
   }, [tipo, id, titulo, identificadorOficial, comunidadeObra, situacao]);
 
   if (!codigo) return null;

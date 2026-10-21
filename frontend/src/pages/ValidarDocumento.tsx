@@ -20,7 +20,7 @@ export const ValidarDocumento: React.FC = () => {
   const [consultado, setConsultado] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const executarValidacao = (codigoParaValidar: string) => {
+  const executarValidacao = async (codigoParaValidar: string) => {
     if (!codigoParaValidar.trim()) {
       setResultado(null);
       setConsultado(false);
@@ -28,25 +28,30 @@ export const ValidarDocumento: React.FC = () => {
     }
 
     setLoading(true);
-    setTimeout(() => {
-      const reg = consultarAutenticidade(codigoParaValidar.trim());
+    try {
+      const reg = await consultarAutenticidade(codigoParaValidar.trim());
       setResultado(reg);
       setConsultado(true);
+    } catch (err) {
+      console.error('Erro ao validar documento:', err);
+      setResultado(null);
+      setConsultado(true);
+    } finally {
       setLoading(false);
-    }, 300);
+    }
   };
 
   useEffect(() => {
     if (!codigoInicial) return;
     const timer = setTimeout(() => {
-      executarValidacao(codigoInicial);
-    }, 0);
+      void executarValidacao(codigoInicial);
+    }, 50);
     return () => clearTimeout(timer);
   }, [codigoInicial]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    executarValidacao(codigoInput);
+    void executarValidacao(codigoInput);
   };
 
   return (
@@ -105,7 +110,7 @@ export const ValidarDocumento: React.FC = () => {
                 type="text"
                 value={codigoInput}
                 onChange={e => setCodigoInput(e.target.value.toUpperCase())}
-                placeholder="Ex: BRM-2026-XXXX-YYYY"
+                placeholder="Ex: BRM-2026-XXXX-YYYY ou BRM-FICH-..."
                 className="w-full px-4 py-2.5 pl-10 font-mono text-sm uppercase tracking-wider rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-[#113240] dark:focus:ring-cyan-500 shadow-sm"
               />
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
@@ -157,11 +162,20 @@ export const ValidarDocumento: React.FC = () => {
                   </div>
 
                   <div className="md:col-span-2">
-                    <span className="text-slate-500 block text-[10.5px]">Denominação Oficial do Bem / Registro:</span>
+                    <span className="text-slate-500 block text-[10.5px]">Denominação Oficial do Instrumento:</span>
                     <strong className="text-sm text-slate-900 dark:text-white font-serif">
                       {resultado.titulo}
                     </strong>
                   </div>
+
+                  {resultado.religioso_nome && (
+                    <div className="md:col-span-2">
+                      <span className="text-slate-500 block text-[10.5px]">Religioso / Titular do Documento:</span>
+                      <strong className="text-sm text-[#113240] dark:text-cyan-400 font-serif">
+                        {resultado.religioso_nome}
+                      </strong>
+                    </div>
+                  )}
 
                   <div>
                     <span className="text-slate-500 block text-[10.5px]">Classificação / Categoria:</span>
@@ -173,7 +187,7 @@ export const ValidarDocumento: React.FC = () => {
                   <div>
                     <span className="text-slate-500 block text-[10.5px]">Identificador / Registro:</span>
                     <span className="font-mono text-slate-800 dark:text-slate-200">
-                      {resultado.identificador_oficial || 'Inscrito no Livro de Tombo'}
+                      {resultado.identificador_oficial || 'Inscrito nos Arquivos Centrais'}
                     </span>
                   </div>
 
