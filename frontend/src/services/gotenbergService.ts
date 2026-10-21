@@ -1,8 +1,8 @@
 /**
  * gotenbergService.ts
- * Cliente para o microserviço Gotenberg (instalado via Template no Easypanel).
- * Gera PDFs de alta fidelidade para Decretos, Certidões Sacramentais,
- * Dossiês de Religiosos e Fichas de Inscrição com Papel Timbrado Oficial da Província BRM.
+ * Cliente completo para o microserviço Gotenberg (instalado via Template no Easypanel).
+ * Gera PDFs de alta fidelidade para Decretos, Portarias, Celebret (Idoneidade),
+ * Certidões Sacramentais, Votos Religiosos e Ofícios Canônicos no Papel Timbrado Oficial BRM.
  */
 
 export interface OpcoesDocumentoGotenberg {
@@ -17,7 +17,7 @@ export interface OpcoesDocumentoGotenberg {
 }
 
 export interface DadosDecretoProvincial {
-  numeroDecreto: string; // Ex: DEC-BRM 014/2026
+  numeroDecreto: string; // Ex: DEC-BRM-014/2026
   ano: number;
   assunto: string;
   religiosoNome: string;
@@ -28,6 +28,52 @@ export interface DadosDecretoProvincial {
   dataEmissao: string;
   provincialNome: string;
   secretarioNome: string;
+}
+
+export interface DadosPortariaProvincial {
+  numeroPortaria: string; // Ex: PORT-BRM-008/2026
+  assunto: string;
+  destinatarios: string;
+  finalidade: string;
+  textoPortaria: string;
+  dataEmissao: string;
+  provincialNome: string;
+  secretarioNome: string;
+}
+
+export interface DadosCelebretCanonica {
+  numeroCertidao: string; // Ex: CEL-BRM-2026/045
+  religiosoNome: string;
+  grauMinisterial: string; // Ex: Presbítero, Diácono
+  dataOrdenacao: string;
+  bispoOrdenante: string;
+  validadeAte: string;
+  observacoes: string;
+  dataEmissao: string;
+  provincialNome: string;
+}
+
+export interface DadosCertidaoVotos {
+  numeroRegistro: string;
+  religiosoNome: string;
+  tipoVotos: 'Temporários' | 'Perpétuos';
+  dataProfissao: string;
+  localProfissao: string;
+  superiorRecebedor: string;
+  livroRegistro: string;
+  folhaRegistro: string;
+  termoRegistro: string;
+  dataEmissao: string;
+  secretarioNome: string;
+}
+
+export interface DadosCircularProvincial {
+  numeroCircular: string; // Ex: CIRC-BRM-005/2026
+  assunto: string;
+  saudacao: string;
+  corpoTexto: string;
+  dataEmissao: string;
+  provincialNome: string;
 }
 
 export const gotenbergService = {
@@ -216,9 +262,6 @@ export const gotenbergService = {
    * Converte HTML em PDF através do Gotenberg.
    */
   async gerarPdfDocumento(opcoes: OpcoesDocumentoGotenberg): Promise<Blob> {
-    const url = this.obterUrlBase();
-    const endpoint = `${url}/forms/chromium/convert/html`;
-
     const indexHtml = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -231,7 +274,7 @@ export const gotenbergService = {
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       font-size: 11pt;
-      line-height: 1.6;
+      line-height: 1.7;
       color: #1e293b;
       margin: 0;
       padding: 0;
@@ -239,10 +282,10 @@ export const gotenbergService = {
     }
     h1, h2, h3 { color: #113240; }
     .doc-titulo {
-      font-size: 16pt;
+      font-size: 15pt;
       font-weight: bold;
       text-align: center;
-      margin: 20px 0 10px 0;
+      margin: 15px 0 6px 0;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -253,8 +296,8 @@ export const gotenbergService = {
       margin-bottom: 25px;
     }
     .selo-autenticidade {
-      margin-top: 30px;
-      padding: 12px;
+      margin-top: 35px;
+      padding: 12px 16px;
       border: 1px dashed #cbd5e1;
       border-radius: 6px;
       background-color: #f8fafc;
@@ -271,7 +314,7 @@ export const gotenbergService = {
     }
     th, td {
       border: 1px solid #cbd5e1;
-      padding: 8px;
+      padding: 8px 12px;
       text-align: left;
       font-size: 10pt;
     }
@@ -295,7 +338,7 @@ export const gotenbergService = {
     <div>
       <strong>Documento Canônico Autenticado Digitalmente</strong><br>
       Código de Validação: <code>${opcoes.codigoAutenticidade}</code><br>
-      Verificação disponível em: <em>https://sistema.brm.org.br/validar/${opcoes.codigoAutenticidade}</em>
+      Verificação disponível no Portal BRM: <em>https://sistema.brm.org.br/validar/${opcoes.codigoAutenticidade}</em>
     </div>
   </div>` : ''}
 </body>
@@ -346,11 +389,11 @@ export const gotenbergService = {
   },
 
   /**
-   * Gera o PDF oficial de um Decreto Canônico da Província BRM.
+   * 1. Gera Decreto Canônico Provincial (DEC-BRM)
    */
   async gerarDecretoPdf(dados: DadosDecretoProvincial): Promise<Blob> {
-    const corpoDecreto = `
-      <div style="text-align: justify; margin: 30px 0; font-size: 11pt; line-height: 1.8;">
+    const corpo = `
+      <div style="text-align: justify; margin: 25px 0; font-size: 11pt; line-height: 1.8;">
         <p>O <strong>SUPERIOR PROVINCIAL DA PROVÍNCIA BRASILEIRA MERIDIONAL DA CONGREGAÇÃO DOS SACERDOTES DO SAGRADO CORAÇÃO DE JESUS</strong>, no uso das atribuições canônicas que lhe são conferidas pela Regra de Vida e pelas normas do Direito Canônico Universal,</p>
         
         <p style="text-align: center; font-size: 13pt; font-weight: bold; margin: 25px 0; letter-spacing: 0.1em; color: #113240;">
@@ -383,8 +426,177 @@ export const gotenbergService = {
       subtitulo: `Provisão Canônica • ${dados.assunto}`,
       protocolo: dados.numeroDecreto,
       dataEmissao: dados.dataEmissao,
-      corpoHtml: corpoDecreto,
+      corpoHtml: corpo,
       codigoAutenticidade: `BRM-DEC-${Date.now().toString(36).toUpperCase()}`,
+      formatoPdfA: true
+    });
+  },
+
+  /**
+   * 2. Gera Portaria Provincial (PORT-BRM)
+   */
+  async gerarPortariaPdf(dados: DadosPortariaProvincial): Promise<Blob> {
+    const corpo = `
+      <div style="text-align: justify; margin: 25px 0; font-size: 11pt; line-height: 1.8;">
+        <p>O <strong>SUPERIOR PROVINCIAL DA PROVÍNCIA BRASILEIRA MERIDIONAL DOS PADRES DO SAGRADO CORAÇÃO DE JESUS</strong>, no exercício de seu múnus administrativo,</p>
+        
+        <p style="text-align: center; font-size: 13pt; font-weight: bold; margin: 25px 0; letter-spacing: 0.1em; color: #113240;">
+          R E S O L V E:
+        </p>
+        
+        <p><strong>Artigo 1º</strong> — ${dados.textoPortaria}</p>
+        <p><strong>Artigo 2º</strong> — Ficam designados para a presente finalidade os seguintes confrades: <strong>${dados.destinatarios}</strong>.</p>
+        <p><strong>Artigo 3º</strong> — Esta portaria passa a vigorar a partir desta data, mantendo sua eficácia até ulterior disposição do Governo Provincial.</p>
+        
+        <p style="margin-top: 30px;">Sede Provincial, Corupá/SC, ${dados.dataEmissao}.</p>
+      </div>
+
+      <div style="margin-top: 70px; display: flex; justify-content: space-around; text-align: center; font-size: 10pt;">
+        <div style="width: 40%; border-top: 1px solid #1e293b; padding-top: 8px;">
+          <strong>${dados.provincialNome || 'Pe. Superior Provincial, scj'}</strong><br>
+          Superior Provincial
+        </div>
+        <div style="width: 40%; border-top: 1px solid #1e293b; padding-top: 8px;">
+          <strong>${dados.secretarioNome || 'Pe. Secretário Provincial, scj'}</strong><br>
+          Secretário Provincial
+        </div>
+      </div>
+    `;
+
+    return await this.gerarPdfDocumento({
+      titulo: `PORTARIA PROVINCIAL Nº ${dados.numeroPortaria}`,
+      subtitulo: dados.assunto,
+      protocolo: dados.numeroPortaria,
+      dataEmissao: dados.dataEmissao,
+      corpoHtml: corpo,
+      codigoAutenticidade: `BRM-PORT-${Date.now().toString(36).toUpperCase()}`,
+      formatoPdfA: true
+    });
+  },
+
+  /**
+   * 3. Gera Declaração Canônica / Celebret (Idoneidade para Celebração e Viagens)
+   */
+  async gerarCelebretPdf(dados: DadosCelebretCanonica): Promise<Blob> {
+    const corpo = `
+      <div style="text-align: justify; margin: 25px 0; font-size: 11pt; line-height: 1.8;">
+        <p style="text-align: center; font-size: 12pt; font-weight: bold; margin-bottom: 25px; color: #113240;">
+          DECLARAÇÃO DE IDONEIDADE CANÔNICA (CELEBRET)
+        </p>
+
+        <p>Atestamos e certificamos, a quem couber, que o Revmo. <strong>${dados.religiosoNome}</strong> é sacerdote presbítero validamente ordenado, pertencente em votos perpétuos à Congregação dos Padres do Sagrado Coração de Jesus (Província Brasileira Meridional).</p>
+        
+        <table style="margin: 20px 0;">
+          <tr><td><strong>Sacerdote:</strong></td><td>${dados.religiosoNome}</td></tr>
+          <tr><td><strong>Grau Ministerial:</strong></td><td>${dados.grauMinisterial || 'Presbítero'}</td></tr>
+          <tr><td><strong>Ordenação:</strong></td><td>${dados.dataOrdenacao || 'Válida'}</td></tr>
+          <tr><td><strong>Bispo Ordenante:</strong></td><td>${dados.bispoOrdenante || 'Igreja Católica Apostólica Romana'}</td></tr>
+          <tr><td><strong>Validade do Celebret:</strong></td><td>${dados.validadeAte || '12 meses a contar da data de emissão'}</td></tr>
+        </table>
+
+        <p>Declara-se que contra o referido sacerdote nada obsta nem vigora qualquer impedimento, censura canônica ou penalidade que restrinja o lícito e válido exercício do Sagrado Ministério da Eucaristia, da Reconciliação e da pregação da Palavra de Deus.</p>
+        
+        <p>Recomenda-se fraternalmente este ministro de Deus a todos os Ordinários locais, Párocos e Reitores de Santuários para que seja acolhido na celebração dos divinos mistérios.</p>
+
+        <p style="margin-top: 30px;">Corupá/SC, ${dados.dataEmissao}.</p>
+      </div>
+
+      <div style="margin-top: 60px; display: flex; justify-content: center; text-align: center; font-size: 10pt;">
+        <div style="width: 50%; border-top: 1px solid #1e293b; padding-top: 8px;">
+          <strong>${dados.provincialNome || 'Pe. Superior Provincial, scj'}</strong><br>
+          Superior Provincial • Província BRM
+        </div>
+      </div>
+    `;
+
+    return await this.gerarPdfDocumento({
+      titulo: 'CERTIDÃO DE USO DE ORDENS SAGRADAS',
+      subtitulo: 'Celebret Canônico • Província Brasil Meridional',
+      protocolo: dados.numeroCertidao,
+      dataEmissao: dados.dataEmissao,
+      corpoHtml: corpo,
+      codigoAutenticidade: `BRM-CEL-${Date.now().toString(36).toUpperCase()}`,
+      formatoPdfA: true
+    });
+  },
+
+  /**
+   * 4. Gera Certidão Oficial de Profissão de Votos Religiosos (SCJ)
+   */
+  async gerarCertidaoVotosPdf(dados: DadosCertidaoVotos): Promise<Blob> {
+    const corpo = `
+      <div style="text-align: justify; margin: 25px 0; font-size: 11pt; line-height: 1.8;">
+        <p style="text-align: center; font-size: 12pt; font-weight: bold; margin-bottom: 25px; color: #113240;">
+          CERTIDÃO DE PROFISSÃO DE VOTOS RELIGIOSOS
+        </p>
+
+        <p>Certifico, para os devidos fins de direito canônico, que revendo os livros de registros das Profissões Religiosas desta Província Brasil Meridional da Congregação dos Sacerdotes do Sagrado Coração de Jesus, consta o seguinte assento:</p>
+
+        <table>
+          <tr><td><strong>Professo:</strong></td><td>${dados.religiosoNome}</td></tr>
+          <tr><td><strong>Natureza dos Votos:</strong></td><td>Votos ${dados.tipoVotos} (Castidade, Pobreza e Obediência)</td></tr>
+          <tr><td><strong>Data da Profissão:</strong></td><td>${dados.dataProfissao}</td></tr>
+          <tr><td><strong>Local da Celebração:</strong></td><td>${dados.localProfissao}</td></tr>
+          <tr><td><strong>Superior que acolheu os votos:</strong></td><td>${dados.superiorRecebedor}</td></tr>
+          <tr><td><strong>Registro Canônico:</strong></td><td>Livro: ${dados.livroRegistro} | Folha: ${dados.folhaRegistro} | Termo: ${dados.termoRegistro}</td></tr>
+        </table>
+
+        <p>O referido assento foi lavrado em conformidade com as Constituições dehonianas e a Regra de Vida da Congregação.</p>
+        <p>Por ser verdade, dato e assino a presente certidão.</p>
+
+        <p style="margin-top: 30px;">Chancelaria Provincial, Corupá/SC, ${dados.dataEmissao}.</p>
+      </div>
+
+      <div style="margin-top: 60px; display: flex; justify-content: center; text-align: center; font-size: 10pt;">
+        <div style="width: 50%; border-top: 1px solid #1e293b; padding-top: 8px;">
+          <strong>${dados.secretarioNome || 'Pe. Secretário Provincial, scj'}</strong><br>
+          Chanceler / Secretário Provincial
+        </div>
+      </div>
+    `;
+
+    return await this.gerarPdfDocumento({
+      titulo: `CERTIDÃO DE VOTOS RELIGIOSOS ${dados.tipoVotos.toUpperCase()}`,
+      subtitulo: 'Registro nos Arquivos Provinciais BRM',
+      protocolo: dados.numeroRegistro,
+      dataEmissao: dados.dataEmissao,
+      corpoHtml: corpo,
+      codigoAutenticidade: `BRM-VOT-${Date.now().toString(36).toUpperCase()}`,
+      formatoPdfA: true
+    });
+  },
+
+  /**
+   * 5. Gera Carta Circular Oficial do Provincial
+   */
+  async gerarCircularPdf(dados: DadosCircularProvincial): Promise<Blob> {
+    const corpo = `
+      <div style="text-align: justify; margin: 25px 0; font-size: 11pt; line-height: 1.8;">
+        <p style="font-weight: 600; margin-bottom: 20px; color: #113240;">
+          ${dados.saudacao || 'Caríssimos Confrades, Paz e Bem no Coração de Jesus!'}
+        </p>
+
+        <div>${dados.corpoTexto}</div>
+
+        <p style="margin-top: 35px;">Em comunhão de orações e no Coração de Jesus,</p>
+        <p>Sede Provincial, Corupá/SC, ${dados.dataEmissao}.</p>
+      </div>
+
+      <div style="margin-top: 70px; display: flex; justify-content: center; text-align: center; font-size: 10pt;">
+        <div style="width: 50%; border-top: 1px solid #1e293b; padding-top: 8px;">
+          <strong>${dados.provincialNome || 'Pe. Superior Provincial, scj'}</strong><br>
+          Superior Provincial • Província BRM
+        </div>
+      </div>
+    `;
+
+    return await this.gerarPdfDocumento({
+      titulo: `CIRCULAR PROVINCIAL Nº ${dados.numeroCircular}`,
+      subtitulo: dados.assunto,
+      protocolo: dados.numeroCircular,
+      dataEmissao: dados.dataEmissao,
+      corpoHtml: corpo,
+      codigoAutenticidade: `BRM-CIRC-${Date.now().toString(36).toUpperCase()}`,
       formatoPdfA: true
     });
   },
