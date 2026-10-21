@@ -43,8 +43,20 @@ export const gotenbergService = {
     if (local && local.trim() !== '') {
       return local.replace(/\/$/, '');
     }
-    // URL padrão sugerida no Easypanel
-    return 'https://pdf.brm.org.br';
+    return 'https://sitebrm-gotenberg.ryk9yi.easypanel.host';
+  },
+
+  /**
+   * Resolve a URL para requisição, utilizando o proxy do Vite/Nginx quando necessário para contornar restrições de CORS.
+   */
+  resolverUrlEndpoint(caminho: string): string[] {
+    const base = this.obterUrlBase();
+    const limpo = caminho.startsWith('/') ? caminho : `/${caminho}`;
+    const urlProxy = `/gotenberg-api${limpo}`;
+    const urlDireta = `${base}${limpo}`;
+
+    // Retorna ordem de tentativa: proxy primeiro para evitar CORS no browser, depois direta
+    return [urlProxy, urlDireta];
   },
 
   /**
@@ -58,24 +70,33 @@ export const gotenbergService = {
    * Testa a conectividade com o container do Gotenberg no Easypanel.
    */
   async testarConexao(): Promise<{ online: boolean; mensagem: string }> {
-    const url = this.obterUrlBase();
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const base = this.obterUrlBase();
+    const urlsTentativa = this.resolverUrlEndpoint('/health');
 
-      const res = await fetch(`${url}/health`, { signal: controller.signal });
-      clearTimeout(timeoutId);
+    for (const url of urlsTentativa) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4500);
 
-      if (res.ok) {
-        return { online: true, mensagem: `Gotenberg conectado com sucesso em ${url}` };
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const dados = await res.json().catch(() => null);
+          return {
+            online: true,
+            mensagem: `Gotenberg conectado com sucesso! (Status: ${dados?.status || 'up'})`
+          };
+        }
+      } catch (_) {
+        // Tenta próxima URL da lista (proxy ou direta)
       }
-      return { online: false, mensagem: `Gotenberg respondeu com status ${res.status}` };
-    } catch (err) {
-      return {
-        online: false,
-        mensagem: `Não foi possível conectar ao Gotenberg (${url}). Verifique se o template está rodando no Easypanel.`
-      };
     }
+
+    return {
+      online: false,
+      mensagem: `Não foi possível conectar ao Gotenberg (${base}). Verifique se o template está rodando no Easypanel.`
+    };
   },
 
   /**
@@ -302,17 +323,26 @@ export const gotenbergService = {
       formData.append('pdfFormat', 'PDF/A-1b');
     }
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      body: formData
-    });
+    const urlsTentativa = this.resolverUrlEndpoint('/forms/chromium/convert/html');
+    let ultimoErro = '';
 
-    if (!response.ok) {
-      const erroTexto = await response.text().catch(() => '');
-      throw new Error(`Erro Gotenberg (${response.status}): ${erroTexto || response.statusText}`);
+    for (const endpoint of urlsTentativa) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (response.ok) {
+          return await response.blob();
+        }
+        ultimoErro = await response.text().catch(() => response.statusText);
+      } catch (err: any) {
+        ultimoErro = err?.message || 'Falha na conexão';
+      }
     }
 
-    return await response.blob();
+    throw new Error(`Erro Gotenberg: ${ultimoErro || 'Não foi possível conectar ao serviço de PDF.'}`);
   },
 
   /**

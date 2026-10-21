@@ -11,6 +11,12 @@ export default defineConfig({
         target: 'http://localhost/sistema-brm',
         changeOrigin: true,
         secure: false
+      },
+      '/gotenberg-api': {
+        target: 'https://sitebrm-gotenberg.ryk9yi.easypanel.host',
+        changeOrigin: true,
+        rewrite: (path: string) => path.replace(/^\/gotenberg-api/, ''),
+        secure: false
       }
     }
   }
