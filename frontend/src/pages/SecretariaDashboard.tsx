@@ -18,6 +18,7 @@ import { showToast } from '../hooks/useFeedback';
 import { arquivoSecretariaService, type ProtocoloArquivo } from '../services/arquivoSecretariaService';
 import { AniversariosJubileusCard } from '../components/AniversariosJubileusCard';
 import { LiturgiaDiaCard } from '../components/LiturgiaDiaCard';
+import { GotenbergConfigCard } from '../components/GotenbergConfigCard';
 
 interface DocumentoRecente {
   id: string;
@@ -364,6 +365,7 @@ export const SecretariaDashboard: React.FC = () => {
           Seu perfil tem acesso somente ao arquivo confidencial. Documentos oficiais e agenda exigem a permissão geral da Secretaria.
         </div>
       )}
+      <GotenbergConfigCard />
     </main>
   );
 };
