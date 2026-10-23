@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Check, Loader2, Save, Settings2 } from 'lucide-react';
+import { AlertCircle, Check, CheckCircle2, Globe, Info, Link2, Loader2, Save, Settings2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { showToast } from '../hooks/useFeedback';
-
-import { Globe, Link2, Sparkles } from 'lucide-react';
 import { siteSyncService, type SiteConfig } from '../services/siteSyncService';
 
 interface ReligiososConfig {
@@ -286,7 +284,7 @@ export const ReligiososConfiguracoes: React.FC = () => {
           <div className="flex items-center gap-2.5">
             <Globe className="w-4 h-4 text-[#226380]" />
             <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200 font-cinzel">
-              Integração com o Site Oficial (scj.org.br / Render)
+              Integração com o Site Oficial
             </h2>
           </div>
 
@@ -294,34 +292,38 @@ export const ReligiososConfiguracoes: React.FC = () => {
             type="button"
             onClick={handleTestConnection}
             disabled={testingConnection}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-[#226380] text-[#226380] hover:bg-[#226380]/10 rounded-[6px] transition cursor-pointer disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-[6px] transition cursor-pointer disabled:opacity-50 shadow-2xs shrink-0 self-start sm:self-auto motion-press"
           >
-            {testingConnection ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2 className="w-3.5 h-3.5" />}
+            {testingConnection ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2 className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7]" />}
             <span>Testar Conexão</span>
           </button>
         </div>
 
-        <div className="rounded-[6px] bg-slate-50 dark:bg-slate-900/50 p-4 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300 space-y-2">
-          <div className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>Alimentação automática das comunidades e religiosos</span>
+        <div className="rounded-[6px] bg-slate-50/80 dark:bg-slate-900/40 p-4 border border-slate-200/80 dark:border-slate-800/80 text-xs text-slate-600 dark:text-slate-400 flex items-start gap-3">
+          <Info className="w-4 h-4 text-[#226380] shrink-0 mt-0.5" />
+          <div className="space-y-1 leading-relaxed">
+            <span className="font-medium text-slate-800 dark:text-slate-200 block">
+              Comunicação direta banco a banco
+            </span>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              A publicação grava os dados canônicos, fotos 4x4 e vínculos comunitários diretamente no banco de dados do portal. Caso ocorra alteração de domínio público (ex.: migração para <span className="font-medium text-slate-700 dark:text-slate-300">scj.org.br</span>), basta atualizar o endereço abaixo sem impacto na conectividade.
+            </p>
           </div>
-          <p>
-            Permite publicar com um clique no Sistema BRM os dados biográficos, foto de perfil 4x4 e vínculos comunitários diretamente no site público.
-          </p>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            💡 <strong>Aviso sobre mudança de domínio:</strong> Caso o domínio do site mude em breve (ex.: de <code className="font-mono text-slate-700 dark:text-slate-300">scj-brm.onrender.com</code> para <code className="font-mono text-slate-700 dark:text-slate-300">scj.org.br</code>), a sincronização continuará funcionando perfeitamente, bastando atualizar a URL pública abaixo. A comunicação banco a banco é imune a trocas de DNS.
-          </p>
         </div>
 
         {connectionStatus && (
-          <div className={`p-3.5 rounded-[6px] text-xs font-medium border ${
+          <div className={`p-3.5 rounded-[6px] text-xs font-medium border flex items-center gap-2.5 ${
             connectionStatus.success 
               ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50' 
               : 'bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-900/50'
           }`}>
-            <div className="flex items-start gap-2">
-              <span className="font-bold">{connectionStatus.success ? '✓ Conexão bem-sucedida:' : '✕ Falha de conexão:'}</span>
+            {connectionStatus.success ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+            )}
+            <div className="flex-1">
+              <span className="font-semibold mr-1.5">{connectionStatus.success ? 'Conexão validada:' : 'Falha na conexão:'}</span>
               <span>{connectionStatus.message}</span>
             </div>
           </div>
