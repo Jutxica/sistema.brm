@@ -208,7 +208,7 @@ export const SecretariaDashboard: React.FC = () => {
     <main className="mx-auto max-w-6xl space-y-7 px-4 py-6 md:px-8">
       <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between dark:border-slate-800">
         <div>
-          <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+          <p className="mb-1 text-[11px] font-cinzel font-semibold uppercase tracking-[0.16em] text-[#226380] dark:text-[#A3C3C7]">
             Secretaria Provincial • Província BRM
           </p>
           <h1 className="font-cinzel text-2xl font-semibold tracking-tight text-slate-900 dark:text-white md:text-3xl">
@@ -222,7 +222,7 @@ export const SecretariaDashboard: React.FC = () => {
           type="button"
           onClick={load}
           disabled={loading}
-          className="inline-flex items-center justify-center gap-2 self-start rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 sm:self-auto"
+          className="inline-flex items-center justify-center gap-2 self-start rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-cinzel uppercase tracking-wider font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 sm:self-auto"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           Atualizar painel

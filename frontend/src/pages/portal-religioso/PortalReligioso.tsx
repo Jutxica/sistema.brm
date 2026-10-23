@@ -20,7 +20,7 @@ import { FormularioTimbrado } from '../../components/FormularioTimbrado';
 import { LeitorDocumentoModal } from '../../components/LeitorDocumentoModal';
 import { downloadArquivo } from '../../lib/downloadHelper';
 import { showToast } from '../../hooks/useFeedback';
-import { getPortalRedirectUrl } from '../../lib/portalUrls';
+import { getPortalRedirectUrl, getPasswordResetRedirectUrl } from '../../lib/portalUrls';
 import { AgendaVisualizacao } from '../../components/AgendaVisualizacao';
 import { PortalInicioTab } from './tabs/PortalInicioTab';
 import { PortalCalendarioTab } from './tabs/PortalCalendarioTab';
@@ -640,7 +640,7 @@ export const PortalReligioso: React.FC = () => {
     setAuthSuccess(null);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: getPortalRedirectUrl(),
+        redirectTo: getPasswordResetRedirectUrl('portal'),
       });
       if (error) throw error;
       setAuthSuccess('Se houver uma conta para este e-mail, enviaremos as instruções de recuperação.');
@@ -689,7 +689,7 @@ export const PortalReligioso: React.FC = () => {
     return (
       <div className="religious-portal flex min-h-[100svh] flex-col items-center justify-center px-4 py-5 font-sans text-[#203136] transition-colors duration-200 dark:text-[#edf2f1] sm:px-6 sm:py-8">
         <main className="flex w-full max-w-5xl items-center justify-center">
-          <div className="grid w-full overflow-hidden rounded-[24px] border border-[#d6d6d6]/70 bg-white shadow-[0_24px_80px_rgba(17,50,64,0.10)] dark:border-white/10 dark:bg-[#161617] dark:shadow-[0_24px_80px_rgba(0,0,0,0.22)] md:grid-cols-[0.82fr_1.18fr] md:rounded-[30px]">
+          <div className="grid w-full overflow-hidden rounded-xl border border-[#d6d6d6]/70 bg-white shadow-[0_24px_80px_rgba(17,50,64,0.10)] dark:border-white/10 dark:bg-[#161617] dark:shadow-[0_24px_80px_rgba(0,0,0,0.22)] md:grid-cols-[0.82fr_1.18fr] md:rounded-[30px]">
             <aside className="relative hidden flex-col justify-between overflow-hidden bg-[#113240] p-10 text-white md:flex lg:p-12">
               <div aria-hidden="true" className="absolute -right-24 -top-24 h-72 w-72 rounded-full border border-white/10" />
               <div aria-hidden="true" className="absolute -right-12 -top-12 h-48 w-48 rounded-full border border-white/10" />
@@ -989,7 +989,7 @@ export const PortalReligioso: React.FC = () => {
                     onChange={(e) => setRegEmail(e.target.value)}
                     autoComplete="email"
                     placeholder="seu@email.com"
-                    className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
+                    className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#226380] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
                   />
                 </div>
 
@@ -1007,7 +1007,7 @@ export const PortalReligioso: React.FC = () => {
                         value={regSenha}
                       onChange={(e) => setRegSenha(e.target.value)}
                       placeholder="Mínimo 6 caracteres"
-                      className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
+                      className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#226380] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
                     />
                   </div>
                   <div>
@@ -1023,7 +1023,7 @@ export const PortalReligioso: React.FC = () => {
                         value={regConfirmarSenha}
                       onChange={(e) => setRegConfirmarSenha(e.target.value)}
                       placeholder="Repita a senha"
-                      className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
+                      className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#226380] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -1164,7 +1164,7 @@ export const PortalReligioso: React.FC = () => {
         </header>
 
         <main className="mx-auto flex w-full max-w-2xl flex-1 items-center px-4 py-10">
-          <section className="w-full rounded-[24px] border border-[#d6d6d6]/70 bg-white p-6 shadow-[0_16px_48px_rgba(17,50,64,0.08)] dark:border-white/10 dark:bg-[#161617] sm:p-9">
+          <section className="w-full rounded-xl border border-[#d6d6d6]/70 bg-white p-6 shadow-[0_16px_48px_rgba(17,50,64,0.08)] dark:border-white/10 dark:bg-[#161617] sm:p-9">
             <span className="inline-flex items-center gap-2 rounded-full bg-[#f5f5f7] px-3 py-1.5 text-xs font-semibold text-[#226380] dark:bg-[#262628] dark:text-[#a3c3c7]">
               {registrationStatus === 'Aprovado' ? (
                 <CheckCircle2 className="h-4 w-4" />
@@ -1245,14 +1245,14 @@ export const PortalReligioso: React.FC = () => {
                   setEventoInscricaoModal(null);
                   setFormularioInscricaoAtivo(null);
                 }}
-                className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 hover:text-[#0071e3] dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-[6px] transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 hover:text-[#226380] dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-[6px] transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Voltar ao Portal do Confrade</span>
               </button>
               <div className="h-5 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
               <div>
-                <span className="font-mono text-[10px] uppercase font-bold text-[#0071e3] tracking-wider block">
+                <span className="font-mono text-[10px] uppercase font-bold text-[#226380] tracking-wider block">
                   Ficha Oficial de Inscrição Canônica
                 </span>
                 <span className="text-xs text-slate-600 dark:text-slate-400 font-sans font-medium">
@@ -1351,11 +1351,11 @@ export const PortalReligioso: React.FC = () => {
           </div>
           <div className="min-w-0">
             <div className="flex items-center">
-              <span className="portal-brand-title text-lg font-semibold tracking-tight sm:text-xl">
+              <span className="portal-brand-title font-cinzel text-lg font-bold tracking-[0.08em] uppercase text-[#113240] dark:text-white sm:text-xl">
                 Província BRM
               </span>
             </div>
-            <span className="portal-brand-caption mt-0.5 block truncate text-[11px] font-normal">
+            <span className="portal-brand-caption font-cinzel mt-0.5 block truncate text-[10px] tracking-[0.14em] uppercase text-[#61767e] dark:text-[#a0aeaf]">
               Portal do Confrade <span aria-hidden="true" className="px-1 opacity-50">/</span> Padres Dehonianos
             </span>
           </div>
@@ -1399,7 +1399,7 @@ export const PortalReligioso: React.FC = () => {
             {userMenuOpen && (
               <div 
                 data-testid="persona-dropdown-menu"
-                className="motion-dropdown absolute right-0 mt-2 w-72 rounded-[22px] bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border border-[#d6d6d6]/60 dark:border-white/10 shadow-[0_16px_40px_rgba(17,50,64,0.12)] p-2 z-50"
+                className="motion-dropdown absolute right-0 mt-2 w-72 rounded-xl bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border border-[#d6d6d6]/60 dark:border-white/10 shadow-[0_16px_40px_rgba(17,50,64,0.12)] p-2 z-50"
               >
                 
                 {/* Cabeçalho do Confrade no Menu */}
@@ -1421,7 +1421,7 @@ export const PortalReligioso: React.FC = () => {
                     <span className="text-[11px] text-[#707070] dark:text-[#86868b] block truncate">
                       {religiosoData?.email_institucional || user?.email}
                     </span>
-                    <span className="inline-block px-2 py-0.5 mt-1 rounded-full text-[9px] font-semibold uppercase tracking-wider bg-[#0071e3]/10 text-[#0071e3]">
+                    <span className="inline-block px-2 py-0.5 mt-1 rounded-full text-[9px] font-semibold uppercase tracking-wider bg-[#226380]/10 text-[#226380]">
                       {religiosoData?.status_cadastro || 'Cadastrado'}
                     </span>
                   </div>
@@ -1442,7 +1442,7 @@ export const PortalReligioso: React.FC = () => {
                     }}
                     className="w-full flex items-center gap-3 px-3 py-2 rounded-[14px] text-left text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-[#f5f5f7] dark:hover:bg-[#2c2c2e] transition-colors cursor-pointer group"
                   >
-                    <div className="w-7 h-7 rounded-[10px] bg-[#f5f5f7] dark:bg-[#2c2c2e] group-hover:bg-[#0071e3]/10 flex items-center justify-center text-[#707070] group-hover:text-[#0071e3] transition-colors shrink-0">
+                    <div className="w-7 h-7 rounded-[10px] bg-[#f5f5f7] dark:bg-[#2c2c2e] group-hover:bg-[#226380]/10 flex items-center justify-center text-[#707070] group-hover:text-[#226380] transition-colors shrink-0">
                       <User className="w-4 h-4" />
                     </div>
                     <div>
@@ -1463,7 +1463,7 @@ export const PortalReligioso: React.FC = () => {
                     }}
                     className="w-full flex items-center gap-3 px-3 py-2 rounded-[14px] text-left text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-[#f5f5f7] dark:hover:bg-[#2c2c2e] transition-colors cursor-pointer group"
                   >
-                    <div className="w-7 h-7 rounded-[10px] bg-[#f5f5f7] dark:bg-[#2c2c2e] group-hover:bg-[#0071e3]/10 flex items-center justify-center text-[#707070] group-hover:text-[#0071e3] transition-colors shrink-0">
+                    <div className="w-7 h-7 rounded-[10px] bg-[#f5f5f7] dark:bg-[#2c2c2e] group-hover:bg-[#226380]/10 flex items-center justify-center text-[#707070] group-hover:text-[#226380] transition-colors shrink-0">
                       <FileText className="w-4 h-4" />
                     </div>
                     <div>
@@ -1484,7 +1484,7 @@ export const PortalReligioso: React.FC = () => {
                     }}
                     className="w-full flex items-center gap-3 px-3 py-2 rounded-[14px] text-left text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-[#f5f5f7] dark:hover:bg-[#2c2c2e] transition-colors cursor-pointer group"
                   >
-                    <div className="w-7 h-7 rounded-[10px] bg-[#f5f5f7] dark:bg-[#2c2c2e] group-hover:bg-[#0071e3]/10 flex items-center justify-center text-[#707070] group-hover:text-[#0071e3] transition-colors shrink-0">
+                    <div className="w-7 h-7 rounded-[10px] bg-[#f5f5f7] dark:bg-[#2c2c2e] group-hover:bg-[#226380]/10 flex items-center justify-center text-[#707070] group-hover:text-[#226380] transition-colors shrink-0">
                       <Printer className="w-4 h-4" />
                     </div>
                     <div>
@@ -1566,7 +1566,7 @@ export const PortalReligioso: React.FC = () => {
                 }
                 setActiveSection(section);
               }}
-              className={`shrink-0 rounded-full border px-3 py-2 text-xs font-medium transition-colors ${
+              className={`shrink-0 rounded-md border px-3.5 py-1.5 font-cinzel text-[11px] font-semibold tracking-wider uppercase transition-colors ${
                 activeSection === section
                   ? 'border-[#226380] bg-[#226380] text-white'
                   : 'border-[#d6d6d6] bg-white text-[#1d1d1f] dark:border-white/10 dark:bg-[#161617] dark:text-white'
@@ -1581,16 +1581,16 @@ export const PortalReligioso: React.FC = () => {
         <aside className="portal-navigation w-64 shrink-0 hidden md:block space-y-8 rounded-2xl p-4">
           
           <div className="space-y-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#707070] dark:text-[#86868b] px-3 mb-2 block">
+            <span className="font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.18em] text-[#61767e] dark:text-[#a0aeaf] px-3 mb-2 block">
               Navegação do Membro
             </span>
 
             <button
               type="button"
               onClick={() => setActiveSection('inicio')}
-              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-[12px] text-[13px] font-medium transition-all duration-200 text-left cursor-pointer ${
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-lg font-cinzel text-xs font-semibold tracking-wider uppercase transition-all duration-200 text-left cursor-pointer ${
                 activeSection === 'inicio'
-                  ? 'bg-white dark:bg-[#161617] text-[#0071e3] dark:text-[#2997ff] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
+                  ? 'bg-white dark:bg-[#161617] text-[#226380] dark:text-[#A3C3C7] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
                   : 'text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-white/60 dark:hover:bg-[#161617]/60'
               }`}
             >
@@ -1602,9 +1602,9 @@ export const PortalReligioso: React.FC = () => {
               type="button"
               data-testid="nav-item-inscricao"
               onClick={() => void openRegistration()}
-              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-[12px] text-[13px] font-medium transition-all duration-200 text-left cursor-pointer ${
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-lg font-cinzel text-xs font-semibold tracking-wider uppercase transition-all duration-200 text-left cursor-pointer ${
                 activeSection === 'inscricao'
-                  ? 'bg-white dark:bg-[#161617] text-[#0071e3] dark:text-[#2997ff] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
+                  ? 'bg-white dark:bg-[#161617] text-[#226380] dark:text-[#A3C3C7] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
                   : 'text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-white/60 dark:hover:bg-[#161617]/60'
               }`}
             >
@@ -1615,9 +1615,9 @@ export const PortalReligioso: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveSection('calendario')}
-              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-[12px] text-[13px] font-medium transition-all duration-200 text-left cursor-pointer ${
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-lg font-cinzel text-xs font-semibold tracking-wider uppercase transition-all duration-200 text-left cursor-pointer ${
                 activeSection === 'calendario'
-                  ? 'bg-white dark:bg-[#161617] text-[#0071e3] dark:text-[#2997ff] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
+                  ? 'bg-white dark:bg-[#161617] text-[#226380] dark:text-[#A3C3C7] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
                   : 'text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-white/60 dark:hover:bg-[#161617]/60'
               }`}
             >
@@ -1628,9 +1628,9 @@ export const PortalReligioso: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveSection('documentos')}
-              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-[12px] text-[13px] font-medium transition-all duration-200 text-left cursor-pointer ${
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-lg font-cinzel text-xs font-semibold tracking-wider uppercase transition-all duration-200 text-left cursor-pointer ${
                 activeSection === 'documentos'
-                  ? 'bg-white dark:bg-[#161617] text-[#0071e3] dark:text-[#2997ff] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
+                  ? 'bg-white dark:bg-[#161617] text-[#226380] dark:text-[#A3C3C7] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
                   : 'text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-white/60 dark:hover:bg-[#161617]/60'
               }`}
             >
@@ -1641,9 +1641,9 @@ export const PortalReligioso: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveSection('anuario')}
-              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-[12px] text-[13px] font-medium transition-all duration-200 text-left cursor-pointer ${
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-lg font-cinzel text-xs font-semibold tracking-wider uppercase transition-all duration-200 text-left cursor-pointer ${
                 activeSection === 'anuario'
-                  ? 'bg-white dark:bg-[#161617] text-[#0071e3] dark:text-[#2997ff] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
+                  ? 'bg-white dark:bg-[#161617] text-[#226380] dark:text-[#A3C3C7] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
                   : 'text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-white/60 dark:hover:bg-[#161617]/60'
               }`}
             >
@@ -1654,9 +1654,9 @@ export const PortalReligioso: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveSection('hospedagem')}
-              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-[12px] text-[13px] font-medium transition-all duration-200 text-left cursor-pointer ${
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-lg font-cinzel text-xs font-semibold tracking-wider uppercase transition-all duration-200 text-left cursor-pointer ${
                 activeSection === 'hospedagem'
-                  ? 'bg-white dark:bg-[#161617] text-[#0071e3] dark:text-[#2997ff] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
+                  ? 'bg-white dark:bg-[#161617] text-[#226380] dark:text-[#A3C3C7] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
                   : 'text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-white/60 dark:hover:bg-[#161617]/60'
               }`}
             >
@@ -1757,7 +1757,7 @@ export const PortalReligioso: React.FC = () => {
                   <span>Voltar ao Painel do Confrade</span>
                 </button>
               </div>
-              <div className="bg-white dark:bg-[#161617] rounded-[24px] border border-[#d6d6d6]/60 dark:border-white/10 p-6 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+              <div className="bg-white dark:bg-[#161617] rounded-xl border border-[#d6d6d6]/60 dark:border-white/10 p-6 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#707070] dark:text-[#86868b] block mb-1">
                   Secretaria Provincial BRM
                 </span>

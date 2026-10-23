@@ -51,7 +51,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
   return (
     <>
       <div className="space-y-4 md:hidden">
-        <section className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-[#16485a] to-[#113240] p-4 text-white shadow-[0_8px_24px_rgba(17,50,64,0.16)]">
+        <section className="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#16485a] to-[#113240] p-4 text-white shadow-[0_8px_24px_rgba(17,50,64,0.16)]">
           <div className="pointer-events-none absolute -right-10 -top-16 h-36 w-36 rounded-full border border-white/[0.08]" />
           <div className="relative">
             <div className="flex items-center justify-between gap-3">
@@ -91,7 +91,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
 
         <LiturgiaDiaCard />
 
-        <section aria-labelledby="mobile-next-event-title" className="rounded-[24px] border border-[#d6d6d6]/60 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:border-white/10 dark:bg-[#161617]">
+        <section aria-labelledby="mobile-next-event-title" className="rounded-xl border border-[#d6d6d6]/60 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:border-white/10 dark:bg-[#161617]">
           <div className="flex items-center justify-between gap-3">
             <div>
               <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#226380] dark:text-[#A3C3C7]">
@@ -137,7 +137,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
         </section>
 
         {documentoRecente && (
-          <section aria-labelledby="mobile-recent-document-title" className="rounded-[24px] border border-[#d6d6d6]/60 bg-white p-5 dark:border-white/10 dark:bg-[#161617]">
+          <section aria-labelledby="mobile-recent-document-title" className="rounded-xl border border-[#d6d6d6]/60 bg-white p-5 dark:border-white/10 dark:bg-[#161617]">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#707070] dark:text-[#a1a1a6]">
@@ -183,7 +183,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
                   key={item.id}
                   type="button"
                   onClick={() => navigateToSection(item.id)}
-                  className="flex min-h-32 flex-col items-start justify-between rounded-[22px] border border-[#d6d6d6]/60 bg-white p-4 text-left transition-colors hover:border-[#226380]/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380] dark:border-white/10 dark:bg-[#161617]"
+                  className="flex min-h-32 flex-col items-start justify-between rounded-xl border border-[#d6d6d6]/60 bg-white p-4 text-left transition-colors hover:border-[#226380]/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380] dark:border-white/10 dark:bg-[#161617]"
                 >
                   <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7]">
                     <Icon className="h-5 w-5" aria-hidden="true" />
@@ -204,13 +204,13 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
       <div className="hidden space-y-4 sm:space-y-6 md:block">
         
         {/* Masthead Arquitetural do Confrade (Apple Showcase Card) */}
-        <div className="portal-masthead bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-7 sm:p-9 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+        <div className="portal-masthead bg-white dark:bg-[#161617] rounded-xl border border-[#d6d6d6]/60 dark:border-white/10 p-7 sm:p-9 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#707070] dark:text-[#86868b] block mb-1">
+              <span className="font-cinzel text-[11px] font-semibold uppercase tracking-[0.2em] text-[#707070] dark:text-[#86868b] block mb-1">
                 Sint Unum • Padres Dehonianos
               </span>
-              <h2 className="text-xl sm:text-[30px] font-semibold tracking-[-0.03em] text-[#1d1d1f] dark:text-[#f5f5f7]">
+              <h2 className="font-cinzel text-xl sm:text-[26px] font-bold tracking-wide text-[#113240] dark:text-[#f5f5f7]">
                 Saudação fraterna, {displayName}
               </h2>
               <p className="text-xs sm:text-sm text-[#707070] dark:text-[#86868b] font-normal mt-1 leading-relaxed">
@@ -255,20 +255,20 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
           <div 
             onClick={() => navigateToSection('perfil')}
             style={staggerStyle(0)}
-            className="rounded-[20px] sm:rounded-[24px] bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
+            className="rounded-xl sm:rounded-xl bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#226380]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
           >
             <div>
-              <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#0071e3] mb-3 group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#226380] mb-3 group-hover:scale-105 transition-transform">
                 <User className="w-5 h-5" />
               </div>
               <span className="text-[10px] font-semibold tracking-wider text-[#707070] dark:text-[#86868b] block mb-1">
-                01 / CONTA SAAS
+                01 / CADASTRO PESSOAL
               </span>
               <h3 className="text-[15px] font-semibold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
                 Meu Perfil
               </h3>
             </div>
-            <div className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs font-medium text-[#0066cc] dark:text-[#2997ff]">
+            <div className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs font-medium text-[#226380] dark:text-[#A3C3C7]">
               <span>Foto e contatos</span>
               <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
             </div>
@@ -280,10 +280,10 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
             data-testid="card-item-inscricao"
             onClick={() => void openRegistration()}
             style={staggerStyle(1)}
-            className="w-full text-left rounded-[24px] bg-white dark:bg-[#161617] p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
+            className="w-full text-left rounded-xl bg-white dark:bg-[#161617] p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#226380]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
           >
             <div>
-              <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#0071e3] mb-3 group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#226380] mb-3 group-hover:scale-105 transition-transform">
                 <FileText className="w-5 h-5" />
               </div>
               <span className="text-[10px] font-semibold tracking-wider text-[#707070] dark:text-[#86868b] block mb-1">
@@ -293,7 +293,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
                 {registrationMenuLabel}
               </h3>
             </div>
-            <div className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs font-medium text-[#0066cc] dark:text-[#2997ff]">
+            <div className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs font-medium text-[#226380] dark:text-[#A3C3C7]">
               <span>6 etapas • revisar dados</span>
               <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
             </div>
@@ -303,10 +303,10 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
           <div 
             onClick={() => navigateToSection('documentos')}
             style={staggerStyle(2)}
-            className="rounded-[20px] sm:rounded-[24px] bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
+            className="rounded-xl sm:rounded-xl bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#226380]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
           >
             <div>
-              <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#0071e3] mb-3 group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#226380] mb-3 group-hover:scale-105 transition-transform">
                 <FileText className="w-5 h-5" />
               </div>
               <span className="text-[10px] font-semibold tracking-wider text-[#707070] dark:text-[#86868b] block mb-1">
@@ -316,7 +316,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
                 Documentos Oficiais
               </h3>
             </div>
-            <div className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs font-medium text-[#0066cc] dark:text-[#2997ff]">
+            <div className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs font-medium text-[#226380] dark:text-[#A3C3C7]">
               <span>{documentos.length} disponíveis</span>
               <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
             </div>
@@ -326,10 +326,10 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
           <div 
             onClick={() => navigateToSection('ficha-pdf')}
             style={staggerStyle(3)}
-            className="rounded-[20px] sm:rounded-[24px] bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
+            className="rounded-xl sm:rounded-xl bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#226380]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
           >
             <div>
-              <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#0071e3] mb-3 group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#226380] mb-3 group-hover:scale-105 transition-transform">
                 <Printer className="w-5 h-5" />
               </div>
               <span className="text-[10px] font-semibold tracking-wider text-[#707070] dark:text-[#86868b] block mb-1">
@@ -339,7 +339,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
                 Minha Ficha
               </h3>
             </div>
-            <div className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs font-medium text-[#0066cc] dark:text-[#2997ff]">
+            <div className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs font-medium text-[#226380] dark:text-[#A3C3C7]">
               <span>PDF e cópia</span>
               <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
             </div>
@@ -349,10 +349,10 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
           <div 
             onClick={() => navigateToSection('anuario')}
             style={staggerStyle(4)}
-            className="rounded-[20px] sm:rounded-[24px] bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#0071e3]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
+            className="rounded-xl sm:rounded-xl bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#226380]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
           >
             <div>
-              <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#0071e3] mb-3 group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#226380] mb-3 group-hover:scale-105 transition-transform">
                 <BookOpen className="w-5 h-5" />
               </div>
               <span className="text-[9px] sm:text-[10px] font-semibold tracking-wider text-[#707070] dark:text-[#86868b] block mb-1">
@@ -362,7 +362,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
                 Anuário BRM
               </h3>
             </div>
-            <div className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs font-medium text-[#0066cc] dark:text-[#2997ff]">
+            <div className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs font-medium text-[#226380] dark:text-[#A3C3C7]">
               <span>Diretório</span>
               <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
             </div>
@@ -374,7 +374,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
           {/* Minha Situação Canônica */}
-          <div className="bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-7 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+          <div className="bg-white dark:bg-[#161617] rounded-xl border border-[#d6d6d6]/60 dark:border-white/10 p-7 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
             <div className="mb-5">
               <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#707070] dark:text-[#86868b] block mb-1">
                 Registro Diocesano & Provincial
@@ -411,7 +411,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
           </div>
 
           {/* Publicações & Comunicados Recentes */}
-          <div className="bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-7 shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+          <div className="bg-white dark:bg-[#161617] rounded-xl border border-[#d6d6d6]/60 dark:border-white/10 p-7 shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -425,7 +425,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
                 <button
                   type="button"
                   onClick={() => navigateToSection('documentos')}
-                  className="text-xs font-medium text-[#0066cc] dark:text-[#2997ff] hover:underline cursor-pointer"
+                  className="text-xs font-medium text-[#226380] dark:text-[#A3C3C7] hover:underline cursor-pointer"
                 >
                   Ver todos ({documentos.length})
                 </button>
@@ -485,7 +485,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
             <button
               type="button"
               onClick={() => navigateToSection('documentos')}
-              className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs text-[#0066cc] dark:text-[#2997ff] font-medium cursor-pointer motion-press"
+              className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs text-[#226380] dark:text-[#A3C3C7] font-medium cursor-pointer motion-press"
             >
               <span>Consultar acervo de documentos oficiais</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -498,7 +498,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
         <AniversariosJubileusCard variant="portal" />
 
         {/* Próximos Eventos da Agenda Provincial */}
-        <div className="bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-7 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+        <div className="bg-white dark:bg-[#161617] rounded-xl border border-[#d6d6d6]/60 dark:border-white/10 p-7 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
             <div>
               <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#707070] dark:text-[#86868b] block mb-1">
@@ -511,7 +511,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
             <button
               type="button"
               onClick={() => navigateToSection('calendario')}
-              className="text-xs font-medium text-[#0066cc] dark:text-[#2997ff] hover:underline self-start sm:self-auto cursor-pointer"
+              className="text-xs font-medium text-[#226380] dark:text-[#A3C3C7] hover:underline self-start sm:self-auto cursor-pointer"
             >
               Ver calendário completo ({eventos.length})
             </button>
@@ -522,7 +522,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
               <div
                 key={evt.id}
                 style={staggerStyle(idx)}
-                className="p-4 rounded-[20px] bg-[#fbfbfd] dark:bg-[#1f1f21] border border-[#d6d6d6]/60 dark:border-white/10 flex flex-col justify-between gap-3 motion-lift motion-press motion-stagger-item"
+                className="p-4 rounded-xl bg-[#fbfbfd] dark:bg-[#1f1f21] border border-[#d6d6d6]/60 dark:border-white/10 flex flex-col justify-between gap-3 motion-lift motion-press motion-stagger-item"
               >
                 <div className="space-y-1.5">
                   <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getTipoCor()}`}>
@@ -536,7 +536,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
                     <span className="truncate">{evt.local}</span>
                   </span>
                 </div>
-                <div className="pt-2 border-t border-[#d6d6d6]/40 dark:border-white/5 text-[11px] font-medium text-[#0071e3] dark:text-[#2997ff]">
+                <div className="pt-2 border-t border-[#d6d6d6]/40 dark:border-white/5 text-[11px] font-medium text-[#226380] dark:text-[#A3C3C7]">
                   {formatPeriodo(evt.data_inicio, evt.data_fim)}
                 </div>
               </div>

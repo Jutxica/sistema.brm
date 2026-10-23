@@ -65,7 +65,7 @@ export const PortalDocumentosTab: React.FC<PortalDocumentosTabProps> = ({
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs font-medium text-[#707070] dark:text-[#86868b] bg-[#f5f5f7] dark:bg-[#262628] px-4 py-2 rounded-full border border-[#d6d6d6]/40 dark:border-white/5 self-start md:self-auto">
-            <FileText className="w-4 h-4 text-[#0071e3]" />
+            <FileText className="w-4 h-4 text-[#226380]" />
             <span>{documentos.length} documento{documentos.length === 1 ? '' : 's'} disponível{documentos.length === 1 ? '' : 'is'}</span>
           </div>
         </div>
@@ -92,7 +92,7 @@ export const PortalDocumentosTab: React.FC<PortalDocumentosTabProps> = ({
                 onClick={() => setDocCategoria(cat)}
                 className={`min-h-10 shrink-0 snap-start px-3.5 py-2 rounded-full text-xs font-medium transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380] ${
                   docCategoria === cat
-                    ? 'bg-[#0071e3] text-white shadow-sm'
+                    ? 'bg-[#226380] text-white shadow-sm'
                     : 'bg-[#f5f5f7] dark:bg-[#262628] text-[#707070] dark:text-[#86868b] hover:bg-[#e8e8ed] dark:hover:bg-[#333336]'
                 }`}
               >
@@ -111,7 +111,7 @@ export const PortalDocumentosTab: React.FC<PortalDocumentosTabProps> = ({
             onChange={(e) => setDocSearch(e.target.value)}
             aria-label="Buscar documentos oficiais"
             placeholder="Buscar título, assunto ou referência"
-            className="min-h-12 w-full rounded-xl bg-[#f5f5f7] py-2.5 pl-10 pr-12 text-base text-[#1d1d1f] outline-none transition-all placeholder:text-[#707070] focus:border-[#0071e3] focus:bg-white dark:bg-[#262628] dark:text-[#f5f5f7] dark:placeholder:text-[#86868b] dark:focus:bg-[#161617] sm:rounded-full sm:text-sm"
+            className="min-h-12 w-full rounded-xl bg-[#f5f5f7] py-2.5 pl-10 pr-12 text-base text-[#1d1d1f] outline-none transition-all placeholder:text-[#707070] focus:border-[#226380] focus:bg-white dark:bg-[#262628] dark:text-[#f5f5f7] dark:placeholder:text-[#86868b] dark:focus:bg-[#161617] sm:rounded-full sm:text-sm"
           />
           {docSearch && (
             <button
@@ -129,7 +129,7 @@ export const PortalDocumentosTab: React.FC<PortalDocumentosTabProps> = ({
       {/* Grid / Lista de Documentos */}
       {loadingDocumentos ? (
         <div className="py-16 text-center bg-white dark:bg-[#161617] rounded-[28px] border border-[#d6d6d6]/60 dark:border-white/10 p-8">
-          <Loader2 className="w-6 h-6 animate-spin text-[#0071e3] mx-auto mb-2" />
+          <Loader2 className="w-6 h-6 animate-spin text-[#226380] mx-auto mb-2" />
           <span className="text-xs text-[#707070] dark:text-[#86868b]">Carregando documentos oficiais...</span>
         </div>
       ) : documentosFiltrados.length === 0 ? (
@@ -162,7 +162,7 @@ export const PortalDocumentosTab: React.FC<PortalDocumentosTabProps> = ({
             <div
               key={doc.id}
               style={staggerStyle(idx)}
-              className="bg-white dark:bg-[#161617] rounded-[22px] sm:rounded-[24px] border border-[#d6d6d6]/60 dark:border-white/10 p-4 sm:p-6 flex flex-col justify-between hover:border-[#0071e3]/40 dark:hover:border-[#2997ff]/40 transition-all shadow-[0_2px_12px_rgba(0,0,0,0.02)] motion-stagger-item motion-lift"
+              className="bg-white dark:bg-[#161617] rounded-[22px] sm:rounded-[24px] border border-[#d6d6d6]/60 dark:border-white/10 p-4 sm:p-6 flex flex-col justify-between hover:border-[#226380]/40 dark:hover:border-[#A3C3C7]/40 transition-all shadow-[0_2px_12px_rgba(0,0,0,0.02)] motion-stagger-item motion-lift"
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">

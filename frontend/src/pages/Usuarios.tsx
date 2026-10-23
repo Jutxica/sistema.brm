@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { confirmAction, showAlertModal, showToast } from '../hooks/useFeedback';
+import { getPasswordResetRedirectUrl } from '../lib/portalUrls';
 
 interface SystemUser {
   idusuarios: string;
@@ -146,7 +147,7 @@ export const Usuarios: React.FC = () => {
     setSendingResetFor(email);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/login`,
+        redirectTo: getPasswordResetRedirectUrl('sistema'),
       });
       if (error) {
         showToast.error("Erro ao enviar e-mail de acesso/redefinição: " + error.message);
@@ -274,7 +275,7 @@ export const Usuarios: React.FC = () => {
         {!editingUser && (
           <button
             onClick={handleNewClick}
-            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-mono uppercase tracking-wider font-semibold bg-[#113240] text-white hover:bg-[#0c242e] transition-colors cursor-pointer rounded-[6px] shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-cinzel uppercase tracking-wider font-semibold bg-[#113240] text-white hover:bg-[#226380] transition-colors cursor-pointer rounded-[6px] shadow-sm"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Adicionar Usuário</span>
@@ -427,7 +428,7 @@ export const Usuarios: React.FC = () => {
           <div className="apple-card rounded-[6px] overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="border-b border-slate-200 dark:border-slate-800 bg-[#fbfbfd] dark:bg-slate-900/60 text-slate-500 text-[11px] font-semibold uppercase tracking-wider font-mono">
+                <thead className="border-b border-slate-200 dark:border-slate-800 bg-[#fbfbfd] dark:bg-slate-900/60 text-slate-500 text-[11px] font-semibold uppercase tracking-[0.14em] font-cinzel">
                   <tr>
                     <th className="p-4">Usuário</th>
                     <th className="p-4">E-mail</th>

@@ -45,7 +45,7 @@ export const PortalHospedagemTab: React.FC<PortalHospedagemTabProps> = ({
           href="/inscricao"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex min-h-12 w-full sm:w-auto justify-center px-5 sm:px-6 py-3 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-sm font-semibold transition-all items-center gap-2 cursor-pointer self-start sm:self-auto shrink-0 shadow-sm active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0071e3]"
+          className="inline-flex min-h-12 w-full sm:w-auto justify-center px-5 sm:px-6 py-3 rounded-full bg-[#226380] hover:bg-[#0077ed] text-sm font-semibold transition-all items-center gap-2 cursor-pointer self-start sm:self-auto shrink-0 shadow-sm active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#226380]"
         >
           <span>Ficha Geral de Inscrição</span>
           <ExternalLink className="w-4 h-4" />
@@ -63,7 +63,7 @@ export const PortalHospedagemTab: React.FC<PortalHospedagemTabProps> = ({
               Selecione uma das casas da província abaixo para abrir a solicitação de estadia com o destino pré-definido.
             </p>
           </div>
-          {loadingCasas && <Loader2 className="w-4 h-4 animate-spin text-[#0071e3]" />}
+          {loadingCasas && <Loader2 className="w-4 h-4 animate-spin text-[#226380]" />}
         </div>
 
         {casasAcolhida.length > 0 ? (
@@ -74,7 +74,7 @@ export const PortalHospedagemTab: React.FC<PortalHospedagemTabProps> = ({
                 <div
                   key={casa.id}
                   style={staggerStyle(idx)}
-                  className="bg-white dark:bg-[#161617] rounded-[22px] sm:rounded-[24px] border border-[#d6d6d6]/60 dark:border-white/10 p-4 sm:p-6 flex flex-col justify-between hover:border-[#0071e3]/40 dark:hover:border-[#2997ff]/40 transition-all shadow-[0_2px_12px_rgba(0,0,0,0.02)] motion-stagger-item motion-lift"
+                  className="bg-white dark:bg-[#161617] rounded-[22px] sm:rounded-[24px] border border-[#d6d6d6]/60 dark:border-white/10 p-4 sm:p-6 flex flex-col justify-between hover:border-[#226380]/40 dark:hover:border-[#A3C3C7]/40 transition-all shadow-[0_2px_12px_rgba(0,0,0,0.02)] motion-stagger-item motion-lift"
                 >
                   <div>
                     <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
@@ -82,7 +82,7 @@ export const PortalHospedagemTab: React.FC<PortalHospedagemTabProps> = ({
                         {casa.tipo || 'Casa / Obra'}
                       </span>
                       <span className="max-w-full text-xs text-[#707070] dark:text-[#86868b] font-medium flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-[#0071e3]" />
+                        <MapPin className="w-3.5 h-3.5 text-[#226380]" />
                         {loc}
                       </span>
                     </div>
@@ -120,7 +120,7 @@ export const PortalHospedagemTab: React.FC<PortalHospedagemTabProps> = ({
                       href={`/inscricao?casa=${encodeURIComponent(casa.nome)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full min-h-12 py-3 px-3 sm:px-4 rounded-full bg-[#f5f5f7] dark:bg-[#262628] hover:bg-[#0071e3] hover:text-white dark:hover:bg-[#0071e3] text-[#1d1d1f] dark:text-[#f5f5f7] text-sm font-medium transition-all flex items-center justify-center gap-2 cursor-pointer border border-[#d6d6d6]/60 dark:border-white/10 group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0071e3]"
+                      className="w-full min-h-12 py-3 px-3 sm:px-4 rounded-full bg-[#f5f5f7] dark:bg-[#262628] hover:bg-[#226380] hover:text-white dark:hover:bg-[#226380] text-[#1d1d1f] dark:text-[#f5f5f7] text-sm font-medium transition-all flex items-center justify-center gap-2 cursor-pointer border border-[#d6d6d6]/60 dark:border-white/10 group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#226380]"
                     >
                       <span>Solicitar Estadia Nesta Casa</span>
                       <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />

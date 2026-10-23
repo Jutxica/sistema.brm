@@ -163,7 +163,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileNavigationOpen, onMobileMe
         </button>
         <div className="flex min-w-0 items-center gap-3">
           <span className="hidden h-6 w-[3px] shrink-0 rounded-full bg-[#b58a55] sm:block" />
-          <h1 className="truncate text-[15px] font-semibold tracking-tight text-[#203136] dark:text-white sm:text-base">
+          <h1 className="truncate font-cinzel text-sm sm:text-base font-bold tracking-[0.08em] uppercase text-[#113240] dark:text-white">
             {pageTitle}
           </h1>
         </div>

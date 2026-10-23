@@ -554,7 +554,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_nascimento || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_nascimento: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-sans"
                     />
                   </div>
                 </div>
@@ -567,7 +567,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_cpfrg || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_cpfrg: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-sans"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -590,7 +590,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_telefone || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_telefone: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-sans"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -600,7 +600,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_telefoneemergencia || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_telefoneemergencia: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-sans"
                     />
                   </div>
                 </div>
@@ -624,7 +624,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_numero || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_numero: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-sans"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -634,7 +634,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_cep || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_cep: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-sans"
                     />
                   </div>
                 </div>
@@ -667,7 +667,7 @@ export const HospedagensInscricoes: React.FC = () => {
                       required
                       value={editItem.hos_estado || ''}
                       onChange={(e) => setEditItem({ ...editItem, hos_estado: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-mono"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 focus:border-secondary outline-none transition-all font-sans"
                     />
                   </div>
                 </div>
@@ -878,7 +878,7 @@ export const HospedagensInscricoes: React.FC = () => {
 
                 {editItem.hos_recibo === 'Emitir o recibo no nome de terceiro.' && (
                   <div className="space-y-5 border border-slate-200 dark:border-slate-800 p-5 rounded-[6px] bg-slate-50/20 dark:bg-slate-900/10">
-                    <h4 className="text-xs font-bold text-primary dark:text-secondary uppercase tracking-wider font-mono">Dados do Terceiro</h4>
+                    <h4 className="text-xs font-bold text-primary dark:text-secondary uppercase tracking-wider font-cinzel">Dados do Terceiro</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-slate-500">Nome / Razão Social</label>

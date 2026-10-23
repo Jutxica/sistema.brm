@@ -350,7 +350,7 @@ export const EstatisticaBRM: React.FC = () => {
                   Província BRM
                 </span>
                 <span className="text-slate-300 dark:text-slate-700">·</span>
-                <span className="text-xs text-[#707070] dark:text-[#86868b] font-mono uppercase tracking-wider">
+                <span className="text-xs text-[#226380] dark:text-[#A3C3C7] font-cinzel font-semibold uppercase tracking-[0.16em]">
                   Secretaria Provincial
                 </span>
               </div>
@@ -387,7 +387,7 @@ export const EstatisticaBRM: React.FC = () => {
         {/* Filtros de Visualização Oficial */}
         <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-3 print:hidden">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-mono uppercase text-[#707070] dark:text-[#86868b] mr-2">Filtrar:</span>
+            <span className="text-xs font-cinzel uppercase tracking-wider font-semibold text-[#113240] dark:text-[#A3C3C7] mr-2">Filtrar:</span>
             {[
               { id: 'Todos', label: `Todos (${totalGeral})` },
               { id: 'Ativos', label: `Ativos (${enrichedList.filter(r => r.status === 'Ativo' && !r.isCasaSaoJoao).length})` },
@@ -416,7 +416,7 @@ export const EstatisticaBRM: React.FC = () => {
       {/* 2. Resumo da Secretaria Provincial: Indicadores Primordiais de Governo (Architectural Ledger Strip) */}
       <section className="rounded-[6px] overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 dark:divide-slate-800 shadow-sm">
         <div className="p-5 sm:p-6 flex flex-col justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 font-sans">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 font-cinzel">
             Total Província
           </span>
           <div className="mt-3">
@@ -428,7 +428,7 @@ export const EstatisticaBRM: React.FC = () => {
         </div>
 
         <div className="p-5 sm:p-6 flex flex-col justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 font-sans">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 font-cinzel">
             Média Etária
           </span>
           <div className="mt-3">
@@ -441,7 +441,7 @@ export const EstatisticaBRM: React.FC = () => {
         </div>
 
         <div className="p-5 sm:p-6 flex flex-col justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 font-sans">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 font-cinzel">
             Padres
           </span>
           <div className="mt-3">
@@ -453,7 +453,7 @@ export const EstatisticaBRM: React.FC = () => {
         </div>
 
         <div className="p-5 sm:p-6 flex flex-col justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 font-sans">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 font-cinzel">
             Diáconos
           </span>
           <div className="mt-3">
@@ -465,7 +465,7 @@ export const EstatisticaBRM: React.FC = () => {
         </div>
 
         <div className="p-5 sm:p-6 flex flex-col justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 font-sans">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 font-cinzel">
             Fratres Teol.
           </span>
           <div className="mt-3">
@@ -477,7 +477,7 @@ export const EstatisticaBRM: React.FC = () => {
         </div>
 
         <div className="p-5 sm:p-6 flex flex-col justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 font-sans">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 font-cinzel">
             Tirocinantes
           </span>
           <div className="mt-3">
@@ -729,7 +729,7 @@ export const EstatisticaBRM: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-900/40 font-mono text-slate-600 dark:text-slate-400 uppercase text-[10px] tracking-wider">
+              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-900/40 font-cinzel text-slate-600 dark:text-slate-300 uppercase text-[10px] tracking-[0.08em] font-semibold">
                 <th className="p-3.5">Religioso</th>
                 <th className="p-3.5">Grau Canônico</th>
                 <th className="p-3.5">Idade</th>

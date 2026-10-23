@@ -130,7 +130,7 @@ export const AppleTrendChart: React.FC<AppleTrendChartProps> = ({
                 : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <span className="w-2 h-2 bg-[#0071e3]" />
+            <span className="w-2 h-2 bg-[#226380]" />
             Hospedagens ({totalHosp})
           </button>
           <button
@@ -157,8 +157,8 @@ export const AppleTrendChart: React.FC<AppleTrendChartProps> = ({
           <defs>
             {/* Gradient Hospedagens */}
             <linearGradient id="appleHospGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#0071e3" stopOpacity="0.28" />
-              <stop offset="100%" stopColor="#0071e3" stopOpacity="0.0" />
+              <stop offset="0%" stopColor="#226380" stopOpacity="0.28" />
+              <stop offset="100%" stopColor="#226380" stopOpacity="0.0" />
             </linearGradient>
 
             {/* Gradient Religiosos */}
@@ -197,7 +197,7 @@ export const AppleTrendChart: React.FC<AppleTrendChartProps> = ({
               <path
                 d={createSmoothPath(hospValues)}
                 fill="none"
-                stroke="#0071e3"
+                stroke="#226380"
                 strokeWidth="3"
                 strokeLinecap="round"
                 className="transition-all duration-300"
@@ -252,7 +252,7 @@ export const AppleTrendChart: React.FC<AppleTrendChartProps> = ({
                     cx={hospPt.x}
                     cy={hospPt.y}
                     r={isHovered ? 6 : 4}
-                    fill="#0071e3"
+                    fill="#226380"
                     stroke="#ffffff"
                     strokeWidth="2"
                     className="transition-all duration-150 cursor-pointer shadow-sm"

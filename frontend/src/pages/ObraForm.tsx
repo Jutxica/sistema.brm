@@ -312,7 +312,7 @@ export const ObraForm: React.FC = () => {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
-        <Loader2 className="w-8 h-8 rounded-full animate-spin text-[#0071e3]" />
+        <Loader2 className="w-8 h-8 rounded-full animate-spin text-[#226380]" />
         <span className="text-xs font-medium text-[#707070] dark:text-[#86868b] tracking-wider uppercase">
           Carregando informações da obra...
         </span>

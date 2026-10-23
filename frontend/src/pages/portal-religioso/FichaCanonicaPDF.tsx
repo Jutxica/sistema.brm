@@ -358,7 +358,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] w-full py-16">
-        <div className="w-8 h-8 rounded-full border-2 border-[#0071e3]/20 border-t-[#0071e3] animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-[#226380]/20 border-t-[#226380] animate-spin" />
         <span className="text-[12px] font-medium text-[#707070] dark:text-[#86868b] mt-3">
           Gerando Ficha Canônica Oficial...
         </span>

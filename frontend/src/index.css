@@ -35,7 +35,7 @@
   --font-cinzel: 'Cinzel', Georgia, serif;
   --font-cormorant: 'Cormorant Garamond', Georgia, serif;
   --font-timbrado: 'Cormorant Garamond', Georgia, serif;
-  --font-heading: 'Cinzel', Georgia, serif;
+  --font-heading: 'Cinzel', 'Times New Roman', Georgia, serif;
   --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
   --font-jakarta: 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -84,20 +84,64 @@ body {
   color: #f5f5f7;
 }
 
-/* Institutional Headings - Cinzel */
+/* =========================================================================
+   DEHONIAN INSTITUTIONAL TYPOGRAPHY SYSTEM (UTXICA TASTESKILL)
+   Cinzel as Primary Heading & Institutional Voice
+   ========================================================================= */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
 .font-cinzel,
 .font-serif,
-.title-institutional {
-  font-family: var(--font-cinzel);
+.title-institutional,
+.brm-heading,
+.brm-title,
+.brand-title,
+.card-title-institutional {
+  font-family: var(--font-cinzel), 'Times New Roman', Georgia, serif !important;
+  letter-spacing: 0.025em;
 }
 
-/* Tables, Data Cells & Grid Elements - Inter */
-table,
-thead,
-tbody,
+h1 {
+  letter-spacing: 0.02em;
+}
+
+h2, h3 {
+  letter-spacing: 0.03em;
+}
+
+h4, h5, h6 {
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+/* Institutional Table Headers in Cinzel */
 th,
+thead th,
+.table-header-cinzel {
+  font-family: var(--font-cinzel), Georgia, serif !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Tables body & cells in clean tabular sans-serif */
+table,
+tbody,
 td {
-  font-family: var(--font-inter);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+/* Institutional Tab Navigation & Buttons in Cinzel */
+.brm-tab-btn,
+.portal-tab-btn,
+.nav-tab-cinzel,
+button[role="tab"] {
+  font-family: var(--font-cinzel), Georgia, serif !important;
+  letter-spacing: 0.05em;
 }
 
 /* Form Inputs, Selects & Textareas - Inter for crisp typing */
@@ -289,7 +333,7 @@ select:not(.font-mono):not(.font-cinzel) {
   border-radius: 6px;
   background-color: #113240;
   color: #ffffff;
-  font-family: var(--font-mono);
+  font-family: var(--font-cinzel);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -316,7 +360,7 @@ select:not(.font-mono):not(.font-cinzel) {
   border-radius: 6px;
   background-color: #ffffff;
   color: #113240;
-  font-family: var(--font-mono);
+  font-family: var(--font-cinzel);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;

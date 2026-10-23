@@ -90,8 +90,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
           </div>
           {!collapsed && (
             <div className="flex flex-col select-none">
-              <span className="text-[13px] font-semibold tracking-[0.08em] text-[#113240] dark:text-white uppercase">BRM</span>
-              <span className="text-[10px] tracking-[0.11em] uppercase text-[#66777b] dark:text-[#a0aeaf]">Província Meridional</span>
+              <span className="font-cinzel text-[13px] font-bold tracking-[0.14em] text-[#113240] dark:text-white uppercase">BRM</span>
+              <span className="font-cinzel text-[9.5px] tracking-[0.16em] uppercase text-[#66777b] dark:text-[#a0aeaf]">Província Meridional</span>
             </div>
           )}
         </div>
@@ -248,7 +248,7 @@ const SidebarGroup: React.FC<{
       aria-label={collapsed ? label : undefined}
       aria-expanded={open}
       title={collapsed ? label : undefined}
-      className={`brm-sidebar-group-trigger flex min-h-10 w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium text-[#52636a] transition-colors hover:bg-slate-100 hover:text-[#17333d] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white ${open ? 'bg-slate-100/80 dark:bg-white/5' : ''}`}
+      className={`brm-sidebar-group-trigger flex min-h-10 w-full items-center gap-3 rounded-lg px-3 py-2 font-cinzel text-[11px] font-semibold tracking-wider uppercase text-[#52636a] transition-colors hover:bg-slate-100 hover:text-[#113240] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white ${open ? 'bg-slate-100/80 dark:bg-white/5 text-[#113240]' : ''}`}
     >
       <Icon className="h-4 w-4 shrink-0" />
       {!collapsed && <><span className="flex-1 text-left">{label}</span><ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`} /></>}

@@ -1,18 +1,44 @@
-# Supabase Auth email templates
+# Modelos de E-mail do Supabase Auth (Sistema BRM)
 
-## Signup confirmation
+Este diretório contém os templates oficiais e as instruções de configuração de e-mail para a autenticação do sistema.
 
-1. In Supabase, open **Authentication → Email Templates → Confirm signup**.
-2. Paste the contents of [`confirm-signup.html`](./confirm-signup.html) into the template editor and save.
-3. In **Authentication → URL Configuration**, set the production Site URL to `https://sistema.brm.org.br` and add `https://sistema.brm.org.br/portal-religioso` to the allowed redirect URLs.
-4. In the EasyPanel frontend service, set the build environment variable `VITE_PORTAL_PUBLIC_URL=https://sistema.brm.org.br` and redeploy. This keeps signup and password-recovery links on the production portal even if a user starts from another origin.
+---
 
-For local development, leave `VITE_PORTAL_PUBLIC_URL` unset to return to the local site. The email template uses Supabase's `{{ .ConfirmationURL }}` so the confirmation token is handled by Supabase and then sent to the configured portal URL.
+## 1. Configuração no Painel do Supabase
 
-## Welcome message and portal instructions
+### A. URLs de Redirecionamento (URL Configuration)
+No painel do Supabase, acesse **Authentication → URL Configuration**:
+1. **Site URL:**
+   - Defina como: `https://sistema.brm.org.br`
+2. **Redirect URLs (URLs Permitidas):**
+   Adicione as seguintes linhas:
+   - `https://sistema.brm.org.br/**`
+   - `https://sistema.brm.org.br/redefinir-senha`
+   - `https://sistema.brm.org.br/portal-religioso`
+   - `http://localhost:5173/**` *(para testes locais)*
 
-[`welcome-portal.html`](./welcome-portal.html) contains a branded welcome message explaining the first steps in the portal. Its first instruction is to open **Cadastro BRM** after confirming the email and signing in; it then describes the personal profile and other portal features.
+### B. Provedor de E-mail (SMTP)
+Para garantir que os e-mails cheguem e não caiam na caixa de spam (e para evitar o limite de 3-4 envios/hora do Supabase):
+1. Acesse **Project Settings → Authentication → SMTP Settings**.
+2. Ative **Enable Custom SMTP**.
+3. Preencha com as credenciais do seu provedor transacional (**Resend**, **Brevo/Sendinblue**, **SendGrid**, **Amazon SES** ou o servidor de e-mail corporativo da Província `@brm.org.br`).
+4. Em **Authentication → Providers → Email**, confirme que **"Enable email confirmations"** está ativo.
 
-Supabase Auth does not send this welcome message automatically as part of its standard confirmation templates. Configure its delivery separately (for example, through a trusted server-side function or your email provider) after account confirmation. Do not send it from the browser with privileged credentials.
+---
 
-The official BRM form is available to accounts whose link to an official record has been validated. If a new user sees **Vínculo pendente**, they should contact the Provincial Secretariat at `secretaria@brm.org.br` for guidance.
+## 2. Modelos de E-mail (Email Templates)
+
+No painel do Supabase, acesse **Authentication → Email Templates**:
+
+### Template 1: Confirmação de Cadastro (Confirm signup)
+1. Abra o template **Confirm signup**.
+2. Cole o conteúdo de [`confirm-signup.html`](./confirm-signup.html) no editor e salve.
+
+### Template 2: Redefinição de Senha (Reset password)
+1. Abra o template **Reset password**.
+2. Cole o conteúdo de [`reset-password.html`](./reset-password.html) no editor e salve.
+
+---
+
+## 3. Mensagem de Boas-Vindas
+[`welcome-portal.html`](./welcome-portal.html) contém uma mensagem com as orientações iniciais para os novos religiosos do portal.

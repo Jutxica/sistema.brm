@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { Mail, Lock, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
@@ -11,6 +11,15 @@ export const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Redireciona imediatamente caso caia na rota de login com tokens de recuperação
+  useEffect(() => {
+    const hash = window.location.hash || '';
+    const search = window.location.search || '';
+    if (hash.includes('type=recovery') || search.includes('type=recovery')) {
+      navigate(`/redefinir-senha${hash}${search}`, { replace: true });
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,9 +116,17 @@ export const Login: React.FC = () => {
 
             {/* Password Field */}
             <div className="space-y-1.5">
-              <label className="text-[13px] font-medium text-slate-700 dark:text-slate-200 block">
-                Senha
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-[13px] font-medium text-slate-700 dark:text-slate-200 block">
+                  Senha
+                </label>
+                <Link
+                  to="/redefinir-senha?origem=sistema"
+                  className="text-[11px] font-medium text-[#226380] hover:text-[#113240] dark:text-[#A3C3C7] dark:hover:text-white transition-colors"
+                >
+                  Esqueci minha senha
+                </Link>
+              </div>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400 dark:text-slate-500 pointer-events-none">
                   <Lock className="w-4 h-4" />

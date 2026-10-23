@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth, hasModuleAccess } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { FeedbackProvider } from './contexts/FeedbackContext';
@@ -40,6 +40,7 @@ const ValidarDocumento = lazy(() => import('./pages/ValidarDocumento'));
 const ArquivoSecretaria = lazy(() => import('./pages/ArquivoSecretaria'));
 const SecretariaDashboard = lazy(() => import('./pages/SecretariaDashboard'));
 const ReligiosoDossie = lazy(() => import('./pages/ReligiosoDossie'));
+const RedefinirSenha = lazy(() => import('./pages/RedefinirSenha'));
 
 // Apple Loading Spinner Fallback
 const AppleLoadingFallback: React.FC = () => (
@@ -145,20 +146,37 @@ const SecretariaDashboardRoute: React.FC = () => {
   return <SecretariaDashboard />;
 };
 
+const hasRecoveryTokens = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const hash = window.location.hash || '';
+  const search = window.location.search || '';
+  return hash.includes('type=recovery') || search.includes('type=recovery');
+};
+
 const DefaultRedirect: React.FC = () => {
   const { user, isAuthenticated, loading } = useAuth();
   
+  if (hasRecoveryTokens()) {
+    return <Navigate to={`/redefinir-senha${window.location.hash}${window.location.search}`} replace />;
+  }
+
   if (loading) return null;
   
   return <Navigate to={isAuthenticated ? getDefaultPath(user) : "/login"} replace />;
 };
 
 const LoginRoute: React.FC = () => {
+  if (hasRecoveryTokens()) {
+    return <Navigate to={`/redefinir-senha${window.location.hash}${window.location.search}`} replace />;
+  }
   if (isPortalPublicHost()) return <PortalReligioso />;
   return <Login />;
 };
 
 const ApplicationRoot: React.FC = () => {
+  if (hasRecoveryTokens()) {
+    return <Navigate to={`/redefinir-senha${window.location.hash}${window.location.search}`} replace />;
+  }
   if (isPortalPublicHost()) return <PortalReligioso />;
   return <ProtectedRoute><Layout /></ProtectedRoute>;
 };
@@ -178,6 +196,8 @@ export const App: React.FC = () => {
 
                 {/* Public Access */}
                 <Route path="/login" element={<LoginRoute />} />
+                <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+                <Route path="/reset-password" element={<RedefinirSenha />} />
                 <Route path="/inscricao" element={<InscricaoPublica />} />
                 <Route path="/cadastro-religiosos" element={<CadastroReligiosoPublico />} />
                 <Route path="/religiosos-publico" element={<CadastroReligiosoPublico />} />

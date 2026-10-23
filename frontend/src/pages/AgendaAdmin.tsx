@@ -576,18 +576,18 @@ export const AgendaAdmin: React.FC = () => {
             <button
               type="button"
               onClick={() => setPreviewFormModal(null)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 hover:text-[#113240] dark:hover:text-white bg-slate-100 dark:bg-slate-800 rounded-[6px] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-cinzel uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 hover:text-[#113240] dark:hover:text-white bg-slate-100 dark:bg-slate-800 rounded-[6px] transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Voltar à Agenda</span>
             </button>
-            <span className="font-mono text-[11px] uppercase font-bold text-[#226380] dark:text-[#A3C3C7]">
+            <span className="font-cinzel text-[11px] uppercase tracking-wider font-bold text-[#226380] dark:text-[#A3C3C7]">
               Ficha Timbrada Oficial do Evento — Página Completa
             </span>
             <button
               type="button"
               onClick={() => window.print()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-cinzel uppercase tracking-wider font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] transition-colors cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Imprimir Ficha</span>
@@ -628,7 +628,7 @@ export const AgendaAdmin: React.FC = () => {
             <button
               type="button"
               onClick={handleOpenCreate}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-mono uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-cinzel uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Novo Evento Provincial</span>
@@ -646,7 +646,7 @@ export const AgendaAdmin: React.FC = () => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar evento por nome, local ou cidade..."
-                className="w-full pl-9 pr-8 py-2 rounded-[6px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] text-xs text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-400 font-mono"
+                className="w-full pl-9 pr-8 py-2 rounded-[6px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] text-xs text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-400 font-sans"
               />
               {search && (
                 <button
@@ -659,7 +659,7 @@ export const AgendaAdmin: React.FC = () => {
             </div>
 
             {/* Status Selector */}
-            <div className="flex items-center gap-1 p-1 rounded-[6px] bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs self-start md:self-auto font-mono">
+            <div className="flex items-center gap-1 p-1 rounded-[6px] bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs self-start md:self-auto font-cinzel tracking-wider uppercase">
               {['Todos', 'Confirmado', 'Previsto', 'Concluído'].map((st) => (
                 <button
                   key={st}
@@ -678,7 +678,7 @@ export const AgendaAdmin: React.FC = () => {
           </div>
 
           {/* Segmented Type Selectors — Rectangular Ledger */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar text-xs font-mono">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar text-xs font-cinzel tracking-wider uppercase">
             <button
               type="button"
               onClick={() => setSelectedTipo('Todos')}
@@ -714,7 +714,7 @@ export const AgendaAdmin: React.FC = () => {
       {/* Grid de Eventos — Continuous Ledger */}
       <div className="bg-white dark:bg-[#161b22] rounded-[6px] border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-[0_1px_3px_rgba(17,50,64,0.03)]">
         <div className="flex flex-col gap-3 mb-4 pb-3 border-b border-slate-200 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400 font-semibold">
+          <span className="text-[10px] font-cinzel uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400 font-semibold">
             Eventos da Província ({eventosFiltrados.length})
           </span>
           <div className="flex flex-wrap items-center gap-1 rounded-md bg-slate-100 p-1 dark:bg-slate-900">
@@ -743,7 +743,7 @@ export const AgendaAdmin: React.FC = () => {
         {loading ? (
           <div className="py-16 text-center">
             <div className="w-8 h-8 rounded-full border-2 border-[#113240]/20 border-t-[#113240] animate-spin mx-auto mb-3" />
-            <span className="text-xs font-mono text-slate-500 dark:text-slate-400">Carregando agenda...</span>
+            <span className="text-xs font-sans text-slate-500 dark:text-slate-400">Carregando agenda...</span>
           </div>
         ) : eventosFiltrados.length === 0 ? (
           <div className="py-16 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-[6px]">
@@ -955,7 +955,7 @@ export const AgendaAdmin: React.FC = () => {
           <div className="bg-white dark:bg-[#161b22] rounded-[8px] border border-slate-300 dark:border-slate-700 shadow-2xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col border-t-2 border-t-[#226380] motion-modal">
             <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200 dark:border-slate-800">
               <div>
-                <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-[#226380] font-semibold block">
+                <span className="text-[10px] font-cinzel uppercase tracking-[0.16em] text-[#226380] font-semibold block">
                   Secretaria Provincial
                 </span>
                 <h3 className="text-lg font-bold text-[#113240] dark:text-white font-cinzel">
@@ -981,7 +981,7 @@ export const AgendaAdmin: React.FC = () => {
 
               {/* Título */}
               <div>
-                <label className="block text-xs font-semibold font-mono text-[#113240] dark:text-slate-300 mb-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Título do Evento *
                 </label>
                 <input
@@ -997,7 +997,7 @@ export const AgendaAdmin: React.FC = () => {
               {/* Tipo & Status */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold font-mono text-[#113240] dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Tipo de Evento *
                   </label>
                   <select
@@ -1012,7 +1012,7 @@ export const AgendaAdmin: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold font-mono text-[#113240] dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Situação / Status
                   </label>
                   <select
@@ -1031,7 +1031,7 @@ export const AgendaAdmin: React.FC = () => {
               {/* Datas: Início, Fim e Horário */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold font-mono text-[#113240] dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Data de Início *
                   </label>
                   <input
@@ -1039,31 +1039,31 @@ export const AgendaAdmin: React.FC = () => {
                     required
                     value={formDataInicio}
                     onChange={(e) => setFormDataInicio(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] outline-none text-slate-900 dark:text-white font-mono"
+                    className="w-full px-3.5 py-2 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] outline-none text-slate-900 dark:text-white font-sans text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold font-mono text-[#113240] dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Data de Término
                   </label>
                   <input
                     type="date"
                     value={formDataFim}
                     onChange={(e) => setFormDataFim(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] outline-none text-slate-900 dark:text-white font-mono"
+                    className="w-full px-3.5 py-2 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] outline-none text-slate-900 dark:text-white font-sans text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold font-mono text-[#113240] dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Horário de Início
                   </label>
                   <input
                     type="time"
                     value={formHorario}
                     onChange={(e) => setFormHorario(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] outline-none text-slate-900 dark:text-white font-mono"
+                    className="w-full px-3.5 py-2 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] outline-none text-slate-900 dark:text-white font-sans text-xs"
                   />
                 </div>
               </div>
@@ -1078,7 +1078,7 @@ export const AgendaAdmin: React.FC = () => {
                   <select
                     onChange={handleSelectCasa}
                     defaultValue=""
-                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none text-slate-900 dark:text-white text-xs font-mono"
+                    className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none text-slate-900 dark:text-white text-xs font-sans"
                   >
                     <option value="">-- Preencher com dados de uma Casa ou Obra da BRM --</option>
                     {casas.map((c) => (
@@ -1093,7 +1093,7 @@ export const AgendaAdmin: React.FC = () => {
               {/* Local, Cidade e UF */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold font-mono text-[#113240] dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Nome do Local / Comunidade *
                   </label>
                   <input
@@ -1107,7 +1107,7 @@ export const AgendaAdmin: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold font-mono text-[#113240] dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Cidade / UF
                   </label>
                   <div className="flex gap-2">
@@ -1124,7 +1124,7 @@ export const AgendaAdmin: React.FC = () => {
                       value={formUf}
                       onChange={(e) => setFormUf(e.target.value.toUpperCase())}
                       placeholder="SC"
-                      className="w-14 px-2 py-2 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] outline-none text-center font-mono text-slate-900 dark:text-white"
+                      className="w-14 px-2 py-2 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] outline-none text-center font-sans text-xs text-slate-900 dark:text-white"
                     />
                   </div>
                 </div>
@@ -1132,7 +1132,7 @@ export const AgendaAdmin: React.FC = () => {
 
               {/* Público Alvo */}
               <div>
-                <label className="block text-xs font-semibold font-mono text-[#113240] dark:text-slate-300 mb-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Público-Alvo
                 </label>
                 <input
@@ -1146,7 +1146,7 @@ export const AgendaAdmin: React.FC = () => {
 
               {/* Descrição / Pauta */}
               <div>
-                <label className="block text-xs font-semibold font-mono text-[#113240] dark:text-slate-300 mb-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Descrição e Orientações (opcional)
                 </label>
                 <textarea
@@ -1194,7 +1194,7 @@ export const AgendaAdmin: React.FC = () => {
                   <div className="space-y-3 pt-2 border-t border-[#226380]/20">
                     <div>
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-1">
-                        <label className="block text-xs font-semibold font-mono text-[#113240] dark:text-slate-300">
+                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
                           Selecione o Formulário Timbrado Oficial *
                         </label>
                         <button
@@ -1233,7 +1233,7 @@ export const AgendaAdmin: React.FC = () => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[11px] font-mono text-slate-500 dark:text-slate-400 mb-1">
+                        <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
                           Limite de Vagas Disponíveis (opcional)
                         </label>
                         <input
@@ -1241,19 +1241,19 @@ export const AgendaAdmin: React.FC = () => {
                           value={formLimiteVagas}
                           onChange={(e) => setFormLimiteVagas(e.target.value ? Number(e.target.value) : '')}
                           placeholder="Ex: 60"
-                          className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 outline-none text-xs font-mono"
+                          className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 outline-none text-xs font-sans"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-mono text-slate-500 dark:text-slate-400 mb-1">
+                        <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
                           Prazo Limite para Inscrição (opcional)
                         </label>
                         <input
                           type="date"
                           value={formPrazoInscricao}
                           onChange={(e) => setFormPrazoInscricao(e.target.value)}
-                          className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 outline-none text-xs font-mono"
+                          className="w-full px-3 py-1.5 rounded-[6px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 outline-none text-xs font-sans"
                         />
                       </div>
                     </div>
@@ -1266,14 +1266,14 @@ export const AgendaAdmin: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-[6px] text-xs font-mono uppercase font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer border border-slate-300 dark:border-slate-700 motion-press"
+                  className="px-4 py-2 rounded-[6px] text-xs font-cinzel uppercase tracking-wider font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer border border-slate-300 dark:border-slate-700 motion-press"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex items-center gap-2 px-5 py-2 text-xs font-mono uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm disabled:opacity-60 motion-press"
+                  className="inline-flex items-center gap-2 px-5 py-2 text-xs font-cinzel uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm disabled:opacity-60 motion-press"
                 >
                   {saving ? (
                     <>
@@ -1301,7 +1301,7 @@ export const AgendaAdmin: React.FC = () => {
           <div className="bg-white dark:bg-[#161b22] w-full max-w-4xl max-h-[90vh] rounded-[6px] border border-slate-300 dark:border-slate-700 shadow-2xl flex flex-col overflow-hidden">
             <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-3 bg-slate-50 dark:bg-slate-900/50">
               <div>
-                <span className="font-mono text-[10px] uppercase font-bold text-[#226380] dark:text-[#A3C3C7]">
+                <span className="font-cinzel text-[10px] uppercase tracking-wider font-bold text-[#226380] dark:text-[#A3C3C7]">
                   Inscrições Canônicas do Evento
                 </span>
                 <h3 className="font-cinzel text-lg font-bold text-[#113240] dark:text-white">
@@ -1320,7 +1320,7 @@ export const AgendaAdmin: React.FC = () => {
                     setInscritosModalEvento(null);
                     setRelatorioPrintEvento(evt);
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] transition-colors cursor-pointer shadow-xs"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-cinzel uppercase tracking-wider font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] transition-colors cursor-pointer shadow-xs"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>Imprimir Lista Oficial</span>
@@ -1351,7 +1351,7 @@ export const AgendaAdmin: React.FC = () => {
                     link.download = `inscritos_${inscritosModalEvento.id}.csv`;
                     link.click();
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-[6px] transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-cinzel uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-[6px] transition-colors cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Exportar CSV</span>
@@ -1383,7 +1383,7 @@ export const AgendaAdmin: React.FC = () => {
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs border-collapse">
                         <thead>
-                          <tr className="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-[11px] font-mono uppercase text-slate-500">
+                          <tr className="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-[11px] font-cinzel uppercase tracking-[0.08em] text-slate-600 dark:text-slate-300">
                             <th className="p-3">Protocolo</th>
                             <th className="p-3">Confrade</th>
                             <th className="p-3">Grau</th>
@@ -1426,7 +1426,7 @@ export const AgendaAdmin: React.FC = () => {
                                       setFichaPrintResposta(r);
                                     }}
                                     title="Ver ficha completa de inscrição com todas as respostas canônicas"
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono font-semibold text-[#226380] hover:text-[#113240] dark:text-[#A3C3C7] dark:hover:text-white bg-slate-100 hover:bg-[#226380]/15 dark:bg-slate-800 rounded-[4px] transition-colors cursor-pointer border border-[#226380]/20"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-cinzel uppercase font-semibold text-[#226380] hover:text-[#113240] dark:text-[#A3C3C7] dark:hover:text-white bg-slate-100 hover:bg-[#226380]/15 dark:bg-slate-800 rounded-[4px] transition-colors cursor-pointer border border-[#226380]/20"
                                   >
                                     <Eye className="w-3 h-3" />
                                     <span>Ver Ficha</span>
@@ -1447,7 +1447,7 @@ export const AgendaAdmin: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setInscritosModalEvento(null)}
-                className="px-4 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[6px] hover:bg-slate-100 cursor-pointer"
+                className="px-4 py-1.5 text-xs font-cinzel uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[6px] hover:bg-slate-100 cursor-pointer"
               >
                 Fechar
               </button>

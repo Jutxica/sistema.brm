@@ -623,18 +623,18 @@ export const SecretariaConfiguracoes: React.FC = () => {
             <button
               type="button"
               onClick={() => setPreviewForm(null)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 hover:text-[#113240] dark:hover:text-white bg-slate-100 dark:bg-slate-800 rounded-[6px] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-cinzel uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 hover:text-[#113240] dark:hover:text-white bg-slate-100 dark:bg-slate-800 rounded-[6px] transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Voltar às Configurações</span>
             </button>
-            <span className="font-mono text-[11px] uppercase font-bold text-[#226380] dark:text-[#A3C3C7]">
+            <span className="font-cinzel text-[11px] uppercase tracking-wider font-bold text-[#226380] dark:text-[#A3C3C7]">
               Visualização Timbrada em Página Completa
             </span>
             <button
               type="button"
               onClick={() => window.print()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-cinzel uppercase tracking-wider font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] transition-colors cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Imprimir Ficha</span>
@@ -667,7 +667,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
       <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#e5e5ea] dark:border-white/10 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-mono text-xs font-semibold uppercase tracking-wider text-[#226380] dark:text-[#A3C3C7]">
+            <span className="font-cinzel text-xs font-semibold uppercase tracking-wider text-[#226380] dark:text-[#A3C3C7]">
               Sede Provincial BRM • Secretaria Provincial & Atos
             </span>
           </div>
@@ -683,7 +683,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
         <div className="flex items-center gap-2.5">
           <button
             onClick={handleOpenCreateForm}
-            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-mono uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-cinzel uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Novo Formulário Timbrado</span>
@@ -714,7 +714,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
       <div className="bg-[#e8ebed]/70 dark:bg-[#12161f] p-1.5 rounded-[8px] border border-[#113240]/10 dark:border-white/10 flex items-center gap-1.5 overflow-x-auto shadow-xs">
         <button
           onClick={() => setTabAtiva('formularios')}
-          className={`px-4 py-2 text-xs font-mono uppercase tracking-wider font-semibold rounded-[6px] transition-all flex items-center gap-2 cursor-pointer shrink-0 motion-press ${
+          className={`px-4 py-2 text-xs font-cinzel uppercase tracking-wider font-semibold rounded-[6px] transition-all flex items-center gap-2 cursor-pointer shrink-0 motion-press ${
             tabAtiva === 'formularios'
               ? 'bg-white dark:bg-[#1e2535] text-[#113240] dark:text-white shadow-sm border border-[#113240]/15 dark:border-white/15'
               : 'text-[#474747] dark:text-[#86868b] hover:text-[#113240] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 border border-transparent'
@@ -733,7 +733,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
 
         <button
           onClick={() => setTabAtiva('inscricoes')}
-          className={`px-4 py-2 text-xs font-mono uppercase tracking-wider font-semibold rounded-[6px] transition-all flex items-center gap-2 cursor-pointer shrink-0 motion-press ${
+          className={`px-4 py-2 text-xs font-cinzel uppercase tracking-wider font-semibold rounded-[6px] transition-all flex items-center gap-2 cursor-pointer shrink-0 motion-press ${
             tabAtiva === 'inscricoes'
               ? 'bg-white dark:bg-[#1e2535] text-[#113240] dark:text-white shadow-sm border border-[#113240]/15 dark:border-white/15'
               : 'text-[#474747] dark:text-[#86868b] hover:text-[#113240] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 border border-transparent'
@@ -752,7 +752,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
 
         <button
           onClick={() => setTabAtiva('atos')}
-          className={`px-4 py-2 text-xs font-mono uppercase tracking-wider font-semibold rounded-[6px] transition-all flex items-center gap-2 cursor-pointer shrink-0 motion-press ${
+          className={`px-4 py-2 text-xs font-cinzel uppercase tracking-wider font-semibold rounded-[6px] transition-all flex items-center gap-2 cursor-pointer shrink-0 motion-press ${
             tabAtiva === 'atos'
               ? 'bg-white dark:bg-[#1e2535] text-[#113240] dark:text-white shadow-sm border border-[#113240]/15 dark:border-white/15'
               : 'text-[#474747] dark:text-[#86868b] hover:text-[#113240] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 border border-transparent'
@@ -764,7 +764,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
 
         <button
           onClick={() => setTabAtiva('timbrado')}
-          className={`px-4 py-2 text-xs font-mono uppercase tracking-wider font-semibold rounded-[6px] transition-all flex items-center gap-2 cursor-pointer shrink-0 motion-press ${
+          className={`px-4 py-2 text-xs font-cinzel uppercase tracking-wider font-semibold rounded-[6px] transition-all flex items-center gap-2 cursor-pointer shrink-0 motion-press ${
             tabAtiva === 'timbrado'
               ? 'bg-white dark:bg-[#1e2535] text-[#113240] dark:text-white shadow-sm border border-[#113240]/15 dark:border-white/15'
               : 'text-[#474747] dark:text-[#86868b] hover:text-[#113240] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 border border-transparent'
@@ -776,7 +776,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
 
         <button
           onClick={() => setTabAtiva('notificacoes')}
-          className={`px-4 py-2 text-xs font-mono uppercase tracking-wider font-semibold rounded-[6px] transition-all flex items-center gap-2 cursor-pointer shrink-0 motion-press ${
+          className={`px-4 py-2 text-xs font-cinzel uppercase tracking-wider font-semibold rounded-[6px] transition-all flex items-center gap-2 cursor-pointer shrink-0 motion-press ${
             tabAtiva === 'notificacoes'
               ? 'bg-white dark:bg-[#1e2535] text-[#113240] dark:text-white shadow-sm border border-[#113240]/15 dark:border-white/15'
               : 'text-[#474747] dark:text-[#86868b] hover:text-[#113240] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 border border-transparent'
@@ -796,7 +796,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <Shield className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7]" />
-                <span className="font-mono text-xs uppercase font-bold text-[#113240] dark:text-white tracking-wider">
+                <span className="font-cinzel text-xs uppercase font-bold text-[#113240] dark:text-white tracking-wider">
                   Modelos Oficiais de Inscrição Canônica
                 </span>
               </div>
@@ -806,7 +806,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
             </div>
             <button
               onClick={handleOpenCreateForm}
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-mono uppercase font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] border border-[#113240] hover:border-[#226380] transition-all cursor-pointer shadow-xs shrink-0 motion-press"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-cinzel uppercase tracking-wider font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] border border-[#113240] hover:border-[#226380] transition-all cursor-pointer shadow-xs shrink-0 motion-press"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Novo Modelo de Ficha</span>
@@ -822,7 +822,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
               </p>
               <button
                 onClick={handleOpenCreateForm}
-                className="mt-4 px-4 py-2 text-xs font-mono uppercase font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] transition-all cursor-pointer shadow-sm motion-press"
+                className="mt-4 px-4 py-2 text-xs font-cinzel uppercase tracking-wider font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] transition-all cursor-pointer shadow-sm motion-press"
               >
                 Abrir Construtor de Variáveis
               </button>
@@ -987,7 +987,7 @@ export const SecretariaConfiguracoes: React.FC = () => {
                     const formSelecionado = filtroInscricaoFormId === 'todos' ? 'todos' : (formularios.find(f => f.id === filtroInscricaoFormId) || 'todos');
                     setRelatorioPrintForm(formSelecionado);
                   }}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-mono uppercase font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] transition-colors cursor-pointer shadow-sm motion-press"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-cinzel uppercase tracking-wider font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] transition-colors cursor-pointer shadow-sm motion-press"
                   title="Abrir tela de impressão oficial da lista completa de inscritos"
                 >
                   <Printer className="w-3.5 h-3.5" />

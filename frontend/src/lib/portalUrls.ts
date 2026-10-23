@@ -3,7 +3,7 @@ export const isPortalPublicHost = (): boolean => {
 
   const hostname = window.location.hostname.toLowerCase();
 
-  // 1. O domínio principal do sistema administrativo 'sistema.brm.org.br' NUNCA é o portal
+  // 1. O domínio principal do sistema administrativo 'sistema.brm.org.br' NUNCA é o portal raiz
   if (hostname === 'sistema.brm.org.br') {
     return false;
   }
@@ -36,15 +36,12 @@ export const isPortalPublicHost = (): boolean => {
 
 export const getPortalRedirectUrl = (): string => {
   if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname.toLowerCase();
-    // Se já estiver no subdomínio portal, fica na raiz
+    // Se já estiver em subdomínio dedicado ao portal, mantém na raiz
     if (isPortalPublicHost()) {
       return `${window.location.origin}/`;
     }
-    // Se estiver no sistema principal brm.org.br, sugere o subdomínio portal.brm.org.br
-    if (hostname === 'sistema.brm.org.br' || hostname.endsWith('.brm.org.br')) {
-      return `${window.location.protocol}//portal.brm.org.br/`;
-    }
+    // No domínio principal (sistema.brm.org.br ou localhost), a rota oficial é /portal-religioso
+    return `${window.location.origin}/portal-religioso`;
   }
 
   const configuredOrigin = import.meta.env.VITE_PORTAL_PUBLIC_URL?.trim();
@@ -60,6 +57,14 @@ export const getPortalRedirectUrl = (): string => {
     }
   }
 
-  return new URL('/portal-religioso', typeof window !== 'undefined' ? window.location.origin : 'https://sistema.brm.org.br').toString();
+  return 'https://sistema.brm.org.br/portal-religioso';
 };
 
+export const getPasswordResetRedirectUrl = (origem?: 'portal' | 'sistema'): string => {
+  const base = typeof window !== 'undefined'
+    ? window.location.origin
+    : (import.meta.env.VITE_PORTAL_PUBLIC_URL?.trim() || 'https://sistema.brm.org.br');
+  const cleanBase = base.replace(/\/+$/, '');
+  const query = origem ? `?origem=${origem}` : '';
+  return `${cleanBase}/redefinir-senha${query}`;
+};

@@ -186,7 +186,7 @@ const TagTextarea: React.FC<{
         onChange={(e) => onChange(e.target.value)}
         rows={rows}
         placeholder={placeholder}
-        className="w-full apple-input px-3.5 py-2.5 text-xs rounded-[6px] outline-none transition-all font-mono"
+        className="w-full apple-input px-3.5 py-2.5 text-xs rounded-[6px] outline-none transition-all font-sans"
       />
     </div>
   );
@@ -998,7 +998,7 @@ export const HospedagensConfiguracoes: React.FC = () => {
                     </div>
                   </div>
 
-                  <h4 className="text-[10px] font-bold text-secondary uppercase tracking-wider font-mono border-b border-slate-100 dark:border-slate-800/60 pb-1">Configurações de E-mail (PHPMailer SMTP)</h4>
+                  <h4 className="text-[10px] font-bold text-secondary uppercase tracking-wider font-cinzel border-b border-slate-100 dark:border-slate-800/60 pb-1">Configurações de E-mail (PHPMailer SMTP)</h4>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                     <div className="space-y-1.5 md:col-span-2">
@@ -1008,7 +1008,7 @@ export const HospedagensConfiguracoes: React.FC = () => {
                         value={editingEstadia.main_host || ''}
                         onChange={(e) => setEditingEstadia({ ...editingEstadia, main_host: e.target.value })}
                         placeholder="smtp.dehoniana.org.br"
-                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all font-mono"
+                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all font-sans"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -1033,7 +1033,7 @@ export const HospedagensConfiguracoes: React.FC = () => {
                         value={editingEstadia.main_porta || ''}
                         onChange={(e) => setEditingEstadia({ ...editingEstadia, main_porta: e.target.value })}
                         placeholder="587"
-                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all font-mono"
+                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all font-sans"
                       />
                     </div>
                     <div className="space-y-1.5 md:col-span-2">
@@ -1053,7 +1053,7 @@ export const HospedagensConfiguracoes: React.FC = () => {
                         value={editingEstadia.main_email || ''}
                         onChange={(e) => setEditingEstadia({ ...editingEstadia, main_email: e.target.value })}
                         placeholder="contato@brm.org.br"
-                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all font-mono"
+                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all font-sans"
                       />
                     </div>
                   </div>
@@ -1066,7 +1066,7 @@ export const HospedagensConfiguracoes: React.FC = () => {
                         placeholder="••••••••"
                         value={editingEstadia.main_senha || ''}
                         onChange={(e) => setEditingEstadia({ ...editingEstadia, main_senha: e.target.value })}
-                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all font-mono"
+                        className="w-full px-3.5 py-2.5 text-xs border border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-slate-900/50 outline-none focus:border-secondary transition-all font-sans"
                       />
                     </div>
                   </div>

@@ -81,7 +81,7 @@ export const PortalCalendarioTab: React.FC<PortalCalendarioTabProps> = ({
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs font-medium text-[#707070] dark:text-[#86868b] bg-[#f5f5f7] dark:bg-[#262628] px-4 py-2 rounded-full border border-[#d6d6d6]/40 dark:border-white/5 self-start md:self-auto">
-            <Calendar className="w-4 h-4 text-[#0071e3]" />
+            <Calendar className="w-4 h-4 text-[#226380]" />
             <span>{eventos.length} evento{eventos.length === 1 ? '' : 's'} na agenda</span>
           </div>
         </div>
@@ -139,7 +139,7 @@ export const PortalCalendarioTab: React.FC<PortalCalendarioTabProps> = ({
             value={eventoSearch}
             onChange={(e) => setEventoSearch(e.target.value)}
             placeholder="Buscar evento, local ou cidade"
-            className="min-h-12 w-full pl-10 pr-10 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] border border-transparent focus:border-[#0071e3] focus:bg-white dark:focus:bg-[#161617] rounded-xl sm:rounded-full text-base sm:text-sm text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#707070] dark:placeholder-[#86868b] transition-all outline-none"
+            className="min-h-12 w-full pl-10 pr-10 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] border border-transparent focus:border-[#226380] focus:bg-white dark:focus:bg-[#161617] rounded-xl sm:rounded-full text-base sm:text-sm text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#707070] dark:placeholder-[#86868b] transition-all outline-none"
           />
           {eventoSearch && (
             <button
@@ -155,7 +155,7 @@ export const PortalCalendarioTab: React.FC<PortalCalendarioTabProps> = ({
         {/* Lista de Eventos */}
         {loadingEventos ? (
           <div className="py-12 flex flex-col items-center justify-center text-center">
-            <Loader2 className="w-6 h-6 animate-spin text-[#0071e3] mb-2" />
+            <Loader2 className="w-6 h-6 animate-spin text-[#226380] mb-2" />
             <span className="text-xs text-[#707070] dark:text-[#86868b]">Carregando agenda provincial...</span>
           </div>
         ) : eventosFiltrados.length === 0 ? (

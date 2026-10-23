@@ -500,7 +500,7 @@ DROP POLICY IF EXISTS "obras_fotos_anon_delete" ON storage.objects;`;
             <button
               type="button"
               onClick={copyBucketSql}
-              className="inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-mono uppercase tracking-wider font-medium border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer rounded-[6px] shadow-xs motion-press"
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-cinzel uppercase tracking-wider font-semibold border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer rounded-[6px] shadow-xs motion-press"
               title="Copiar script SQL para criar o bucket documentos-provincia no Supabase Storage"
             >
               {copiedSql ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <HardDrive className="w-3.5 h-3.5 text-[#226380]" />}
@@ -510,7 +510,7 @@ DROP POLICY IF EXISTS "obras_fotos_anon_delete" ON storage.objects;`;
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-mono uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-cinzel uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm motion-press"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Publicar Documento</span>
@@ -529,7 +529,7 @@ DROP POLICY IF EXISTS "obras_fotos_anon_delete" ON storage.objects;`;
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar por título, protocolo ou termo..."
-                className="w-full pl-9 pr-8 py-2 rounded-[6px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] text-xs text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-400 font-mono"
+                className="w-full pl-9 pr-8 py-2 rounded-[6px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] text-xs text-slate-900 dark:text-white outline-none transition-all placeholder:text-slate-400 font-sans"
               />
               {search && (
                 <button
@@ -542,7 +542,7 @@ DROP POLICY IF EXISTS "obras_fotos_anon_delete" ON storage.objects;`;
             </div>
 
             {/* Status Filter */}
-            <div className="flex items-center gap-1 p-1 rounded-[6px] bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs self-start md:self-auto font-mono">
+            <div className="flex items-center gap-1 p-1 rounded-[6px] bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs self-start md:self-auto font-cinzel tracking-wider uppercase">
               {(['Ativo', 'Arquivado', 'Todos'] as const).map((st) => (
                 <button
                   key={st}
@@ -561,7 +561,7 @@ DROP POLICY IF EXISTS "obras_fotos_anon_delete" ON storage.objects;`;
           </div>
 
           {/* Categorias Pills — Rectangular Ledger Selectors */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar text-xs font-mono">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar text-xs font-cinzel tracking-wider uppercase">
             <button
               type="button"
               onClick={() => setSelectedCategoria('Todas')}
@@ -597,7 +597,7 @@ DROP POLICY IF EXISTS "obras_fotos_anon_delete" ON storage.objects;`;
       {/* Lista de Documentos — Continuous Architectural Ledger */}
       <div className="bg-white dark:bg-[#161b22] rounded-[6px] border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-[0_1px_3px_rgba(17,50,64,0.03)]">
         <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-200 dark:border-slate-800">
-          <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400 font-semibold">
+          <span className="text-[10px] font-cinzel uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400 font-semibold">
             Documentos Cadastrados ({documentosFiltrados.length})
           </span>
           <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500">
@@ -608,7 +608,7 @@ DROP POLICY IF EXISTS "obras_fotos_anon_delete" ON storage.objects;`;
         {loading ? (
           <div className="py-16 text-center">
             <div className="w-8 h-8 rounded-full border-2 border-[#113240]/20 border-t-[#113240] dark:border-white/20 dark:border-t-white animate-spin mx-auto mb-3" />
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">Carregando acervo de documentos...</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-sans">Carregando acervo de documentos...</span>
           </div>
         ) : documentosFiltrados.length === 0 ? (
           <div className="py-16 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-[6px] bg-slate-50/50 dark:bg-white/[0.02]">
@@ -731,7 +731,7 @@ DROP POLICY IF EXISTS "obras_fotos_anon_delete" ON storage.objects;`;
             {/* Header Modal */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
               <div>
-                <span className="text-[9px] font-mono font-semibold uppercase tracking-[0.16em] text-[#226380] block">
+                <span className="text-[9px] font-cinzel font-semibold uppercase tracking-[0.16em] text-[#226380] block">
                   Secretaria Provincial
                 </span>
                 <h3 className="text-base font-bold text-[#113240] dark:text-white font-cinzel">
@@ -758,7 +758,7 @@ DROP POLICY IF EXISTS "obras_fotos_anon_delete" ON storage.objects;`;
 
               {/* Upload Drag & Drop Box */}
               <div>
-                <label className="block text-xs font-semibold text-[#113240] dark:text-slate-200 mb-1.5 font-mono uppercase tracking-wider text-[11px]">
+                <label className="block text-xs font-semibold text-[#113240] dark:text-slate-200 mb-1.5 font-cinzel uppercase tracking-wider text-[11px]">
                   Arquivo do Documento (PDF, DOCX, etc.) *
                 </label>
                 <div
@@ -810,7 +810,7 @@ DROP POLICY IF EXISTS "obras_fotos_anon_delete" ON storage.objects;`;
 
               {/* Título do Documento */}
               <div>
-                <label className="block text-[11px] font-mono uppercase tracking-wider font-semibold text-[#113240] dark:text-slate-200 mb-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1 font-sans">
                   Título do Documento *
                 </label>
                 <input
@@ -826,7 +826,7 @@ DROP POLICY IF EXISTS "obras_fotos_anon_delete" ON storage.objects;`;
               {/* Grid: Categoria & Número de Referência */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-mono uppercase tracking-wider font-semibold text-[#113240] dark:text-slate-200 mb-1">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1 font-sans">
                     Categoria Oficial *
                   </label>
                   <select
@@ -841,7 +841,7 @@ DROP POLICY IF EXISTS "obras_fotos_anon_delete" ON storage.objects;`;
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-mono uppercase tracking-wider font-semibold text-[#113240] dark:text-slate-200 mb-1">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1 font-sans">
                     Nº de Referência / Protocolo
                   </label>
                   <input
@@ -849,27 +849,27 @@ DROP POLICY IF EXISTS "obras_fotos_anon_delete" ON storage.objects;`;
                     value={formReferencia}
                     onChange={(e) => setFormReferencia(e.target.value)}
                     placeholder="Ex: Prot. 04/2026, Dec. 01/2026"
-                    className="w-full px-3 py-2 rounded-[6px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] outline-none text-slate-900 dark:text-white text-xs font-mono"
+                    className="w-full px-3 py-2 rounded-[6px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] outline-none text-slate-900 dark:text-white text-xs font-sans"
                   />
                 </div>
               </div>
 
               {/* Data do Documento */}
               <div>
-                <label className="block text-[11px] font-mono uppercase tracking-wider font-semibold text-[#113240] dark:text-slate-200 mb-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1 font-sans">
                   Data do Documento
                 </label>
                 <input
                   type="date"
                   value={formDataDoc}
                   onChange={(e) => setFormDataDoc(e.target.value)}
-                  className="w-full px-3 py-2 rounded-[6px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] outline-none text-slate-900 dark:text-white text-xs font-mono"
+                  className="w-full px-3 py-2 rounded-[6px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] outline-none text-slate-900 dark:text-white text-xs font-sans"
                 />
               </div>
 
               {/* Breve Descrição */}
               <div>
-                <label className="block text-[11px] font-mono uppercase tracking-wider font-semibold text-[#113240] dark:text-slate-200 mb-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1 font-sans">
                   Resumo / Observações (opcional)
                 </label>
                 <textarea
@@ -893,7 +893,7 @@ DROP POLICY IF EXISTS "obras_fotos_anon_delete" ON storage.objects;`;
                 <button
                   type="submit"
                   disabled={uploading}
-                  className="inline-flex items-center gap-2 px-5 py-2 text-xs font-mono uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all disabled:opacity-50 cursor-pointer rounded-[6px] shadow-sm motion-press"
+                  className="inline-flex items-center gap-2 px-5 py-2 text-xs font-cinzel uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all disabled:opacity-50 cursor-pointer rounded-[6px] shadow-sm motion-press"
                 >
                   {uploading ? (
                     <>

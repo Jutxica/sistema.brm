@@ -278,7 +278,7 @@ export const ReligiososAdmin: React.FC = () => {
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#0071e3]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#226380]" />
       </div>
     );
   }
@@ -298,7 +298,7 @@ export const ReligiososAdmin: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/religiosos/novo')}
-            className="inline-flex items-center gap-2 border border-slate-900 bg-slate-900 px-4 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90 dark:border-white dark:bg-white dark:text-slate-900"
+            className="inline-flex items-center gap-2 border border-slate-900 bg-slate-900 px-4 py-2 text-xs font-cinzel uppercase tracking-wider font-semibold text-white transition-opacity hover:opacity-90 dark:border-white dark:bg-white dark:text-slate-900"
           >
             <Plus className="h-3.5 w-3.5" />
             Novo religioso
@@ -307,10 +307,10 @@ export const ReligiososAdmin: React.FC = () => {
       </header>
 
       <div className="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-800">
-        <button type="button" onClick={() => setActiveTab('fichas')} className={`border-b-2 px-3 py-2 text-xs font-semibold ${activeTab === 'fichas' ? 'border-[#113240] text-[#113240] dark:border-white dark:text-white' : 'border-transparent text-slate-500 dark:text-slate-400'}`}>
+        <button type="button" onClick={() => setActiveTab('fichas')} className={`border-b-2 px-3 py-2 text-xs font-cinzel uppercase tracking-wider font-semibold ${activeTab === 'fichas' ? 'border-[#113240] text-[#113240] dark:border-white dark:text-white' : 'border-transparent text-slate-500 dark:text-slate-400'}`}>
           Fichas canônicas ({items.length})
         </button>
-        <button type="button" onClick={() => { setActiveTab('contas'); void refreshAccounts(); }} className={`border-b-2 px-3 py-2 text-xs font-semibold ${activeTab === 'contas' ? 'border-[#113240] text-[#113240] dark:border-white dark:text-white' : 'border-transparent text-slate-500 dark:text-slate-400'}`}>
+        <button type="button" onClick={() => { setActiveTab('contas'); void refreshAccounts(); }} className={`border-b-2 px-3 py-2 text-xs font-cinzel uppercase tracking-wider font-semibold ${activeTab === 'contas' ? 'border-[#113240] text-[#113240] dark:border-white dark:text-white' : 'border-transparent text-slate-500 dark:text-slate-400'}`}>
           Contas de acesso ({accounts.length})
         </button>
       </div>
@@ -327,7 +327,7 @@ export const ReligiososAdmin: React.FC = () => {
           <Metric label="Contas bloqueadas" value={totals.blocked} />
           <div className="flex items-center justify-between gap-3 border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#161b22]">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Gerenciamento</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-cinzel font-semibold">Gerenciamento</p>
               <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">Convide, bloqueie ou remova acessos sem apagar fichas canônicas.</p>
             </div>
             <button type="button" onClick={() => openAccountDialog('invite')} className="inline-flex shrink-0 items-center gap-2 border border-slate-900 bg-slate-900 px-3 py-2 text-xs font-medium text-white dark:border-white dark:bg-white dark:text-slate-900">
@@ -584,8 +584,8 @@ export const ReligiososAdmin: React.FC = () => {
 
 const Metric: React.FC<{ label: string; value: number }> = ({ label, value }) => (
   <div className="border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#161b22]">
-    <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{label}</p>
-    <p className="mt-3 text-3xl font-semibold text-slate-900 dark:text-white">{value}</p>
+    <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-cinzel font-semibold">{label}</p>
+    <p className="mt-2 text-3xl font-bold text-[#113240] dark:text-white font-cinzel tabular-nums">{value}</p>
   </div>
 );
 
