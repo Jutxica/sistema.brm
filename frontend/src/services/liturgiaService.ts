@@ -1,7 +1,7 @@
 /**
  * liturgiaService.ts
  * Serviço de dados litúrgicos para o Painel do Religioso da Província BRM.
- * Fornece cor litúrgica do dia, tempo litúrgico, santos/solenidades e versículo evangélico diário.
+ * Fornece cor litúrgica do dia, tempo litúrgico, santos/solenidades e o Evangelho do dia.
  */
 
 export interface InfoLiturgica {
@@ -16,6 +16,10 @@ export interface InfoLiturgica {
   grauCelebracao: 'Solenidade' | 'Festa' | 'Memória' | 'Memória Facultativa' | 'Féria';
   versiculoTexto: string;
   versiculoReferencia: string;
+  evangelhoReferencia: string;
+  evangelhoTitulo: string;
+  evangelhoTexto: string;
+  evangelhoTrecho: string;
 }
 
 // Mapa de cores litúrgicas da Igreja Católica
@@ -66,15 +70,67 @@ const SANTORAL_FIXO: Record<string, { santo: string; grau: InfoLiturgica['grauCe
   '12-25': { santo: 'Natal de Nosso Senhor Jesus Cristo', grau: 'Solenidade', cor: 'branco' }
 };
 
-const VERSICULOS_INSPIRADORES = [
-  { texto: '“Vinde a mim todos vós que estais cansados e fatigados sob o peso dos vossos fardos, e eu vos darei descanso.”', ref: 'Mt 11, 28' },
-  { texto: '“Aprendei de mim, porque sou manso e humilde de coração, e encontrareis descanso para as vossas almas.”', ref: 'Mt 11, 29' },
-  { texto: '“Eis o Coração que tanto amou os homens.”', ref: 'Espiritualidade Dehoniana' },
-  { texto: '“O Senhor é o meu pastor, nada me faltará. Em verdes prados ele me faz repousar.”', ref: 'Sl 23, 1-2' },
-  { texto: '“Eu sou o caminho, a verdade e a vida. Ninguém vem ao Pai a não ser por mim.”', ref: 'Jo 14, 6' },
-  { texto: '“Amarás o Senhor teu Deus de todo o teu coração, e o teu próximo como a ti mesmo.”', ref: 'Mc 12, 30-31' },
-  { texto: '“O que fizerdes ao menor dos meus irmãos, a mim o fizestes.”', ref: 'Mt 25, 40' }
+const EVANGELHOS_FALLBACK = [
+  {
+    ref: 'Lc 12, 54-59',
+    titulo: 'Evangelho segundo Lucas',
+    texto: 'Naquele tempo, Jesus dizia às multidões: “Quando vedes uma nuvem vinda do ocidente, logo dizeis que vem chuva. E assim acontece. Quando sentis soprar o vento do sul, logo dizeis que vai fazer calor. E assim acontece. Hipócritas! Vós sabeis interpretar o aspecto da terra e do céu. Como é que não sabeis interpretar o tempo presente? Por que não julgais por vós mesmos o que é justo?”.'
+  },
+  {
+    ref: 'Mt 11, 28-30',
+    titulo: 'Evangelho segundo Mateus',
+    texto: 'Naquele tempo, tomou Jesus a palavra e disse: “Vinde a mim todos vós que estais cansados e fatigados sob o peso dos vossos fardos, e eu vos darei descanso. Tomai sobre vós o meu jugo e aprendei de mim, porque sou manso e humilde de coração, e encontrareis descanso para as vossas almas. Pois o meu jugo é suave e o meu fardo é leve”.'
+  },
+  {
+    ref: 'Jo 15, 9-12',
+    titulo: 'Evangelho segundo João',
+    texto: 'Naquele tempo, disse Jesus aos seus discípulos: “Como o Pai me amou, assim também eu vos amei. Permanecei no meu amor. Se guardardes os meus mandamentos, permanecereis no meu amor, assim como eu guardei os mandamentos do meu Pai e permaneço no seu amor. Eu vos disse isso para que a minha alegria esteja em vós e a vossa alegria seja plena”.'
+  },
+  {
+    ref: 'Mc 10, 42-45',
+    titulo: 'Evangelho segundo Marcos',
+    texto: 'Naquele tempo, Jesus chamou os doze e disse-lhes: “Sabeis que os chefes das nações as subjugam e os seus grandes as tiranizam. Entre vós, porém, não deve ser assim: quem quiser ser grande entre vós seja aquele que vos serve; e quem quiser ser o primeiro entre vós seja o servo de todos. Pois o Filho do Homem não veio para ser servido, mas para servir e dar a sua vida em resgate por muitos”.'
+  },
+  {
+    ref: 'Jo 14, 1-6',
+    titulo: 'Evangelho segundo João',
+    texto: 'Naquele tempo, disse Jesus aos seus discípulos: “Não se perturbe o vosso coração. Tendes fé em Deus, tende fé também em mim. Na casa de meu Pai há muitas moradas. Eu sou o caminho, a verdade e a vida. Ninguém vem ao Pai a não ser por mim”.'
+  },
+  {
+    ref: 'Mt 5, 1-12',
+    titulo: 'Evangelho segundo Mateus',
+    texto: 'Vendo Jesus as multidões, subiu à montanha e sentou-se. Seus discípulos aproximaram-se, e ele começou a ensiná-los: “Bem-aventurados os pobres em espírito, porque deles é o Reino dos Céus. Bem-aventurados os aflitos, porque serão consolados. Bem-aventurados os mansos, porque possuirão a terra”.'
+  },
+  {
+    ref: 'Lc 10, 25-37',
+    titulo: 'Evangelho segundo Lucas',
+    texto: 'Naquele tempo, um mestre da Lei levantou-se para pôr Jesus à prova. Perguntou: “Mestre, o que devo fazer para herdar a vida eterna?”. Jesus lhe disse: “Amarás o Senhor teu Deus de todo o teu coração, de toda a tua alma, de todas as tuas forças e de todo o teu entendimento; e ao teu próximo como a ti mesmo”.'
+  }
 ];
+
+function extrairTrechoEvangelho(textoCompleto: string): string {
+  // Limpa números de versículos inline como "54Jesus" -> "Jesus"
+  const limpo = textoCompleto
+    .replace(/\b\d{1,3}(?=[A-Za-zÀ-ÖØ-öø-ÿ“])/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Seleciona as primeiras sentenças até aprox 220 caracteres com quebra natural de pontuação
+  const sentencas = limpo.match(/[^.!?]+[.!?]+/g);
+  if (!sentencas || sentencas.length === 0) {
+    return limpo.length > 220 ? limpo.slice(0, 217).trim() + '...' : limpo;
+  }
+
+  let trecho = '';
+  for (const s of sentencas) {
+    if ((trecho + s).length > 260 && trecho.length > 80) {
+      break;
+    }
+    trecho += (trecho ? ' ' : '') + s.trim();
+  }
+
+  return trecho || limpo;
+}
 
 export const liturgiaService = {
   /**
@@ -105,7 +161,7 @@ export const liturgiaService = {
       cor = 'branco';
     }
 
-    // Verifica santoral fixo ou festas dehonianas
+    // Santoral fixo ou féria
     let santo = 'Santos e Beatos da Igreja de Cristo';
     let grau: InfoLiturgica['grauCelebracao'] = 'Féria';
 
@@ -115,21 +171,27 @@ export const liturgiaService = {
       grau = fixo.grau;
       cor = fixo.cor;
     } else {
-      // Celebração da féria ou memória corrente
       santo = `Féria do ${tempo}`;
     }
 
-    // Tenta enriquecer via API pública da Liturgia se disponível
+    const fallbackIndex = (dataRef.getDate() + dataRef.getMonth()) % EVANGELHOS_FALLBACK.length;
+    const fallbackEvangelho = EVANGELHOS_FALLBACK[fallbackIndex];
+
+    let evRef = fallbackEvangelho.ref;
+    let evTit = fallbackEvangelho.titulo;
+    let evTexto = fallbackEvangelho.texto;
+
+    // Tenta enriquecer via API pública da Liturgia da Igreja no Brasil
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
       const res = await fetch(`https://liturgia.up.railway.app/${dia}-${mes}`, { signal: controller.signal });
       clearTimeout(timeoutId);
 
       if (res.ok) {
         const json = await res.json();
         if (json.cor) {
-          const corApi = json.cor.toLowerCase();
+          const corApi = String(json.cor).toLowerCase();
           if (corApi.includes('verd')) cor = 'verde';
           else if (corApi.includes('branc')) cor = 'branco';
           else if (corApi.includes('rox')) cor = 'roxo';
@@ -139,12 +201,17 @@ export const liturgiaService = {
         if (json.liturgia) {
           santo = json.liturgia;
         }
+        if (json.evangelho) {
+          if (json.evangelho.referencia) evRef = json.evangelho.referencia;
+          if (json.evangelho.titulo) evTit = json.evangelho.titulo;
+          if (json.evangelho.texto) evTexto = json.evangelho.texto;
+        }
       }
     } catch {
       // Fallback gracioso ativo
     }
 
-    const versiculo = VERSICULOS_INSPIRADORES[dataRef.getDate() % VERSICULOS_INSPIRADORES.length];
+    const trechoFormatado = extrairTrechoEvangelho(evTexto);
     const corConfig = CORES_LITURGICAS[cor];
 
     return {
@@ -157,8 +224,12 @@ export const liturgiaService = {
       santoDoDia: santo,
       tituloCelebracao: santo,
       grauCelebracao: grau,
-      versiculoTexto: versiculo.texto,
-      versiculoReferencia: versiculo.ref
+      versiculoTexto: trechoFormatado,
+      versiculoReferencia: evRef,
+      evangelhoReferencia: evRef,
+      evangelhoTitulo: evTit,
+      evangelhoTexto: evTexto,
+      evangelhoTrecho: trechoFormatado
     };
   }
 };
