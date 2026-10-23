@@ -414,27 +414,36 @@ export const ElencoSecretaria: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 pb-12">
-      <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Secretaria Provincial • Elenco 2026</span>
-          <h1 className="mt-1 font-cinzel text-2xl font-semibold tracking-tight text-slate-900 dark:text-white sm:text-3xl">Elenco dos Religiosos</h1>
-          <p className="mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">Consulte comunidades e designações, registre transferências e mantenha a situação canônica atualizada.</p>
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-slate-800">
+        <div className="space-y-1">
+          <span className="font-cinzel text-[11px] font-semibold uppercase tracking-[0.18em] text-[#226380] dark:text-[#A3C3C7] block">
+            Secretaria Provincial • Elenco 2026
+          </span>
+          <h1 className="font-cinzel text-2xl font-bold tracking-tight text-[#113240] dark:text-white sm:text-3xl">
+            Elenco dos Religiosos
+          </h1>
+          <p className="max-w-2xl text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-sans leading-relaxed">
+            Consulte comunidades e designações, registre transferências e mantenha a situação canônica atualizada.
+          </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+
+        <div className="flex items-center gap-2.5 shrink-0 self-start md:self-auto pt-1 md:pt-0">
           <button
             type="button"
             onClick={abrirModalSincronizacao}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-[#226380] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#17485b] shadow-xs transition hover:bg-slate-50 dark:border-sky-400 dark:bg-slate-800 dark:text-sky-200 dark:hover:bg-slate-700"
+            className="inline-flex items-center justify-center gap-2 rounded-[6px] border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] hover:bg-slate-50 dark:hover:bg-slate-800 px-3.5 py-2.5 text-xs font-cinzel uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 shadow-2xs transition-all cursor-pointer motion-press"
           >
-            <Globe className="h-4 w-4 text-sky-600 dark:text-sky-400" />
-            Sincronizar com Site Oficial
+            <Globe className="h-3.5 w-3.5 text-[#226380] dark:text-[#A3C3C7]" />
+            <span>Sincronizar com Site</span>
           </button>
+
           <button
             type="button"
             onClick={() => abrirDesignacao()}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-[#113240] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#19495b]"
+            className="inline-flex items-center justify-center gap-2 rounded-[6px] border border-[#113240] bg-[#113240] hover:bg-[#226380] hover:border-[#226380] px-4 py-2.5 text-xs font-cinzel uppercase tracking-wider font-semibold text-white shadow-xs transition-all cursor-pointer motion-press"
           >
-            <Plus className="h-4 w-4" /> Nova designação
+            <Plus className="h-3.5 w-3.5" />
+            <span>Nova Designação</span>
           </button>
         </div>
       </header>
