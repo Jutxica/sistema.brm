@@ -34,6 +34,30 @@ const dateLabel = (value: string) => {
   return Number.isNaN(date.getTime()) ? 'Sem data' : date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 };
 
+/** Inline delay for the welcome entrance sequence (see .brm-enter-* in index.css) */
+const enter = (ms: number) => ({ ['--enter-delay' as string]: `${ms}ms` }) as React.CSSProperties;
+
+const saudacaoDoDia = () => {
+  const hora = new Date().getHours();
+  return hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+};
+
+/** Greeting whose words rise out of a soft blur, one after another */
+const WelcomeHeading: React.FC<{ nome: string; delay?: number }> = ({ nome, delay = 120 }) => {
+  const texto = `${saudacaoDoDia()}, ${nome}`;
+  const palavras = texto.split(' ');
+  return (
+    <h1 aria-label={texto} className="text-2xl font-semibold tracking-tight text-[#17333d] dark:text-white sm:text-3xl">
+      {palavras.map((palavra, i) => (
+        <React.Fragment key={`${palavra}-${i}`}>
+          <span aria-hidden="true" style={enter(delay + i * 70)} className="brm-enter-word">{palavra}</span>
+          {i < palavras.length - 1 && ' '}
+        </React.Fragment>
+      ))}
+    </h1>
+  );
+};
+
 export const Inicio: React.FC = () => {
   const { user } = useAuth();
   const [data, setData] = useState(initialData);
@@ -158,10 +182,10 @@ export const Inicio: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-10">
-      <header className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161b22] sm:p-7">
+      <header className="brm-enter-rise rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161b22] sm:p-7">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
+            <div style={enter(80)} className="brm-enter-rise mb-2 flex flex-wrap items-center gap-2">
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#226380] dark:text-[#A3C3C7]">
                 Província Brasil Meridional
               </span>
@@ -169,14 +193,12 @@ export const Inicio: React.FC = () => {
                 Painel integrado
               </span>
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-[#17333d] dark:text-white sm:text-3xl">
-              Olá, {user?.nome || 'Usuário'}
-            </h1>
-            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+            <WelcomeHeading nome={user?.nome || 'Usuário'} />
+            <p style={enter(380)} className="brm-enter-rise mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-600 dark:text-slate-400">
               Acompanhe cadastros, hospedagens e as principais pendências da Província.
             </p>
           </div>
-          <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
+          <div style={enter(300)} className="brm-enter-rise flex shrink-0 flex-col items-start gap-3 sm:items-end">
             <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${
               data.inscricoesAbertas
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-300'
@@ -199,7 +221,9 @@ export const Inicio: React.FC = () => {
         </div>
       </header>
 
-      <LiturgiaDiaCard />
+      <div style={enter(460)} className="brm-enter-rise">
+        <LiturgiaDiaCard />
+      </div>
 
       {data.warning && (
         <div className="flex items-center gap-3 rounded-[6px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-800 dark:text-amber-300">
@@ -209,7 +233,7 @@ export const Inicio: React.FC = () => {
       )}
 
       {/* Bento Grid Metrics — utxica-tasteskill Principles */}
-      <section aria-label="Indicadores principais" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+      <section aria-label="Indicadores principais" style={{ ['--stagger-base' as string]: '520ms' } as React.CSSProperties} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <MetricCard label="Religiosos" value={data.religiosos.total} icon={Users} tone="blue" href="/religiosos" index={0} />
         <MetricCard label="Em revisão" value={data.religiosos.revisao} icon={FileCheck2} tone="amber" href="/religiosos" highlight={data.religiosos.revisao > 0} index={1} />
         <MetricCard label="Hospedagens" value={data.hospedaria.total} icon={Hotel} tone="indigo" href="/hospedagens-inscricoes" index={2} />

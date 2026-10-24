@@ -2,14 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { Mail, Lock, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { useReducedMotion } from '../hooks/useMotion';
+
+/** Inline delay for the welcome entrance sequence (see .brm-enter-* in index.css) */
+const enter = (ms: number) => ({ ['--enter-delay' as string]: `${ms}ms` }) as React.CSSProperties;
+
+/** Duration of the card exit before navigating to the dashboard */
+const EXIT_MS = 260;
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
+  const reducedMotion = useReducedMotion();
 
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Redireciona imediatamente caso caia na rota de login com tokens de recuperação
@@ -39,7 +48,13 @@ export const Login: React.FC = () => {
             : authError.message
         );
       } else if (data.session) {
-        navigate('/inicio');
+        if (reducedMotion) {
+          navigate('/inicio');
+        } else {
+          // Brief card exit so the dashboard greeting reads as a continuation
+          setLeaving(true);
+          window.setTimeout(() => navigate('/inicio'), EXIT_MS);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -64,22 +79,22 @@ export const Login: React.FC = () => {
 
       {/* Login Card */}
       <div className="relative z-10 flex flex-grow items-center justify-center py-6">
-        <div className="brm-auth-card relative w-full max-w-[440px] overflow-hidden rounded-2xl p-7 transition-all sm:p-10">
+        <div className={`brm-auth-card brm-enter-focus relative w-full max-w-[440px] overflow-hidden rounded-2xl p-7 transition-all sm:p-10${leaving ? ' is-leaving' : ''}`}>
           
           {/* Brand & Title */}
           <div className="flex flex-col items-center text-center mb-8">
-            <img src="/logo-sistema.png" alt="Província BRM" className="mb-3 h-12 w-auto object-contain dark:hidden" />
-            <img src="/logo-branco.png" alt="Província BRM" className="mb-3 hidden h-12 w-auto object-contain dark:block" />
-            <h1 className="text-[1.5rem] font-semibold tracking-tight text-[#113240] dark:text-white">
+            <img src="/logo-sistema.png" alt="Província BRM" style={enter(120)} className="brm-enter-focus mb-3 h-12 w-auto object-contain dark:hidden" />
+            <img src="/logo-branco.png" alt="Província BRM" style={enter(120)} className="brm-enter-focus mb-3 hidden h-12 w-auto object-contain dark:block" />
+            <h1 style={enter(220)} className="brm-enter-rise text-[1.5rem] font-semibold tracking-tight text-[#113240] dark:text-white">
               Sistema BRM
             </h1>
-            <p className="text-[13px] text-[#66777b] dark:text-[#a0aeaf] mt-1">
+            <p style={enter(280)} className="brm-enter-rise text-[13px] text-[#66777b] dark:text-[#a0aeaf] mt-1">
               Província Brasil Meridional
             </p>
-            <span className="mt-4 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#66777b] dark:text-[#a0aeaf]">
-              <span className="h-px w-5 bg-[#b58a55]" />
+            <span style={enter(340)} className="brm-enter-fade mt-4 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#66777b] dark:text-[#a0aeaf]">
+              <span style={{ ...enter(380), ['--line-origin' as string]: 'right' }} className="brm-enter-line h-px w-5 bg-[#b58a55]" />
               Espaço administrativo
-              <span className="h-px w-5 bg-[#b58a55]" />
+              <span style={{ ...enter(380), ['--line-origin' as string]: 'left' }} className="brm-enter-line h-px w-5 bg-[#b58a55]" />
             </span>
           </div>
 
@@ -95,7 +110,7 @@ export const Login: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             
             {/* Email Field */}
-            <div className="space-y-1.5">
+            <div style={enter(400)} className="brm-enter-rise space-y-1.5">
               <label className="text-[13px] font-medium text-slate-700 dark:text-slate-200 block">
                 E-mail
               </label>
@@ -115,7 +130,7 @@ export const Login: React.FC = () => {
             </div>
 
             {/* Password Field */}
-            <div className="space-y-1.5">
+            <div style={enter(450)} className="brm-enter-rise space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-[13px] font-medium text-slate-700 dark:text-slate-200 block">
                   Senha
@@ -150,13 +165,13 @@ export const Login: React.FC = () => {
             </div>
 
             {/* Submit Button */}
-            <div className="pt-3">
+            <div style={enter(500)} className="brm-enter-rise pt-3">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || leaving}
                 className="brm-auth-submit w-full py-3 px-4 rounded-lg bg-[#113240] hover:bg-[#1a4b60] dark:bg-[#A3C3C7] dark:hover:bg-white text-white dark:text-[#102b35] text-sm font-semibold shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
               >
-                {loading ? (
+                {loading || leaving ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>Entrando...</span>
@@ -167,7 +182,7 @@ export const Login: React.FC = () => {
               </button>
             </div>
 
-            <div className="pt-4 mt-3 border-t border-slate-200/60 dark:border-slate-800/60 text-center">
+            <div style={enter(560)} className="brm-enter-rise pt-4 mt-3 border-t border-slate-200/60 dark:border-slate-800/60 text-center">
               <span className="text-[12px] text-slate-500 dark:text-slate-400 block mb-1">
                 É confrade ou religioso da Província?
               </span>
@@ -186,7 +201,7 @@ export const Login: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <footer className="relative z-10 w-full py-6 text-center text-xs text-white/80 drop-shadow">
+      <footer style={enter(640)} className="brm-enter-fade relative z-10 w-full py-6 text-center text-xs text-white/80 drop-shadow">
         sistema.brm.org - todos os direitos reservados-2026
       </footer>
     </div>

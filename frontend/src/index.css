@@ -522,7 +522,7 @@ select:not(.font-mono):not(.font-cinzel) {
 .motion-stagger-item {
   opacity: 0;
   animation: staggerFadeIn 280ms var(--ease-out) forwards;
-  animation-delay: calc(var(--stagger-index, 0) * 40ms);
+  animation-delay: calc(var(--stagger-base, 0ms) + var(--stagger-index, 0) * 40ms);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1139,6 +1139,105 @@ body [class*="hover:bg-[#0077ed]"]:hover {
   border-color: var(--brm-line) !important;
   color: var(--brm-ink) !important;
   background: var(--brm-paper) !important;
+}
+
+/* ── Welcome motion: login entrance (blur-to-focus) & dashboard greeting ──
+   Use with the inline custom property --enter-delay (ms) to sequence elements.
+   Transform/opacity/filter only; disabled entirely under reduced motion. */
+@keyframes brm-focus-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes brm-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes brm-line-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes brm-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes brm-card-exit {
+  to {
+    opacity: 0;
+    transform: scale(0.985) translateY(-6px);
+    filter: blur(4px);
+  }
+}
+
+.brm-enter-focus {
+  animation: brm-focus-in 600ms var(--ease-smooth) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+.brm-enter-rise {
+  animation: brm-rise-in 500ms var(--ease-smooth) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+.brm-enter-word {
+  display: inline-block;
+  animation: brm-rise-in 520ms var(--ease-smooth) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+.brm-enter-line {
+  transform-origin: var(--line-origin, center);
+  animation: brm-line-draw 520ms var(--ease-smooth) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+.brm-enter-fade {
+  animation: brm-fade-in 600ms var(--ease-out) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+.brm-auth-card.is-leaving {
+  pointer-events: none;
+  animation: brm-card-exit 260ms var(--ease-in-out) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brm-enter-focus,
+  .brm-enter-rise,
+  .brm-enter-word,
+  .brm-enter-line,
+  .brm-enter-fade,
+  .brm-auth-card.is-leaving {
+    animation: none !important;
+    filter: none !important;
+  }
 }
 
 @keyframes brm-atmosphere {
