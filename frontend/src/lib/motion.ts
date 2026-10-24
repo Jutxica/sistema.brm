@@ -1,4 +1,4 @@
-/**
+﻿/**
  * UTXICA Motion Design System & Animation Engine
  * Based on Emil Kowalski's Design Engineering Philosophy & UTXICA.ANIMACAO
  */
@@ -54,12 +54,7 @@ export function animateNumber({
   onUpdate,
   onComplete,
 }: AnimateNumberOptions): () => void {
-  // Check if user prefers reduced motion
-  if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    onUpdate(to);
-    if (onComplete) onComplete();
-    return () => {};
-  }
+
 
   let startTime: number | null = null;
   let rafId: number | null = null;
@@ -104,8 +99,7 @@ export function staggerEntrance(
 ) {
   if (!container) return;
 
-  const isReduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (isReduced) return;
+
 
   const { staggerMs = 40, durationMs = 240, distancePx = 8 } = options;
   const elements = container.querySelectorAll<HTMLElement>(childSelector);

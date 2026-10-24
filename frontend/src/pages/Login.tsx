@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { Mail, Lock, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { useReducedMotion } from '../hooks/useMotion';
 
 /** Inline delay for the welcome entrance sequence (see .brm-enter-* in index.css) */
 const enter = (ms: number) => ({ ['--enter-delay' as string]: `${ms}ms` }) as React.CSSProperties;
@@ -12,7 +11,6 @@ const EXIT_MS = 260;
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
-  const reducedMotion = useReducedMotion();
 
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -48,13 +46,8 @@ export const Login: React.FC = () => {
             : authError.message
         );
       } else if (data.session) {
-        if (reducedMotion) {
-          navigate('/inicio');
-        } else {
-          // Brief card exit so the dashboard greeting reads as a continuation
-          setLeaving(true);
-          window.setTimeout(() => navigate('/inicio'), EXIT_MS);
-        }
+        setLeaving(true);
+        window.setTimeout(() => navigate('/inicio'), EXIT_MS);
       }
     } catch (err) {
       console.error(err);
@@ -79,22 +72,22 @@ export const Login: React.FC = () => {
 
       {/* Login Card */}
       <div className="relative z-10 flex flex-grow items-center justify-center py-6">
-        <div className={`brm-auth-card brm-enter-focus relative w-full max-w-[440px] overflow-hidden rounded-2xl p-7 transition-all sm:p-10${leaving ? ' is-leaving' : ''}`}>
+        <div className={`brm-auth-card brm-enter-card relative w-full max-w-[440px] overflow-hidden rounded-2xl p-7 transition-all sm:p-10${leaving ? ' is-leaving' : ''}`}>
           
           {/* Brand & Title */}
           <div className="flex flex-col items-center text-center mb-8">
-            <img src="/logo-sistema.png" alt="Província BRM" style={enter(120)} className="brm-enter-focus mb-3 h-12 w-auto object-contain dark:hidden" />
-            <img src="/logo-branco.png" alt="Província BRM" style={enter(120)} className="brm-enter-focus mb-3 hidden h-12 w-auto object-contain dark:block" />
-            <h1 style={enter(220)} className="brm-enter-rise text-[1.5rem] font-semibold tracking-tight text-[#113240] dark:text-white">
+            <img src="/logo-sistema.png" alt="Província BRM" style={enter(100)} className="brm-enter-crest mb-3 h-12 w-auto object-contain dark:hidden" />
+            <img src="/logo-branco.png" alt="Província BRM" style={enter(100)} className="brm-enter-crest mb-3 hidden h-12 w-auto object-contain dark:block" />
+            <h1 style={enter(200)} className="brm-enter-rise text-[1.5rem] font-semibold tracking-tight text-[#113240] dark:text-white">
               Sistema BRM
             </h1>
-            <p style={enter(280)} className="brm-enter-rise text-[13px] text-[#66777b] dark:text-[#a0aeaf] mt-1">
+            <p style={enter(260)} className="brm-enter-rise text-[13px] text-[#66777b] dark:text-[#a0aeaf] mt-1">
               Província Brasil Meridional
             </p>
-            <span style={enter(340)} className="brm-enter-fade mt-4 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#66777b] dark:text-[#a0aeaf]">
-              <span style={{ ...enter(380), ['--line-origin' as string]: 'right' }} className="brm-enter-line h-px w-5 bg-[#b58a55]" />
+            <span style={enter(320)} className="brm-enter-fade mt-4 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#66777b] dark:text-[#a0aeaf]">
+              <span style={{ ...enter(360), ['--line-origin' as string]: 'right' }} className="brm-enter-line h-px w-5 bg-[#b58a55]" />
               Espaço administrativo
-              <span style={{ ...enter(380), ['--line-origin' as string]: 'left' }} className="brm-enter-line h-px w-5 bg-[#b58a55]" />
+              <span style={{ ...enter(360), ['--line-origin' as string]: 'left' }} className="brm-enter-line h-px w-5 bg-[#b58a55]" />
             </span>
           </div>
 
@@ -169,7 +162,7 @@ export const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading || leaving}
-                className="brm-auth-submit w-full py-3 px-4 rounded-lg bg-[#113240] hover:bg-[#1a4b60] dark:bg-[#A3C3C7] dark:hover:bg-white text-white dark:text-[#102b35] text-sm font-semibold shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                className="brm-auth-submit brm-button-sheen w-full py-3 px-4 rounded-lg bg-[#113240] hover:bg-[#1a4b60] dark:bg-[#A3C3C7] dark:hover:bg-white text-white dark:text-[#102b35] text-sm font-semibold shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
               >
                 {loading || leaving ? (
                   <>
@@ -188,7 +181,7 @@ export const Login: React.FC = () => {
               </span>
               <a
                 href="/portal-religioso"
-                className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#113240] hover:text-[#226380] dark:text-[#A3C3C7] dark:hover:text-white transition-colors"
+                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#8fc1c2] hover:text-[#b6d6d5] transition-colors"
               >
                 <span>Acessar o Portal do Confrade</span>
                 <span aria-hidden="true">&rarr;</span>

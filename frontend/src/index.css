@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -526,14 +526,6 @@ select:not(.font-mono):not(.font-cinzel) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  ::before,
-  ::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
   .motion-press:active,
   .motion-lift:hover {
     transform: none !important;
@@ -1141,29 +1133,47 @@ body [class*="hover:bg-[#0077ed]"]:hover {
   background: var(--brm-paper) !important;
 }
 
-/* ── Welcome motion: login entrance (blur-to-focus) & dashboard greeting ──
-   Use with the inline custom property --enter-delay (ms) to sequence elements.
-   Transform/opacity/filter only; disabled entirely under reduced motion. */
-@keyframes brm-focus-in {
-  from {
+/* ── Welcome motion: Prompt-Motion Inspired Atmospheric Entrance ──
+   Hardware-accelerated CSS keyframes with Apple-grade fluid curves. */
+@keyframes brm-card-entrance {
+  0% {
     opacity: 0;
-    transform: scale(0.96);
-    filter: blur(8px);
+    transform: translateY(28px) scale(0.95);
+    filter: blur(10px);
   }
-  to {
+  60% {
+    filter: blur(0px);
+  }
+  100% {
     opacity: 1;
-    transform: scale(1);
-    filter: blur(0);
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+@keyframes brm-crest-entrance {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.85);
+    filter: drop-shadow(0 0 0 rgba(181, 138, 85, 0));
+  }
+  65% {
+    filter: drop-shadow(0 0 16px rgba(163, 195, 199, 0.5));
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
   }
 }
 
 @keyframes brm-rise-in {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(8px);
-    filter: blur(4px);
+    transform: translateY(16px);
+    filter: blur(3px);
   }
-  to {
+  100% {
     opacity: 1;
     transform: translateY(0);
     filter: blur(0);
@@ -1171,83 +1181,111 @@ body [class*="hover:bg-[#0077ed]"]:hover {
 }
 
 @keyframes brm-line-draw {
-  from {
+  0% {
+    opacity: 0;
     transform: scaleX(0);
   }
-  to {
+  100% {
+    opacity: 1;
     transform: scaleX(1);
   }
 }
 
 @keyframes brm-fade-in {
-  from {
+  0% {
     opacity: 0;
   }
-  to {
+  100% {
     opacity: 1;
+  }
+}
+
+@keyframes brm-sheen {
+  0% {
+    transform: translateX(-120%) skewX(-18deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateX(260%) skewX(-18deg);
+    opacity: 0;
   }
 }
 
 @keyframes brm-card-exit {
   to {
     opacity: 0;
-    transform: scale(0.985) translateY(-6px);
-    filter: blur(4px);
+    transform: scale(0.985) translateY(-8px);
+    filter: blur(6px);
   }
 }
 
-.brm-enter-focus {
-  animation: brm-focus-in 600ms var(--ease-smooth) both;
-  animation-delay: var(--enter-delay, 0ms);
+.brm-enter-card {
+  animation: brm-card-entrance 750ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.brm-enter-crest {
+  animation: brm-crest-entrance 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--enter-delay, 80ms);
 }
 
 .brm-enter-rise {
-  animation: brm-rise-in 500ms var(--ease-smooth) both;
+  animation: brm-rise-in 550ms cubic-bezier(0.16, 1, 0.3, 1) both;
   animation-delay: var(--enter-delay, 0ms);
 }
 
 .brm-enter-word {
   display: inline-block;
-  animation: brm-rise-in 520ms var(--ease-smooth) both;
+  animation: brm-rise-in 550ms cubic-bezier(0.16, 1, 0.3, 1) both;
   animation-delay: var(--enter-delay, 0ms);
 }
 
 .brm-enter-line {
   transform-origin: var(--line-origin, center);
-  animation: brm-line-draw 520ms var(--ease-smooth) both;
+  animation: brm-line-draw 550ms cubic-bezier(0.16, 1, 0.3, 1) both;
   animation-delay: var(--enter-delay, 0ms);
 }
 
 .brm-enter-fade {
-  animation: brm-fade-in 600ms var(--ease-out) both;
+  animation: brm-fade-in 600ms cubic-bezier(0.23, 1, 0.32, 1) both;
   animation-delay: var(--enter-delay, 0ms);
+}
+
+.brm-button-sheen {
+  position: relative;
+  overflow: hidden;
+}
+
+.brm-button-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: brm-sheen 1.8s cubic-bezier(0.16, 1, 0.3, 1) 0.8s 1 forwards;
+  pointer-events: none;
 }
 
 .brm-auth-card.is-leaving {
   pointer-events: none;
-  animation: brm-card-exit 260ms var(--ease-in-out) forwards;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .brm-enter-focus,
-  .brm-enter-rise,
-  .brm-enter-word,
-  .brm-enter-line,
-  .brm-enter-fade,
-  .brm-auth-card.is-leaving {
-    animation: none !important;
-    filter: none !important;
-  }
+  animation: brm-card-exit 260ms cubic-bezier(0.77, 0, 0.175, 1) forwards;
 }
 
 @keyframes brm-atmosphere {
-  from {
-    transform: translate3d(-1.5%, -1%, 0) scale(0.98);
-    opacity: 0.72;
+  0% {
+    transform: translate3d(-1.5%, -1%, 0) scale(0.97);
+    opacity: 0.70;
   }
-  to {
-    transform: translate3d(1.5%, 1%, 0) scale(1.04);
-    opacity: 1;
+  50% {
+    transform: translate3d(1.5%, 1%, 0) scale(1.05);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate3d(-1.5%, -1%, 0) scale(0.97);
+    opacity: 0.70;
   }
 }
 
@@ -1258,20 +1296,6 @@ body [class*="hover:bg-[#0077ed]"]:hover {
 
   .institutional-app table {
     font-size: 0.75rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .institutional-app *,
-  .religious-portal *,
-  .brm-auth-page * {
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
-  }
-
-  .brm-auth-page::before {
-    animation: none;
   }
 }
 
