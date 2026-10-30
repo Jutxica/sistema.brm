@@ -1,11 +1,11 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth, hasModuleAccess } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { FeedbackProvider } from './contexts/FeedbackContext';
 import Layout from './components/Layout';
 import AppleErrorBoundary from './components/AppleErrorBoundary';
-import { isPortalPublicHost } from './lib/portalUrls';
+import { isPortalPublicHost, getPortalRedirectUrl } from './lib/portalUrls';
 
 // Lazy-loaded Pages (Code-Splitting)
 const Login = lazy(() => import('./pages/Login'));
@@ -160,9 +160,33 @@ const DefaultRedirect: React.FC = () => {
     return <Navigate to={`/redefinir-senha${window.location.hash}${window.location.search}`} replace />;
   }
 
+  if (isPortalPublicHost()) {
+    return <Navigate to="/" replace />;
+  }
+
   if (loading) return null;
   
   return <Navigate to={isAuthenticated ? getDefaultPath(user) : "/login"} replace />;
+};
+
+const PortalReligiosoRedirect: React.FC = () => {
+  useEffect(() => {
+    const target = getPortalRedirectUrl();
+    if (typeof window !== 'undefined') {
+      window.location.replace(target);
+    }
+  }, []);
+
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-[#081720] text-white">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 rounded-full border-2 border-[#8fc1c2]/20 border-t-[#8fc1c2] animate-spin" />
+        <span className="text-xs font-medium text-slate-300">
+          Redirecionando para o Portal do Confrade...
+        </span>
+      </div>
+    </div>
+  );
 };
 
 const LoginRoute: React.FC = () => {
@@ -190,9 +214,9 @@ export const App: React.FC = () => {
             <BrowserRouter>
               <Suspense fallback={<AppleLoadingFallback />}>
               <Routes>
-                {/* Standalone Religious Member Area (Portal do Confrade) */}
-                <Route path="/portal-religioso" element={<PortalReligioso />} />
-                <Route path="/area-religioso" element={<PortalReligioso />} />
+                {/* Redirecionamento permanente das rotas legadas do Portal para o domínio exclusivo */}
+                <Route path="/portal-religioso" element={<PortalReligiosoRedirect />} />
+                <Route path="/area-religioso" element={<PortalReligiosoRedirect />} />
 
                 {/* Public Access */}
                 <Route path="/login" element={<LoginRoute />} />

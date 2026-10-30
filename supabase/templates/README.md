@@ -14,7 +14,9 @@ No painel do Supabase, acesse **Authentication → URL Configuration**:
    Adicione as seguintes linhas:
    - `https://sistema.brm.org.br/**`
    - `https://sistema.brm.org.br/redefinir-senha`
-   - `https://sistema.brm.org.br/portal-religioso`
+   - `https://portal.brm.org.br/**`
+   - `https://portal.brm.org.br/redefinir-senha`
+   - `https://portal.brm.org.br`
    - `http://localhost:5173/**` *(para testes locais)*
 
 ### B. Provedor de E-mail (SMTP)

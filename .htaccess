@@ -1,5 +1,8 @@
 RewriteEngine On
 
+# Redireciona rotas legadas do portal do religioso para o domínio exclusivo
+RewriteRule ^(portal-religioso|area-religioso)(/.*)?$ https://portal.brm.org.br/ [R=301,L,QSA]
+
 # Ignora reescrita para arquivos estáticos reais que existem na raiz
 RewriteCond %{REQUEST_FILENAME} -f
 RewriteCond %{REQUEST_FILENAME} -d

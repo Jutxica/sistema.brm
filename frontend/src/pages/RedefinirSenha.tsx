@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { getPasswordResetRedirectUrl } from '../lib/portalUrls';
+import { getPasswordResetRedirectUrl, getPortalRedirectUrl } from '../lib/portalUrls';
 import { Lock, Mail, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
 export const RedefinirSenha: React.FC = () => {
@@ -125,7 +125,14 @@ export const RedefinirSenha: React.FC = () => {
     }
   };
 
-  const voltarUrl = origem === 'portal' ? '/portal-religioso' : '/login';
+  const handleVoltar = () => {
+    if (origem === 'portal') {
+      window.location.href = getPortalRedirectUrl();
+    } else {
+      navigate('/login');
+    }
+  };
+
   const voltarTexto = origem === 'portal' ? 'Voltar ao Portal do Confrade' : 'Voltar ao Login Administrativo';
 
   return (
@@ -185,7 +192,7 @@ export const RedefinirSenha: React.FC = () => {
               <div className="pt-2 flex flex-col gap-2">
                 <button
                   type="button"
-                  onClick={() => navigate(origem === 'portal' ? '/portal-religioso' : '/login')}
+                  onClick={handleVoltar}
                   className="w-full py-2.5 px-4 rounded-lg bg-[#113240] hover:bg-[#1a4b60] dark:bg-[#A3C3C7] dark:hover:bg-white text-white dark:text-[#102b35] text-xs font-semibold shadow-sm transition-all cursor-pointer"
                 >
                   {origem === 'portal' ? 'Acessar o Portal do Confrade' : 'Acessar o Sistema Administrativo'}
@@ -336,7 +343,7 @@ export const RedefinirSenha: React.FC = () => {
           <div className="pt-4 mt-4 border-t border-slate-200/60 dark:border-slate-800/60 text-center">
             <button
               type="button"
-              onClick={() => navigate(voltarUrl)}
+              onClick={handleVoltar}
               className="inline-flex items-center gap-1.5 text-xs font-medium text-[#226380] hover:text-[#113240] dark:text-[#A3C3C7] dark:hover:text-white transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />

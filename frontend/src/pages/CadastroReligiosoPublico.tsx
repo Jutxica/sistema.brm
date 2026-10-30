@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileUp, Info, Loader2, Plus, Trash2, Printer, Camera, Star, Check, Upload, Sparkles, Wrench, Eye, RefreshCw, FileText } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import { getPortalRedirectUrl } from '../lib/portalUrls';
 import { confirmAction, showToast } from '../hooks/useFeedback';
 import { useAuth } from '../contexts/AuthContext';
 import { formatCep, lookupCep } from '../lib/cep';
@@ -1763,12 +1764,12 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               : publicConfig.mensagem_confirmacao}
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              to="/portal-religioso"
-              className="w-full sm:w-auto px-5 py-2.5 text-xs font-semibold uppercase tracking-wider bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90 transition-opacity"
+            <a
+              href={getPortalRedirectUrl()}
+              className="w-full sm:w-auto px-5 py-2.5 text-xs font-semibold uppercase tracking-wider bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90 transition-opacity text-center inline-block"
             >
               Acessar Área do Religioso
-            </Link>
+            </a>
           </div>
         </div>
       </PublicShell>
@@ -1794,12 +1795,12 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
 
             <div className="flex items-center gap-2 no-print">
               {!adminMode && (
-                <Link
-                  to="/portal-religioso"
+                <a
+                  href={getPortalRedirectUrl()}
                   className="px-3.5 py-2 text-xs font-medium bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90 transition-opacity flex items-center gap-1.5"
                 >
                   <span>Área do Religioso</span>
-                </Link>
+                </a>
               )}
               <button
                 type="button"

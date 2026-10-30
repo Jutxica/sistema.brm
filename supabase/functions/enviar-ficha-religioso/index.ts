@@ -261,7 +261,7 @@ Deno.serve(async (req: Request) => {
         <p style="font-size: 13px; color: #707070;">
           Você pode acessar a qualquer momento o Portal do Confrade para visualizar ou imprimir sua <strong>Ficha Canônica em PDF</strong>:
         </p>
-        <a href="https://sistema.brm.org.br/portal-religioso" class="btn" target="_blank">Acessar Portal do Confrade</a>
+        <a href="https://portal.brm.org.br" class="btn" target="_blank">Acessar Portal do Confrade</a>
       </div>
     </div>
 

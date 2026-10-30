@@ -1,3 +1,5 @@
+export const PORTAL_CANONICAL_URL = 'https://portal.brm.org.br';
+
 export const isPortalPublicHost = (): boolean => {
   if (typeof window === 'undefined') return false;
 
@@ -34,36 +36,32 @@ export const isPortalPublicHost = (): boolean => {
   return false;
 };
 
-export const getPortalRedirectUrl = (): string => {
-  if (typeof window !== 'undefined') {
-    // Se já estiver em subdomínio dedicado ao portal, mantém na raiz
-    if (isPortalPublicHost()) {
-      return `${window.location.origin}/`;
-    }
-    // No domínio principal (sistema.brm.org.br ou localhost), a rota oficial é /portal-religioso
-    return `${window.location.origin}/portal-religioso`;
-  }
-
+export const getPortalPublicBaseUrl = (): string => {
   const configuredOrigin = import.meta.env.VITE_PORTAL_PUBLIC_URL?.trim();
   if (configuredOrigin) {
     try {
-      const url = new URL(configuredOrigin);
-      if (url.hostname.toLowerCase() === 'sistema.brm.org.br') {
-        return new URL('/portal-religioso', configuredOrigin).toString();
+      const parsed = new URL(configuredOrigin);
+      if (parsed.hostname.toLowerCase() !== 'sistema.brm.org.br') {
+        return configuredOrigin.replace(/\/+$/, '');
       }
-      return new URL('/', configuredOrigin).toString();
     } catch {
       // fallback
     }
   }
+  return PORTAL_CANONICAL_URL;
+};
 
-  return 'https://sistema.brm.org.br/portal-religioso';
+export const getPortalRedirectUrl = (): string => {
+  if (typeof window !== 'undefined' && isPortalPublicHost()) {
+    return `${window.location.origin}/`;
+  }
+  return `${getPortalPublicBaseUrl()}/`;
 };
 
 export const getPasswordResetRedirectUrl = (origem?: 'portal' | 'sistema'): string => {
   const base = typeof window !== 'undefined'
-    ? window.location.origin
-    : (import.meta.env.VITE_PORTAL_PUBLIC_URL?.trim() || 'https://sistema.brm.org.br');
+    ? (origem === 'portal' ? getPortalPublicBaseUrl() : window.location.origin)
+    : (origem === 'portal' ? getPortalPublicBaseUrl() : 'https://sistema.brm.org.br');
   const cleanBase = base.replace(/\/+$/, '');
   const query = origem ? `?origem=${origem}` : '';
   return `${cleanBase}/redefinir-senha${query}`;

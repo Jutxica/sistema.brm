@@ -35,7 +35,7 @@ interface AuthAccount {
 
 function allowedOrigin(origin: string | null): boolean {
   if (!origin) return true;
-  if (origin === "https://sistema.brm.org.br") return true;
+  if (origin === "https://sistema.brm.org.br" || origin === "https://portal.brm.org.br") return true;
   return /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d{1,5})?$/.test(origin);
 }
 

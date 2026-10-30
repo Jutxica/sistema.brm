@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { Mail, Lock, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { getPortalRedirectUrl } from '../lib/portalUrls';
 
 /** Inline delay for the welcome entrance sequence (see .brm-enter-* in index.css) */
 const enter = (ms: number) => ({ ['--enter-delay' as string]: `${ms}ms` }) as React.CSSProperties;
@@ -180,7 +181,7 @@ export const Login: React.FC = () => {
                 É confrade ou religioso da Província?
               </span>
               <a
-                href="/portal-religioso"
+                href={getPortalRedirectUrl()}
                 className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#8fc1c2] hover:text-[#b6d6d5] transition-colors"
               >
                 <span>Acessar o Portal do Confrade</span>

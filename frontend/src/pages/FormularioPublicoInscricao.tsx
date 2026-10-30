@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { getPortalRedirectUrl } from '../lib/portalUrls';
 import { supabase } from '../lib/supabaseClient';
 import { FormularioTimbrado } from '../components/FormularioTimbrado';
 import type { FormularioSecretaria, RespostaFormulario } from './SecretariaConfiguracoes';
@@ -139,13 +140,13 @@ export const FormularioPublicoInscricao: React.FC = () => {
             {error || 'O formulário solicitado não existe, foi desativado ou atingiu o prazo de encerramento.'}
           </p>
           <div className="pt-2">
-            <Link
-              to="/portal-religioso"
+            <a
+              href={getPortalRedirectUrl()}
               className="inline-flex items-center gap-2 px-4 py-2 text-xs font-mono uppercase font-semibold text-white bg-[#113240] hover:bg-[#226380] rounded-[6px] transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Ir para o Portal do Confrade</span>
-            </Link>
+            </a>
           </div>
         </div>
       </div>
@@ -156,13 +157,13 @@ export const FormularioPublicoInscricao: React.FC = () => {
     <div className="min-h-screen bg-[#f5f5f7] dark:bg-[#090d16] py-8 px-3 sm:px-6 flex flex-col items-center justify-start">
       <div className="w-full max-w-4xl space-y-4">
         <div className="flex items-center justify-between">
-          <Link
-            to="/portal-religioso"
+          <a
+            href={getPortalRedirectUrl()}
             className="inline-flex items-center gap-1.5 text-xs font-mono text-slate-500 hover:text-[#113240] dark:hover:text-white transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Retornar ao Portal</span>
-          </Link>
+          </a>
 
           {form.codigo && (
             <span className="font-mono text-[10px] uppercase font-bold text-slate-400">
