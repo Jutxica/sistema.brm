@@ -1,0 +1,234 @@
+﻿<!DOCTYPE html>
+<html lang=pt-BR>
+<head>
+  <meta charset=UTF-8>
+  <meta name=viewport content=width=device-width, initial-scale=1.0>
+  <title>Província Brasileira Meridional | Sacerdotes do Sagrado Coração de Jesus</title>
+  <link rel=preconnect href=https://fonts.googleapis.com>
+  <link rel=preconnect href=https://fonts.gstatic.com crossorigin>
+  <link href=https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap rel=stylesheet>
+  <style>
+    :root {
+      --brm-navy: #0d222d;
+      --brm-gold: #c59b63;
+      --brm-gold-glow: rgba(197, 155, 99, 0.35);
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--brm-navy);
+      color: #f8fafc;
+    }
+
+    /* Imagem preenchendo 100% da tela */
+    .hero-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      object-position: center center;
+      z-index: 1;
+      animation: zoomSlow 20s ease-in-out infinite alternate;
+    }
+
+    @keyframes zoomSlow {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.03); }
+    }
+
+    /* Vinheta cinematográfica e sombreamento sutil para destacar os botões */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background: 
+        radial-gradient(circle at center, transparent 35%, rgba(13, 34, 45, 0.45) 100%),
+        linear-gradient(to bottom, rgba(10, 26, 35, 0.7) 0%, transparent 18%, transparent 78%, rgba(10, 26, 35, 0.85) 100%);
+    }
+
+    /* Container de interface sobre a imagem */
+    .ui-layer {
+      position: relative;
+      z-index: 3;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 20px;
+    }
+
+    /* Header superior elegante */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 18px;
+      background: rgba(13, 34, 45, 0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 9999px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      animation: fadeInDown 0.8s ease forwards;
+    }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--brm-gold);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--brm-gold);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    .top-text {
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #f1f5f9;
+    }
+
+    /* Rodapé com botões de ação e créditos */
+    .bottom-bar {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      animation: fadeInUp 0.8s ease forwards;
+    }
+
+    .action-group {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 24px;
+      border-radius: 14px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+    }
+    .btn-gold {
+      background: linear-gradient(135deg, #c59b63 0%, #a47b45 100%);
+      color: #0d222d;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 8px 24px rgba(197, 155, 99, 0.35);
+    }
+    .btn-gold:hover {
+      background: linear-gradient(135deg, #d4aa72 0%, #b58a55 100%);
+      box-shadow: 0 10px 30px rgba(197, 155, 99, 0.5);
+      transform: translateY(-2px);
+    }
+    .btn-glass {
+      background: rgba(13, 34, 45, 0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+    .btn-glass:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.35);
+      transform: translateY(-2px);
+    }
+    .btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .footer-credits {
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.7);
+      text-align: center;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 600px) {
+      .action-group {
+        flex-direction: column;
+        width: 100%;
+      }
+      .btn {
+        width: 100%;
+      }
+      .top-text {
+        font-size: 0.75rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Imagem preenchendo toda a tela -->
+  <img class=hero-image src=aguarde-brm.jpg alt=Aguarde! Em breve um novo site da Província Brasileira Meridional>
+
+  <!-- Efeito de vinheta e iluminação atmosférica -->
+  <div class=overlay></div>
+
+  <!-- Camada de Interface -->
+  <div class=ui-layer>
+    <!-- Topo -->
+    <header class=top-bar>
+      <span class=pulse-dot></span>
+      <span class=top-text>Província Brasileira Meridional • SCJ Dehonianos</span>
+    </header>
+
+    <!-- Rodapé interativo -->
+    <footer class=bottom-bar>
+      <div class=action-group>
+        <a href=https://scj.org.br/login class=btn btn-gold>
+          <svg fill=none stroke=currentColor stroke-width=2 viewBox=0 0 24 24><path stroke-linecap=round stroke-linejoin=round d=M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1/></svg>
+          Acesso ao Sistema Interno
+        </a>
+        <a href=mailto:secretaria@scj.org.br class=btn btn-glass>
+          <svg fill=none stroke=currentColor stroke-width=2 viewBox=0 0 24 24><path stroke-linecap=round stroke-linejoin=round d=M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z/></svg>
+          Falar com a Secretaria
+        </a>
+      </div>
+
+      <div class=footer-credits>
+        scj.org.br • Em breve novo portal no ar • © 2026 Todos os direitos reservados.
+      </div>
+    </footer>
+  </div>
+
+</body>
+</html>

@@ -187,7 +187,7 @@ export const Inicio: React.FC = () => {
           <div className="min-w-0">
             <div style={enter(80)} className="brm-enter-rise mb-2 flex flex-wrap items-center gap-2">
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#226380] dark:text-[#A3C3C7]">
-                Província Brasil Meridional
+                Província Brasileira Meridional
               </span>
               <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:bg-white/10 dark:text-slate-300">
                 Painel integrado

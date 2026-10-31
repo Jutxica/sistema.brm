@@ -160,7 +160,7 @@ export const RedefinirSenha: React.FC = () => {
               {hasRecoverySession ? 'Redefinir Senha' : 'Recuperar Acesso'}
             </h1>
             <p className="text-[12px] text-[#66777b] dark:text-[#a0aeaf] mt-1">
-              Província Brasil Meridional · {origem === 'portal' ? 'Portal do Confrade' : 'Sistema de Gestão'}
+              Província Brasileira Meridional · {origem === 'portal' ? 'Portal do Confrade' : 'Sistema de Gestão'}
             </p>
           </div>
 
@@ -356,7 +356,7 @@ export const RedefinirSenha: React.FC = () => {
 
       {/* Footer */}
       <footer className="relative z-10 w-full py-4 text-center text-xs text-white/80 drop-shadow">
-        sistema.brm.org - Província Brasil Meridional · 2026
+        sistema.brm.org - Província Brasileira Meridional · 2026
       </footer>
     </div>
   );

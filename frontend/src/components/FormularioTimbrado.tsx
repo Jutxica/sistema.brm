@@ -213,7 +213,7 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
           Inscrição Confirmada com Sucesso
         </h2>
         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto leading-relaxed">
-          Seus dados foram protocolados oficialmente na Secretaria Provincial da Província Brasil Meridional.
+          Seus dados foram protocolados oficialmente na Secretaria Provincial da Província Brasileira Meridional.
         </p>
 
         <div className="p-4 rounded-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 max-w-sm mx-auto text-left font-mono text-xs space-y-1.5">
@@ -257,7 +257,7 @@ export const FormularioTimbrado: React.FC<FormularioTimbradoProps> = ({
   }
 
   const congregacao = cabecalhoPersonalizado?.congregacao || 'CONGREGAÇÃO DOS PADRES DO SAGRADO CORAÇÃO DE JESUS';
-  const provincia = cabecalhoPersonalizado?.provincia || 'PROVÍNCIA BRASIL MERIDIONAL (SCJ)';
+  const provincia = cabecalhoPersonalizado?.provincia || 'PROVÍNCIA BRASILEIRA MERIDIONAL (SCJ)';
   const orgao = cabecalhoPersonalizado?.orgao || 'SECRETARIA PROVINCIAL';
   const lema = cabecalhoPersonalizado?.lema || '«COR JESU, IN TE CONFIDO • SINT UNUM»';
   const emailContato = cabecalhoPersonalizado?.emailContato || 'secretaria@brm.org.br';

@@ -1,6 +1,6 @@
 -- ==============================================================================
 -- CORREÇÃO COMPLETA: CAMPOS E TABELAS DO CADASTRO DE RELIGIOSOS (SUPABASE)
--- Província Brasil Meridional (BRM)
+-- Província Brasileira Meridional (BRM)
 --
 -- Resolve:
 -- 1. "could not find the audicao column of religiosos_idiomas in the schema cache"

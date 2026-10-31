@@ -1,5 +1,5 @@
 -- =====================================================================
--- SISTEMA BRM (PROVÍNCIA BRASIL MERIDIONAL - SCJ)
+-- SISTEMA BRM (PROVÍNCIA BRASILEIRA MERIDIONAL - SCJ)
 -- SCRIPT SQL UNIFICADO COMPLETO PARA SUPABASE (BANCO DE DADOS)
 -- =====================================================================
 -- LEGADO: este script instala políticas permissivas de compatibilidade e NÃO
@@ -536,7 +536,7 @@ CREATE TABLE IF NOT EXISTS public.secretaria_configuracoes (
   prefixo_formularios text NOT NULL DEFAULT 'FORM-BRM',
   numero_atual_formularios integer NOT NULL DEFAULT 3,
   cabecalho_institucional text NOT NULL DEFAULT 'CONGREGAÇÃO DOS PADRES DO SAGRADO CORAÇÃO DE JESUS',
-  subtitulo_provincia text NOT NULL DEFAULT 'PROVÍNCIA BRASIL MERIDIONAL (SCJ) • CURIA PROVINCIAL',
+  subtitulo_provincia text NOT NULL DEFAULT 'PROVÍNCIA BRASILEIRA MERIDIONAL (SCJ) • CURIA PROVINCIAL',
   orgao_emissor text NOT NULL DEFAULT 'SECRETARIA PROVINCIAL & ATOS CANÔNICOS',
   lema_oficial text NOT NULL DEFAULT '«COR JESU, IN TE CONFIDO • SINT UNUM»',
   email_secretaria text NOT NULL DEFAULT 'secretaria@brm.org.br',
@@ -787,7 +787,7 @@ INSERT INTO public.secretaria_configuracoes (
   'default-secretaria-cfg', 'DEC-BRM', 14, 'PORT-BRM', 8,
   'CIRC-BRM', 5, 'FORM-BRM', 3,
   'CONGREGAÇÃO DOS PADRES DO SAGRADO CORAÇÃO DE JESUS',
-  'PROVÍNCIA BRASIL MERIDIONAL (SCJ) • CURIA PROVINCIAL',
+  'PROVÍNCIA BRASILEIRA MERIDIONAL (SCJ) • CURIA PROVINCIAL',
   'SECRETARIA PROVINCIAL & ATOS CANÔNICOS',
   '«COR JESU, IN TE CONFIDO • SINT UNUM»',
   'secretaria@brm.org.br', '(41) 3342-1200', true, true, true

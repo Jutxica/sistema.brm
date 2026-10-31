@@ -1,5 +1,5 @@
 -- ==============================================================================
--- SISTEMA BRM - PROVÍNCIA BRASIL MERIDIONAL
+-- SISTEMA BRM - PROVÍNCIA BRASILEIRA MERIDIONAL
 -- FASE 2: TABELA RELACIONAL DE DOCUMENTOS, METADADOS & POLÍTICAS DE STORAGE
 -- ==============================================================================
 

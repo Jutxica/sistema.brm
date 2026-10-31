@@ -83,7 +83,7 @@ export const Login: React.FC = () => {
               Sistema BRM
             </h1>
             <p style={enter(260)} className="brm-enter-rise text-[13px] text-[#66777b] dark:text-[#a0aeaf] mt-1">
-              Província Brasil Meridional
+              Província Brasileira Meridional
             </p>
             <span style={enter(320)} className="brm-enter-fade mt-4 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#66777b] dark:text-[#a0aeaf]">
               <span style={{ ...enter(360), ['--line-origin' as string]: 'right' }} className="brm-enter-line h-px w-5 bg-[#b58a55]" />

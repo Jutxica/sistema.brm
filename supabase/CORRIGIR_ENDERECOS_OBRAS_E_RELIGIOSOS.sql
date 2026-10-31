@@ -1,6 +1,6 @@
 -- ==============================================================================
 -- MIGRATION: CORREÇÃO DE ENDEREÇOS (OBRAS E RELIGIOSOS), ORIGEM VOCACIONAL E CAMPOS CIDADE/LOCAL
--- Província Brasil Meridional (BRM)
+-- Província Brasileira Meridional (BRM)
 -- ==============================================================================
 
 -- 1. Adicionar campo 'cidade' nas tabelas canônicas e de trajetória

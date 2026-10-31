@@ -49,3 +49,4 @@ sql/
 !supabase/
 !supabase/*.sql
 /supabase/.temp/
+.taste-skill/

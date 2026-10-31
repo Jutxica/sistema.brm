@@ -146,7 +146,7 @@ Deno.serve(async (req: Request) => {
 <body>
   <div class="container">
     <div class="header">
-      <p>Província Brasil Meridional • Dehonianos</p>
+      <p>Província Brasileira Meridional • Dehonianos</p>
       <h1>Comprovante de Ficha Cadastral</h1>
     </div>
 
@@ -266,7 +266,7 @@ Deno.serve(async (req: Request) => {
     </div>
 
     <div class="footer">
-      <p style="margin: 0 0 6px 0;"><strong>Secretaria Provincial BRM</strong> • Província Brasil Meridional</p>
+      <p style="margin: 0 0 6px 0;"><strong>Secretaria Provincial BRM</strong> • Província Brasileira Meridional</p>
       <p style="margin: 0;">Av. Barão do Rio Branco, 400 • Jaraguá do Sul - SC • CEP 89251-400</p>
       <p style="margin: 6px 0 0 0; font-size: 11px; color: #a1a1aa;">Este e-mail é gerado automaticamente. Por favor, guarde-o para fins de arquivo pessoal.</p>
     </div>

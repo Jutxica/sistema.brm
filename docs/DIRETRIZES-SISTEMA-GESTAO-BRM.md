@@ -1,7 +1,7 @@
 # DIRETRIZES ARQUITETURAIS DO SISTEMA INTEGRADO — PROVÍNCIA BRM (DEHONIANOS)
 **Documento Mestre de Engenharia de Software, Produto e Governança**
 
-* **Organização Mantenedora:** Província Brasil Meridional dos Padres do Sagrado Coração de Jesus (Dehonianos)
+* **Organização Mantenedora:** Província Brasileira Meridional dos Padres do Sagrado Coração de Jesus (Dehonianos)
 * **Sede Provincial:** Brusque/SC | **Seminário Histórico & Casa de Encontros:** Corupá/SC
 * **Status Atual do Projeto:** ~30% Concluído (Fase de Estabilização, Segurança e Expansão)
 * **Versão das Diretrizes:** 2.0.0
@@ -22,7 +22,7 @@
 # 1. PRD — Product Requirements Document
 
 ### 1.1. Visão do Produto & Missão Institucional
-O **Sistema Integrado BRM** é a plataforma SaaS unificada da Província Brasil Meridional da Congregação dos Padres do Sagrado Coração de Jesus (Dehonianos). O sistema tem como missão:
+O **Sistema Integrado BRM** é a plataforma SaaS unificada da Província Brasileira Meridional da Congregação dos Padres do Sagrado Coração de Jesus (Dehonianos). O sistema tem como missão:
 1. **Governança Canônica & Administrativa:** Centralizar o arquivo histórico, registros sacramentais, vida consagrada, etapas formativas, transferências e histórico ministerial de todos os confrades (bispos, padres, diáconos, irmãos e religiosos em formação).
 2. **Vida Comunitária & Confraternização:** Oferecer aos religiosos uma área de autoatendimento ("Portal do Religioso / Portal do Confrade") moderna, fluida e acessível para consulta de anuário, atualização de dados, agenda provincial e solicitações fraternas.
 3. **Gestão Operacional de Hospedagem & Casas de Retiro:** Administrar a ocupação de quartos, reservas para cursos/retiros e acolhida de hóspedes no Seminário Sagrado Coração de Jesus (Corupá/SC) e demais casas de espiritualidade da Província BRM.

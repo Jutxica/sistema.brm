@@ -1,5 +1,5 @@
 -- =============================================================
--- SISTEMA BRM - PROVÍNCIA BRASIL MERIDIONAL
+-- SISTEMA BRM - PROVÍNCIA BRASILEIRA MERIDIONAL
 -- MIGRAÇÃO: DOCUMENTOS OFICIAIS & AGENDA PROVINCIAL
 -- =============================================================
 
@@ -181,7 +181,7 @@ on conflict do nothing;
 insert into public.documentos_provinciais (titulo, categoria, numero_referencia, data_documento, arquivo_nome, arquivo_url, arquivo_tamanho_bytes, mime_type, descricao, publicado_por, status)
 values
   (
-    'Diretório Provincial da Província Brasil Meridional - Edição Atualizada',
+    'Diretório Provincial da Província Brasileira Meridional - Edição Atualizada',
     'Diretórios',
     'Dir. BRM 2026',
     '2026-01-15',

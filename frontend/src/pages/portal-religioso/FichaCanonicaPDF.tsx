@@ -317,7 +317,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
 
   const handleShare = async () => {
     const nome = data?.nome_religioso || data?.nome_civil || 'Ficha do Confrade';
-    const textoCompartilhar = `Ficha Cadastral Canônica - Província Brasil Meridional (SCJ)\nReligioso: ${nome}\nComunidade: ${data?.comunidade_atual_nome || 'Província BRM'}`;
+    const textoCompartilhar = `Ficha Cadastral Canônica - Província Brasileira Meridional (SCJ)\nReligioso: ${nome}\nComunidade: ${data?.comunidade_atual_nome || 'Província BRM'}`;
 
     if (navigator.share) {
       try {
@@ -512,7 +512,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
                   Congregação dos Sacerdotes do Sagrado Coração de Jesus
                 </p>
                 <h1 className="text-[14pt] font-serif font-bold text-slate-900 tracking-tight mt-0.5">
-                  Província Brasil Meridional
+                  Província Brasileira Meridional
                 </h1>
                 <p className="text-[8.5pt] font-mono text-slate-600">Arquivo Provincial · Chancelaria</p>
               </div>
@@ -739,7 +739,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
                 );
               })
             ) : (
-              <p className="text-slate-500 italic py-1">Filosofia e Teologia — Província Brasil Meridional</p>
+              <p className="text-slate-500 italic py-1">Filosofia e Teologia — Província Brasileira Meridional</p>
             )}
           </div>
         </div>

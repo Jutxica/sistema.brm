@@ -44,7 +44,7 @@ export const Layout: React.FC<LayoutProps> = ({ title = 'Sistema BRM' }) => {
         {/* Rodapé Centralizado Oficial */}
         <footer className="w-full py-4 mt-auto border-t border-[#dce4e2] dark:border-[#354246] text-center print:hidden">
           <p className="text-[11px] text-[#66777b] dark:text-[#a0aeaf] font-sans">
-            Sistema BRM · Província Brasil Meridional · © 2026
+            Sistema BRM · Província Brasileira Meridional · © 2026
           </p>
         </footer>
       </div>

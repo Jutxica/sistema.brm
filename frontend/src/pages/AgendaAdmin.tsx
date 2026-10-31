@@ -614,7 +614,7 @@ export const AgendaAdmin: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-1">
             <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#226380] font-cinzel block">
-              Secretaria Provincial • Província Brasil Meridional
+              Secretaria Provincial • Província Brasileira Meridional
             </span>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[#113240] dark:text-white font-cinzel">
               Agenda & Eventos Provinciais

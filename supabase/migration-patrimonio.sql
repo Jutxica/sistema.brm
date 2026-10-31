@@ -1,5 +1,5 @@
 -- ==============================================================================
--- SISTEMA BRM - PROVÍNCIA BRASIL MERIDIONAL
+-- SISTEMA BRM - PROVÍNCIA BRASILEIRA MERIDIONAL
 -- MIGRAÇÃO: MÓDULO DE PATRIMÔNIO PROVINCIAL
 -- Gestão de Imóveis, Frota de Veículos, Bens & Arte Sacra, Contratos e Vistorias
 -- ==============================================================================

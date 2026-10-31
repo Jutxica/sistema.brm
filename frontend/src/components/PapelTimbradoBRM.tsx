@@ -578,7 +578,7 @@ export function gerarHtmlTimbradoBRM(options: {
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <title>${options.titulo} - Província Brasil Meridional</title>
+  <title>${options.titulo} - Província Brasileira Meridional</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
     

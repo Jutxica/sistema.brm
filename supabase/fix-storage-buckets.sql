@@ -1,6 +1,6 @@
 -- ==============================================================================
 -- CORREÇÃO DEFINITIVA DO SUPABASE STORAGE (BUCKETS E PERMISSÕES PÚBLICAS)
--- Sistema BRM - Província Brasil Meridional
+-- Sistema BRM - Província Brasileira Meridional
 --
 -- Como aplicar:
 -- 1. Acesse o painel do Supabase: https://app.supabase.com

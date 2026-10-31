@@ -180,7 +180,7 @@ export const RelatorioInscricoesPrint: React.FC<RelatorioInscricoesPrintProps> =
                     Congregação dos Sacerdotes do Sagrado Coração de Jesus
                   </p>
                   <h1 className="text-[14pt] font-serif font-bold text-slate-900 tracking-tight mt-0.5">
-                    Província Brasil Meridional
+                    Província Brasileira Meridional
                   </h1>
                   <p className="text-[8.5pt] font-mono text-slate-600">Secretaria Provincial · Livro de Inscrições</p>
                 </div>

@@ -1,6 +1,6 @@
 -- ==============================================================================
 -- CORREÇÃO DEFINITIVA: FOTO DE PERFIL 4X4 NA FICHA E DOSSIÊ DO RELIGIOSO
--- Província Brasil Meridional (BRM)
+-- Província Brasileira Meridional (BRM)
 --
 -- O que este script faz:
 -- 1. Garante que as colunas 'foto_path' e 'foto_url' existam na tabela public.religiosos.

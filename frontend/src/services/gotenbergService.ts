@@ -731,7 +731,7 @@ export const gotenbergService = {
 
     return await this.gerarPdfDocumento({
       titulo: 'CERTIDÃO DE USO DE ORDENS SAGRADAS',
-      subtitulo: 'Celebret Canônico • Província Brasil Meridional',
+      subtitulo: 'Celebret Canônico • Província Brasileira Meridional',
       protocolo: dados.numeroCertidao,
       dataEmissao: dados.dataEmissao,
       corpoHtml: corpo,
@@ -750,7 +750,7 @@ export const gotenbergService = {
           CERTIDÃO DE PROFISSÃO DE VOTOS RELIGIOSOS
         </p>
 
-        <p>Certifico, para os devidos fins de direito canônico, que revendo os livros de registros das Profissões Religiosas desta Província Brasil Meridional da Congregação dos Sacerdotes do Sagrado Coração de Jesus, consta o seguinte assento:</p>
+        <p>Certifico, para os devidos fins de direito canônico, que revendo os livros de registros das Profissões Religiosas desta Província Brasileira Meridional da Congregação dos Sacerdotes do Sagrado Coração de Jesus, consta o seguinte assento:</p>
 
         <table>
           <tr><td><strong>Professo:</strong></td><td>${dados.religiosoNome}</td></tr>

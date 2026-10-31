@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="favicon-32x32.png">
+  <link rel="apple-touch-icon" href="favicon-32x32.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Província Brasileira Meridional | Sacerdotes do Sagrado Coração de Jesus</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brm-navy: #0a1b24;
+      --brm-petroleum: #1d556e;
+      --brm-gold: #c59b63;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      overflow: hidden;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--brm-navy);
+      color: #f8fafc;
+    }
+
+    /* ===================================================
+       PRELOADER COM O BRASÃO DEHONIANO (MÁXIMO 3 SEGUNDOS)
+       =================================================== */
+    .preloader {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #081720;
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s ease;
+    }
+
+    .preloader.fade-out {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(1.05);
+    }
+
+    .preloader-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 22px;
+      animation: preloaderEntrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes preloaderEntrance {
+      from { opacity: 0; transform: translateY(14px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .logo-wrapper {
+      position: relative;
+      width: 140px;
+      height: 175px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .preloader-logo {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: invert(1);
+      animation: logoBreath 2.4s ease-in-out infinite alternate;
+    }
+
+    @keyframes logoBreath {
+      0% {
+        transform: scale(0.98);
+        opacity: 0.95;
+      }
+      100% {
+        transform: scale(1.02);
+        opacity: 1;
+      }
+    }
+
+    .loading-bar-wrapper {
+      width: 130px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 2px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .loading-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: #c59b63;
+      box-shadow: none;
+      animation: fillProgress 2.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    @keyframes fillProgress {
+      0% { width: 0%; }
+      55% { width: 70%; }
+      100% { width: 100%; }
+    }
+
+    .motto-text {
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 3.5px;
+      text-transform: uppercase;
+      color: #c59b63;
+      text-shadow: none;
+      animation: mottoEntrance 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+      opacity: 0;
+      transform: translateY(6px);
+    }
+
+    @keyframes mottoEntrance {
+      0% {
+        opacity: 0;
+        letter-spacing: 1.5px;
+        transform: translateY(6px);
+      }
+      100% {
+        opacity: 0.95;
+        letter-spacing: 3.5px;
+        transform: translateY(0);
+      }
+    }
+
+    /* ===================================================
+       BANNER E TELA PRINCIPAL (DESKTOP & CELULAR)
+       =================================================== */
+    .viewport-banner {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .hero-picture {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .hero-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center center;
+      animation: kenBurns 26s ease-in-out infinite alternate;
+      transform-origin: center center;
+      will-change: transform;
+    }
+
+    @keyframes kenBurns {
+      0% { transform: scale(1) translate(0, 0); }
+      50% { transform: scale(1.04) translate(-0.8%, -0.4%); }
+      100% { transform: scale(1.02) translate(0.5%, 0.4%); }
+    }
+
+    #particles-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .vignette-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      pointer-events: none;
+      background: 
+        radial-gradient(circle at center, transparent 45%, rgba(10, 27, 36, 0.35) 100%),
+        linear-gradient(to bottom, transparent 0%, transparent 72%, rgba(8, 20, 28, 0.85) 100%);
+    }
+
+    .ui-layer {
+      position: relative;
+      z-index: 5;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      padding: 32px 20px;
+      padding-bottom: max(28px, env(safe-area-inset-bottom, 28px));
+    }
+
+    .bottom-bar {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      animation: fadeInUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .action-group {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* Botões sóbrios, compactos e editoriais (Utxica.tasteskil) */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 18px;
+      min-height: 38px;
+      border-radius: 9999px;
+      font-size: 0.83rem;
+      font-weight: 500;
+      letter-spacing: 0.2px;
+      text-decoration: none;
+      white-space: nowrap; /* Impede qualquer quebra feia de linha */
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+      cursor: pointer;
+      box-shadow: none !important;
+    }
+
+    .btn-instagram {
+      background: #b58a55;
+      color: #081720;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .btn-instagram:hover {
+      background: #c59b63;
+      transform: translateY(-1px);
+    }
+
+    .btn-instagram:active {
+      transform: scale(0.98);
+    }
+
+    .btn-instagram svg {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+    }
+
+    .btn-glass {
+      background: rgba(10, 27, 36, 0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+    }
+
+    .btn-glass:hover {
+      background: rgba(15, 36, 48, 0.9);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .btn-glass:active {
+      transform: scale(0.98);
+    }
+
+    .btn-glass svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .footer-credits {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.75);
+      text-align: center;
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+      letter-spacing: 0.4px;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===================================================
+       AJUSTES ESPECÍFICOS PARA CELULARES (MOBILE)
+       =================================================== */
+    @media (max-width: 768px) {
+      .hero-image {
+        /* No celular usa o banner vertical 1080x1920 perfeitamente ajustado */
+        object-fit: cover;
+        object-position: center center;
+        animation: none; /* Desativa zoom/câmera no celular para não cortar bordas nem texto */
+        transform: none;
+      }
+      .vignette-overlay {
+        background: linear-gradient(to bottom, transparent 0%, transparent 75%, rgba(8, 20, 28, 0.85) 100%);
+      }
+      .ui-layer {
+        padding: 16px 14px;
+        padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+      }
+      .action-group {
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        max-width: 260px;
+      }
+      .btn {
+        width: 100%;
+        min-height: 38px;
+        padding: 8px 16px;
+        font-size: 0.82rem;
+        white-space: nowrap;
+      }
+      .footer-credits {
+        font-size: 0.75rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Preloader com o Brasão Dehoniano -->
+  <div id="preloader" class="preloader">
+    <div class="preloader-content">
+      <div class="logo-wrapper">
+        <img src="brasao-dehonianos.png" alt="Brasão dos Sacerdotes do Sagrado Coração de Jesus" class="preloader-logo">
+      </div>
+      <div class="loading-bar-wrapper">
+        <div class="loading-bar-fill"></div>
+      </div>
+      <span class="motto-text">Adveniat Regnum Tuum</span>
+    </div>
+  </div>
+
+  <!-- Camada com o Banner Principal: Celular carrega a versão Vertical 9:16 e Computador a Horizontal 16:9 -->
+  <div class="viewport-banner">
+    <picture class="hero-picture">
+      <!-- CELULAR: Banner vertical 1080x1920 -->
+      <source media="(max-width: 768px)" srcset="banner-vertical.png">
+      <!-- COMPUTADOR: Banner horizontal panorâmico -->
+      <img class="hero-image" src="banner-aguarde.png" alt="Aguarde! Em breve um novo site da Província Brasileira Meridional">
+    </picture>
+
+    <canvas id="particles-canvas"></canvas>
+    <div class="vignette-overlay"></div>
+  </div>
+
+  <!-- Camada de Interface -->
+  <div class="ui-layer">
+    <footer class="bottom-bar">
+      <div class="action-group">
+        <a href="https://www.instagram.com/dehonianosbrm/" target="_blank" rel="noopener noreferrer" class="btn btn-instagram">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+          </svg>
+          @dehonianosbrm
+        </a>
+
+        <a href="mailto:secretaria@brm.org.br" class="btn btn-glass">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+          </svg>
+          Falar com a Secretaria
+        </a>
+      </div>
+
+      <div class="footer-credits">
+        scj.org.br &bull; &copy; 2026 Todos os direitos reservados.
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        const preloader = document.getElementById('preloader');
+        if (preloader) {
+          preloader.classList.add('fade-out');
+          setTimeout(() => {
+            preloader.remove();
+          }, 700);
+        }
+      }, 2200);
+    });
+
+    (function() {
+      const canvas = document.getElementById('particles-canvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+      let width, height;
+
+      function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      const isMobile = window.innerWidth < 768;
+      const count = isMobile ? 18 : 36;
+
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          radius: Math.random() * 2 + 0.8,
+          speedY: -(Math.random() * 0.4 + 0.12),
+          speedX: (Math.random() - 0.5) * 0.2,
+          opacity: Math.random() * 0.5 + 0.2,
+          fadeSpeed: (Math.random() * 0.008 + 0.004) * (Math.random() > 0.5 ? 1 : -1)
+        });
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, width, height);
+        particles.forEach(p => {
+          p.y += p.speedY;
+          p.x += p.speedX;
+          p.opacity += p.fadeSpeed;
+
+          if (p.opacity > 0.75 || p.opacity < 0.15) {
+            p.fadeSpeed = -p.fadeSpeed;
+          }
+
+          if (p.y < -10) {
+            p.y = height + 10;
+            p.x = Math.random() * width;
+          }
+          if (p.x < -10) p.x = width + 10;
+          if (p.x > width + 10) p.x = -10;
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(224, 192, 142, ${p.opacity})`;
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = 'rgba(212, 170, 114, 0.5)';
+          ctx.fill();
+        });
+        requestAnimationFrame(draw);
+      }
+      requestAnimationFrame(draw);
+    })();
+  </script>
+</body>
+</html>

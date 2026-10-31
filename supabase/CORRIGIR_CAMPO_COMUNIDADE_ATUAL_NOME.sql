@@ -1,6 +1,6 @@
 -- ==============================================================================
 -- CORREÇÃO DEFINITIVA: RECORD "NEW" HAS NO FIELD "COMUNIDADE_ATUAL_NOME"
--- Província Brasil Meridional (BRM)
+-- Província Brasileira Meridional (BRM)
 --
 -- Como aplicar no Supabase:
 -- 1. Acesse o painel do seu projeto no Supabase (https://supabase.com/dashboard)

@@ -1,5 +1,5 @@
 -- =============================================================
--- SISTEMA BRM - PROVÍNCIA BRASIL MERIDIONAL (SCJ)
+-- SISTEMA BRM - PROVÍNCIA BRASILEIRA MERIDIONAL (SCJ)
 -- MIGRAÇÃO AUTÔNOMA: SECRETARIA, FORMULÁRIOS & AGENDA PROVINCIAL
 -- =============================================================
 -- Este script cria/atualiza o schema. Depois, aplique as migrações de hardening
@@ -96,7 +96,7 @@ create table if not exists public.secretaria_configuracoes (
   prefixo_formularios text not null default 'FORM-BRM',
   numero_atual_formularios integer not null default 3,
   cabecalho_institucional text not null default 'CONGREGAÇÃO DOS PADRES DO SAGRADO CORAÇÃO DE JESUS',
-  subtitulo_provincia text not null default 'PROVÍNCIA BRASIL MERIDIONAL (SCJ) • CURIA PROVINCIAL',
+  subtitulo_provincia text not null default 'PROVÍNCIA BRASILEIRA MERIDIONAL (SCJ) • CURIA PROVINCIAL',
   orgao_emissor text not null default 'SECRETARIA PROVINCIAL & ATOS CANÔNICOS',
   lema_oficial text not null default '«COR JESU, IN TE CONFIDO • SINT UNUM»',
   email_secretaria text not null default 'secretaria@brm.org.br',
@@ -124,7 +124,7 @@ insert into public.secretaria_configuracoes (
   'default-secretaria-cfg', 'DEC-BRM', 14, 'PORT-BRM', 8,
   'CIRC-BRM', 5, 'FORM-BRM', 3,
   'CONGREGAÇÃO DOS PADRES DO SAGRADO CORAÇÃO DE JESUS',
-  'PROVÍNCIA BRASIL MERIDIONAL (SCJ) • CURIA PROVINCIAL',
+  'PROVÍNCIA BRASILEIRA MERIDIONAL (SCJ) • CURIA PROVINCIAL',
   'SECRETARIA PROVINCIAL & ATOS CANÔNICOS',
   '«COR JESU, IN TE CONFIDO • SINT UNUM»',
   'secretaria@brm.org.br', '(41) 3342-1200', true, true, true

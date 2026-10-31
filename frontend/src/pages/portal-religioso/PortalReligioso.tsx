@@ -26,6 +26,7 @@ import { PortalInicioTab } from './tabs/PortalInicioTab';
 import { PortalCalendarioTab } from './tabs/PortalCalendarioTab';
 import { PortalDocumentosTab } from './tabs/PortalDocumentosTab';
 import { PortalHospedagemTab } from './tabs/PortalHospedagemTab';
+import { PortalLogin } from './PortalLogin';
 
 export type PortalSection = 'inicio' | 'perfil' | 'inscricao' | 'ficha-pdf' | 'calendario' | 'documentos' | 'anuario' | 'hospedagem';
 
@@ -43,18 +44,31 @@ const dataElencoHoje = () => new Date().toLocaleDateString('sv-SE', { timeZone: 
 export const PortalReligioso: React.FC = () => {
   const { user, loading: authLoadingProfile, logout, refreshUserProfile } = useAuth();
 
-  // Authentication State for Member Portal
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [identificador, setIdentificador] = useState('');
-  const [senha, setSenha] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [authSuccess, setAuthSuccess] = useState<string | null>(null);
+
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [recoveryMode, setRecoveryMode] = useState(false);
   const [recoveryPassword, setRecoveryPassword] = useState('');
-  const [consentAccepted, setConsentAccepted] = useState(false);
-  const [profileError, setProfileError] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
+
+  const handlePasswordUpdate = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (recoveryPassword.length < 6) {
+      showToast.error('A senha deve possuir no mínimo 6 caracteres.');
+      return;
+    }
+    setAuthLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: recoveryPassword });
+      if (error) throw error;
+      setRecoveryMode(false);
+      setRecoveryPassword('');
+      showToast.success('Senha atualizada com sucesso.');
+    } catch (error) {
+      showToast.error(error instanceof Error ? error.message : 'Não foi possível atualizar a senha.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   // Active View inside Member Area: 'inicio' | 'perfil' | 'inscricao' | 'ficha-pdf' | 'calendario' | 'documentos' | 'anuario' | 'hospedagem'
   const [activeSection, setActiveSection] = useState<PortalSection>('inicio');
@@ -87,13 +101,7 @@ export const PortalReligioso: React.FC = () => {
   const [formularioInscricaoAtivo, setFormularioInscricaoAtivo] = useState<FormularioSecretaria | null>(null);
   const [salvandoInscricao, setSalvandoInscricao] = useState(false);
 
-  // Registration State
-  const [regNomeCivil, setRegNomeCivil] = useState('');
-  const [regCpf, setRegCpf] = useState('');
-  const [regDataNascimento, setRegDataNascimento] = useState('');
-  const [regEmail, setRegEmail] = useState('');
-  const [regSenha, setRegSenha] = useState('');
-  const [regConfirmarSenha, setRegConfirmarSenha] = useState('');
+
 
   // Dropdown de Persona / Perfil SaaS
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -112,14 +120,7 @@ export const PortalReligioso: React.FC = () => {
     isE2E || (user?.status === 'Ativo' && (user.isAdmin || user.religiosoStatusCadastro === 'Aprovado')),
   );
 
-  // Helper CPF
-  const formatCpf = (val: string) => {
-    const digits = val.replace(/\D/g, '').slice(0, 11);
-    if (digits.length <= 3) return digits;
-    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
-    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
-    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
-  };
+
 
   // Carregar perfil do religioso conectado
   const loadMemberData = React.useCallback(async () => {
@@ -516,162 +517,7 @@ export const PortalReligioso: React.FC = () => {
     };
   }, [mobileMoreOpen]);
 
-  // Login Handler
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    setAuthError(null);
-    setAuthSuccess(null);
 
-    try {
-      const targetEmail = identificador.trim().toLowerCase();
-      if (!targetEmail.includes('@')) {
-        setAuthError('Use o e-mail confirmado da sua conta para entrar. O CPF não é usado como identificador de login.');
-        return;
-      }
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: targetEmail,
-        password: senha,
-      });
-
-      if (error) {
-        setAuthError(error.message === 'Invalid login credentials' 
-          ? 'Credenciais inválidas. Verifique seu e-mail e senha.'
-          : error.message);
-      } else if (data.session) {
-        await refreshUserProfile(data.session.user.id);
-        setActiveSection('inicio');
-      }
-    } catch (err) {
-      console.error(err);
-      setAuthError(err instanceof Error ? err.message : 'Erro ao conectar com o servidor.');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  // Register Handler
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    setAuthError(null);
-    setAuthSuccess(null);
-
-    const cleanCpf = regCpf.replace(/\D/g, '');
-    if (!validateCpf(cleanCpf)) {
-      setAuthError('CPF inválido. Confira os 11 dígitos verificadores.');
-      setAuthLoading(false);
-      return;
-    }
-
-    if (!consentAccepted) {
-      setAuthError('Confirme a autorização para uso dos dados do cadastro conforme a Política de Privacidade.');
-      setAuthLoading(false);
-      return;
-    }
-
-    if (!regDataNascimento || regDataNascimento >= new Date().toISOString().slice(0, 10)) {
-      setAuthError('Informe uma data de nascimento válida.');
-      setAuthLoading(false);
-      return;
-    }
-
-    if (regSenha.length < 6) {
-      setAuthError('A senha deve possuir no mínimo 6 caracteres.');
-      setAuthLoading(false);
-      return;
-    }
-
-    if (regSenha !== regConfirmarSenha) {
-      setAuthError('As senhas digitadas não coincidem.');
-      setAuthLoading(false);
-      return;
-    }
-
-    try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: regEmail.trim().toLowerCase(),
-        password: regSenha,
-        options: {
-          emailRedirectTo: getPortalRedirectUrl(),
-          data: {
-            nome: regNomeCivil.trim(),
-            cpf: cleanCpf,
-            data_nascimento: regDataNascimento,
-            consentimento_dados: 'true',
-          }
-        }
-      });
-
-      if (authError) {
-        setAuthError(authError.message.includes('already registered')
-          ? 'Este e-mail já possui cadastro. Faça login ou recupere sua senha.'
-          : authError.message);
-        setAuthLoading(false);
-        return;
-      }
-
-      if (authData.session && authData.user) {
-        await refreshUserProfile(authData.user.id);
-        setAuthSuccess('Conta criada. Seu primeiro passo é abrir Cadastro BRM e preencher a Ficha Cadastral Oficial. Depois, você pode completar seu perfil pessoal.');
-      } else {
-        setAuthSuccess('Conta criada. Enviamos um link de confirmação para seu e-mail. Confirme-o, entre no portal e comece pelo Cadastro BRM. Depois, você pode completar seu perfil pessoal.');
-      }
-      setAuthMode('login');
-      setIdentificador(regEmail.trim().toLowerCase());
-      setSenha('');
-    } catch (err: unknown) {
-      console.error(err);
-      setAuthError(err instanceof Error ? err.message : 'Falha ao registrar conta de religioso.');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handlePasswordRecovery = async () => {
-    const email = identificador.trim().toLowerCase();
-    if (!email.includes('@')) {
-      setAuthError('Informe o e-mail da sua conta para receber o link de recuperação.');
-      return;
-    }
-    setAuthLoading(true);
-    setAuthError(null);
-    setAuthSuccess(null);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: getPasswordResetRedirectUrl('portal'),
-      });
-      if (error) throw error;
-      setAuthSuccess('Se houver uma conta para este e-mail, enviaremos as instruções de recuperação.');
-    } catch (error) {
-      setAuthError(error instanceof Error ? error.message : 'Não foi possível solicitar a recuperação da senha.');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handlePasswordUpdate = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (recoveryPassword.length < 6) {
-      setAuthError('A senha deve possuir no mínimo 6 caracteres.');
-      return;
-    }
-    setAuthLoading(true);
-    setAuthError(null);
-    try {
-      const { error } = await supabase.auth.updateUser({ password: recoveryPassword });
-      if (error) throw error;
-      setRecoveryMode(false);
-      setRecoveryPassword('');
-      setAuthSuccess('Senha atualizada. Você já pode acessar o portal com a nova senha.');
-      showToast.success('Senha atualizada com sucesso.');
-    } catch (error) {
-      setAuthError(error instanceof Error ? error.message : 'Não foi possível atualizar a senha.');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
 
   if (user && authLoadingProfile && !isE2E) {
     return (
@@ -684,406 +530,15 @@ export const PortalReligioso: React.FC = () => {
     );
   }
 
-  // Se o usuário NÃO estiver autenticado (e não em preview): Tela Apple de Entrada do Confrade
+  // Se o usuário NÃO estiver autenticado (e não em preview): Tela Institucional de Entrada do Confrade
   if (!user && !isE2E) {
     return (
-      <div className="religious-portal flex min-h-[100svh] flex-col items-center justify-center px-4 py-5 font-sans text-[#203136] transition-colors duration-200 dark:text-[#edf2f1] sm:px-6 sm:py-8">
-        <main className="flex w-full max-w-5xl items-center justify-center">
-          <div className="grid w-full overflow-hidden rounded-xl border border-[#d6d6d6]/70 bg-white shadow-[0_24px_80px_rgba(17,50,64,0.10)] dark:border-white/10 dark:bg-[#161617] dark:shadow-[0_24px_80px_rgba(0,0,0,0.22)] md:grid-cols-[0.82fr_1.18fr] md:rounded-[30px]">
-            <aside className="relative hidden flex-col justify-between overflow-hidden bg-[#113240] p-10 text-white md:flex lg:p-12">
-              <div aria-hidden="true" className="absolute -right-24 -top-24 h-72 w-72 rounded-full border border-white/10" />
-              <div aria-hidden="true" className="absolute -right-12 -top-12 h-48 w-48 rounded-full border border-white/10" />
-              <div className="relative">
-                <img
-                  src="/logo-branco.png"
-                  alt="Província BRM"
-                  className="mb-10 h-14 w-auto max-w-full object-contain object-left"
-                />
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#a3c3c7]">
-                  Província Brasil Meridional
-                </span>
-                <h2 className="mt-3 text-3xl font-semibold leading-tight tracking-[-0.03em] lg:text-[34px]">
-                  Comunhão que aproxima.
-                </h2>
-                <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/75">
-                  Um espaço seguro para acompanhar a vida provincial, cuidar do seu perfil e acessar os serviços da Província.
-                </p>
-              </div>
-              <div className="relative rounded-2xl border border-white/15 bg-white/[0.06] p-5">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#a3c3c7]">
-                  Sint Unum
-                </span>
-                <p className="mt-2 text-sm leading-relaxed text-white/85">
-                  Acesso reservado aos religiosos da Província Brasil Meridional.
-                </p>
-              </div>
-            </aside>
-
-            <section className="min-w-0 p-5 sm:p-8 md:p-10 lg:p-12">
-              <div className="mb-7 flex items-center gap-3 md:hidden">
-                <img
-                  src="/logo-sistema.png"
-                  alt="Província BRM"
-                  className="h-10 w-auto max-w-[5rem] object-contain dark:hidden"
-                />
-                <img
-                  src="/logo-branco.png"
-                  alt="Província BRM"
-                  className="hidden h-10 w-auto max-w-[5rem] object-contain dark:block"
-                />
-                <div className="min-w-0 border-l border-[#d6d6d6] pl-3 dark:border-white/15">
-                  <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-[#707070] dark:text-[#a1a1a6]">
-                    Província Brasil Meridional
-                  </span>
-                  <span className="mt-0.5 block text-xs font-medium text-[#203136] dark:text-[#edf2f1]">
-                    Área do Confrade
-                  </span>
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#226380] dark:text-[#a3c3c7]">
-                  {recoveryMode ? 'Recuperação de acesso' : authMode === 'login' ? 'Área do Confrade' : 'Novo acesso'}
-                </span>
-                <h1 className="mt-2 text-[26px] font-semibold leading-tight tracking-[-0.035em] text-[#1d1d1f] dark:text-[#f5f5f7] sm:text-3xl">
-                  {recoveryMode
-                    ? 'Defina uma nova senha'
-                    : authMode === 'login'
-                      ? 'Bem-vindo de volta'
-                      : 'Crie seu acesso ao portal'}
-                </h1>
-                <p className="mt-2 max-w-lg text-[13px] leading-relaxed text-[#707070] dark:text-[#a1a1a6]">
-                  {recoveryMode
-                    ? 'Escolha uma senha segura para voltar a acessar sua conta.'
-                    : authMode === 'login'
-                      ? 'Entre para acompanhar sua vida provincial e acessar os serviços do confrade.'
-                      : 'Informe seus dados para localizar sua ficha. A Secretaria confirma o vínculo antes de validar o cadastro.'}
-                </p>
-              </div>
-
-            {/* Apple Segmented Control */}
-            {!recoveryMode && <div className="mb-6 flex rounded-[14px] border border-[#d6d6d6]/60 bg-[#f5f5f7] p-1 dark:border-white/10 dark:bg-[#262628]">
-              <button
-                type="button"
-                aria-pressed={authMode === 'login'}
-                onClick={() => { setAuthMode('login'); setAuthError(null); setAuthSuccess(null); }}
-                className={`min-h-11 flex-1 rounded-[10px] px-3 py-2 text-[13px] font-semibold transition-all duration-200 cursor-pointer ${
-                  authMode === 'login'
-                    ? 'bg-white text-[#1d1d1f] shadow-[0_2px_8px_rgba(0,0,0,0.06)] dark:bg-[#323236] dark:text-white'
-                    : 'text-[#707070] dark:text-[#86868b] hover:text-[#1d1d1f] dark:hover:text-white'
-                }`}
-              >
-                Entrar
-              </button>
-              <button
-                type="button"
-                aria-pressed={authMode === 'register'}
-                onClick={() => { setAuthMode('register'); setAuthError(null); setAuthSuccess(null); }}
-                className={`min-h-11 flex-1 rounded-[10px] px-3 py-2 text-[13px] font-semibold transition-all duration-200 cursor-pointer ${
-                  authMode === 'register'
-                    ? 'bg-white text-[#1d1d1f] shadow-[0_2px_8px_rgba(0,0,0,0.06)] dark:bg-[#323236] dark:text-white'
-                    : 'text-[#707070] dark:text-[#86868b] hover:text-[#1d1d1f] dark:hover:text-white'
-                }`}
-              >
-                Criar Conta
-              </button>
-            </div>}
-
-            {/* Alertas */}
-            {authError && (
-              <div role="alert" className="mb-5 flex items-start gap-3 rounded-[14px] border border-[#ffc9c9] bg-[#fff2f2] p-3.5 text-xs text-[#c92a2a] animate-shake dark:border-[#5c1c24] dark:bg-[#321417] dark:text-[#ff8787]">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span className="leading-relaxed">{authError}</span>
-              </div>
-            )}
-
-            {authSuccess && (
-              <div role="status" aria-live="polite" className="mb-5 flex items-start gap-3 rounded-[14px] border border-[#c8e6c9] bg-[#e8f5e9] p-3.5 text-xs text-[#2e7d32] dark:border-[#2e5e39] dark:bg-[#152a1b] dark:text-[#81c784]">
-                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-[#2e7d32]" />
-                <span className="leading-relaxed">{authSuccess}</span>
-              </div>
-            )}
-
-            {/* FORM LOGIN */}
-            {recoveryMode ? (
-              <form onSubmit={handlePasswordUpdate} className="space-y-4">
-                <label className="block text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
-                  Nova senha
-                  <input
-                    id="portal-recovery-password"
-                    type="password"
-                    minLength={6}
-                    required
-                    value={recoveryPassword}
-                    onChange={event => setRecoveryPassword(event.target.value)}
-                    autoComplete="new-password"
-                    className="mt-2 w-full min-h-11 rounded-[12px] border border-transparent bg-[#f5f5f7] px-4 py-3 outline-none focus:border-[#226380] dark:bg-[#262628]"
-                  />
-                </label>
-                <button type="submit" disabled={authLoading} className="w-full min-h-12 rounded-[14px] bg-[#113240] py-3 font-semibold text-white disabled:opacity-50 dark:bg-[#226380]">
-                  Atualizar senha
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setRecoveryMode(false); setAuthError(null); }}
-                  className="w-full min-h-11 text-sm font-medium text-[#226380] hover:underline dark:text-[#a3c3c7]"
-                >
-                  Voltar ao acesso
-                </button>
-              </form>
-            ) : authMode === 'login' ? (
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label htmlFor="portal-login-email" className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block">
-                    E-mail da conta
-                  </label>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-[#707070] dark:text-[#86868b] pointer-events-none">
-                      <User className="w-4 h-4" />
-                    </span>
-                    <input
-                      id="portal-login-email"
-                      type="email"
-                      required
-                      value={identificador}
-                      onChange={(e) => setIdentificador(e.target.value)}
-                      autoComplete="email"
-                      placeholder="confrade@brm.org.br"
-                      className="w-full min-h-11 rounded-[12px] border border-transparent bg-[#f5f5f7] py-3 pl-10 pr-4 text-[14px] text-[#1d1d1f] outline-none transition-all placeholder:text-[#86868b] hover:bg-[#efeff2] focus:border-[#226380] focus:bg-white dark:bg-[#262628] dark:text-[#f5f5f7] dark:hover:bg-[#2d2d30] dark:focus:bg-[#1d1d1f]"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex justify-between items-center">
-                    <label htmlFor="portal-login-password" className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block">
-                      Senha
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => void handlePasswordRecovery()}
-                      className="inline-flex min-h-11 items-center text-[12px] font-medium text-[#226380] transition-colors hover:underline dark:text-[#a3c3c7]"
-                    >
-                      Esqueceu a senha?
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-[#707070] dark:text-[#86868b] pointer-events-none">
-                      <Lock className="w-4 h-4" />
-                    </span>
-                    <input
-                      id="portal-login-password"
-                      type={showPassword ? "text" : "password"}
-                      required
-                      value={senha}
-                      onChange={(e) => setSenha(e.target.value)}
-                      placeholder="Digite sua senha"
-                      className="w-full min-h-11 rounded-[12px] border border-transparent bg-[#f5f5f7] py-3 pl-10 pr-11 text-[14px] text-[#1d1d1f] outline-none transition-all placeholder:text-[#86868b] hover:bg-[#efeff2] focus:border-[#226380] focus:bg-white dark:bg-[#262628] dark:text-[#f5f5f7] dark:hover:bg-[#2d2d30] dark:focus:bg-[#1d1d1f]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                      aria-pressed={showPassword}
-                      className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-[#707070] transition-colors hover:text-[#1d1d1f] dark:text-[#86868b] dark:hover:text-[#f5f5f7] cursor-pointer"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={authLoading}
-                    className="w-full min-h-12 rounded-[14px] bg-[#113240] px-6 py-3.5 text-[15px] font-semibold text-white transition-all duration-200 hover:bg-[#174657] cursor-pointer disabled:pointer-events-none disabled:opacity-50 flex items-center justify-center gap-2 active:scale-[0.99] dark:bg-[#226380] dark:hover:bg-[#2b7897]"
-                  >
-                    {authLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Conectando...</span>
-                      </>
-                    ) : (
-                      <span>Acessar Área do Confrade</span>
-                    )}
-                  </button>
-
-                  {import.meta.env.DEV && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        localStorage.setItem('brm_e2e_preview', 'true');
-                        localStorage.setItem('brm_e2e_role', 'religioso');
-                        window.location.reload();
-                      }}
-                      className="mt-2.5 flex min-h-11 w-full items-center justify-center gap-2 rounded-[14px] border border-[#226380]/30 bg-[#f5f5f7] px-4 py-2.5 text-xs font-semibold text-[#226380] transition-all hover:bg-[#ebebed] dark:bg-[#262628] dark:text-[#a3c3c7] dark:hover:bg-[#303033] cursor-pointer"
-                    >
-                      <span>Acesso Rápido de Confrade (Demonstração)</span>
-                    </button>
-                  )}
-                </div>
-              </form>
-            ) : (
-              /* FORM REGISTRO */
-              <form onSubmit={handleRegister} className="space-y-3.5">
-                <div>
-                  <label htmlFor="portal-register-name" className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
-                    Nome completo *
-                  </label>
-                  <input
-                    id="portal-register-name"
-                    type="text"
-                    required
-                    value={regNomeCivil}
-                    onChange={(e) => setRegNomeCivil(e.target.value)}
-                    autoComplete="name"
-                    placeholder="Seu nome completo"
-                    className="w-full min-h-11 px-4 py-3 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[12px] border border-transparent focus:border-[#226380] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="portal-register-cpf" className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
-                      CPF *
-                    </label>
-                    <input
-                      id="portal-register-cpf"
-                      type="text"
-                      required
-                      value={regCpf}
-                      onChange={(e) => setRegCpf(formatCpf(e.target.value))}
-                      placeholder="000.000.000-00"
-                      maxLength={14}
-                      className="w-full min-h-11 px-4 py-3 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[12px] border border-transparent focus:border-[#226380] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
-                    />
-                    <p className="mt-1.5 text-[11px] leading-relaxed text-[#707070] dark:text-[#a1a1a6]">
-                      Conferimos apenas os dígitos verificadores. A titularidade será revisada pela Secretaria; não consultamos uma base oficial de CPF.
-                    </p>
-                  </div>
-                  <div>
-                    <label htmlFor="portal-register-birthdate" className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
-                      Data de nascimento *
-                    </label>
-                    <input
-                      id="portal-register-birthdate"
-                      type="date"
-                      required
-                      max={new Date().toISOString().slice(0, 10)}
-                      value={regDataNascimento}
-                      onChange={(e) => setRegDataNascimento(e.target.value)}
-                      className="w-full min-h-11 px-4 py-3 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[12px] border border-transparent focus:border-[#226380] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="portal-register-email" className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
-                    E-mail *
-                  </label>
-                  <input
-                    id="portal-register-email"
-                    type="email"
-                    required
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    autoComplete="email"
-                    placeholder="seu@email.com"
-                    className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#226380] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="portal-register-password" className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
-                      Senha *
-                    </label>
-                    <input
-                      id="portal-register-password"
-                      type="password"
-                      required
-                        minLength={6}
-                        autoComplete="new-password"
-                        value={regSenha}
-                      onChange={(e) => setRegSenha(e.target.value)}
-                      placeholder="Mínimo 6 caracteres"
-                      className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#226380] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="portal-register-password-confirm" className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] block mb-1">
-                      Confirmar Senha *
-                    </label>
-                    <input
-                      id="portal-register-password-confirm"
-                      type="password"
-                      required
-                        minLength={6}
-                        autoComplete="new-password"
-                        value={regConfirmarSenha}
-                      onChange={(e) => setRegConfirmarSenha(e.target.value)}
-                      placeholder="Repita a senha"
-                      className="w-full px-4 py-2.5 bg-[#f5f5f7] dark:bg-[#262628] text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#86868b] rounded-[14px] border border-transparent focus:border-[#226380] focus:bg-white dark:focus:bg-[#1d1d1f] outline-none transition-all"
-                    />
-                  </div>
-                </div>
-
-                <label className="flex items-start gap-2.5 text-xs leading-relaxed text-[#707070] dark:text-[#a1a1a6]">
-                  <input
-                    type="checkbox"
-                    checked={consentAccepted}
-                    onChange={event => setConsentAccepted(event.target.checked)}
-                    className="mt-0.5 size-4 shrink-0 accent-[#226380]"
-                  />
-                  <span>Autorizo o uso destes dados para localizar e manter minha ficha institucional, conforme a Política de Privacidade e a LGPD. O CPF não é prova de identidade.</span>
-                </label>
-
-                <p className="text-xs leading-relaxed text-[#707070] dark:text-[#86868b]">
-                  Enviaremos um link para confirmar seu e-mail. Depois da confirmação, você poderá entrar com sua senha. A Secretaria confere os dados antes de validar sua ficha.
-                </p>
-
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={authLoading}
-                    className="w-full min-h-12 px-6 py-3.5 rounded-[14px] bg-[#113240] hover:bg-[#174657] text-white text-[15px] font-semibold transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 active:scale-[0.99] dark:bg-[#226380] dark:hover:bg-[#2b7897]"
-                  >
-                    {authLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Criando acesso...</span>
-                      </>
-                    ) : (
-                      <span>Criar Acesso e Conectar</span>
-                    )}
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Link para Ficha Pública Avulsa */}
-            <div className="mt-7 border-t border-[#e5e5ea] pt-5 text-center dark:border-white/10">
-              <a
-                href="/cadastro-religiosos"
-                className="inline-flex min-h-11 items-center justify-center gap-1.5 text-[12px] font-medium text-[#226380] transition-colors hover:underline dark:text-[#a3c3c7]"
-              >
-                <span>Prefere preencher apenas a ficha pública?</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </a>
-            </div>
-
-            </section>
-          </div>
-        </main>
-
-        {/* Centralized Footer */}
-        <footer className="mt-5 w-full max-w-5xl py-2 text-center text-[11px] text-[#707070] dark:text-[#86868b] select-none print:hidden">
-          <p className="tracking-wide">
-            Sistema BRM · Província Brasil Meridional
-          </p>
-        </footer>
-
-      </div>
+      <PortalLogin
+        onSuccess={async (userId) => {
+          await refreshUserProfile(userId);
+          setActiveSection('inicio');
+        }}
+      />
     );
   }
 

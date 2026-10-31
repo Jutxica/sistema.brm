@@ -77,7 +77,7 @@ export const PortalCalendarioTab: React.FC<PortalCalendarioTabProps> = ({
               Agenda Provincial 2026
             </h2>
             <p className="text-xs sm:text-sm text-[#707070] dark:text-[#86868b] font-normal mt-1 leading-relaxed max-w-2xl">
-              Acompanhe os retiros, assembleias, celebrações patronais e encontros oficiais da Província Brasil Meridional.
+              Acompanhe os retiros, assembleias, celebrações patronais e encontros oficiais da Província Brasileira Meridional.
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs font-medium text-[#707070] dark:text-[#86868b] bg-[#f5f5f7] dark:bg-[#262628] px-4 py-2 rounded-full border border-[#d6d6d6]/40 dark:border-white/5 self-start md:self-auto">

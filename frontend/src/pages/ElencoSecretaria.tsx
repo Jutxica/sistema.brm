@@ -893,7 +893,7 @@ export const ElencoSecretaria: React.FC = () => {
             {/* Footer com Ações */}
             <div className="flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
               <p className="text-[11px] text-slate-400">
-                Província BRM • SCJ Brasil Meridional
+                Província BRM • SCJ Brasileira Meridional
               </p>
 
               <div className="flex items-center gap-2">

@@ -1,6 +1,6 @@
 -- ==============================================================================
 -- CORREÇÃO DEFINITIVA DO CADASTRO E EDIÇÃO DE RELIGIOSOS (SUPABASE)
--- Sistema BRM - Província Brasil Meridional
+-- Sistema BRM - Província Brasileira Meridional
 --
 -- Como aplicar:
 -- 1. Acesse o painel do Supabase: https://app.supabase.com

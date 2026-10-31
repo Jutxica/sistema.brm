@@ -15,7 +15,8 @@ export const isPortalPublicHost = (): boolean => {
     hostname.startsWith('portal.') ||
     hostname.startsWith('portalscj.') ||
     hostname.startsWith('confrade.') ||
-    hostname.includes('portal-religioso')
+    hostname.includes('portal-religioso') ||
+    window.location.search.includes('portal=1')
   ) {
     return true;
   }

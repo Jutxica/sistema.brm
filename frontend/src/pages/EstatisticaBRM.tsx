@@ -319,7 +319,7 @@ export const EstatisticaBRM: React.FC = () => {
                 Congregação dos Sacerdotes do Sagrado Coração de Jesus
               </p>
               <h1 className="text-[14pt] font-serif font-bold text-slate-900 tracking-tight mt-0.5">
-                Província Brasil Meridional
+                Província Brasileira Meridional
               </h1>
               <p className="text-[8.5pt] font-mono text-slate-600">Secretaria Provincial · Censo & Estatística Demográfica</p>
             </div>
@@ -358,7 +358,7 @@ export const EstatisticaBRM: React.FC = () => {
                 Estatística BRM
               </h1>
               <p className="text-xs text-[#707070] dark:text-[#86868b] mt-1 font-sans">
-                Quadro demográfico e ministerial dos Padres Dehonianos (SCJ) — Província Brasil Meridional.
+                Quadro demográfico e ministerial dos Padres Dehonianos (SCJ) — Província Brasileira Meridional.
               </p>
             </div>
           </div>

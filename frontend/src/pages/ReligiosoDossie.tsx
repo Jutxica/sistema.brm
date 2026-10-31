@@ -757,7 +757,7 @@ export const ReligiosoDossie: React.FC = () => {
                   Congregação dos Sacerdotes do Sagrado Coração de Jesus
                 </p>
                 <h1 className="text-[13.5pt] font-serif font-bold text-slate-900 tracking-tight mt-0.5">
-                  Província Brasil Meridional · Arquivo Provincial
+                  Província Brasileira Meridional · Arquivo Provincial
                 </h1>
                 <p className="text-[8pt] font-mono text-slate-600">Ficha Canônica Cadastral Oficial</p>
               </div>
@@ -1197,7 +1197,7 @@ export const ReligiosoDossie: React.FC = () => {
 
         {/* Rodapé de autenticação */}
         <footer className="mt-5 pt-2 border-t border-slate-300 flex justify-between text-[6.5pt] font-mono text-slate-500">
-          <span>Emitido eletronicamente pelo Sistema BRM em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} · Província Brasil Meridional</span>
+          <span>Emitido eletronicamente pelo Sistema BRM em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} · Província Brasileira Meridional</span>
           <span>Documento reservado canônico · Protegido pela LGPD</span>
         </footer>
       </div>

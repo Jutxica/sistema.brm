@@ -542,7 +542,7 @@ export const PatrimonioForm: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-1">
             <span className="text-xs font-semibold uppercase tracking-wider text-[#226380] dark:text-[#A3C3C7]">
-              Província Brasil Meridional · Gestão de Bens
+              Província Brasileira Meridional · Gestão de Bens
             </span>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[#113240] dark:text-white font-cinzel">
               {isEditing ? 'Atualizar Registro' : 'Lançamento de Patrimônio'}

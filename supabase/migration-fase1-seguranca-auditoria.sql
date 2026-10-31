@@ -1,5 +1,5 @@
 -- ==============================================================================
--- SISTEMA BRM - PROVÍNCIA BRASIL MERIDIONAL
+-- SISTEMA BRM - PROVÍNCIA BRASILEIRA MERIDIONAL
 -- FASE 1: SEGURANÇA, AUDITORIA APPEND-ONLY & POLÍTICAS RLS INSTITUCIONAIS
 -- ==============================================================================
 

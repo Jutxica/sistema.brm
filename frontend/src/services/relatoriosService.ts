@@ -214,7 +214,7 @@ export const relatoriosService = {
       assinaturas: [
         {
           cargo: 'Pe. Superior Provincial, SCJ',
-          detalhe: 'Província Brasil Meridional'
+          detalhe: 'Província Brasileira Meridional'
         },
         {
           cargo: 'Pe. Ecônomo Provincial, SCJ',
