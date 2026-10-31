@@ -17,7 +17,7 @@ Alto Vale do Itajaí e Sul de Santa Catarina,Territorial São Judas Tadeu,3,Par�
 ,Territorial Venerável Servo de Deus Padre Aloísio Boeing,2,Paróquia São Pedro Apóstolo | Paróquia Santuário Sagrado Coração de Jesus
 Rio Grande do Sul,Territorial São Miguel,3,Paróquia São José | Paróquia Nossa Senhora Aparecida | Paróquia Sagrado Coração de Jesus
 Rondônia,Territorial de Rondônia – Nossa Senhora de Nazaré,3,Paróquia Nossa Senhora de Nazaré | Paróquia Rainha dos Apóstolos | Paróquia São Sebastião
-Taubaté I,Conventinho SCJ,1,Conventinho SCJ`;
+Taubaté,Conventinho SCJ,1,Conventinho SCJ`;
 
 const lines = territorialRaw.split('\n').slice(1);
 const territorial = [];

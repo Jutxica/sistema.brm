@@ -23,6 +23,8 @@ export interface Religioso {
   grau: string;
   status: string;
   situacao_elenco?: SituacaoElenco;
+  comunidade_atual_id?: string | null;
+  comunidade_atual_nome?: string | null;
 }
 
 export interface RawReligioso {

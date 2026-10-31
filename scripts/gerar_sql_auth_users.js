@@ -65,25 +65,27 @@ BEGIN
       now()
     );
 
-    INSERT INTO auth.identities (
-      id,
-      user_id,
-      identity_data,
-      provider,
-      provider_id,
-      last_sign_in_at,
-      created_at,
-      updated_at
-    ) VALUES (
-      v_user_id::text,
-      v_user_id,
-      json_build_object('sub', v_user_id::text, 'email', '${email}'),
-      'email',
-      v_user_id::text,
-      now(),
-      now(),
-      now()
-    );
+    IF NOT EXISTS (SELECT 1 FROM auth.identities WHERE user_id = v_user_id) THEN
+      INSERT INTO auth.identities (
+        id,
+        user_id,
+        identity_data,
+        provider,
+        provider_id,
+        last_sign_in_at,
+        created_at,
+        updated_at
+      ) VALUES (
+        gen_random_uuid(),
+        v_user_id,
+        json_build_object('sub', v_user_id::text, 'email', '${email}', 'email_verified', true)::jsonb,
+        'email',
+        v_user_id::text,
+        now(),
+        now(),
+        now()
+      );
+    END IF;
   ELSE
     -- Atualizar senha provisória e flag de troca caso já exista
     UPDATE auth.users
@@ -91,6 +93,28 @@ BEGIN
         raw_user_meta_data = COALESCE(raw_user_meta_data, '{}'::jsonb) || json_build_object('precisa_trocar_senha', true)::jsonb,
         updated_at = now()
     WHERE id = v_user_id;
+
+    IF NOT EXISTS (SELECT 1 FROM auth.identities WHERE user_id = v_user_id) THEN
+      INSERT INTO auth.identities (
+        id,
+        user_id,
+        identity_data,
+        provider,
+        provider_id,
+        last_sign_in_at,
+        created_at,
+        updated_at
+      ) VALUES (
+        gen_random_uuid(),
+        v_user_id,
+        json_build_object('sub', v_user_id::text, 'email', '${email}', 'email_verified', true)::jsonb,
+        'email',
+        v_user_id::text,
+        now(),
+        now(),
+        now()
+      );
+    END IF;
   END IF;
 
   -- Vincular ID do Auth ao registro oficial de religiosos

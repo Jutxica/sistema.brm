@@ -182,11 +182,11 @@ WHERE NOT EXISTS (
 
 -- Atualizar comunidade existente ou inserir caso não conste
 UPDATE public.comunidades
-SET regiao = 'Taubaté I', status = 'Ativo'
+SET regiao = 'Taubaté', status = 'Ativo'
 WHERE nome = 'Conventinho SCJ';
 
 INSERT INTO public.comunidades (nome, regiao, status)
-SELECT 'Conventinho SCJ', 'Taubaté I', 'Ativo'
+SELECT 'Conventinho SCJ', 'Taubaté', 'Ativo'
 WHERE NOT EXISTS (
   SELECT 1 FROM public.comunidades WHERE nome = 'Conventinho SCJ'
 );
