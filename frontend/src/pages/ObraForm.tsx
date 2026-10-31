@@ -29,7 +29,14 @@ const WhatsAppIcon: React.FC<{ className?: string }> = ({ className = 'w-3.5 h-3
   </svg>
 );
 
+interface ComunidadeOption {
+  id: string;
+  nome: string;
+  regiao: string | null;
+}
+
 interface ObraFormData {
+  comunidade_id: string;
   nome: string;
   tipo: string;
   cep: string;
@@ -59,6 +66,7 @@ interface ObraFormData {
 }
 
 const initialForm: ObraFormData = {
+  comunidade_id: '',
   nome: '',
   tipo: 'Paróquia',
   cep: '',
@@ -106,11 +114,25 @@ export const ObraForm: React.FC = () => {
   const isEditing = Boolean(id);
 
   const [form, setForm] = useState<ObraFormData>(initialForm);
+  const [comunidades, setComunidades] = useState<ComunidadeOption[]>([]);
   const [loading, setLoading] = useState(isEditing);
   const [saving, setSaving] = useState(false);
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchComunidades = async () => {
+      const { data } = await supabase
+        .from('comunidades')
+        .select('id, nome, regiao')
+        .order('nome');
+      if (data) {
+        setComunidades(data as ComunidadeOption[]);
+      }
+    };
+    fetchComunidades();
+  }, []);
 
   useEffect(() => {
     // Se for criação, verificar tipo inicial na query string
@@ -152,6 +174,7 @@ export const ObraForm: React.FC = () => {
         }
 
         setForm({
+          comunidade_id: data.comunidade_id || '',
           nome: data.nome || '',
           tipo: data.tipo || 'Paróquia',
           cep: data.cep || '',
@@ -228,6 +251,7 @@ export const ObraForm: React.FC = () => {
     setSuccessMsg(null);
 
     const payload = {
+      comunidade_id: form.comunidade_id || null,
       nome: form.nome.trim(),
       tipo: form.tipo,
       cep: form.cep.trim() || null,
@@ -313,7 +337,7 @@ export const ObraForm: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
         <Loader2 className="w-8 h-8 rounded-full animate-spin text-[#226380]" />
-        <span className="text-xs font-medium text-[#707070] dark:text-[#86868b] tracking-wider uppercase">
+        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
           Carregando informações da obra...
         </span>
       </div>
@@ -448,6 +472,30 @@ export const ObraForm: React.FC = () => {
                 placeholder="Ex: Arquidiocese de Curitiba"
                 className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] px-3 py-2 text-xs outline-none focus:border-slate-900 dark:focus:border-white text-slate-800 dark:text-slate-100"
               />
+            </div>
+
+            <div className="sm:col-span-2 lg:col-span-3 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  Comunidade Territorial de Pertencimento
+                </label>
+                <span className="text-[10px] text-slate-400 font-mono">Vínculo Relacional Provincial</span>
+              </div>
+              <select
+                value={form.comunidade_id}
+                onChange={e => setForm(prev => ({ ...prev, comunidade_id: e.target.value }))}
+                className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] px-3 py-2 text-xs outline-none focus:border-slate-900 dark:focus:border-white text-slate-800 dark:text-slate-100 cursor-pointer"
+              >
+                <option value="">-- Selecione a Comunidade Territorial (Região) --</option>
+                {comunidades.map(com => (
+                  <option key={com.id} value={com.id}>
+                    {com.nome} {com.regiao ? `• ${com.regiao}` : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Vincula esta paróquia ou casa à sua comunidade canônica e região na Província BRM.
+              </p>
             </div>
 
             <div className="space-y-1.5">

@@ -14,6 +14,7 @@ import {
   Church, 
   Home, 
   Landmark,
+  Building,
   CheckCircle2,
   Layers,
   Download,
@@ -27,14 +28,23 @@ import {
   Link2,
   Copy,
   Check,
-  Clock
+  Clock,
+  RotateCcw
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+
+export interface ComunidadeRef {
+  id: string;
+  nome: string;
+  regiao: string | null;
+}
 
 interface Obra { 
   id: string; 
   nome: string; 
   tipo: string; 
+  comunidade_id?: string | null;
+  comunidade?: ComunidadeRef | null;
   localidade: string | null; 
   uf: string | null; 
   email: string | null; 
@@ -191,8 +201,11 @@ export const ObrasAdmin: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<Obra[]>([]);
+  const [comunidades, setComunidades] = useState<ComunidadeRef[]>([]);
   const [query, setQuery] = useState('');
   const [tipoFilter, setTipoFilter] = useState('Todos');
+  const [regiaoFilter, setRegiaoFilter] = useState('Todas');
+  const [comunidadeFilter, setComunidadeFilter] = useState('Todas');
   const [ufFilter, setUfFilter] = useState('Todos');
   const [cidadeFilter, setCidadeFilter] = useState('Todos');
   const [loading, setLoading] = useState(false);
@@ -276,13 +289,84 @@ export const ObrasAdmin: React.FC = () => {
 
   const load = async () => { 
     setLoading(true); 
-    const { data, error } = await supabase.from('religiosos_obras_referencia').select('*').order('nome'); 
-    if (error) setMessage(error.message); 
-    setItems((data || []) as Obra[]); 
+    const [obrasRes, comunidadesRes] = await Promise.all([
+      supabase.from('religiosos_obras_referencia').select('*').order('nome'),
+      supabase.from('comunidades').select('id, nome, regiao').order('nome')
+    ]);
+
+    if (obrasRes.error) setMessage(obrasRes.error.message); 
+    const comsList = (comunidadesRes.data || []) as ComunidadeRef[];
+    setComunidades(comsList);
+
+    const comsById = new Map<string, ComunidadeRef>();
+    comsList.forEach(c => comsById.set(c.id, c));
+
+    const enriched = ((obrasRes.data || []) as Obra[]).map(o => {
+      let com = o.comunidade_id ? comsById.get(o.comunidade_id) : undefined;
+      if (!com) {
+        const lowerName = o.nome.toLowerCase();
+        for (const c of comsList) {
+          const cleanCom = c.nome.toLowerCase().replace(/^(local|territorial)\s+/i, '').trim();
+          if (cleanCom.length > 3 && lowerName.includes(cleanCom)) {
+            com = c;
+            break;
+          }
+        }
+      }
+      return {
+        ...o,
+        comunidade: com || null
+      };
+    });
+
+    setItems(enriched); 
     setLoading(false); 
   };
   
   useEffect(() => { load(); }, []);
+
+  const uniqueRegioes = useMemo(() => {
+    const set = new Set<string>();
+    comunidades.forEach(c => {
+      if (c.regiao) set.add(c.regiao);
+    });
+    return Array.from(set).sort();
+  }, [comunidades]);
+
+  const availableComunidades = useMemo(() => {
+    if (regiaoFilter === 'Todas') return comunidades;
+    return comunidades.filter(c => c.regiao === regiaoFilter);
+  }, [comunidades, regiaoFilter]);
+
+  const handleSelectRegiao = (reg: string) => {
+    setRegiaoFilter(reg);
+    if (reg !== 'Todas') {
+      const stillValid = comunidades.some(c => c.regiao === reg && c.id === comunidadeFilter);
+      if (!stillValid) setComunidadeFilter('Todas');
+    }
+  };
+
+  const handleClearFilters = () => {
+    setQuery('');
+    setTipoFilter('Todos');
+    setRegiaoFilter('Todas');
+    setComunidadeFilter('Todas');
+    setUfFilter('Todos');
+    setCidadeFilter('Todos');
+    const params = new URLSearchParams(searchParams);
+    params.delete('tipo');
+    setSearchParams(params);
+  };
+
+  const selectedComunidadeObj = useMemo(() => {
+    if (comunidadeFilter === 'Todas') return null;
+    return comunidades.find(c => c.id === comunidadeFilter) || null;
+  }, [comunidades, comunidadeFilter]);
+
+  const obrasDaComunidadeSelecionada = useMemo(() => {
+    if (!selectedComunidadeObj) return [];
+    return items.filter(i => i.comunidade?.id === selectedComunidadeObj.id || i.comunidade_id === selectedComunidadeObj.id);
+  }, [selectedComunidadeObj, items]);
 
   const uniqueUfs = useMemo(
     () => Array.from(new Set(items.map(item => item.uf).filter((value): value is string => Boolean(value)))).sort(),
@@ -293,13 +377,27 @@ export const ObrasAdmin: React.FC = () => {
     [items]
   );
 
+  const hasActiveFilters = query.trim() !== '' || tipoFilter !== 'Todos' || regiaoFilter !== 'Todas' || comunidadeFilter !== 'Todas' || ufFilter !== 'Todos' || cidadeFilter !== 'Todos';
+
   const filtered = useMemo(() => items.filter(item => {
-    const matchesText = [item.nome, item.tipo, item.localidade, item.uf, item.diocese].join(' ').toLocaleLowerCase().includes(query.toLocaleLowerCase());
+    const matchesText = [
+      item.nome, 
+      item.tipo, 
+      item.localidade, 
+      item.uf, 
+      item.diocese,
+      item.comunidade?.nome,
+      item.comunidade?.regiao
+    ].filter(Boolean).join(' ').toLocaleLowerCase().includes(query.toLocaleLowerCase());
+
     const matchesTipo = tipoFilter === 'Todos' || item.tipo === tipoFilter;
     const matchesUf = ufFilter === 'Todos' || item.uf === ufFilter;
     const matchesCidade = cidadeFilter === 'Todos' || item.localidade === cidadeFilter;
-    return matchesText && matchesTipo && matchesUf && matchesCidade;
-  }), [items, query, tipoFilter, ufFilter, cidadeFilter]);
+    const matchesRegiao = regiaoFilter === 'Todas' || item.comunidade?.regiao === regiaoFilter;
+    const matchesComunidade = comunidadeFilter === 'Todas' || item.comunidade_id === comunidadeFilter || item.comunidade?.id === comunidadeFilter;
+
+    return matchesText && matchesTipo && matchesUf && matchesCidade && matchesRegiao && matchesComunidade;
+  }), [items, query, tipoFilter, ufFilter, cidadeFilter, regiaoFilter, comunidadeFilter]);
 
 
   const downloadTemplate = () => {
@@ -669,44 +767,130 @@ export const ObrasAdmin: React.FC = () => {
       </div>
 
       {/* SEARCH & FILTER BAR */}
-      <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] p-3 grid gap-2.5 md:grid-cols-[1.5fr_1fr_0.8fr_1fr] items-center">
-        <div className="relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input 
-            value={query} 
-            onChange={event => setQuery(event.target.value)} 
-            placeholder="Buscar por nome, localidade, UF ou diocese..." 
-            className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] pl-9 pr-3 py-2 text-xs outline-none focus:border-slate-900 dark:focus:border-white text-slate-800 dark:text-slate-100" 
-          />
+      <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] p-3 space-y-2.5">
+        <div className="grid gap-2.5 md:grid-cols-[1.5fr_1.1fr_1.4fr] items-center">
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input 
+              value={query} 
+              onChange={event => setQuery(event.target.value)} 
+              placeholder="Buscar por nome, localidade, UF ou diocese..." 
+              className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] pl-9 pr-3 py-2 text-xs outline-none focus:border-slate-900 dark:focus:border-white text-slate-800 dark:text-slate-100" 
+            />
+          </div>
+
+          {/* Filtro Relacional: Região Provincial */}
+          <select 
+            value={regiaoFilter} 
+            onChange={event => handleSelectRegiao(event.target.value)} 
+            className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] py-2 px-3 text-xs outline-none focus:border-slate-900 dark:focus:border-white text-slate-800 dark:text-slate-100 cursor-pointer"
+          >
+            <option value="Todas">Região: Todas ({uniqueRegioes.length})</option>
+            {uniqueRegioes.map(reg => (
+              <option key={reg} value={reg}>Região: {reg}</option>
+            ))}
+          </select>
+
+          {/* Filtro Relacional: Comunidade Territorial (Cascateado) */}
+          <select 
+            value={comunidadeFilter} 
+            onChange={event => setComunidadeFilter(event.target.value)} 
+            className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] py-2 px-3 text-xs outline-none focus:border-slate-900 dark:focus:border-white text-slate-800 dark:text-slate-100 cursor-pointer"
+          >
+            <option value="Todas">
+              Comunidade: Todas {regiaoFilter !== 'Todas' ? `da ${regiaoFilter}` : `(${availableComunidades.length})`}
+            </option>
+            {availableComunidades.map(com => (
+              <option key={com.id} value={com.id}>
+                {com.nome} {regiaoFilter === 'Todas' && com.regiao ? `(${com.regiao})` : ''}
+              </option>
+            ))}
+          </select>
         </div>
 
-        <select 
-          value={tipoFilter} 
-          onChange={event => setTipoFilter(event.target.value)} 
-          className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] py-2 px-3 text-xs outline-none focus:border-slate-900 dark:focus:border-white text-slate-800 dark:text-slate-100 cursor-pointer"
-        >
-          <option value="Todos">Tipo: Todos</option>
-          {tipoOptions.map(tipo => <option key={tipo} value={tipo}>{tipo}</option>)}
-        </select>
+        <div className="grid gap-2.5 grid-cols-2 md:grid-cols-[1fr_0.8fr_1fr_auto] items-center pt-2 border-t border-slate-100 dark:border-slate-800/80">
+          <select 
+            value={tipoFilter} 
+            onChange={event => setTipoFilter(event.target.value)} 
+            className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] py-1.5 px-3 text-xs outline-none focus:border-slate-900 dark:focus:border-white text-slate-800 dark:text-slate-100 cursor-pointer"
+          >
+            <option value="Todos">Tipo: Todos</option>
+            {tipoOptions.map(tipo => <option key={tipo} value={tipo}>{tipo}</option>)}
+          </select>
 
-        <select 
-          value={ufFilter} 
-          onChange={event => setUfFilter(event.target.value)} 
-          className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] py-2 px-3 text-xs outline-none focus:border-slate-900 dark:focus:border-white text-slate-800 dark:text-slate-100 cursor-pointer"
-        >
-          <option value="Todos">UF: Todas</option>
-          {uniqueUfs.map(uf => <option key={uf} value={uf}>{uf}</option>)}
-        </select>
+          <select 
+            value={ufFilter} 
+            onChange={event => setUfFilter(event.target.value)} 
+            className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] py-1.5 px-3 text-xs outline-none focus:border-slate-900 dark:focus:border-white text-slate-800 dark:text-slate-100 cursor-pointer"
+          >
+            <option value="Todos">UF: Todas</option>
+            {uniqueUfs.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+          </select>
 
-        <select 
-          value={cidadeFilter} 
-          onChange={event => setCidadeFilter(event.target.value)} 
-          className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] py-2 px-3 text-xs outline-none focus:border-slate-900 dark:focus:border-white text-slate-800 dark:text-slate-100 cursor-pointer"
-        >
-          <option value="Todos">Cidade: Todas</option>
-          {uniqueCidades.map(cidade => <option key={cidade} value={cidade}>{cidade}</option>)}
-        </select>
+          <select 
+            value={cidadeFilter} 
+            onChange={event => setCidadeFilter(event.target.value)} 
+            className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] py-1.5 px-3 text-xs outline-none focus:border-slate-900 dark:focus:border-white text-slate-800 dark:text-slate-100 cursor-pointer"
+          >
+            <option value="Todos">Cidade: Todas</option>
+            {uniqueCidades.map(cidade => <option key={cidade} value={cidade}>{cidade}</option>)}
+          </select>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors col-span-2 md:col-span-1 cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Limpar Filtros</span>
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* PAINEL DE OBRAS INTEGRANTES DA COMUNIDADE SELECIONADA */}
+      {selectedComunidadeObj && (
+        <div className="border border-sky-300 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/30 p-3.5 space-y-2.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Building className="w-4 h-4 text-sky-700 dark:text-sky-300 shrink-0" />
+              <span className="text-xs font-bold text-slate-900 dark:text-white">
+                Comunidade: {selectedComunidadeObj.nome}
+              </span>
+              {selectedComunidadeObj.regiao && (
+                <span className="text-[10px] font-mono px-2 py-0.5 bg-sky-100 dark:bg-sky-900/60 text-sky-800 dark:text-sky-200 border border-sky-200 dark:border-sky-700">
+                  Região: {selectedComunidadeObj.regiao}
+                </span>
+              )}
+            </div>
+            <span className="text-[11px] font-mono text-slate-600 dark:text-slate-400">
+              {obrasDaComunidadeSelecionada.length} obra(s) / instituição(ões) integrante(s)
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-sky-200 dark:border-sky-900">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Instituições Integrantes:
+            </span>
+            {obrasDaComunidadeSelecionada.length > 0 ? (
+              obrasDaComunidadeSelecionada.map((o, idx) => (
+                <span 
+                  key={o.id} 
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-white dark:bg-[#161b22] border border-sky-200 dark:border-sky-800 text-slate-800 dark:text-slate-200"
+                >
+                  <span className="font-mono text-[10px] text-sky-600 dark:text-sky-400 font-bold">{idx + 1}.</span>
+                  <span className="font-medium">{o.nome}</span>
+                  <span className="text-[9px] text-slate-400 font-mono">({o.tipo})</span>
+                </span>
+              ))
+            ) : (
+              <span className="text-xs text-slate-500 italic">
+                Nenhuma instituição cadastrada para esta comunidade.
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* DATA TABLE */}
       <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] shadow-none overflow-x-auto">
@@ -757,6 +941,25 @@ export const ObrasAdmin: React.FC = () => {
                             </span>
                           )}
                         </div>
+
+                        {/* Vínculo Relacional: Comunidade Territorial & Região */}
+                        {item.comunidade ? (
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 pt-0.5">
+                            <Building className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span className="font-medium text-slate-800 dark:text-slate-200">{item.comunidade.nome}</span>
+                            {item.comunidade.regiao && (
+                              <>
+                                <span className="text-slate-300 dark:text-slate-600">•</span>
+                                <span className="text-[10px] font-mono text-sky-700 dark:text-sky-400">{item.comunidade.regiao}</span>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-amber-600 dark:text-amber-400 font-mono pt-0.5">
+                            Sem comunidade territorial vinculada
+                          </div>
+                        )}
+
                         {item.diocese && (
                           <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
                             {item.diocese}

@@ -13,6 +13,7 @@ export interface User {
   religiosoStatusCadastro?: string;
   isReligioso?: boolean;
   isAdmin?: boolean;
+  precisaTrocarSenha?: boolean;
 }
 
 export const hasModuleAccess = (user: User | null, accessKey: string): boolean => {
@@ -48,6 +49,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let religiosoGrau: string | undefined;
       let religiosoStatusCadastro: string | undefined;
       let isReligioso = false;
+      let precisaTrocarSenha = false;
+      try {
+        const { data: authUserResult } = await supabase.auth.getUser();
+        if (authUserResult?.user?.user_metadata?.precisa_trocar_senha) {
+          precisaTrocarSenha = true;
+        }
+      } catch (errAuth) {
+        console.error('Erro ao checar metadados do usuario:', errAuth);
+      }
 
       const { data: relData, error: religiosoError } = await supabase
         .from('religiosos')
@@ -97,6 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           religiosoStatusCadastro,
           isReligioso,
           isAdmin,
+          precisaTrocarSenha,
         });
       } else if (isReligioso) {
         const aprovado = religiosoStatusCadastro === 'Aprovado';

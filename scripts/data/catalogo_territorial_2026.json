@@ -1,0 +1,151 @@
+[
+  {
+    "regiao": "Litoral Norte Catarinense",
+    "comunidade": "Local Padre Gabriel Lux",
+    "numObras": 3,
+    "obras": [
+      "Sede Provincial – Seminário SCJ",
+      "Paróquia São José",
+      "Paróquia Nossa Senhora do Rosário"
+    ]
+  },
+  {
+    "regiao": "Litoral Norte Catarinense",
+    "comunidade": "Local São Sebastião",
+    "numObras": 2,
+    "obras": [
+      "Paróquia São Sebastião",
+      "Paróquia Nossa Senhora das Graças"
+    ]
+  },
+  {
+    "regiao": "Litoral Norte Catarinense",
+    "comunidade": "Local Nossa Senhora de Fátima",
+    "numObras": 2,
+    "obras": [
+      "Noviciado Nossa Senhora de Fátima",
+      "Casa São João"
+    ]
+  },
+  {
+    "regiao": "Litoral Norte Catarinense",
+    "comunidade": "Local Santa Margarida Maria",
+    "numObras": 1,
+    "obras": [
+      "Santuário Sagrado Coração de Jesus"
+    ]
+  },
+  {
+    "regiao": "Paraná e Planalto Norte Catarinense",
+    "comunidade": "Local Santa Rita de Cássia",
+    "numObras": 3,
+    "obras": [
+      "Residência Sagrado Coração de Jesus",
+      "Paróquia Santuário Santa Rita de Cássia",
+      "Paróquia Santuário São Judas Tadeu"
+    ]
+  },
+  {
+    "regiao": "Paraná e Planalto Norte Catarinense",
+    "comunidade": "Local São José",
+    "numObras": 3,
+    "obras": [
+      "Seminário São José",
+      "Secretariado Vocacional – Seminário São José",
+      "Paróquia Santo Antônio"
+    ]
+  },
+  {
+    "regiao": "Paraná e Planalto Norte Catarinense",
+    "comunidade": "Territorial Nossa Senhora Aparecida",
+    "numObras": 2,
+    "obras": [
+      "Paróquia Nossa Senhora Aparecida",
+      "Paróquia Imaculada Conceição"
+    ]
+  },
+  {
+    "regiao": "Paraná e Planalto Norte Catarinense",
+    "comunidade": "Local Puríssimo Coração de Maria",
+    "numObras": 1,
+    "obras": [
+      "Paróquia Puríssimo Coração de Maria"
+    ]
+  },
+  {
+    "regiao": "Vale do Itajaí",
+    "comunidade": "Local Sagrado Coração de Jesus",
+    "numObras": 3,
+    "obras": [
+      "Convento Sagrado Coração de Jesus",
+      "Faculdade São Luiz",
+      "Colégio São Luiz"
+    ]
+  },
+  {
+    "regiao": "Vale do Itajaí",
+    "comunidade": "Local São Luís Gonzaga",
+    "numObras": 4,
+    "obras": [
+      "Paróquia São Luís Gonzaga",
+      "Paróquia São José",
+      "Paróquia Nossa Senhora do Perpétuo Socorro",
+      "Paróquia São Cristóvão"
+    ]
+  },
+  {
+    "regiao": "Vale do Itajaí",
+    "comunidade": "Local Padre Dehon",
+    "numObras": 1,
+    "obras": [
+      "Casa Padre Dehon"
+    ]
+  },
+  {
+    "regiao": "Alto Vale do Itajaí e Sul de Santa Catarina",
+    "comunidade": "Territorial São Judas Tadeu",
+    "numObras": 3,
+    "obras": [
+      "Paróquia São Judas Tadeu",
+      "Paróquia Catedral São João Batista",
+      "Paróquia São Sebastião"
+    ]
+  },
+  {
+    "regiao": "Alto Vale do Itajaí e Sul de Santa Catarina",
+    "comunidade": "Territorial Venerável Servo de Deus Padre Aloísio Boeing",
+    "numObras": 2,
+    "obras": [
+      "Paróquia São Pedro Apóstolo",
+      "Paróquia Santuário Sagrado Coração de Jesus"
+    ]
+  },
+  {
+    "regiao": "Rio Grande do Sul",
+    "comunidade": "Territorial São Miguel",
+    "numObras": 3,
+    "obras": [
+      "Paróquia São José",
+      "Paróquia Nossa Senhora Aparecida",
+      "Paróquia Sagrado Coração de Jesus"
+    ]
+  },
+  {
+    "regiao": "Rondônia",
+    "comunidade": "Territorial de Rondônia – Nossa Senhora de Nazaré",
+    "numObras": 3,
+    "obras": [
+      "Paróquia Nossa Senhora de Nazaré",
+      "Paróquia Rainha dos Apóstolos",
+      "Paróquia São Sebastião"
+    ]
+  },
+  {
+    "regiao": "Taubaté I",
+    "comunidade": "Conventinho SCJ",
+    "numObras": 1,
+    "obras": [
+      "Conventinho SCJ"
+    ]
+  }
+]

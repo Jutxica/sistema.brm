@@ -27,6 +27,7 @@ import { PortalCalendarioTab } from './tabs/PortalCalendarioTab';
 import { PortalDocumentosTab } from './tabs/PortalDocumentosTab';
 import { PortalHospedagemTab } from './tabs/PortalHospedagemTab';
 import { PortalLogin } from './PortalLogin';
+import { PortalPrimeiroAcessoSenha } from './PortalPrimeiroAcessoSenha';
 
 export type PortalSection = 'inicio' | 'perfil' | 'inscricao' | 'ficha-pdf' | 'calendario' | 'documentos' | 'anuario' | 'hospedagem';
 
@@ -538,6 +539,19 @@ export const PortalReligioso: React.FC = () => {
           await refreshUserProfile(userId);
           setActiveSection('inicio');
         }}
+      />
+    );
+  }
+
+  // SE O USUÁRIO PRECISA DEFINIR A SENHA DEFINITIVA NO 1º ACESSO:
+  if (user?.precisaTrocarSenha) {
+    return (
+      <PortalPrimeiroAcessoSenha
+        confradeNome={religiosoData?.nome_religioso || religiosoData?.nome_civil || user.nome}
+        onSuccess={async () => {
+          await refreshUserProfile(user.id);
+        }}
+        onLogout={logout}
       />
     );
   }

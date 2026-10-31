@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { 
   Search, BookOpen, Users, Church, Cake, Phone, Mail, 
@@ -11,6 +11,7 @@ interface Confrade {
   nome_religioso: string | null;
   grau: string | null;
   comunidade_atual_nome: string | null;
+  comunidade_atual_id?: string | null;
   email_institucional: string | null;
   email_pessoal: string | null;
   telefone_celular: string | null;
@@ -19,18 +20,31 @@ interface Confrade {
   status: string;
 }
 
-interface ComunidadeRef {
+interface ObraRef {
+  id: string;
   nome: string;
-  cidade?: string;
-  uf?: string;
+  tipo: string;
+  localidade: string | null;
+  uf: string | null;
+  comunidade_id: string | null;
+}
+
+interface ComunidadeData {
+  id: string;
+  nome: string;
+  regiao: string | null;
+  obras: ObraRef[];
   membros: Confrade[];
 }
 
 export const AnuarioBRM: React.FC = () => {
   const [confrades, setConfrades] = useState<Confrade[]>([]);
+  const [comunidadesRaw, setComunidadesRaw] = useState<Array<{ id: string; nome: string; regiao: string | null }>>([]);
+  const [obrasRaw, setObrasRaw] = useState<ObraRef[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [grauFilter, setGrauFilter] = useState('Todos');
+  const [regiaoFilter, setRegiaoFilter] = useState('Todas');
   const [activeTab, setActiveTab] = useState<'confrades' | 'comunidades' | 'aniversariantes'>('confrades');
 
   const currentMonth = new Date().getMonth() + 1; // 1-12
@@ -38,21 +52,28 @@ export const AnuarioBRM: React.FC = () => {
   const loadAnuario = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('religiosos')
-        .select('id, nome_civil, nome_religioso, grau, comunidade_atual_nome, email_institucional, email_pessoal, telefone_celular, whatsapp, data_nascimento, status')
-        .eq('status', 'Ativo')
-        .eq('status_cadastro', 'Aprovado')
-        .order('grau', { ascending: true })
-        .order('nome_civil', { ascending: true });
+      const [relRes, comRes, obrasRes] = await Promise.all([
+        supabase
+          .from('religiosos')
+          .select('id, nome_civil, nome_religioso, grau, comunidade_atual_nome, comunidade_atual_id, email_institucional, email_pessoal, telefone_celular, whatsapp, data_nascimento, status')
+          .eq('status', 'Ativo')
+          .order('grau', { ascending: true })
+          .order('nome_civil', { ascending: true }),
+        supabase
+          .from('comunidades')
+          .select('id, nome, regiao')
+          .order('nome', { ascending: true }),
+        supabase
+          .from('religiosos_obras_referencia')
+          .select('id, nome, tipo, localidade, uf, comunidade_id')
+          .order('nome', { ascending: true })
+      ]);
 
-      if (error) {
-        console.error('Erro ao carregar anuário:', error);
-      } else if (data) {
-        setConfrades(data as Confrade[]);
-      }
+      if (relRes.data) setConfrades(relRes.data as Confrade[]);
+      if (comRes.data) setComunidadesRaw(comRes.data);
+      if (obrasRes.data) setObrasRaw(obrasRes.data as ObraRef[]);
     } catch (err) {
-      console.error(err);
+      console.error('Erro ao carregar anuário:', err);
     } finally {
       setLoading(false);
     }
@@ -62,36 +83,66 @@ export const AnuarioBRM: React.FC = () => {
     loadAnuario();
   }, []);
 
+  const uniqueRegioes = useMemo(() => {
+    const set = new Set<string>();
+    comunidadesRaw.forEach(c => {
+      if (c.regiao) set.add(c.regiao);
+    });
+    return Array.from(set).sort();
+  }, [comunidadesRaw]);
+
   // Filtragem dos confrades
-  const filteredConfrades = confrades.filter(c => {
-    const nomeCompleto = `${c.nome_religioso || ''} ${c.nome_civil}`.toLowerCase();
-    const comunidade = (c.comunidade_atual_nome || '').toLowerCase();
-    const query = search.toLowerCase();
+  const filteredConfrades = useMemo(() => {
+    return confrades.filter(c => {
+      const nomeCompleto = `${c.nome_religioso || ''} ${c.nome_civil}`.toLowerCase();
+      const comunidade = (c.comunidade_atual_nome || '').toLowerCase();
+      const query = search.toLowerCase();
 
-    const matchesSearch = !search || nomeCompleto.includes(query) || comunidade.includes(query);
-    const matchesGrau = grauFilter === 'Todos'
-      ? true
-      : grauFilter === 'Diácono (Transitório)'
-        ? ((c.grau || '').includes('Diácono') || (c.grau || '').includes('Diacono'))
-        : c.grau === grauFilter;
+      const matchesSearch = !search || nomeCompleto.includes(query) || comunidade.includes(query);
+      const matchesGrau = grauFilter === 'Todos'
+        ? true
+        : grauFilter === 'Diácono (Transitório)'
+          ? ((c.grau || '').includes('Diácono') || (c.grau || '').includes('Diacono'))
+          : c.grau === grauFilter;
 
-    return matchesSearch && matchesGrau;
-  });
+      let matchesRegiao = true;
+      if (regiaoFilter !== 'Todas') {
+        const linkedCom = comunidadesRaw.find(com => 
+          com.id === c.comunidade_atual_id || 
+          (c.comunidade_atual_nome && (com.nome.toLowerCase().includes(c.comunidade_atual_nome.toLowerCase()) || c.comunidade_atual_nome.toLowerCase().includes(com.nome.toLowerCase())))
+        );
+        matchesRegiao = linkedCom?.regiao === regiaoFilter;
+      }
 
-  // Agrupamento por Comunidade
-  const comunidadesMap = new Map<string, Confrade[]>();
-  confrades.forEach(c => {
-    const comNome = c.comunidade_atual_nome || 'Sem Comunidade Fixa';
-    if (!comunidadesMap.has(comNome)) {
-      comunidadesMap.set(comNome, []);
-    }
-    comunidadesMap.get(comNome)!.push(c);
-  });
+      return matchesSearch && matchesGrau && matchesRegiao;
+    });
+  }, [confrades, search, grauFilter, regiaoFilter, comunidadesRaw]);
 
-  const comunidadesList: ComunidadeRef[] = Array.from(comunidadesMap.entries()).map(([nome, membros]) => ({
-    nome,
-    membros,
-  })).sort((a, b) => a.nome.localeCompare(b.nome));
+  // Agrupamento por Comunidade Territorial e suas Obras Integrantes
+  const comunidadesList: ComunidadeData[] = useMemo(() => {
+    return comunidadesRaw.map(com => {
+      const obras = obrasRaw.filter(o => o.comunidade_id === com.id);
+      const membros = confrades.filter(c => {
+        if (c.comunidade_atual_id === com.id) return true;
+        if (c.comunidade_atual_nome) {
+          const cName = c.comunidade_atual_nome.toLowerCase().trim();
+          const comName = com.nome.toLowerCase().trim();
+          return cName === comName || cName.includes(comName) || comName.includes(cName);
+        }
+        return false;
+      });
+      return {
+        id: com.id,
+        nome: com.nome,
+        regiao: com.regiao,
+        obras,
+        membros
+      };
+    }).filter(com => {
+      if (regiaoFilter === 'Todas') return true;
+      return com.regiao === regiaoFilter;
+    }).sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [comunidadesRaw, obrasRaw, confrades, regiaoFilter]);
 
   // Aniversariantes do Mês
   const aniversariantesMes = confrades.filter(c => {
@@ -141,7 +192,7 @@ export const AnuarioBRM: React.FC = () => {
           type="button"
           onClick={loadAnuario}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-cinzel uppercase tracking-wider font-semibold transition-colors cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           <span>Atualizar</span>
@@ -153,7 +204,7 @@ export const AnuarioBRM: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('confrades')}
-          className={`flex items-center gap-2 px-6 py-3 text-xs font-cinzel uppercase tracking-wider font-semibold border-b-2 transition-colors ${
+          className={`flex items-center gap-2 px-6 py-3 text-xs font-semibold border-b-2 transition-colors ${
             activeTab === 'confrades'
               ? 'border-slate-900 text-slate-900 dark:border-white dark:text-white font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
@@ -166,7 +217,7 @@ export const AnuarioBRM: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('comunidades')}
-          className={`flex items-center gap-2 px-6 py-3 text-xs font-cinzel uppercase tracking-wider font-semibold border-b-2 transition-colors ${
+          className={`flex items-center gap-2 px-6 py-3 text-xs font-semibold border-b-2 transition-colors ${
             activeTab === 'comunidades'
               ? 'border-slate-900 text-slate-900 dark:border-white dark:text-white font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
@@ -179,7 +230,7 @@ export const AnuarioBRM: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('aniversariantes')}
-          className={`flex items-center gap-2 px-6 py-3 text-xs font-cinzel uppercase tracking-wider font-semibold border-b-2 transition-colors ${
+          className={`flex items-center gap-2 px-6 py-3 text-xs font-semibold border-b-2 transition-colors ${
             activeTab === 'aniversariantes'
               ? 'border-slate-900 text-slate-900 dark:border-white dark:text-white font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
@@ -209,13 +260,24 @@ export const AnuarioBRM: React.FC = () => {
               />
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 items-center">
+              <select
+                value={regiaoFilter}
+                onChange={e => setRegiaoFilter(e.target.value)}
+                className="px-2.5 py-1.5 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#090a0f] text-slate-700 dark:text-slate-300 outline-none cursor-pointer"
+              >
+                <option value="Todas">Região: Todas ({uniqueRegioes.length})</option>
+                {uniqueRegioes.map((r: string) => (
+                  <option key={r} value={r}>Região: {r}</option>
+                ))}
+              </select>
+
               {['Todos', 'Padre', 'Diácono (Transitório)', 'Frater', 'Irmão', 'Bispo'].map(grau => (
                 <button
                   key={grau}
                   type="button"
                   onClick={() => setGrauFilter(grau)}
-                  className={`px-3 py-1.5 text-xs font-cinzel uppercase tracking-wider font-semibold transition-colors border cursor-pointer ${
+                  className={`px-3 py-1.5 text-xs font-medium transition-colors border cursor-pointer ${
                     grauFilter === grau
                       ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white font-bold'
                       : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -239,7 +301,7 @@ export const AnuarioBRM: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredConfrades.map(c => {
+              {filteredConfrades.map((c: Confrade) => {
                 const displayName = c.nome_religioso || c.nome_civil;
                 const telClean = (c.whatsapp || c.telefone_celular || '').replace(/\D/g, '');
 
@@ -327,38 +389,116 @@ export const AnuarioBRM: React.FC = () => {
         </div>
       )}
 
-      {/* ABA 2: COMUNIDADES */}
+      {/* ABA 2: COMUNIDADES & OBRAS INTEGRANTES */}
       {activeTab === 'comunidades' && (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Filtro por Região */}
+          <div className="bg-white dark:bg-[#12151e] border border-slate-200 dark:border-slate-800 p-4 flex flex-wrap items-center justify-between gap-3">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 font-cinzel">
+              Filtrar por Região:
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {['Todas', ...uniqueRegioes].map(reg => (
+                <button
+                  key={reg}
+                  type="button"
+                  onClick={() => setRegiaoFilter(reg)}
+                  className={`px-3 py-1 text-xs font-medium border transition-colors cursor-pointer ${
+                    regiaoFilter === reg
+                      ? 'border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900 font-semibold'
+                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-[#161b22] text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {reg}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {comunidadesList.map(com => (
               <div 
-                key={com.nome}
-                className="bg-white dark:bg-[#12151e] border border-slate-200 dark:border-slate-800 p-6"
+                key={com.id || com.nome}
+                className="bg-white dark:bg-[#12151e] border border-slate-200 dark:border-slate-800 p-6 flex flex-col justify-between space-y-5"
               >
-                <div className="border-l-2 border-slate-900 dark:border-slate-400 pl-3 mb-4">
-                  <h3 className="font-cinzel text-base font-bold text-slate-900 dark:text-white">
-                    {com.nome}
-                  </h3>
-                  <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block">
-                    {com.membros.length} confrade(s) residente(s)
-                  </span>
-                </div>
-
-                <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {com.membros.map(m => (
-                    <div key={m.id} className="py-2.5 flex items-center justify-between text-xs">
-                      <div>
-                        <span className="font-bold text-slate-900 dark:text-white block">
-                          {m.nome_religioso || m.nome_civil}
+                <div>
+                  {/* Cabeçalho da Comunidade */}
+                  <div className="border-l-2 border-slate-900 dark:border-slate-400 pl-3 mb-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="font-cinzel text-base font-bold text-slate-900 dark:text-white">
+                        {com.nome}
+                      </h3>
+                      {com.regiao && (
+                        <span className="px-2 py-0.5 text-[10px] font-mono border border-sky-300 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300">
+                          {com.regiao}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-500">{m.grau || 'Grau não informado'}</span>
-                      </div>
-                      <div className="font-mono text-[11px] text-slate-600 dark:text-slate-400">
-                        {m.telefone_celular || m.whatsapp || m.email_institucional || ''}
-                      </div>
+                      )}
                     </div>
-                  ))}
+                    <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block mt-1">
+                      {com.obras.length} obra(s) integrante(s) • {com.membros.length} confrade(s) residente(s)
+                    </span>
+                  </div>
+
+                  {/* Seção 1: Obras e Instituições Integrantes (Separadas) */}
+                  <div className="mb-4 bg-slate-50 dark:bg-slate-900/50 p-3 border border-slate-100 dark:border-slate-800 space-y-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-cinzel block">
+                      Obras e Instituições Integrantes ({com.obras.length})
+                    </span>
+                    {com.obras.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {com.obras.map((obra, idx) => (
+                          <div 
+                            key={obra.id || obra.nome}
+                            className="flex items-center justify-between p-2 bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-800 text-xs"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[10px] text-sky-700 dark:text-sky-400 font-bold">
+                                {idx + 1}.
+                              </span>
+                              <span className="font-medium text-slate-900 dark:text-white">
+                                {obra.nome}
+                              </span>
+                            </div>
+                            <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                              {obra.tipo}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-400 italic">
+                        Nenhuma obra ou paróquia especificamente associada.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Seção 2: Confrades Residentes / Atuantes */}
+                  <div>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-cinzel block mb-2">
+                      Confrades Residentes / Atuantes ({com.membros.length})
+                    </span>
+                    {com.membros.length > 0 ? (
+                      <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {com.membros.map(m => (
+                          <div key={m.id} className="py-2.5 flex items-center justify-between text-xs">
+                            <div>
+                              <span className="font-bold text-slate-900 dark:text-white block">
+                                {m.nome_religioso || m.nome_civil}
+                              </span>
+                              <span className="text-[10px] font-mono text-slate-500">{m.grau || 'Grau não informado'}</span>
+                            </div>
+                            <div className="font-mono text-[11px] text-slate-600 dark:text-slate-400">
+                              {m.telefone_celular || m.whatsapp || m.email_institucional || ''}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-400 italic">
+                        Nenhum confrade atualmente registrado nesta comunidade.
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
