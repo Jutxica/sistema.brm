@@ -15,69 +15,181 @@ ALTER TABLE public.religiosos ADD COLUMN IF NOT EXISTS obra_atual_id UUID REFERE
 
 -- 2. CADASTRO / ATUALIZAÇÃO DAS 16 COMUNIDADES TERRITORIAIS
 
-INSERT INTO public.comunidades (nome, regiao, status)
-VALUES ('Local Padre Gabriel Lux', 'Litoral Norte Catarinense', 'Ativo')
-ON CONFLICT (nome) DO UPDATE SET regiao = EXCLUDED.regiao;
+-- Atualizar comunidade existente ou inserir caso não conste
+UPDATE public.comunidades
+SET regiao = 'Litoral Norte Catarinense', status = 'Ativo'
+WHERE nome = 'Local Padre Gabriel Lux';
 
 INSERT INTO public.comunidades (nome, regiao, status)
-VALUES ('Local São Sebastião', 'Litoral Norte Catarinense', 'Ativo')
-ON CONFLICT (nome) DO UPDATE SET regiao = EXCLUDED.regiao;
+SELECT 'Local Padre Gabriel Lux', 'Litoral Norte Catarinense', 'Ativo'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.comunidades WHERE nome = 'Local Padre Gabriel Lux'
+);
+
+-- Atualizar comunidade existente ou inserir caso não conste
+UPDATE public.comunidades
+SET regiao = 'Litoral Norte Catarinense', status = 'Ativo'
+WHERE nome = 'Local São Sebastião';
 
 INSERT INTO public.comunidades (nome, regiao, status)
-VALUES ('Local Nossa Senhora de Fátima', 'Litoral Norte Catarinense', 'Ativo')
-ON CONFLICT (nome) DO UPDATE SET regiao = EXCLUDED.regiao;
+SELECT 'Local São Sebastião', 'Litoral Norte Catarinense', 'Ativo'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.comunidades WHERE nome = 'Local São Sebastião'
+);
+
+-- Atualizar comunidade existente ou inserir caso não conste
+UPDATE public.comunidades
+SET regiao = 'Litoral Norte Catarinense', status = 'Ativo'
+WHERE nome = 'Local Nossa Senhora de Fátima';
 
 INSERT INTO public.comunidades (nome, regiao, status)
-VALUES ('Local Santa Margarida Maria', 'Litoral Norte Catarinense', 'Ativo')
-ON CONFLICT (nome) DO UPDATE SET regiao = EXCLUDED.regiao;
+SELECT 'Local Nossa Senhora de Fátima', 'Litoral Norte Catarinense', 'Ativo'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.comunidades WHERE nome = 'Local Nossa Senhora de Fátima'
+);
+
+-- Atualizar comunidade existente ou inserir caso não conste
+UPDATE public.comunidades
+SET regiao = 'Litoral Norte Catarinense', status = 'Ativo'
+WHERE nome = 'Local Santa Margarida Maria';
 
 INSERT INTO public.comunidades (nome, regiao, status)
-VALUES ('Local Santa Rita de Cássia', 'Paraná e Planalto Norte Catarinense', 'Ativo')
-ON CONFLICT (nome) DO UPDATE SET regiao = EXCLUDED.regiao;
+SELECT 'Local Santa Margarida Maria', 'Litoral Norte Catarinense', 'Ativo'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.comunidades WHERE nome = 'Local Santa Margarida Maria'
+);
+
+-- Atualizar comunidade existente ou inserir caso não conste
+UPDATE public.comunidades
+SET regiao = 'Paraná e Planalto Norte Catarinense', status = 'Ativo'
+WHERE nome = 'Local Santa Rita de Cássia';
 
 INSERT INTO public.comunidades (nome, regiao, status)
-VALUES ('Local São José', 'Paraná e Planalto Norte Catarinense', 'Ativo')
-ON CONFLICT (nome) DO UPDATE SET regiao = EXCLUDED.regiao;
+SELECT 'Local Santa Rita de Cássia', 'Paraná e Planalto Norte Catarinense', 'Ativo'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.comunidades WHERE nome = 'Local Santa Rita de Cássia'
+);
+
+-- Atualizar comunidade existente ou inserir caso não conste
+UPDATE public.comunidades
+SET regiao = 'Paraná e Planalto Norte Catarinense', status = 'Ativo'
+WHERE nome = 'Local São José';
 
 INSERT INTO public.comunidades (nome, regiao, status)
-VALUES ('Territorial Nossa Senhora Aparecida', 'Paraná e Planalto Norte Catarinense', 'Ativo')
-ON CONFLICT (nome) DO UPDATE SET regiao = EXCLUDED.regiao;
+SELECT 'Local São José', 'Paraná e Planalto Norte Catarinense', 'Ativo'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.comunidades WHERE nome = 'Local São José'
+);
+
+-- Atualizar comunidade existente ou inserir caso não conste
+UPDATE public.comunidades
+SET regiao = 'Paraná e Planalto Norte Catarinense', status = 'Ativo'
+WHERE nome = 'Territorial Nossa Senhora Aparecida';
 
 INSERT INTO public.comunidades (nome, regiao, status)
-VALUES ('Local Puríssimo Coração de Maria', 'Paraná e Planalto Norte Catarinense', 'Ativo')
-ON CONFLICT (nome) DO UPDATE SET regiao = EXCLUDED.regiao;
+SELECT 'Territorial Nossa Senhora Aparecida', 'Paraná e Planalto Norte Catarinense', 'Ativo'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.comunidades WHERE nome = 'Territorial Nossa Senhora Aparecida'
+);
+
+-- Atualizar comunidade existente ou inserir caso não conste
+UPDATE public.comunidades
+SET regiao = 'Paraná e Planalto Norte Catarinense', status = 'Ativo'
+WHERE nome = 'Local Puríssimo Coração de Maria';
 
 INSERT INTO public.comunidades (nome, regiao, status)
-VALUES ('Local Sagrado Coração de Jesus', 'Vale do Itajaí', 'Ativo')
-ON CONFLICT (nome) DO UPDATE SET regiao = EXCLUDED.regiao;
+SELECT 'Local Puríssimo Coração de Maria', 'Paraná e Planalto Norte Catarinense', 'Ativo'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.comunidades WHERE nome = 'Local Puríssimo Coração de Maria'
+);
+
+-- Atualizar comunidade existente ou inserir caso não conste
+UPDATE public.comunidades
+SET regiao = 'Vale do Itajaí', status = 'Ativo'
+WHERE nome = 'Local Sagrado Coração de Jesus';
 
 INSERT INTO public.comunidades (nome, regiao, status)
-VALUES ('Local São Luís Gonzaga', 'Vale do Itajaí', 'Ativo')
-ON CONFLICT (nome) DO UPDATE SET regiao = EXCLUDED.regiao;
+SELECT 'Local Sagrado Coração de Jesus', 'Vale do Itajaí', 'Ativo'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.comunidades WHERE nome = 'Local Sagrado Coração de Jesus'
+);
+
+-- Atualizar comunidade existente ou inserir caso não conste
+UPDATE public.comunidades
+SET regiao = 'Vale do Itajaí', status = 'Ativo'
+WHERE nome = 'Local São Luís Gonzaga';
 
 INSERT INTO public.comunidades (nome, regiao, status)
-VALUES ('Local Padre Dehon', 'Vale do Itajaí', 'Ativo')
-ON CONFLICT (nome) DO UPDATE SET regiao = EXCLUDED.regiao;
+SELECT 'Local São Luís Gonzaga', 'Vale do Itajaí', 'Ativo'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.comunidades WHERE nome = 'Local São Luís Gonzaga'
+);
+
+-- Atualizar comunidade existente ou inserir caso não conste
+UPDATE public.comunidades
+SET regiao = 'Vale do Itajaí', status = 'Ativo'
+WHERE nome = 'Local Padre Dehon';
 
 INSERT INTO public.comunidades (nome, regiao, status)
-VALUES ('Territorial São Judas Tadeu', 'Alto Vale do Itajaí e Sul de Santa Catarina', 'Ativo')
-ON CONFLICT (nome) DO UPDATE SET regiao = EXCLUDED.regiao;
+SELECT 'Local Padre Dehon', 'Vale do Itajaí', 'Ativo'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.comunidades WHERE nome = 'Local Padre Dehon'
+);
+
+-- Atualizar comunidade existente ou inserir caso não conste
+UPDATE public.comunidades
+SET regiao = 'Alto Vale do Itajaí e Sul de Santa Catarina', status = 'Ativo'
+WHERE nome = 'Territorial São Judas Tadeu';
 
 INSERT INTO public.comunidades (nome, regiao, status)
-VALUES ('Territorial Venerável Servo de Deus Padre Aloísio Boeing', 'Alto Vale do Itajaí e Sul de Santa Catarina', 'Ativo')
-ON CONFLICT (nome) DO UPDATE SET regiao = EXCLUDED.regiao;
+SELECT 'Territorial São Judas Tadeu', 'Alto Vale do Itajaí e Sul de Santa Catarina', 'Ativo'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.comunidades WHERE nome = 'Territorial São Judas Tadeu'
+);
+
+-- Atualizar comunidade existente ou inserir caso não conste
+UPDATE public.comunidades
+SET regiao = 'Alto Vale do Itajaí e Sul de Santa Catarina', status = 'Ativo'
+WHERE nome = 'Territorial Venerável Servo de Deus Padre Aloísio Boeing';
 
 INSERT INTO public.comunidades (nome, regiao, status)
-VALUES ('Territorial São Miguel', 'Rio Grande do Sul', 'Ativo')
-ON CONFLICT (nome) DO UPDATE SET regiao = EXCLUDED.regiao;
+SELECT 'Territorial Venerável Servo de Deus Padre Aloísio Boeing', 'Alto Vale do Itajaí e Sul de Santa Catarina', 'Ativo'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.comunidades WHERE nome = 'Territorial Venerável Servo de Deus Padre Aloísio Boeing'
+);
+
+-- Atualizar comunidade existente ou inserir caso não conste
+UPDATE public.comunidades
+SET regiao = 'Rio Grande do Sul', status = 'Ativo'
+WHERE nome = 'Territorial São Miguel';
 
 INSERT INTO public.comunidades (nome, regiao, status)
-VALUES ('Territorial de Rondônia – Nossa Senhora de Nazaré', 'Rondônia', 'Ativo')
-ON CONFLICT (nome) DO UPDATE SET regiao = EXCLUDED.regiao;
+SELECT 'Territorial São Miguel', 'Rio Grande do Sul', 'Ativo'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.comunidades WHERE nome = 'Territorial São Miguel'
+);
+
+-- Atualizar comunidade existente ou inserir caso não conste
+UPDATE public.comunidades
+SET regiao = 'Rondônia', status = 'Ativo'
+WHERE nome = 'Territorial de Rondônia – Nossa Senhora de Nazaré';
 
 INSERT INTO public.comunidades (nome, regiao, status)
-VALUES ('Conventinho SCJ', 'Taubaté I', 'Ativo')
-ON CONFLICT (nome) DO UPDATE SET regiao = EXCLUDED.regiao;
+SELECT 'Territorial de Rondônia – Nossa Senhora de Nazaré', 'Rondônia', 'Ativo'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.comunidades WHERE nome = 'Territorial de Rondônia – Nossa Senhora de Nazaré'
+);
+
+-- Atualizar comunidade existente ou inserir caso não conste
+UPDATE public.comunidades
+SET regiao = 'Taubaté I', status = 'Ativo'
+WHERE nome = 'Conventinho SCJ';
+
+INSERT INTO public.comunidades (nome, regiao, status)
+SELECT 'Conventinho SCJ', 'Taubaté I', 'Ativo'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.comunidades WHERE nome = 'Conventinho SCJ'
+);
 
 -- 3. CADASTRO / ATUALIZAÇÃO DAS OBRAS E INSTITUIÇÕES INTEGRANTES (SEPARADAS)
 

@@ -71,9 +71,16 @@ for (const t of territorial) {
   const comNome = t.comunidade.replace(/'/g, "''");
   const regNome = t.regiao.replace(/'/g, "''");
   sql += `
+-- Atualizar comunidade existente ou inserir caso não conste
+UPDATE public.comunidades
+SET regiao = '${regNome}', status = 'Ativo'
+WHERE nome = '${comNome}';
+
 INSERT INTO public.comunidades (nome, regiao, status)
-VALUES ('${comNome}', '${regNome}', 'Ativo')
-ON CONFLICT (nome) DO UPDATE SET regiao = EXCLUDED.regiao;
+SELECT '${comNome}', '${regNome}', 'Ativo'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.comunidades WHERE nome = '${comNome}'
+);
 `;
 }
 
