@@ -199,16 +199,16 @@ SET comunidade_id = c.id,
     pertencimento_elenco = 'brm'
 FROM public.comunidades c
 WHERE c.nome = 'Local Padre Gabriel Lux'
-  AND (ro.nome = 'Sede Provincial – Seminário SCJ' OR ro.nome ILIKE 'Sede Provincial – Seminário SCJ');
+  AND (ro.nome = 'Sede Provincial – Seminário Sagrado Coração de Jesus' OR ro.nome ILIKE 'Sede Provincial – Seminário Sagrado Coração de Jesus');
 
 -- Inserir se ainda não constar na tabela de obras de referência
 INSERT INTO public.religiosos_obras_referencia (nome, tipo, comunidade_id, status, pertencimento_elenco)
-SELECT 'Sede Provincial – Seminário SCJ', 'Casa', c.id, 'Ativa', 'brm'
+SELECT 'Sede Provincial – Seminário Sagrado Coração de Jesus', 'Casa', c.id, 'Ativa', 'brm'
 FROM public.comunidades c
 WHERE c.nome = 'Local Padre Gabriel Lux'
   AND NOT EXISTS (
     SELECT 1 FROM public.religiosos_obras_referencia ro
-    WHERE ro.comunidade_id = c.id AND (ro.nome = 'Sede Provincial – Seminário SCJ' OR ro.nome ILIKE 'Sede Provincial – Seminário SCJ')
+    WHERE ro.comunidade_id = c.id AND (ro.nome = 'Sede Provincial – Seminário Sagrado Coração de Jesus' OR ro.nome ILIKE 'Sede Provincial – Seminário Sagrado Coração de Jesus')
   );
 
 -- Atualizar obra existente ou vincular à comunidade territorial
@@ -926,7 +926,7 @@ DECLARE
   v_com_id UUID;
 BEGIN
   -- Obter o ID relacional da comunidade
-  SELECT id INTO v_com_id FROM public.comunidades WHERE nome = 'Sede Provincial – Cúria BRM' LIMIT 1;
+  SELECT id INTO v_com_id FROM public.comunidades WHERE nome = 'Local Padre Gabriel Lux' LIMIT 1;
 
   -- Verificar se já existe por nome civil ou e-mail
   SELECT id INTO v_rel_id
@@ -941,7 +941,7 @@ BEGIN
         grau = 'Bispo',
         data_nascimento = COALESCE(data_nascimento, '1943-09-19'),
         email_institucional = COALESCE(email_institucional, 'dom.murilo@brm.org.br'),
-        comunidade_atual_nome = 'Sede Provincial – Cúria BRM',
+        comunidade_atual_nome = 'Local Padre Gabriel Lux',
         comunidade_atual_id = COALESCE(v_com_id, comunidade_atual_id),
         situacao_elenco = 'Ativo',
         cadastro_elenco_provisorio = true,
@@ -968,7 +968,7 @@ BEGIN
       'Bispo',
       '1943-09-19',
       'dom.murilo@brm.org.br',
-      'Sede Provincial – Cúria BRM',
+      'Local Padre Gabriel Lux',
       v_com_id,
       'Ativo',
       'Em revisão',

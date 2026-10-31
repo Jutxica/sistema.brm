@@ -50,7 +50,7 @@ export const PoliticaPrivacidade: React.FC = () => {
               1. Preâmbulo e Identificação do Controlador
             </h2>
             <p>
-              A Província dos Padres do Sagrado Coração de Jesus — Província Brasileira Meridional (doravante denominada simplesmente Província BRM), entidade religiosa católica e pessoa jurídica de direito privado sem fins lucrativos, com sede provincial no município de Curitiba, Estado do Paraná, estabelece por meio deste instrumento suas diretrizes oficiais de privacidade, transparência e governança sobre o tratamento de dados pessoais.
+              A Província dos Padres do Sagrado Coração de Jesus — Província Brasileira Meridional (doravante denominada simplesmente Província BRM), entidade religiosa católica e pessoa jurídica de direito privado sem fins lucrativos, com sede provincial no Seminário Sagrado Coração de Jesus, no município de Corupá, Estado de Santa Catarina, estabelece por meio deste instrumento suas diretrizes oficiais de privacidade, transparência e governança sobre o tratamento de dados pessoais.
             </p>
             <p>
               Na qualidade de Controladora de dados, a Província BRM reafirma seu compromisso inegociável com a dignidade da pessoa humana, o respeito à inviolabilidade da intimidade e a confidencialidade das informações que lhe são confiadas por religiosos professos, seminaristas, postulantes, colaboradores leigos, benfeitores e hóspedes, assegurando a estrita conformidade de seus processos com a Lei Geral de Proteção de Dados Pessoais (Lei Federal nº 13.709/2018 — LGPD) e as prescrições do Código de Direito Canônico.

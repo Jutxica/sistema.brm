@@ -58,7 +58,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
             pis: '123.45678.90-1',
             cnh: '01234567890',
             cnh_categoria: 'B',
-            comunidade_atual_nome: 'Sede Provincial BRM, Curitiba/PR',
+            comunidade_atual_nome: 'Sede Provincial – Seminário Sagrado Coração de Jesus, Corupá/SC',
             email_institucional: 'pe.carlos@brm.org.br',
             email_pessoal: 'carlos.scj@gmail.com',
             telefone_celular: '(41) 99876-5432',

@@ -135,7 +135,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ onSuccess }) => {
                     Ambiente reservado aos religiosos e formandos da Província Brasileira Meridional para acompanhamento canônico, histórico e comunhão fraterna.
                   </p>
                   <p className="text-white/50 text-[10.5px]">
-                    Cúria Provincial BRM · Curitiba/PR
+                    Sede Provincial BRM · Seminário Sagrado Coração de Jesus · Corupá/SC
                   </p>
                 </div>
               </div>

@@ -136,7 +136,7 @@ export const PortalReligioso: React.FC = () => {
           nome_civil: 'Carlos Eduardo da Silva',
           grau: 'Padre',
           status_cadastro: 'Em revisão',
-          comunidade_atual_nome: 'Sede Provincial BRM, Curitiba/PR',
+          comunidade_atual_nome: 'Sede Provincial – Seminário Sagrado Coração de Jesus, Corupá/SC',
           email_institucional: 'pe.carlos@brm.org.br',
         });
         return;

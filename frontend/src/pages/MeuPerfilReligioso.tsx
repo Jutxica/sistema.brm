@@ -92,7 +92,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
             data_nascimento: '1990-01-15',
             foto_url: '',
             foto_path: '',
-            comunidade_atual_nome: 'Sede Provincial BRM • Curitiba/PR',
+            comunidade_atual_nome: 'Sede Provincial – Seminário Sagrado Coração de Jesus • Corupá/SC',
             email_institucional: 'pe.carlos@brm.org.br',
             whatsapp: '(41) 99876-5432',
             telefone_celular: '(41) 99876-5432'
@@ -613,7 +613,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
               className={
                 isPortal
                   ? "min-h-12 w-full sm:w-auto justify-center px-6 py-3 rounded-full bg-[#226380] hover:bg-[#113240] text-sm sm:text-xs font-semibold shadow-sm transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#226380]"
-                  : "inline-flex items-center gap-2 px-5 py-2.5 text-xs font-mono uppercase tracking-wider font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-all cursor-pointer rounded-[6px] shadow-sm disabled:opacity-50"
+                  : "inline-flex items-center gap-2 px-5 py-2.5 text-xs font-semibold border border-[#113240] bg-[#113240] text-white hover:bg-[#226380] hover:border-[#226380] transition-colors cursor-pointer rounded-[6px] disabled:opacity-50"
               }
             >
               {saving ? (

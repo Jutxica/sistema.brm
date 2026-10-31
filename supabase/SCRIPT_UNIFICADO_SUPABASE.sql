@@ -536,7 +536,7 @@ CREATE TABLE IF NOT EXISTS public.secretaria_configuracoes (
   prefixo_formularios text NOT NULL DEFAULT 'FORM-BRM',
   numero_atual_formularios integer NOT NULL DEFAULT 3,
   cabecalho_institucional text NOT NULL DEFAULT 'CONGREGAÇÃO DOS PADRES DO SAGRADO CORAÇÃO DE JESUS',
-  subtitulo_provincia text NOT NULL DEFAULT 'PROVÍNCIA BRASILEIRA MERIDIONAL (SCJ) • CURIA PROVINCIAL',
+  subtitulo_provincia text NOT NULL DEFAULT 'PROVÍNCIA BRASILEIRA MERIDIONAL (SCJ) • SEDE PROVINCIAL',
   orgao_emissor text NOT NULL DEFAULT 'SECRETARIA PROVINCIAL & ATOS CANÔNICOS',
   lema_oficial text NOT NULL DEFAULT '«COR JESU, IN TE CONFIDO • SINT UNUM»',
   email_secretaria text NOT NULL DEFAULT 'secretaria@brm.org.br',
@@ -787,7 +787,7 @@ INSERT INTO public.secretaria_configuracoes (
   'default-secretaria-cfg', 'DEC-BRM', 14, 'PORT-BRM', 8,
   'CIRC-BRM', 5, 'FORM-BRM', 3,
   'CONGREGAÇÃO DOS PADRES DO SAGRADO CORAÇÃO DE JESUS',
-  'PROVÍNCIA BRASILEIRA MERIDIONAL (SCJ) • CURIA PROVINCIAL',
+  'PROVÍNCIA BRASILEIRA MERIDIONAL (SCJ) • SEDE PROVINCIAL',
   'SECRETARIA PROVINCIAL & ATOS CANÔNICOS',
   '«COR JESU, IN TE CONFIDO • SINT UNUM»',
   'secretaria@brm.org.br', '(41) 3342-1200', true, true, true
@@ -835,7 +835,7 @@ INSERT INTO public.eventos_provinciais (
   id, titulo, tipo, data_inicio, data_fim, horario, local, cidade, uf, descricao, publico_alvo, status, exige_inscricao, formulario_id, limite_vagas, prazo_inscricao
 ) VALUES
   ('evt-1', 'Retiro Provincial dos Presbíteros (Turma I)', 'Retiro', '2026-03-14', '2026-03-18', '08:00', 'Casa Padre Dehon', 'Brusque', 'SC', 'Retiro anual de espiritualidade dehoniana.', 'Presbíteros', 'Confirmado', true, 'form-retiro-presbiteros-2026', 60, '2026-03-05'),
-  ('evt-2', 'Reunião Ordinária do Conselho Provincial', 'Reunião', '2026-04-15', NULL, '09:00', 'Sede Provincial', 'Curitiba', 'PR', 'Sessão com o Superior Provincial e Conselheiros.', 'Governo Provincial', 'Confirmado', false, NULL, NULL, NULL),
+  ('evt-2', 'Reunião Ordinária do Conselho Provincial', 'Reunião', '2026-04-15', NULL, '09:00', 'Sede Provincial – Seminário Sagrado Coração de Jesus', 'Corupá', 'SC', 'Sessão com o Superior Provincial e Conselheiros.', 'Governo Provincial', 'Confirmado', false, NULL, NULL, NULL),
   ('evt-3', 'Encontro dos Fratres da Etapa de Configuração (Teologia)', 'Encontro', '2026-05-22', '2026-05-24', '14:00', 'Seminário SCJ', 'Corupá', 'SC', 'Convivência vocacional e partilha pastoral.', 'Fratres', 'Confirmado', true, 'form-encontro-fratres-2026', 30, '2026-05-10'),
   ('evt-4', 'Solenidade do Sagrado Coração de Jesus', 'Celebração / Solenidade', '2026-06-19', NULL, '19:00', 'Todas as Comunidades', 'Curitiba', 'PR', 'Festa titular com renovação dos votos.', 'Toda a Província', 'Confirmado', false, NULL, NULL, NULL),
   ('evt-5', 'Memória do Venerável Pe. Leão João Dehon', 'Celebração / Solenidade', '2026-08-12', NULL, '19:30', 'Todas as Paróquias e Casas', 'Curitiba', 'PR', 'Celebração eucarística em honra ao nosso fundador.', 'Toda a Província', 'Confirmado', false, NULL, NULL, NULL),

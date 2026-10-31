@@ -7,7 +7,7 @@ const religiosos = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'reli
 // Mapeamento de código local para Nome Oficial da Comunidade
 const mapLocalParaComunidade = {
   'Taubaté I': 'Conventinho SCJ',
-  'Bispo': 'Sede Provincial – Cúria BRM',
+  'Bispo': 'Local Padre Gabriel Lux',
   'Rio Grande do Sul': 'Territorial São Miguel',
   'Jaraguá do Sul II': 'Local Nossa Senhora de Fátima',
   'Palmas': 'Territorial Nossa Senhora Aparecida',
