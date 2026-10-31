@@ -192,12 +192,6 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ onSuccess }) => {
 
           <div className="flex items-center gap-4 text-[13px]">
             <a
-              href="https://sistema.brm.org.br"
-              className="text-[#226380] dark:text-[#A3C3C7] font-medium hover:underline"
-            >
-              Espaço Administrativo
-            </a>
-            <a
               href="/cadastro-religiosos"
               className="text-slate-700 dark:text-slate-300 hover:text-[#113240] dark:hover:text-white"
             >
