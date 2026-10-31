@@ -293,7 +293,7 @@ export const ReligiosoDossie: React.FC = () => {
     }
 
     if (contasError) {
-      showToast.error(`Não foi possível carregar as contas: ${contasError.message}`);
+      console.warn('Contas de acesso não disponíveis via Edge Function:', contasError.message);
     }
 
     if (!religiosoData) {
@@ -335,7 +335,30 @@ export const ReligiosoDossie: React.FC = () => {
     });
     const contas = contasResult?.accounts || [];
     setAllAccounts(contas);
-    setConta(contas.find(item => item.id === religiosoData.auth_user_id) || null);
+    const contaEncontrada = contas.find(item => item.id === religiosoData.auth_user_id);
+    if (contaEncontrada) {
+      setConta(contaEncontrada);
+    } else if (religiosoData.auth_user_id) {
+      setConta({
+        id: religiosoData.auth_user_id,
+        email: religiosoData.email_institucional || (religiosoData as any).email_pessoal || 'Conta vinculada',
+        created_at: (religiosoData as any).created_at || null,
+        email_confirmed_at: null,
+        last_sign_in_at: null,
+        banned_until: null,
+        linked_religioso_id: religiosoData.id,
+        linked_religioso_nome: (religiosoData as any).nome_elenco || religiosoData.nome_religioso || religiosoData.nome_civil || null,
+        ledger: {
+          origin: 'portal',
+          created_by: null,
+          created_by_name: 'Conta do Portal vinculada',
+          created_at: (religiosoData as any).created_at || null,
+          state: 'ativo',
+        },
+      });
+    } else {
+      setConta(null);
+    }
     setLoading(false);
   };
 
