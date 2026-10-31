@@ -67,3 +67,10 @@ export const getPasswordResetRedirectUrl = (origem?: 'portal' | 'sistema'): stri
   const query = origem ? `?origem=${origem}` : '';
   return `${cleanBase}/redefinir-senha${query}`;
 };
+
+export const getSystemLoginUrl = (): string => {
+  if (typeof window !== 'undefined' && !isPortalPublicHost()) {
+    return '/login';
+  }
+  return 'https://sistema.brm.org.br/login';
+};

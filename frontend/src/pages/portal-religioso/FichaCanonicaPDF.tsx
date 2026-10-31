@@ -1,22 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Printer, 
   Share2, 
-  ArrowLeft, 
   Check, 
-  FileText,
-  ShieldCheck,
-  RotateCw,
   Download,
   Loader2
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { showToast } from '../../hooks/useFeedback';
-import { CabecalhoTimbradoBRM, RodapeTimbradoBRM, type OrientacaoDocumento } from '../../components/PapelTimbradoBRM';
+import { PapelTimbradoBRM, type OrientacaoDocumento } from '../../components/PapelTimbradoBRM';
 import { gotenbergService } from '../../services/gotenbergService';
 import { obterFotoReligiosoBase64 } from '../../services/religiosoFotoService';
-import { LOGO_TIMBRADO_DATA_URI } from '../../assets/logoTimbradoBase64';
 
 interface FichaCanonicaPDFProps {
   religiosoId?: string;
@@ -311,12 +305,8 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   const handleShare = async () => {
-    const nome = data?.nome_religioso || data?.nome_civil || 'Ficha do Confrade';
+    const nome = data?.nome_religioso || data?.nome_civil || 'Ficha do Religioso';
     const textoCompartilhar = `Ficha Cadastral Canônica - Província Brasileira Meridional (SCJ)\nReligioso: ${nome}\nComunidade: ${data?.comunidade_atual_nome || 'Província BRM'}`;
 
     if (navigator.share) {
@@ -398,133 +388,58 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
 
   return (
     <div className="w-full">
-      {/* BARRA DE AÇÕES SUPERIOR (OCULTADA NA IMPRESSÃO) */}
-      <div className="print:hidden mb-6 flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-[#161617] p-4 rounded-[8px] border border-slate-200 dark:border-white/10 shadow-xs">
-        <div className="flex items-center gap-3">
-          {onBack && (
+      <PapelTimbradoBRM
+        orientacao={orientacao}
+        permitirTrocaOrientacao={true}
+        orgaoEmissor="Arquivo Provincial · Chancelaria"
+        protocolo={data?.numero_cadastro ? String(data.numero_cadastro).padStart(4, '0') : (data?.id ? data.id.slice(0, 8).toUpperCase() : 'BRM-2026')}
+        dataEmissao={new Date().toLocaleDateString('pt-BR')}
+        subtituloDocumento="Arquivo Provincial · Chancelaria"
+        tituloDocumento="FICHA CANÔNICA CADASTRAL OFICIAL"
+        onVoltar={onBack}
+        rodapeComplementar={
+          <div className="flex justify-between text-[6.5pt] font-mono text-slate-500 print:text-slate-600">
+            <span>Emitido eletronicamente em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} · sistema.brm.org.br</span>
+            <span>Documento canônico reservado · Protegido pela LGPD</span>
+          </div>
+        }
+        acoesExtras={
+          <>
             <button
               type="button"
-              onClick={onBack}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              onClick={handleShare}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Voltar ao Painel</span>
+              {copiado ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="text-emerald-600 font-semibold">Copiado!</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-3.5 h-3.5 text-[#226380]" />
+                  <span>Compartilhar</span>
+                </>
+              )}
             </button>
-          )}
-          <div>
-            <h2 className="text-sm font-semibold text-[#113240] dark:text-[#f5f5f7]">
-              Ficha Canônica Individual
-            </h2>
-            <span className="text-[11px] text-slate-500 dark:text-[#86868b]">
-              Visualização oficial no padrão institucional A4 para impressão e arquivamento
-            </span>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleShare}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-          >
-            {copiado ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="text-emerald-600 font-semibold">Copiado!</span>
-              </>
-            ) : (
-              <>
-                <Share2 className="w-3.5 h-3.5 text-[#226380]" />
-                <span>Compartilhar</span>
-              </>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setOrientacao(prev => (prev === 'vertical' ? 'horizontal' : 'vertical'))}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-            title="Alternar orientação entre Vertical (Retrato) e Horizontal (Paisagem)"
-          >
-            <RotateCw className="w-3.5 h-3.5 text-[#226380]" />
-            <span>{orientacao === 'horizontal' ? 'Vertical' : 'Horizontal'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleExportarGotenberg}
-            disabled={exportandoGotenberg}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-50"
-            title="Emitir Ficha Oficial Canônica via microserviço Gotenberg com Brasão Dehoniano"
-          >
-            {exportandoGotenberg ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#226380]" /> : <Download className="w-3.5 h-3.5 text-[#226380]" />}
-            <span>Exportar Gotenberg (PDF com Brasão)</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleExportarGotenberg}
-            disabled={exportandoGotenberg}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-50"
-            title="Emitir Ficha Oficial Canônica via microserviço Gotenberg com Brasão Dehoniano"
-          >
-            {exportandoGotenberg ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#226380]" /> : <Download className="w-3.5 h-3.5 text-[#226380]" />}
-            <span>Exportar Gotenberg (PDF com Brasão)</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-[6px] bg-[#113240] hover:bg-[#226380] text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
-          >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Imprimir / Salvar PDF</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Injeção de regras @page para orientação dinâmica */}
-      <style>
-        {`
-          @media print {
-            @page {
-              size: A4 ${orientacao === 'horizontal' ? 'landscape' : 'portrait'};
-              margin: ${orientacao === 'horizontal' ? '10mm 15mm 12mm 15mm' : '12mm 16mm 14mm 16mm'};
-            }
-            html, body, #root, .institutional-app, .institutional-content, main {
-              background: #ffffff !important;
-              background-color: #ffffff !important;
-            }
-          }
-        `}
-      </style>
-
-      {/* DOCUMENTO ESTILO FOLHA OFICIAL INSTITUCIONAL A4 */}
-      <div className={`mx-auto bg-white text-slate-900 p-8 sm:p-12 border border-slate-200 shadow-sm print:shadow-none print:border-none print:p-0 print:m-0 print:max-w-none transition-all font-sans leading-tight ${orientacao === 'horizontal' ? 'max-w-[1140px]' : 'max-w-[850px]'}`}>
-        
-        {/* Cabeçalho Oficial com Brasão Dehoniano */}
-        <header className="border-b border-slate-300 pb-3 mb-4">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <img src={LOGO_TIMBRADO_DATA_URI} alt="Província BRM" className="h-14 w-auto object-contain" />
-              <div>
-                <p className="font-mono text-[8pt] uppercase tracking-[0.15em] text-slate-500 font-semibold">
-                  Congregação dos Sacerdotes do Sagrado Coração de Jesus
-                </p>
-                <h1 className="text-[14pt] font-serif font-bold text-slate-900 tracking-tight mt-0.5">
-                  Província Brasileira Meridional
-                </h1>
-                <p className="text-[8.5pt] font-mono text-slate-600">Arquivo Provincial · Chancelaria</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="font-mono text-[7pt] uppercase tracking-wider text-slate-400">Cadastro / Protocolo</p>
-              <p className="font-mono text-[10pt] font-bold text-slate-800">
-                {data?.numero_cadastro ? String(data.numero_cadastro).padStart(4, '0') : (data?.id ? data.id.slice(0, 8).toUpperCase() : 'BRM-2026')}
-              </p>
-            </div>
-          </div>
-        </header>
+            <button
+              type="button"
+              onClick={handleExportarGotenberg}
+              disabled={exportandoGotenberg}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer disabled:opacity-50"
+              title="Emitir Ficha Oficial Canônica em PDF com Brasão Dehoniano"
+            >
+              {exportandoGotenberg ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-[#226380]" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-[#226380]" />
+              )}
+              <span>Exportar PDF Oficial</span>
+            </button>
+          </>
+        }
+      >
 
         {/* Identificação do Religioso */}
         <div className="flex items-end justify-between border-b border-slate-200 pb-3 mb-3">
@@ -757,22 +672,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
             <p className="text-[6.5pt] text-slate-400">Assinatura e carimbo</p>
           </div>
         </div>
-
-        {/* Linha Canônica da Sede e Rodapé */}
-        <div className="mt-8 pt-2 border-t border-[#a0a0a0] text-center select-none">
-          <p className="font-serif text-[8.5pt] text-slate-700 leading-snug">
-            Rua Padre Gabriel Lux, 900 – Caixa Postal 21 – Corupá/SC | CEP 89278-000
-          </p>
-          <p className="font-serif text-[8pt] text-slate-600 mt-0.5 leading-snug">
-            Telefone: +55 (47) 3375-1194 | E-mail: secretaria@brm.org.br | Site: scj.org.br
-          </p>
-        </div>
-
-        <footer className="mt-3 pt-2 border-t border-slate-200 flex justify-between text-[6.5pt] font-mono text-slate-400">
-          <span>Emitido eletronicamente em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} · sistema.brm.org.br</span>
-          <span>Documento reservado · Dados pessoais protegidos pela LGPD</span>
-        </footer>
-      </div>
+      </PapelTimbradoBRM>
     </div>
   );
 };

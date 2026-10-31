@@ -557,7 +557,7 @@ export const PortalReligioso: React.FC = () => {
   }
 
   // USUÁRIO AUTENTICADO: RENDERIZA O SITE DA ÁREA DE MEMBROS (APPLE FORMAT)
-  const displayName = religiosoData?.nome_civil || user?.nome || 'Confrade Dehoniano';
+  const displayName = religiosoData?.nome_civil || user?.nome || 'Religioso Dehoniano';
   const displayReligiousName = religiosoData?.nome_religioso || '';
   const displayGrau = religiosoData?.grau || 'Religioso SCJ';
   const registrationStatus = religiosoData?.status_cadastro || user?.religiosoStatusCadastro;
@@ -618,7 +618,7 @@ export const PortalReligioso: React.FC = () => {
             <img src="/logo-sistema.png" alt="Província BRM" className="h-10 w-auto dark:hidden" />
             <img src="/logo-branco.png" alt="Província BRM" className="hidden h-10 w-auto dark:block" />
             <div>
-              <p className="text-sm font-semibold">Portal do Confrade</p>
+              <p className="text-sm font-semibold">Portal do Religioso</p>
               <p className="text-xs text-[#707070] dark:text-[#a1a1a6]">{displayName}</p>
             </div>
           </div>
@@ -717,7 +717,7 @@ export const PortalReligioso: React.FC = () => {
                 className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-mono uppercase font-semibold text-slate-700 dark:text-slate-300 hover:text-[#226380] dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-[6px] transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span>Voltar ao Portal do Confrade</span>
+                <span>Voltar ao Painel do Religioso</span>
               </button>
               <div className="h-5 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
               <div>
@@ -825,7 +825,7 @@ export const PortalReligioso: React.FC = () => {
               </span>
             </div>
             <span className="portal-brand-caption font-cinzel mt-0.5 block truncate text-[10px] tracking-[0.14em] uppercase text-[#61767e] dark:text-[#a0aeaf]">
-              Portal do Confrade <span aria-hidden="true" className="px-1 opacity-50">/</span> Padres Dehonianos
+              Portal do Religioso
             </span>
           </div>
         </div>
@@ -1064,7 +1064,7 @@ export const PortalReligioso: React.FC = () => {
               }`}
             >
               <Home className="w-4 h-4" />
-              <span>Painel do Confrade</span>
+              <span>Painel do Religioso</span>
             </button>
 
             <button
@@ -1206,7 +1206,7 @@ export const PortalReligioso: React.FC = () => {
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-[#161617] border border-[#d6d6d6]/60 dark:border-white/10 text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-[#f5f5f7] dark:hover:bg-[#262628] transition-all cursor-pointer shadow-sm"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Voltar ao Painel do Confrade</span>
+                  <span>Voltar ao Painel do Religioso</span>
                 </button>
               </div>
               <MeuPerfilReligioso isPortal={true} onSaved={loadMemberData} />
@@ -1223,7 +1223,7 @@ export const PortalReligioso: React.FC = () => {
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-[#161617] border border-[#d6d6d6]/60 dark:border-white/10 text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-[#f5f5f7] dark:hover:bg-[#262628] transition-all cursor-pointer shadow-sm"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Voltar ao Painel do Confrade</span>
+                  <span>Voltar ao Painel do Religioso</span>
                 </button>
               </div>
               <div className="bg-white dark:bg-[#161617] rounded-xl border border-[#d6d6d6]/60 dark:border-white/10 p-6 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
@@ -1298,7 +1298,7 @@ export const PortalReligioso: React.FC = () => {
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-[#161617] border border-[#d6d6d6]/60 dark:border-white/10 text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-[#f5f5f7] dark:hover:bg-[#262628] transition-all cursor-pointer shadow-sm"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Voltar ao Painel do Confrade</span>
+                  <span>Voltar ao Painel do Religioso</span>
                 </button>
               </div>
               <AnuarioBRM />

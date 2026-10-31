@@ -46,7 +46,7 @@ export const PortalDocumentosTab: React.FC<PortalDocumentosTabProps> = ({
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-[#161617] border border-[#d6d6d6]/60 dark:border-white/10 text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-[#f5f5f7] dark:hover:bg-[#262628] transition-all cursor-pointer shadow-sm"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Voltar ao Painel do Confrade</span>
+          <span>Voltar ao Painel do Religioso</span>
         </button>
       </div>
 

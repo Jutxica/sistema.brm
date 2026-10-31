@@ -429,6 +429,12 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
     ? `member:${religiosoId}`
     : adminMode && religiosoId ? `admin:edit:${religiosoId}` : 'admin:new';
   const [step, setStep] = useState(1);
+  const formTopRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
   const [invalidFields, setInvalidFields] = useState<string[]>([]);
   const [obras, setObras] = useState<ObraReferencia[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1728,7 +1734,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
 
   if (loading) {
     return (
-      <PublicShell>
+      <PublicShell hideShell={memberMode}>
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-[#226380]" />
           <span className="text-sm font-medium text-[#707070]">Carregando formulário...</span>
@@ -1739,7 +1745,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
 
   if (!adminMode && !memberMode && !publicConfig.ativo) {
     return (
-      <PublicShell>
+      <PublicShell hideShell={memberMode}>
         <div className="max-w-xl mx-auto rounded-[6px] bg-white dark:bg-[#161b22] p-10 text-center border border-slate-200 dark:border-slate-800">
           <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f] dark:text-white font-serif">Inscrições fechadas</h1>
           <p className="mt-3 text-sm text-[#707070] dark:text-[#86868b] leading-relaxed">{publicConfig.mensagem_fechamento}</p>
@@ -1750,7 +1756,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
 
   if (success) {
     return (
-      <PublicShell>
+      <PublicShell hideShell={memberMode}>
         <div className="max-w-xl mx-auto rounded-[6px] bg-white dark:bg-[#161b22] p-10 text-center border border-slate-200 dark:border-slate-800">
           <div className="flex items-center justify-center w-16 h-16 rounded-[6px] border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mx-auto mb-4">
             <CheckCircle2 className="h-8 w-8" />
@@ -1777,9 +1783,11 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   }
 
   return (
-    <PublicShell>
-      <form onSubmit={submit} className="w-full max-w-6xl mx-auto rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] p-4 sm:p-10 transition-colors">
+    <PublicShell hideShell={memberMode}>
+      <form onSubmit={submit} className={`w-full max-w-6xl mx-auto rounded-[6px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] ${memberMode ? 'p-4 sm:p-6 shadow-none' : 'p-4 sm:p-10'} transition-colors`}>
+        <div ref={formTopRef} className="scroll-mt-8" />
         {/* Apple Cathedral Header */}
+        {!memberMode && (
         <header className="mb-8 pb-6 border-b border-[#e5e5ea] dark:border-white/10">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -1829,6 +1837,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
             )}
           </div>
         </header>
+        )}
 
         {(draftSavedAt || draftRestored || draftSaving || draftSaveError) && (
           <div className={`mb-6 flex flex-col gap-3 rounded-[6px] border px-4 py-3 text-xs no-print sm:flex-row sm:items-center sm:justify-between ${
@@ -3010,7 +3019,11 @@ const DynamicSection: React.FC<{
   </Section>
 );
 
-const PublicShell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+const PublicShell: React.FC<{ children: React.ReactNode; hideShell?: boolean }> = ({ children, hideShell }) => {
+  if (hideShell) {
+    return <div className="w-full">{children}</div>;
+  }
+  return (
   <div className="min-h-screen bg-[#f5f5f7] dark:bg-[#0d1117] text-[#1d1d1f] dark:text-[#f5f5f7] px-4 py-8 md:py-12 transition-colors">
     <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 pb-8">
       <div className="flex items-center gap-3">
@@ -3038,5 +3051,6 @@ const PublicShell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
       </div>
     </div>
   </div>
-);
+  );
+};
 export default CadastroReligiosoPublico;

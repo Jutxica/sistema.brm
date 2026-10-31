@@ -56,7 +56,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
           <div className="relative">
             <div className="flex items-center justify-between gap-3">
               <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65">
-                Portal do Confrade
+                Portal do Religioso
               </span>
               {religiosoData?.comunidade_atual_nome && (
                 <span className="flex min-w-0 items-center gap-1 text-[10px] text-white/70">
@@ -67,7 +67,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
             </div>
 
             <h2 className="mt-1.5 text-[20px] font-semibold leading-tight tracking-[-0.03em]">
-              Olá, {displayName}
+              Vivat Cor Iesu, {displayName}
             </h2>
 
             <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/15 pt-3">
@@ -208,10 +208,10 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <span className="font-cinzel text-[11px] font-semibold uppercase tracking-[0.2em] text-[#707070] dark:text-[#86868b] block mb-1">
-                Sint Unum • Padres Dehonianos
+                Província Brasileira Meridional
               </span>
               <h2 className="font-cinzel text-xl sm:text-[26px] font-bold tracking-wide text-[#113240] dark:text-[#f5f5f7]">
-                Saudação fraterna, {displayName}
+                Vivat Cor Iesu, {displayName}
               </h2>
               <p className="text-xs sm:text-sm text-[#707070] dark:text-[#86868b] font-normal mt-1 leading-relaxed">
                 Bem-vindo ao espaço digital de comunhão, serviços e acompanhamento canônico da Província BRM.

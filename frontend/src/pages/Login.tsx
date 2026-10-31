@@ -184,7 +184,7 @@ export const Login: React.FC = () => {
                 href={getPortalRedirectUrl()}
                 className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#8fc1c2] hover:text-[#b6d6d5] transition-colors"
               >
-                <span>Acessar o Portal do Confrade</span>
+                <span>Acessar o Portal do Religioso</span>
                 <span aria-hidden="true">&rarr;</span>
               </a>
             </div>

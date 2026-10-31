@@ -18,6 +18,7 @@ export interface PapelTimbradoBRMProps {
   className?: string;
   marcaDagua?: boolean;
   rodapeComplementar?: React.ReactNode;
+  acoesExtras?: React.ReactNode;
 }
 
 /**
@@ -130,7 +131,8 @@ export const PapelTimbradoBRM: React.FC<PapelTimbradoBRMProps> = ({
   onVoltar,
   className = '',
   marcaDagua = true,
-  rodapeComplementar
+  rodapeComplementar,
+  acoesExtras
 }) => {
   const [orientacaoAtual, setOrientacaoAtual] = useState<OrientacaoDocumento>(orientacao);
 
@@ -463,6 +465,7 @@ export const PapelTimbradoBRM: React.FC<PapelTimbradoBRMProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
+              {acoesExtras}
               {permitirTrocaOrientacao && !modoFormulario && (
                 <button
                   type="button"
