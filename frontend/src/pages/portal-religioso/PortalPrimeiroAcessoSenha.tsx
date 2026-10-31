@@ -178,7 +178,7 @@ export const PortalPrimeiroAcessoSenha: React.FC<PortalPrimeiroAcessoSenhaProps>
 
       {/* Footer */}
       <footer className="border-t border-[#DCE4E2] dark:border-[#203038] py-4 px-4 text-center text-xs text-slate-600 dark:text-slate-400">
-        <p>Província Brasileira Meridional dos Sacerdotes do Sagrado Coração de Jesus · Curitiba – PR</p>
+        <p>Província Brasileira Meridional dos Sacerdotes do Sagrado Coração de Jesus · Corupá – SC</p>
       </footer>
     </div>
   );
