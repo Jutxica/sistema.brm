@@ -1,7 +1,7 @@
 -- SCRIPT OFICIAL BRM: Atribuição Canônica Automática de Nomes Religiosos
 -- Executar no Supabase SQL Editor para atualizar 100% da base e ativar o gatilho automático
 
--- 1. Função de limpeza do nome civil
+-- 1. Função de limpeza do nome civil (remove títulos prévios e sufixos congregacionais)
 create or replace function public.limpar_nome_civil_religioso(p_nome text)
 returns text as $$
 declare
@@ -28,7 +28,7 @@ begin
 end;
 $$ language plpgsql immutable;
 
--- 2. Função de atribuição do Nome Religioso
+-- 2. Função de atribuição do Nome Religioso Dehoniano oficial
 create or replace function public.atribuir_nome_religioso(p_grau text, p_nome_civil text)
 returns text as $$
 declare
@@ -59,8 +59,8 @@ begin
 end;
 $$ language plpgsql immutable;
 
--- 3. Trigger para garantir que novos cadastros ou atualizações recebam o nome atribuído
-create or replace function public.trg_atribuir_nome_religioso()
+-- 3. Trigger para public.religiosos (possui nome_religioso e nome_elenco)
+create or replace function public.trg_atribuir_nome_religioso_religiosos()
 returns trigger as $$
 begin
   if NEW.nome_civil is not null and trim(NEW.nome_civil) <> '' then
@@ -75,7 +75,18 @@ drop trigger if exists trg_religiosos_nome_religioso_auto on public.religiosos;
 create trigger trg_religiosos_nome_religioso_auto
 before insert or update of grau, nome_civil, nome_religioso on public.religiosos
 for each row
-execute function public.trg_atribuir_nome_religioso();
+execute function public.trg_atribuir_nome_religioso_religiosos();
+
+-- 4. Trigger para public.portal_perfis_religiosos (possui apenas nome_religioso)
+create or replace function public.trg_atribuir_nome_religioso_portal()
+returns trigger as $$
+begin
+  if NEW.nome_civil is not null and trim(NEW.nome_civil) <> '' then
+    NEW.nome_religioso := public.atribuir_nome_religioso(NEW.grau, NEW.nome_civil);
+  end if;
+  return NEW;
+end;
+$$ language plpgsql;
 
 do $$
 begin
@@ -84,11 +95,11 @@ begin
     create trigger trg_portal_perfis_nome_religioso_auto
     before insert or update of grau, nome_civil, nome_religioso on public.portal_perfis_religiosos
     for each row
-    execute function public.trg_atribuir_nome_religioso();
+    execute function public.trg_atribuir_nome_religioso_portal();
   end if;
 end $$;
 
--- 4. Atualizar imediatamente todos os religiosos existentes no banco
+-- 5. Atualizar imediatamente todos os religiosos existentes no banco
 update public.religiosos
 set nome_religioso = public.atribuir_nome_religioso(grau, nome_civil),
     nome_elenco = public.atribuir_nome_religioso(grau, nome_civil)
@@ -98,8 +109,7 @@ do $$
 begin
   if exists (select 1 from information_schema.tables where table_name = 'portal_perfis_religiosos') then
     update public.portal_perfis_religiosos
-    set nome_religioso = public.atribuir_nome_religioso(grau, nome_civil),
-        nome_elenco = public.atribuir_nome_religioso(grau, nome_civil)
+    set nome_religioso = public.atribuir_nome_religioso(grau, nome_civil)
     where nome_civil is not null and trim(nome_civil) <> '';
   end if;
 end $$;

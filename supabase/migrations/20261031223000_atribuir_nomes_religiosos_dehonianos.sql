@@ -62,8 +62,8 @@ begin
 end;
 $$ language plpgsql immutable;
 
--- Trigger para tabela public.religiosos
-create or replace function public.trg_atribuir_nome_religioso()
+-- Trigger para tabela public.religiosos (possui nome_religioso e nome_elenco)
+create or replace function public.trg_atribuir_nome_religioso_religiosos()
 returns trigger as $$
 begin
   if NEW.nome_civil is not null and trim(NEW.nome_civil) <> '' then
@@ -78,9 +78,19 @@ drop trigger if exists trg_religiosos_nome_religioso_auto on public.religiosos;
 create trigger trg_religiosos_nome_religioso_auto
 before insert or update of grau, nome_civil, nome_religioso on public.religiosos
 for each row
-execute function public.trg_atribuir_nome_religioso();
+execute function public.trg_atribuir_nome_religioso_religiosos();
 
--- Trigger para tabela public.portal_perfis_religiosos (se existir)
+-- Trigger para tabela public.portal_perfis_religiosos (possui apenas nome_religioso)
+create or replace function public.trg_atribuir_nome_religioso_portal()
+returns trigger as $$
+begin
+  if NEW.nome_civil is not null and trim(NEW.nome_civil) <> '' then
+    NEW.nome_religioso := public.atribuir_nome_religioso(NEW.grau, NEW.nome_civil);
+  end if;
+  return NEW;
+end;
+$$ language plpgsql;
+
 do $$
 begin
   if exists (select 1 from information_schema.tables where table_name = 'portal_perfis_religiosos') then
@@ -88,7 +98,7 @@ begin
     create trigger trg_portal_perfis_nome_religioso_auto
     before insert or update of grau, nome_civil, nome_religioso on public.portal_perfis_religiosos
     for each row
-    execute function public.trg_atribuir_nome_religioso();
+    execute function public.trg_atribuir_nome_religioso_portal();
   end if;
 end $$;
 
@@ -97,3 +107,12 @@ update public.religiosos
 set nome_religioso = public.atribuir_nome_religioso(grau, nome_civil),
     nome_elenco = public.atribuir_nome_religioso(grau, nome_civil)
 where nome_civil is not null and trim(nome_civil) <> '';
+
+do $$
+begin
+  if exists (select 1 from information_schema.tables where table_name = 'portal_perfis_religiosos') then
+    update public.portal_perfis_religiosos
+    set nome_religioso = public.atribuir_nome_religioso(grau, nome_civil)
+    where nome_civil is not null and trim(nome_civil) <> '';
+  end if;
+end $$;
