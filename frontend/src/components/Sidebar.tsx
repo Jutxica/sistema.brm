@@ -155,6 +155,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
           {(canAccessSecretaria || canAccessConfiguracoes || canAccessArquivoSecretaria) && (
             <SidebarGroup label="Secretaria & Atos" icon={FileText} open={secretariaOpen} onToggle={toggleSecretariaOpen} collapsed={collapsed}>
               {(canAccessSecretaria || canAccessArquivoSecretaria) && <SidebarSubLink to="/secretaria" label="Painel da Secretaria" icon={LayoutDashboard} collapsed={collapsed} />}
+              {canAccessSecretaria && <SidebarSubLink to="/secretaria/governo-provincial" label="Governo Provincial" icon={Landmark} collapsed={collapsed} />}
               {canAccessElenco && <SidebarSubLink to="/secretaria/elenco" label="Elenco Provincial" icon={Users} collapsed={collapsed} />}
               {canAccessElenco && <SidebarSubLink to="/secretaria/transferir" label="Transferências & Decretos" icon={ArrowRightLeft} collapsed={collapsed} />}
               {canAccessSecretaria && <SidebarSubLink to="/religiosos" label="Inscritos e contas" icon={Users} collapsed={collapsed} />}

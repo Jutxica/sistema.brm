@@ -12,6 +12,7 @@ import {
   Send,
   ShieldCheck,
   Users,
+  Landmark,
 } from 'lucide-react';
 import { hasModuleAccess, useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -282,7 +283,15 @@ export const SecretariaDashboard: React.FC = () => {
               description="Registrar transferências de comunidade, provisões de ofícios e decretos canônicos."
               href="/secretaria/transferir"
               icon={ArrowRightLeft}
+
               label="Registrar transferência"
+            />
+            <Card
+              title="Governo Provincial"
+              description="Superior Provincial, Conselho Provincial e Oficiais de Cúria por triênio."
+              href="/secretaria/governo-provincial"
+              icon={Landmark}
+              label="Acessar Governo Provincial"
             />
           </>
         )}
