@@ -1,6 +1,6 @@
 // Tipos Centralizados do Módulo de Obras, Paróquias e Comunidades da Província BRM
 
-export type TipoVinculo = 'residencia' | 'juridico' | 'pastoral' | 'funcao' | 'estudos' | 'missao' | 'outro';
+export type TipoVinculo = 'residencia' | 'juridico' | 'pastoral' | 'funcao' | 'formacao' | 'estudos' | 'missao' | 'outro';
 export type Destino = 'comunidade' | 'obra';
 
 export interface Comunidade {
@@ -66,4 +66,33 @@ export interface Designacao {
   vigencia_inicio: string | null;
   vigencia_fim: string | null;
   ano_referencia: number;
+  numero_decreto?: string | null;
+  data_decreto?: string | null;
+  observacoes?: string | null;
+  comunidades?: { nome: string; cidade?: string; estado?: string } | null;
+  religiosos_obras_referencia?: { nome: string; cidade?: string; localidade?: string } | null;
+  religiosos?: { id: string; nome_civil: string; nome_religioso?: string | null; grau?: string | null } | null;
 }
+
+export interface FuncaoCatalogo {
+  id?: string;
+  nome: string;
+  categoria?: string;
+  ordem?: number;
+  ativo?: boolean;
+}
+
+export const FUNCOES_PADRAO_BRM: string[] = [
+  'Superior Provincial',
+  'Secretário Provincial',
+  'Ecônomo Provincial',
+  'Pároco',
+  'Pároco-Reitor',
+  'Reitor',
+  'Vigário',
+  'Formador',
+  'Ecônomo',
+  'Tirocinante',
+  'Configuração',
+  'Missão',
+];

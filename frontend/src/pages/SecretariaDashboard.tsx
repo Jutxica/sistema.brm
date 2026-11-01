@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Archive,
   ArrowRight,
+  ArrowRightLeft,
   CalendarDays,
   Clock3,
   FileText,
@@ -269,12 +270,19 @@ export const SecretariaDashboard: React.FC = () => {
               count={loading ? undefined : documentosAtivos ?? undefined}
             />
             <Card
-              title="Agenda & eventos"
+              title="Agenda & Eventos"
               description="Organizar encontros, inscrições e compromissos provinciais."
               href="/agenda"
               icon={CalendarDays}
               label="Acessar agenda"
               count={loading ? undefined : eventosFuturos ?? undefined}
+            />
+            <Card
+              title="Transferências Canônicas"
+              description="Registrar transferências de comunidade, provisões de ofícios e decretos canônicos."
+              href="/secretaria/transferir"
+              icon={ArrowRightLeft}
+              label="Registrar transferência"
             />
           </>
         )}

@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { 
   Home, ClipboardList, Settings, Users, LogOut, ChevronLeft, ChevronRight, 
   Building, UserRound, ChevronDown, Plus, Church, Landmark, Layers, BarChart3,
-  FileText, Calendar, Car, ShieldCheck, Wrench, History, Archive, Send, LayoutDashboard, X, FolderOpen
+  FileText, Calendar, Car, ShieldCheck, Wrench, History, Archive, Send, LayoutDashboard, X, FolderOpen, ArrowRightLeft
 } from 'lucide-react';
 import { useAuth as useAuthHook, hasModuleAccess } from '../contexts/AuthContext';
 
@@ -155,7 +155,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
           {(canAccessSecretaria || canAccessConfiguracoes || canAccessArquivoSecretaria) && (
             <SidebarGroup label="Secretaria & Atos" icon={FileText} open={secretariaOpen} onToggle={toggleSecretariaOpen} collapsed={collapsed}>
               {(canAccessSecretaria || canAccessArquivoSecretaria) && <SidebarSubLink to="/secretaria" label="Painel da Secretaria" icon={LayoutDashboard} collapsed={collapsed} />}
-              {canAccessElenco && <SidebarSubLink to="/secretaria/elenco" label="Elenco & Transferências" icon={Users} collapsed={collapsed} />}
+              {canAccessElenco && <SidebarSubLink to="/secretaria/elenco" label="Elenco Provincial" icon={Users} collapsed={collapsed} />}
+              {canAccessElenco && <SidebarSubLink to="/secretaria/transferir" label="Transferências & Decretos" icon={ArrowRightLeft} collapsed={collapsed} />}
               {canAccessSecretaria && <SidebarSubLink to="/religiosos" label="Inscritos e contas" icon={Users} collapsed={collapsed} />}
               {canAccessSecretaria && <SidebarSubLink to="/documentos" label="Documentos Oficiais" icon={FileText} collapsed={collapsed} />}
               {canAccessSecretaria && <SidebarSubLink to="/agenda" label="Agenda & Eventos" icon={Calendar} collapsed={collapsed} />}

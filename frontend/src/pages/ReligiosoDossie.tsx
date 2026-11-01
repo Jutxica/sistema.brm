@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { 
-  ArrowLeft, Archive, Check, CheckCircle2, Download, ExternalLink, FileText, 
+  ArrowLeft, ArrowRightLeft, Archive, Check, CheckCircle2, Download, ExternalLink, FileText, 
   FolderClosed, FolderOpen, Globe, Loader2, Printer, ShieldCheck, Sparkles, Upload, UserRound, X 
 } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { showToast } from '../hooks/useFeedback';
 import { useAuth } from '../contexts/AuthContext';
@@ -212,7 +212,7 @@ export const ReligiosoDossie: React.FC = () => {
       supabase.from('religiosos_ministerios_ordens').select('*').eq('religioso_id', id).order('data', { ascending: true }),
       supabase.from('religiosos_sacramentos').select('*').eq('religioso_id', id).order('data', { ascending: true }),
       supabase.from('religiosos_formacao_religiosa').select('*').eq('religioso_id', id).order('data_ingresso', { ascending: true }),
-      supabase.from('religiosos_designacoes').select('*, comunidades(nome), religiosos_obras_referencia(nome)').eq('religioso_id', id),
+      supabase.from('religiosos_designacoes').select('*, comunidades(nome, cidade, estado), religiosos_obras_referencia(nome, cidade, localidade)').eq('religioso_id', id).order('vigencia_inicio', { ascending: false }),
       supabase.from('religiosos_enderecos_contatos').select('*').eq('religioso_id', id).limit(1).maybeSingle(),
       supabase.from('religiosos_saude').select('*').eq('religioso_id', id).limit(1).maybeSingle(),
       supabase.from('religiosos_formacao_academica').select('*').eq('religioso_id', id).order('created_at', { ascending: true }),
@@ -833,7 +833,7 @@ export const ReligiosoDossie: React.FC = () => {
             </div>
           </div>
 
-          <div className="text-right">
+          <div className="text-right space-y-1.5">
             <div className="inline-flex items-center gap-1.5 border-2 border-slate-900 px-3 py-1 text-[7.5pt] font-mono font-bold uppercase bg-slate-50">
               <span className={`w-2 h-2 rounded-full ${religioso?.status_cadastro === 'Aprovado' ? 'bg-emerald-600' : 'bg-amber-500'}`} />
               <span>
@@ -841,6 +841,16 @@ export const ReligiosoDossie: React.FC = () => {
                   ? `Aprovado no Sistema em ${dataAprovacaoFormatada}`
                   : `Situação: ${religioso?.status_cadastro || 'Em revisão'}`}
               </span>
+            </div>
+
+            <div className="print:hidden">
+              <Link
+                to={`/secretaria/transferir/${id}`}
+                className="inline-flex items-center gap-1 rounded border border-[#226380]/40 bg-[#226380]/10 px-2 py-0.5 text-[7pt] font-bold text-[#226380] hover:bg-[#226380] hover:text-white transition-colors"
+                title="Abrir página de transferência e nomeação para este confrade"
+              >
+                <ArrowRightLeft className="h-3 w-3" /> Registrar Transferência
+              </Link>
             </div>
           </div>
         </div>
@@ -1109,21 +1119,32 @@ export const ReligiosoDossie: React.FC = () => {
               <table className="w-full border-collapse text-[7.5pt]">
                 <thead>
                   <tr className="border-b border-slate-300 text-slate-600 font-mono text-[6.5pt] uppercase">
-                    <th className="text-left py-1 w-24">Período</th>
+                    <th className="text-left py-1 w-28">Período</th>
                     <th className="text-left py-1">Instituição / Comunidade</th>
                     <th className="text-left py-1">Ofício / Função</th>
                     <th className="text-left py-1">Localidade</th>
+                    <th className="text-left py-1">Ato / Decreto</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {canonicalData.designacoes.map((d: any, idx: number) => (
-                    <tr key={`desig-${idx}`} className="py-0.5">
-                      <td className="font-mono text-slate-500 py-0.5">{d.ano_referencia || 'Vigente'}</td>
-                      <td className="font-semibold text-slate-900 py-0.5">{d.religiosos_obras_referencia?.nome || formatarComunidadeReligiosa(d.comunidades?.nome) || 'Comunidade Provincial'}</td>
-                      <td className="text-[#226380] font-medium py-0.5">{d.funcao || d.tipo_vinculo || 'Membro'}</td>
-                      <td className="text-slate-600 py-0.5">Província BRM</td>
-                    </tr>
-                  ))}
+                  {canonicalData.designacoes.map((d: any, idx: number) => {
+                    const pInicio = d.vigencia_inicio ? new Date(d.vigencia_inicio).getFullYear() : d.ano_referencia;
+                    const pFim = d.vigencia_fim ? new Date(d.vigencia_fim).getFullYear() : 'Atual';
+                    const localidade = [d.comunidades?.cidade, d.religiosos_obras_referencia?.cidade].filter(Boolean)[0] || 'Província BRM';
+                    return (
+                      <tr key={`desig-${idx}`} className="py-0.5">
+                        <td className="font-mono text-slate-500 py-0.5">
+                          {pInicio ? `${pInicio} - ${pFim}` : (d.ano_referencia || 'Vigente')}
+                        </td>
+                        <td className="font-semibold text-slate-900 py-0.5">
+                          {d.religiosos_obras_referencia?.nome || formatarComunidadeReligiosa(d.comunidades?.nome) || 'Comunidade Provincial'}
+                        </td>
+                        <td className="text-[#226380] font-medium py-0.5">{d.funcao || d.tipo_vinculo || 'Membro'}</td>
+                        <td className="text-slate-600 py-0.5">{localidade}</td>
+                        <td className="font-mono text-slate-500 py-0.5">{d.numero_decreto ? d.numero_decreto : '—'}</td>
+                      </tr>
+                    );
+                  })}
                   {canonicalData.historicoComunidades.map((h: any, idx: number) => (
                     <tr key={`hist-${idx}`} className="py-0.5">
                       <td className="font-mono text-slate-500 py-0.5">
@@ -1132,7 +1153,8 @@ export const ReligiosoDossie: React.FC = () => {
                       </td>
                       <td className="font-semibold text-slate-900 py-0.5">{h.instituicao}</td>
                       <td className="text-[#226380] font-medium py-0.5">{h.funcao || 'Atuação Pastoral'}</td>
-                      <td className="text-slate-600 py-0.5">{h.local || '—'}</td>
+                      <td className="text-slate-600 py-0.5">{h.cidade || h.local || '—'}</td>
+                      <td className="font-mono text-slate-500 py-0.5">{h.observacoes || '—'}</td>
                     </tr>
                   ))}
                 </tbody>

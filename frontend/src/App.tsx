@@ -31,6 +31,7 @@ const DocumentosAdmin = lazy(() => import('./pages/DocumentosAdmin'));
 const AgendaAdmin = lazy(() => import('./pages/AgendaAdmin'));
 const SecretariaConfiguracoes = lazy(() => import('./pages/SecretariaConfiguracoes'));
 const ElencoSecretaria = lazy(() => import('./pages/ElencoSecretaria'));
+const TransferenciaReligioso = lazy(() => import('./pages/TransferenciaReligioso'));
 const FormularioPublicoInscricao = lazy(() => import('./pages/FormularioPublicoInscricao'));
 const PatrimonioAdmin = lazy(() => import('./pages/PatrimonioAdmin'));
 const PatrimonioTarefas = lazy(() => import('./pages/PatrimonioTarefas'));
@@ -248,6 +249,9 @@ export const App: React.FC = () => {
                   <Route path="secretaria" element={<SecretariaDashboardRoute />} />
                   <Route path="secretaria/arquivo" element={<ArquivoSecretariaRoute><ArquivoSecretaria modo="secretaria" /></ArquivoSecretariaRoute>} />
                   <Route path="secretaria/elenco" element={<ModuleRoute accessKey="secretaria"><ElencoSecretaria /></ModuleRoute>} />
+                  <Route path="secretaria/transferir" element={<ModuleRoute accessKey="secretaria"><TransferenciaReligioso /></ModuleRoute>} />
+                  <Route path="secretaria/transferir/:id" element={<ModuleRoute accessKey="secretaria"><TransferenciaReligioso /></ModuleRoute>} />
+                  <Route path="secretaria/transferencias" element={<ModuleRoute accessKey="secretaria"><TransferenciaReligioso /></ModuleRoute>} />
                   <Route path="agenda" element={<ModuleRoute accessKey="secretaria"><AgendaAdmin /></ModuleRoute>} />
                   <Route path="secretaria-configuracoes" element={<ModuleRoute accessKey="configuracoes"><SecretariaConfiguracoes /></ModuleRoute>} />
                   <Route path="religiosos/novo" element={<ModuleRoute accessKey="religiosos"><CadastroReligiosoPublico adminMode /></ModuleRoute>} />
