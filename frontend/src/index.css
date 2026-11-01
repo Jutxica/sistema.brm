@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -890,14 +890,18 @@ body [class*="hover:bg-[#0077ed]"]:hover {
 }
 
 .portal-navigation {
-  position: relative;
-  overflow: hidden;
-  align-self: flex-start;
+  position: sticky !important;
+  top: 5.5rem !important;
+  align-self: flex-start !important;
+  max-height: calc(100vh - 6.5rem);
+  overflow-y: auto;
+  scrollbar-width: thin;
   border: 1px solid rgb(195 220 220 / 10%);
   background:
     radial-gradient(ellipse at 0% 0%, rgb(58 125 142 / 20%), transparent 38%),
     linear-gradient(160deg, #122b36 0%, #0d222d 62%, #0a1c26 100%);
   box-shadow: 0 16px 42px rgb(9 27 36 / 14%);
+  z-index: 30;
 }
 
 .portal-header {
