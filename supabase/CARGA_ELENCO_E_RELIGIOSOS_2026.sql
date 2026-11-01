@@ -5392,7 +5392,7 @@ DECLARE
   v_com_id UUID;
 BEGIN
   -- Obter o ID relacional da comunidade
-  SELECT id INTO v_com_id FROM public.comunidades WHERE nome = 'Conventinho SCJ' LIMIT 1;
+  SELECT id INTO v_com_id FROM public.comunidades WHERE nome ILIKE '%Margarida Maria%' OR nome ILIKE '%Joinville%' LIMIT 1;
 
   -- Verificar se já existe por nome civil ou e-mail
   SELECT id INTO v_rel_id
@@ -5407,7 +5407,7 @@ BEGIN
         grau = 'Padre',
         data_nascimento = COALESCE(data_nascimento, '1995-07-20'),
         email_institucional = COALESCE(email_institucional, 'jacomelli10@hotmail.com'),
-        comunidade_atual_nome = 'Conventinho SCJ',
+        comunidade_atual_nome = 'Santuário Sagrado Coração de Jesus (Joinville/SC)',
         comunidade_atual_id = COALESCE(v_com_id, comunidade_atual_id),
         situacao_elenco = 'Ativo',
         cadastro_elenco_provisorio = true,
@@ -5434,7 +5434,7 @@ BEGIN
       'Padre',
       '1995-07-20',
       'jacomelli10@hotmail.com',
-      'Conventinho SCJ',
+      'Santuário Sagrado Coração de Jesus (Joinville/SC)',
       v_com_id,
       'Ativo',
       'Em revisão',

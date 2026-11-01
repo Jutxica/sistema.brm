@@ -87,9 +87,10 @@ WHERE lower(trim(nome_civil)) IN (
   lower(trim('Magnos José Baron Caneppele'))
 );
 
--- 7. Garantir os 9 religiosos da Comunidade do Conventinho SCJ em Taubaté
+-- 7. Confrades da Comunidade do Conventinho SCJ em Taubaté (8 religiosos)
 UPDATE public.religiosos
-SET comunidade_atual_nome = 'Conventinho SCJ'
+SET comunidade_atual_nome = 'Conventinho SCJ',
+    comunidade_atual_id = (SELECT id FROM public.comunidades WHERE nome ILIKE '%Conventinho%' LIMIT 1)
 WHERE lower(trim(nome_civil)) IN (
   lower(trim('Tiago Junior Waier')),
   lower(trim('Djonatan Engelmann')),
@@ -98,11 +99,16 @@ WHERE lower(trim(nome_civil)) IN (
   lower(trim('Jeferson Adriano Caldas')),
   lower(trim('Márcio Rech')),
   lower(trim('Ricardo Vinter')),
-  lower(trim('Thiago Hermenegildo de Faria')),
-  lower(trim('Leonardo Jacomelli'))
+  lower(trim('Thiago Hermenegildo de Faria'))
 );
 
--- 8. Limpar qualquer prefixo "Territorial " ou "Local " remanescente
+-- 8. Correção canônica: P. Leonardo Jacomelli, scj no Santuário Sagrado Coração de Jesus (Joinville/SC)
+UPDATE public.religiosos
+SET comunidade_atual_nome = 'Santuário Sagrado Coração de Jesus (Joinville/SC)',
+    comunidade_atual_id = (SELECT id FROM public.comunidades WHERE nome ILIKE '%Margarida Maria%' OR nome ILIKE '%Joinville%' LIMIT 1)
+WHERE lower(trim(nome_civil)) = lower(trim('Leonardo Jacomelli'));
+
+-- 9. Limpar qualquer prefixo "Territorial " ou "Local " remanescente
 UPDATE public.religiosos
 SET comunidade_atual_nome = regexp_replace(comunidade_atual_nome, '^Territorial\s+', 'Comunidade ', 'i')
 WHERE comunidade_atual_nome ILIKE 'Territorial %';
