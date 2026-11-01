@@ -1022,7 +1022,7 @@ export const PortalReligioso: React.FC = () => {
             ['ficha-pdf', 'Ficha PDF'],
             ['calendario', 'Agenda'],
             ['documentos', 'Documentos'],
-            ['anuario', 'Anuário'],
+            ['anuario', 'Elenco BRM'],
             ['hospedagem', 'Hospedagem'],
           ] as const).map(([section, label]) => (
             <button
@@ -1117,7 +1117,7 @@ export const PortalReligioso: React.FC = () => {
               }`}
             >
               <BookOpen className="w-4 h-4" />
-              <span>Anuário dos Confrades</span>
+              <span>Elenco BRM</span>
             </button>
 
             <button
@@ -1288,7 +1288,7 @@ export const PortalReligioso: React.FC = () => {
             <FichaCanonicaPDF onBack={() => setActiveSection('inicio')} />
           )}
 
-          {/* SEÇÃO: ANUÁRIO DOS CONFRADES */}
+          {/* SEÇÃO: ELENCO BRM */}
           {activeSection === 'anuario' && (
             <div className="space-y-4">
               <div>
@@ -1442,7 +1442,7 @@ export const PortalReligioso: React.FC = () => {
                 { id: 'perfil', label: 'Meu perfil', icon: User },
                 { id: 'documentos', label: 'Documentos', icon: FileText },
                 { id: 'ficha-pdf', label: 'Minha ficha', icon: Printer },
-                { id: 'anuario', label: 'Anuário BRM', icon: BookOpen },
+                { id: 'anuario', label: 'Elenco BRM', icon: BookOpen },
                 { id: 'hospedagem', label: 'Hospedagem', icon: Hotel },
               ] as const).map(item => {
                 const Icon = item.icon;

@@ -183,7 +183,7 @@ export const AnuarioBRM: React.FC = () => {
               Província BRM • Comunhão Fraterna
             </span>
             <h1 className="font-cinzel text-xl md:text-2xl font-bold text-slate-900 dark:text-white mt-1">
-              Anuário & Diretório Provincial
+              Elenco BRM · Diretório Provincial
             </h1>
           </div>
         </div>

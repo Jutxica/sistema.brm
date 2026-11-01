@@ -120,7 +120,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileNavigationOpen, onMobileMe
   const routeTitles: Record<string, string> = {
     '/inicio': 'Visão geral',
     '/meu-perfil': 'Meu perfil',
-    '/anuario': 'Anuário dos Confrades',
+    '/anuario': 'Elenco BRM',
     '/religiosos': 'Religiosos',
     '/estatisticas-brm': 'Estatísticas BRM',
     '/documentos': 'Documentos oficiais',

@@ -345,7 +345,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
             </div>
           </div>
 
-          {/* 05 / Anuário dos Confrades */}
+          {/* 05 / Elenco BRM */}
           <div 
             onClick={() => navigateToSection('anuario')}
             style={staggerStyle(4)}
@@ -359,7 +359,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
                 05 / DIRETÓRIO
               </span>
               <h3 className="text-[13px] sm:text-[15px] font-semibold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7]">
-                Anuário BRM
+                Elenco BRM
               </h3>
             </div>
             <div className="mt-4 pt-3 border-t border-[#d6d6d6]/40 dark:border-white/5 flex items-center justify-between text-xs font-medium text-[#226380] dark:text-[#A3C3C7]">
