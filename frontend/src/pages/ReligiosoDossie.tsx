@@ -825,6 +825,9 @@ export const ReligiosoDossie: React.FC = () => {
               </p>
               <p className="text-[7.5pt] text-slate-600 mt-0.5">
                 Comunidade atual: <span className="font-medium text-slate-900">{formatarComunidadeReligiosa(religioso?.comunidade_atual_nome) || 'A designar'}</span>
+                {religioso?.obra_atual_nome && (
+                  <> · Obra/Residência: <span className="font-medium text-slate-900">{religioso.obra_atual_nome}</span></>
+                )}
                 {canonicalData.designacoes[0]?.funcao ? ` · Ofício: ${canonicalData.designacoes[0].funcao}` : ''}
               </p>
             </div>
@@ -1135,7 +1138,10 @@ export const ReligiosoDossie: React.FC = () => {
                 </tbody>
               </table>
             ) : (
-              <p className="text-slate-500 italic py-0.5">Comunidade atual designada: <strong>{formatarComunidadeReligiosa(religioso?.comunidade_atual_nome) || 'Sede Provincial BRM'}</strong></p>
+              <p className="text-slate-500 italic py-0.5">
+                Comunidade atual designada: <strong>{formatarComunidadeReligiosa(religioso?.comunidade_atual_nome) || 'Sede Provincial BRM'}</strong>
+                {religioso?.obra_atual_nome ? <> · Obra/Residência: <strong>{religioso.obra_atual_nome}</strong></> : null}
+              </p>
             )}
           </div>
         </div>

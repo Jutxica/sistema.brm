@@ -13,6 +13,8 @@ interface Confrade {
   grau: string | null;
   comunidade_atual_nome: string | null;
   comunidade_atual_id?: string | null;
+  obra_atual_id?: string | null;
+  obra_atual_nome?: string | null;
   email_institucional: string | null;
   email_pessoal: string | null;
   telefone_celular: string | null;
@@ -56,7 +58,7 @@ export const AnuarioBRM: React.FC = () => {
       const [relRes, comRes, obrasRes] = await Promise.all([
         supabase
           .from('religiosos')
-          .select('id, nome_civil, nome_religioso, grau, comunidade_atual_nome, comunidade_atual_id, email_institucional, email_pessoal, telefone_celular, whatsapp, data_nascimento, status')
+          .select('id, nome_civil, nome_religioso, grau, comunidade_atual_nome, comunidade_atual_id, obra_atual_id, obra_atual_nome, email_institucional, email_pessoal, telefone_celular, whatsapp, data_nascimento, status')
           .eq('status', 'Ativo')
           .order('grau', { ascending: true })
           .order('nome_civil', { ascending: true }),
@@ -97,9 +99,10 @@ export const AnuarioBRM: React.FC = () => {
     return confrades.filter(c => {
       const nomeCompleto = `${c.nome_religioso || ''} ${c.nome_civil}`.toLowerCase();
       const comunidade = (c.comunidade_atual_nome || '').toLowerCase();
+      const obra = (c.obra_atual_nome || '').toLowerCase();
       const query = search.toLowerCase();
 
-      const matchesSearch = !search || nomeCompleto.includes(query) || comunidade.includes(query);
+      const matchesSearch = !search || nomeCompleto.includes(query) || comunidade.includes(query) || obra.includes(query);
       const matchesGrau = grauFilter === 'Todos'
         ? true
         : grauFilter === 'Diácono (Transitório)'
@@ -334,9 +337,23 @@ export const AnuarioBRM: React.FC = () => {
                         </p>
                       )}
 
-                      <div className="mt-3 flex items-start gap-1.5 text-xs text-slate-600 dark:text-slate-400 font-sans">
-                        <Building className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                        <span className="line-clamp-1">{formatarComunidadeReligiosa(c.comunidade_atual_nome) || 'Comunidade a designar'}</span>
+                      {/* Comunidade e Obra onde reside ou trabalha */}
+                      <div className="mt-3 space-y-1 text-xs font-sans">
+                        <div className="flex items-start gap-1.5 text-slate-700 dark:text-slate-300">
+                          <Building className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                          <span className="line-clamp-1 font-medium">{formatarComunidadeReligiosa(c.comunidade_atual_nome) || 'Comunidade a designar'}</span>
+                        </div>
+                        {(() => {
+                          const obraNome = c.obra_atual_nome || obrasRaw.find(o => o.id === c.obra_atual_id)?.nome;
+                          const comFormatada = formatarComunidadeReligiosa(c.comunidade_atual_nome);
+                          if (!obraNome || obraNome === comFormatada) return null;
+                          return (
+                            <div className="flex items-start gap-1.5 text-slate-500 dark:text-slate-400 text-[11.5px]">
+                              <Church className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7] shrink-0 mt-0.5" />
+                              <span className="line-clamp-1">{obraNome}</span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
 
@@ -486,7 +503,9 @@ export const AnuarioBRM: React.FC = () => {
                               <span className="font-bold text-slate-900 dark:text-white block">
                                 {atribuirNomeReligioso(m.grau, m.nome_civil) || m.nome_religioso || m.nome_civil}
                               </span>
-                              <span className="text-[10px] font-mono text-slate-500">{m.grau || 'Grau não informado'}</span>
+                              <span className="text-[10px] font-mono text-slate-500">
+                                {m.grau || 'Grau não informado'}{m.obra_atual_nome ? ` • ${m.obra_atual_nome}` : ''}
+                              </span>
                             </div>
                             <div className="font-mono text-[11px] text-slate-600 dark:text-slate-400">
                               {m.telefone_celular || m.whatsapp || m.email_institucional || ''}
@@ -534,6 +553,7 @@ export const AnuarioBRM: React.FC = () => {
                       </span>
                       <span className="text-slate-500 text-[11px] font-sans">
                         {a.grau || 'Grau não informado'} • {formatarComunidadeReligiosa(a.comunidade_atual_nome) || 'Província BRM'}
+                        {a.obra_atual_nome && a.obra_atual_nome !== formatarComunidadeReligiosa(a.comunidade_atual_nome) ? ` • ${a.obra_atual_nome}` : ''}
                       </span>
                     </div>
                   </div>

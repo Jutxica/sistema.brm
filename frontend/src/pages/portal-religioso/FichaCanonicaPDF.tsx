@@ -246,10 +246,10 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         });
       });
 
-      if (trabalhos.length === 0 && data.comunidade_atual_nome) {
+      if (trabalhos.length === 0 && (data.comunidade_atual_nome || data.obra_atual_nome)) {
         trabalhos.push({
           periodo: 'Atual',
-          instituicao: formatarComunidadeReligiosa(data.comunidade_atual_nome),
+          instituicao: [formatarComunidadeReligiosa(data.comunidade_atual_nome), data.obra_atual_nome].filter(Boolean).join(' • '),
           funcao: data.grau || 'Confrade',
           local: 'Província BRM'
         });
@@ -545,10 +545,14 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
           <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
             02. Vínculo Provincial & Residência
           </p>
-          <div className="grid grid-cols-3 gap-x-4 text-[8.5pt]">
+          <div className="grid grid-cols-4 gap-x-4 text-[8.5pt]">
             <div>
               <p className="text-[6.5pt] font-mono uppercase text-slate-500">Comunidade Atual</p>
-              <p className="font-medium text-slate-900">{data?.comunidade_atual_nome || '—'}</p>
+              <p className="font-medium text-slate-900">{formatarComunidadeReligiosa(data?.comunidade_atual_nome) || '—'}</p>
+            </div>
+            <div>
+              <p className="text-[6.5pt] font-mono uppercase text-slate-500">Obra / Residência</p>
+              <p className="font-medium text-slate-900">{data?.obra_atual_nome || '—'}</p>
             </div>
             <div>
               <p className="text-[6.5pt] font-mono uppercase text-slate-500">Status Canônico</p>
@@ -631,7 +635,10 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
                 </tbody>
               </table>
             ) : (
-              <p className="text-slate-500 italic py-1">Comunidade Atual: <strong>{data?.comunidade_atual_nome || 'Sede Provincial BRM'}</strong></p>
+              <p className="text-slate-500 italic py-1">
+                Comunidade Atual: <strong>{formatarComunidadeReligiosa(data?.comunidade_atual_nome) || 'Sede Provincial BRM'}</strong>
+                {data?.obra_atual_nome ? <> · Obra/Residência: <strong>{data.obra_atual_nome}</strong></> : null}
+              </p>
             )}
           </div>
         </div>

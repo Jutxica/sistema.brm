@@ -25,6 +25,8 @@ export interface Religioso {
   situacao_elenco?: SituacaoElenco;
   comunidade_atual_id?: string | null;
   comunidade_atual_nome?: string | null;
+  obra_atual_id?: string | null;
+  obra_atual_nome?: string | null;
 }
 
 export interface RawReligioso {
@@ -35,6 +37,7 @@ export interface RawReligioso {
   data_nascimento: string | null;
   comunidade_atual_nome: string | null;
   obra_atual_id: string | null;
+  obra_atual_nome?: string | null;
   status: string;
   status_cadastro: string;
   estado_nascimento: string | null;
@@ -71,6 +74,8 @@ export interface ReligiosoPortalData {
   status_cadastro?: string | null;
   situacao_elenco?: string | null;
   comunidade_atual_nome?: string | null;
+  obra_atual_id?: string | null;
+  obra_atual_nome?: string | null;
   email_institucional?: string | null;
   telefone_whatsapp?: string | null;
   telefone_celular?: string | null;
@@ -100,6 +105,7 @@ export interface ReligiosoDossieData {
   nacionalidade?: string | null;
   comunidade_atual_nome?: string | null;
   obra_atual_id?: string | null;
+  obra_atual_nome?: string | null;
   familiares_pai?: string | null;
   familiares_mae?: string | null;
   pai_nome?: string | null;

@@ -166,15 +166,18 @@ export const PortalReligioso: React.FC = () => {
         grau: profile.grau,
         foto_path: profile.foto_path,
         comunidade_atual_nome: profile.comunidade_atual_nome,
+        obra_atual_nome: profile.obra_atual_nome,
         email_institucional: profile.email_institucional,
         whatsapp: profile.whatsapp,
         telefone_celular: profile.telefone_celular,
       } : {};
       const data = officialData || profile ? { ...(officialData || {}), ...profileData } : null;
       if (data) {
-        let comunidadeAtual = data.comunidade_atual_nome || '';
+        let comunidadeAtual = formatarComunidadeReligiosa(data.comunidade_atual_nome || '');
+        let obraAtual = data.obra_atual_nome || '';
         if (officialData?.situacao_elenco === 'Ausente') {
           comunidadeAtual = 'Ausente da Congregação';
+          obraAtual = 'Ausente da Congregação';
         } else if (officialData?.id) {
           const { data: designacoes, error: designacoesError } = await supabase
             .from('religiosos_designacoes')
@@ -194,13 +197,8 @@ export const PortalReligioso: React.FC = () => {
             const obraCasa = designacao?.religiosos_obras_referencia?.[0]?.nome;
             const comNome = designacao?.comunidades?.[0]?.nome;
             
-            // Prioriza obra/casa/paróquia concreta e nunca designação territorial ampla
-            comunidadeAtual = obraCasa 
-              || (comNome && !comNome.toLowerCase().startsWith('territorial') ? comNome : '')
-              || (officialData.comunidade_atual_nome && !officialData.comunidade_atual_nome.toLowerCase().startsWith('territorial') ? officialData.comunidade_atual_nome : '')
-              || comNome
-              || officialData.comunidade_atual_nome
-              || '';
+            if (obraCasa) obraAtual = obraCasa;
+            if (comNome) comunidadeAtual = formatarComunidadeReligiosa(comNome);
           }
         }
         comunidadeAtual = formatarComunidadeReligiosa(comunidadeAtual);
@@ -212,7 +210,7 @@ export const PortalReligioso: React.FC = () => {
           if (photoError) throw photoError;
           fotoUrl = signedPhoto.signedUrl;
         }
-        setReligiosoData({ ...data, comunidade_atual_nome: comunidadeAtual, foto_url: fotoUrl });
+        setReligiosoData({ ...data, comunidade_atual_nome: comunidadeAtual, obra_atual_nome: obraAtual, foto_url: fotoUrl });
         if (officialData?.id && user?.id) {
           const { data: savedDraft, error: draftError } = await supabase
             .from('religiosos_rascunhos')

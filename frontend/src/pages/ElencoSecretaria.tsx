@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AlertCircle, ArrowRightLeft, Building2, CalendarDays, Check, CheckCircle2, ChevronDown, CircleAlert,
+  AlertCircle, ArrowRightLeft, Building2, CalendarDays, Check, CheckCircle2, ChevronDown, Church, CircleAlert,
   Globe, Loader2, Link2, MapPin, Plus, RefreshCw, Search, Sparkles, UserRound, Users, X,
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { confirmAction, showToast } from '../hooks/useFeedback';
 import { siteSyncService } from '../services/siteSyncService';
+import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../lib/religiosoNome';
 
 import type { Religioso, SituacaoElenco } from '../types/religioso';
 import type { TipoVinculo, Destino, Comunidade, Obra, Designacao } from '../types/obra';
@@ -46,7 +47,7 @@ const dataHoje = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Ameri
 
 const consultarElenco = async () => Promise.all([
   supabase.from('religiosos')
-    .select('id,nome_civil,nome_religioso,nome_elenco,cadastro_elenco_provisorio,auth_user_id,grau,status,situacao_elenco,comunidade_atual_id,comunidade_atual_nome')
+    .select('id,nome_civil,nome_religioso,nome_elenco,cadastro_elenco_provisorio,auth_user_id,grau,status,situacao_elenco,comunidade_atual_id,comunidade_atual_nome,obra_atual_id,obra_atual_nome')
     .order('nome_elenco')
     .order('nome_civil'),
   supabase.from('comunidades')
@@ -141,7 +142,7 @@ export const ElencoSecretaria: React.FC = () => {
 
   const mapaComunidades = useMemo(() => new Map(comunidades.map(item => [item.id, item])), [comunidades]);
   const mapaObras = useMemo(() => new Map(obras.map(item => [item.id, item])), [obras]);
-  const nomeExibido = (religioso: Religioso) => religioso.nome_elenco || religioso.nome_religioso || religioso.nome_civil || 'Nome pendente';
+  const nomeExibido = (religioso: Religioso) => atribuirNomeReligioso(religioso.grau, religioso.nome_civil) || religioso.nome_elenco || religioso.nome_religioso || religioso.nome_civil || 'Nome pendente';
   const hoje = dataHoje();
 
   const vigentes = useMemo(
@@ -302,7 +303,7 @@ export const ElencoSecretaria: React.FC = () => {
         mapaComunidades.get(item.comunidade_id || '')?.nome || '',
         mapaObras.get(item.obra_id || '')?.nome || '',
       ]);
-      return [...nomes, ...lugares, religioso.comunidade_atual_nome || ''].join(' ').toLocaleLowerCase('pt-BR').includes(termo);
+      return [...nomes, ...lugares, religioso.comunidade_atual_nome || '', religioso.obra_atual_nome || ''].join(' ').toLocaleLowerCase('pt-BR').includes(termo);
     });
   }, [religiosos, query, filtroSituacao, filtroRegiao, filtroComunidadeId, filtroObraId, designacoesPorReligioso, mapaComunidades, mapaObras, comunidades]);
 
@@ -783,6 +784,20 @@ export const ElencoSecretaria: React.FC = () => {
                             );
                           })}
                         </div>
+                      ) : (religioso.comunidade_atual_nome || religioso.obra_atual_nome) ? (
+                        <div className="flex flex-wrap gap-2">
+                          <span className="inline-flex max-w-full flex-col rounded-lg border border-slate-200 px-2.5 py-1.5 dark:border-slate-700 bg-slate-50/50 dark:bg-white/[0.02]">
+                            <span className="truncate text-xs font-medium text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                              <Building2 className="h-3.5 w-3.5 text-[#226380]" />
+                              {formatarComunidadeReligiosa(religioso.comunidade_atual_nome) || 'Comunidade Provincial'}
+                            </span>
+                            {religioso.obra_atual_nome && (
+                              <span className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-[#226380] dark:text-[#A3C3C7]">
+                                <Church className="h-3 w-3" /> {religioso.obra_atual_nome}
+                              </span>
+                            )}
+                          </span>
+                        </div>
                       ) : <span className="text-xs text-slate-400">{ativo ? 'Sem designação vigente' : 'Sem designação ativa; vínculo jurídico pode permanecer'}</span>}
                     </td>
                     <td className="px-4 py-4">
@@ -1037,7 +1052,7 @@ export const ElencoSecretaria: React.FC = () => {
                     const primeiraDesig = relDesigs[0];
                     const comunidade = primeiraDesig?.comunidade_id ? mapaComunidades.get(primeiraDesig.comunidade_id) : null;
                     const obra = primeiraDesig?.obra_id ? mapaObras.get(primeiraDesig.obra_id) : null;
-                    const localNome = comunidade?.nome || obra?.nome || 'Sem designação ativa';
+                    const localNome = comunidade?.nome || obra?.nome || [formatarComunidadeReligiosa(rel.comunidade_atual_nome), rel.obra_atual_nome].filter(Boolean).join(' · ') || 'Sem designação ativa';
                     const funcao = primeiraDesig?.funcao || 'Membro';
 
                     return (

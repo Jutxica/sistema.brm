@@ -25,6 +25,7 @@ interface PerfilData {
   foto_url: string;
   foto_path: string;
   comunidade_atual_nome: string;
+  obra_atual_nome: string;
   email_institucional: string;
   whatsapp: string;
   telefone_celular: string;
@@ -69,6 +70,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
     foto_url: '',
     foto_path: '',
     comunidade_atual_nome: '',
+    obra_atual_nome: '',
     email_institucional: '',
     whatsapp: '',
     telefone_celular: ''
@@ -94,6 +96,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
             foto_url: '',
             foto_path: '',
             comunidade_atual_nome: 'Sede Provincial – Seminário Sagrado Coração de Jesus • Corupá/SC',
+            obra_atual_nome: 'Seminário Sagrado Coração de Jesus',
             email_institucional: 'pe.carlos@brm.org.br',
             whatsapp: '(41) 99876-5432',
             telefone_celular: '(41) 99876-5432'
@@ -132,6 +135,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
           foto_url: photoUrl,
           foto_path: profile?.foto_path || '',
           comunidade_atual_nome: formatarComunidadeReligiosa(profile?.comunidade_atual_nome || ''),
+          obra_atual_nome: profile?.obra_atual_nome || '',
           email_institucional: profile?.email_institucional || authResult.user?.email || user.email || '',
           whatsapp: profile?.whatsapp || '',
           telefone_celular: profile?.telefone_celular || '',
@@ -265,6 +269,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
           grau: form.grau,
           data_nascimento: form.data_nascimento || null,
           comunidade_atual_nome: form.comunidade_atual_nome,
+          obra_atual_nome: form.obra_atual_nome,
           email_institucional: form.email_institucional,
           whatsapp: form.whatsapp,
           telefone_celular: form.whatsapp,
@@ -298,6 +303,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
             grau: form.grau,
             data_nascimento: form.data_nascimento || null,
             comunidade_atual_nome: form.comunidade_atual_nome,
+            obra_atual_nome: form.obra_atual_nome,
             telefone_celular: form.whatsapp,
             whatsapp: form.whatsapp,
           })
@@ -566,6 +572,24 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
             </div>
             <span className={`text-[11px] ${isPortal ? 'text-[#707070] dark:text-[#86868b]' : 'text-slate-500 font-mono'} mt-1 block`}>
               A Secretaria mantém esta informação no Elenco. Para solicitar uma correção, entre em contato com a Secretaria Provincial.
+            </span>
+          </div>
+
+          {/* Obra / Paróquia Atual */}
+          <div>
+            <label className={labelClass}>Obra / Paróquia / Casa onde Reside ou Trabalha</label>
+            <div className="relative">
+              <input
+                type="text"
+                maxLength={240}
+                value={form.obra_atual_nome}
+                onChange={e => setForm({ ...form, obra_atual_nome: e.target.value })}
+                placeholder="Ex.: Santuário Sagrado Coração de Jesus, Faculdade São Luiz, etc."
+                className={inputClass}
+              />
+            </div>
+            <span className={`text-[11px] ${isPortal ? 'text-[#707070] dark:text-[#86868b]' : 'text-slate-500 font-mono'} mt-1 block`}>
+              Indica a paróquia, colégio, seminário ou instituição específica onde exerce suas atividades.
             </span>
           </div>
 
