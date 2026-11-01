@@ -1,0 +1,199 @@
+-- ==============================================================================
+-- CORREÇÃO DA CONSTRAINT DE DESTINO EM TRANSFERÊNCIAS (PROVÍNCIA BRM)
+-- Execute este script no SQL Editor do Supabase para corrigir a restrição
+-- ==============================================================================
+
+BEGIN;
+
+-- 1. Remove a restrição legada que impedia ter comunidade_id e obra_id juntos (XOR)
+ALTER TABLE public.religiosos_designacoes 
+  DROP CONSTRAINT IF EXISTS religiosos_designacoes_destino_check;
+
+-- 2. Recria a restrição permitindo comunidade_id, obra_id ou ambos (OR)
+ALTER TABLE public.religiosos_designacoes 
+  ADD CONSTRAINT religiosos_designacoes_destino_check 
+  CHECK (comunidade_id IS NOT NULL OR obra_id IS NOT NULL);
+
+-- 3. Atualizar a procedure registrar_transferencia_canonica com tolerância resiliente
+CREATE OR REPLACE FUNCTION public.registrar_transferencia_canonica(
+  p_religioso_id UUID,
+  p_comunidade_id UUID,
+  p_comunidade_nome TEXT,
+  p_obra_id UUID,
+  p_obra_nome TEXT,
+  p_tipo_vinculo TEXT,
+  p_funcao TEXT,
+  p_vigencia_inicio DATE,
+  p_numero_decreto TEXT DEFAULT NULL,
+  p_data_decreto DATE DEFAULT NULL,
+  p_encerrar_anteriores BOOLEAN DEFAULT TRUE,
+  p_observacoes TEXT DEFAULT NULL
+)
+RETURNS UUID AS $$
+DECLARE
+  v_designacao_id UUID;
+  v_ano INTEGER;
+  v_cidade_local TEXT;
+BEGIN
+  IF p_religioso_id IS NULL THEN
+    RAISE EXCEPTION 'O religioso é obrigatório para registrar a transferência.';
+  END IF;
+
+  IF p_vigencia_inicio IS NULL THEN
+    p_vigencia_inicio := CURRENT_DATE;
+  END IF;
+
+  v_ano := EXTRACT(YEAR FROM p_vigencia_inicio);
+
+  -- 1. Se solicitado, encerrar designações vigentes anteriores
+  IF p_encerrar_anteriores THEN
+    UPDATE public.religiosos_designacoes
+    SET vigencia_fim = p_vigencia_inicio
+    WHERE religioso_id = p_religioso_id
+      AND (vigencia_fim IS NULL OR vigencia_fim > p_vigencia_inicio);
+
+    -- Atualizar também histórico de comunidades
+    UPDATE public.religiosos_historico_comunidades
+    SET periodo_fim = p_vigencia_inicio::TEXT
+    WHERE religioso_id = p_religioso_id
+      AND (periodo_fim IS NULL OR periodo_fim = '' OR periodo_fim = 'Atual');
+  END IF;
+
+  -- 2. Inserir nova designação com suporte resiliente
+  BEGIN
+    INSERT INTO public.religiosos_designacoes (
+      religioso_id,
+      comunidade_id,
+      obra_id,
+      tipo_vinculo,
+      funcao,
+      vigencia_inicio,
+      ano_referencia,
+      numero_decreto,
+      data_decreto,
+      observacoes
+    ) VALUES (
+      p_religioso_id,
+      p_comunidade_id,
+      p_obra_id,
+      COALESCE(p_tipo_vinculo, 'pastoral'),
+      p_funcao,
+      p_vigencia_inicio,
+      v_ano,
+      p_numero_decreto,
+      p_data_decreto,
+      p_observacoes
+    ) RETURNING id INTO v_designacao_id;
+  EXCEPTION WHEN check_violation THEN
+    -- Fallback de compatibilidade
+    IF p_obra_id IS NOT NULL THEN
+      INSERT INTO public.religiosos_designacoes (
+        religioso_id,
+        comunidade_id,
+        obra_id,
+        tipo_vinculo,
+        funcao,
+        vigencia_inicio,
+        ano_referencia,
+        numero_decreto,
+        data_decreto,
+        observacoes
+      ) VALUES (
+        p_religioso_id,
+        NULL,
+        p_obra_id,
+        COALESCE(p_tipo_vinculo, 'pastoral'),
+        p_funcao,
+        p_vigencia_inicio,
+        v_ano,
+        p_numero_decreto,
+        p_data_decreto,
+        p_observacoes
+      ) RETURNING id INTO v_designacao_id;
+    ELSE
+      INSERT INTO public.religiosos_designacoes (
+        religioso_id,
+        comunidade_id,
+        obra_id,
+        tipo_vinculo,
+        funcao,
+        vigencia_inicio,
+        ano_referencia,
+        numero_decreto,
+        data_decreto,
+        observacoes
+      ) VALUES (
+        p_religioso_id,
+        p_comunidade_id,
+        NULL,
+        COALESCE(p_tipo_vinculo, 'pastoral'),
+        p_funcao,
+        p_vigencia_inicio,
+        v_ano,
+        p_numero_decreto,
+        p_data_decreto,
+        p_observacoes
+      ) RETURNING id INTO v_designacao_id;
+    END IF;
+  END;
+
+  -- 3. Atualizar diretamente a tabela de religiosos (Elenco)
+  UPDATE public.religiosos
+  SET comunidade_atual_id = p_comunidade_id,
+      comunidade_atual_nome = p_comunidade_nome,
+      obra_atual_id = p_obra_id,
+      obra_atual_nome = p_obra_nome
+  WHERE id = p_religioso_id;
+
+  -- 4. Atualizar portal_perfis_religiosos se existir
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'portal_perfis_religiosos') THEN
+    UPDATE public.portal_perfis_religiosos p
+    SET comunidade_atual_nome = p_comunidade_nome,
+        obra_atual_nome = p_obra_nome
+    FROM public.religiosos r
+    WHERE r.id = p_religioso_id
+      AND ((r.auth_user_id IS NOT NULL AND r.auth_user_id = p.auth_user_id)
+        OR lower(trim(r.nome_civil)) = lower(trim(p.nome_civil)));
+  END IF;
+
+  -- 5. Registrar no histórico canônico de comunidades permanente
+  SELECT COALESCE(c.cidade, o.cidade, o.localidade, 'Província BRM')
+  INTO v_cidade_local
+  FROM public.religiosos r
+  LEFT JOIN public.comunidades c ON c.id = p_comunidade_id
+  LEFT JOIN public.religiosos_obras_referencia o ON o.id = p_obra_id
+  WHERE r.id = p_religioso_id;
+
+  INSERT INTO public.religiosos_historico_comunidades (
+    religioso_id,
+    periodo_inicio,
+    periodo_fim,
+    instituicao,
+    funcao,
+    cidade,
+    local,
+    observacoes
+  ) VALUES (
+    p_religioso_id,
+    p_vigencia_inicio::TEXT,
+    NULL,
+    CASE 
+      WHEN p_obra_nome IS NOT NULL AND p_obra_nome <> '' AND p_obra_nome <> p_comunidade_nome 
+      THEN p_comunidade_nome || ' • ' || p_obra_nome
+      ELSE p_comunidade_nome
+    END,
+    p_funcao,
+    COALESCE(v_cidade_local, 'Província BRM'),
+    'Província BRM',
+    CASE 
+      WHEN p_numero_decreto IS NOT NULL AND p_numero_decreto <> '' 
+      THEN 'Decreto ' || p_numero_decreto || COALESCE(' - ' || p_observacoes, '')
+      ELSE p_observacoes
+    END
+  );
+
+  RETURN v_designacao_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMIT;

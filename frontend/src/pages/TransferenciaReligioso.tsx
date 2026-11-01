@@ -270,6 +270,8 @@ export const TransferenciaReligioso: React.FC = () => {
         });
         if (!rpcErr && rpcId) {
           rpcSucesso = true;
+        } else if (rpcErr) {
+          console.warn('RPC registrar_transferencia_canonica retornou aviso ou restrição, prosseguindo com execução direta:', rpcErr.message);
         }
       } catch (rpcCallErr) {
         console.warn('RPC registrar_transferencia_canonica indisponível, executando transação client-side:', rpcCallErr);
@@ -294,21 +296,41 @@ export const TransferenciaReligioso: React.FC = () => {
             .or('periodo_fim.is.null,periodo_fim.eq.Atual');
         }
 
-        // Inserir nova designação
-        const { error: insDesigErr } = await supabase
+        // Inserir nova designação com tolerância resiliente
+        const desigPayload: Record<string, any> = {
+          religioso_id: selectedReligiosoId,
+          comunidade_id: novaComunidadeId || null,
+          obra_id: finalObraId,
+          tipo_vinculo: tipoVinculo,
+          funcao: funcaoSelecionada,
+          vigencia_inicio: dataInicio,
+          ano_referencia: anoVigencia,
+          numero_decreto: numeroDecreto.trim() || null,
+          data_decreto: dataDecreto || null,
+          observacoes: observacoes.trim() || null,
+        };
+
+        let { error: insDesigErr } = await supabase
           .from('religiosos_designacoes')
-          .insert({
-            religioso_id: selectedReligiosoId,
-            comunidade_id: novaComunidadeId || null,
-            obra_id: finalObraId,
-            tipo_vinculo: tipoVinculo,
-            funcao: funcaoSelecionada,
-            vigencia_inicio: dataInicio,
-            ano_referencia: anoVigencia,
-            numero_decreto: numeroDecreto.trim() || null,
-            data_decreto: dataDecreto || null,
-            observacoes: observacoes.trim() || null,
-          });
+          .insert(desigPayload);
+
+        // Se o banco ainda possuir a restrição legada XOR (comunidade_id XOR obra_id)
+        if (insDesigErr && (insDesigErr.message?.includes('religiosos_designacoes_destino_check') || insDesigErr.code === '23514')) {
+          console.warn('Detectada restrição legada em religiosos_designacoes_destino_check. Executando fallback de compatibilidade...');
+          if (finalObraId) {
+            // Se houver obra selecionada, a comunidade é vinculada através da obra na restrição legada
+            desigPayload.comunidade_id = null;
+            desigPayload.obra_id = finalObraId;
+          } else {
+            desigPayload.comunidade_id = novaComunidadeId || null;
+            desigPayload.obra_id = null;
+          }
+          const retryRes = await supabase
+            .from('religiosos_designacoes')
+            .insert(desigPayload);
+          insDesigErr = retryRes.error;
+        }
+
         if (insDesigErr) throw insDesigErr;
 
         // Atualizar tabela public.religiosos (Elenco)
@@ -1009,8 +1031,11 @@ export const TransferenciaReligioso: React.FC = () => {
                   {historicoFiltrado.map(item => {
                     const rel = item.religiosos;
                     const nomeRel = rel ? (atribuirNomeReligioso(rel.grau, rel.nome_civil) || rel.nome_civil) : 'Confrade';
-                    const comNome = item.comunidades?.nome || formatarComunidadeReligiosa(item.comunidade_id ? mapaComunidades.get(item.comunidade_id)?.nome : null) || 'Província BRM';
-                    const obrNome = item.religiosos_obras_referencia?.nome || (item.obra_id ? mapaObras.get(item.obra_id)?.nome : null) || comNome;
+                    const obraObj = item.obra_id ? mapaObras.get(item.obra_id) : null;
+                    const comObj = (item.comunidade_id ? mapaComunidades.get(item.comunidade_id) : null)
+                      || (obraObj?.comunidade_id ? mapaComunidades.get(obraObj.comunidade_id) : null);
+                    const comNome = item.comunidades?.nome || formatarComunidadeReligiosa(comObj?.nome) || 'Província BRM';
+                    const obrNome = item.religiosos_obras_referencia?.nome || obraObj?.nome || null;
                     const isVigente = !item.vigencia_fim || item.vigencia_fim >= hojeStr;
 
                     return (

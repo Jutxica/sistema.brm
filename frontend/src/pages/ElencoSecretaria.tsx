@@ -770,9 +770,9 @@ export const ElencoSecretaria: React.FC = () => {
                       {atualizadas.length ? (
                         <div className="flex flex-wrap gap-2">
                           {atualizadas.map(item => {
-                            const comunidade = item.comunidade_id ? mapaComunidades.get(item.comunidade_id) : null;
                             const obra = item.obra_id ? mapaObras.get(item.obra_id) : null;
-                            const lugar = comunidade?.nome || obra?.nome || 'Destino indisponível';
+                            const comunidade = item.comunidade_id ? mapaComunidades.get(item.comunidade_id) : (obra?.comunidade_id ? mapaComunidades.get(obra.comunidade_id) : null);
+                            const lugar = (comunidade?.nome && obra?.nome && comunidade.nome !== obra.nome) ? `${formatarComunidadeReligiosa(comunidade.nome)} • ${obra.nome}` : (formatarComunidadeReligiosa(comunidade?.nome) || obra?.nome || 'Destino indisponível');
                             const local = comunidade
                               ? [comunidade.cidade, comunidade.estado].filter(Boolean).join('/')
                               : [obra?.localidade, obra?.cidade, obra?.uf || obra?.estado].filter(Boolean).join(' · ');

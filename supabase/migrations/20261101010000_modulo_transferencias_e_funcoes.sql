@@ -45,10 +45,15 @@ VALUES
 ON CONFLICT (nome) DO UPDATE 
 SET ativo = TRUE, categoria = EXCLUDED.categoria, ordem = EXCLUDED.ordem;
 
--- 2. Garantir colunas adicionais em religiosos_designacoes
+-- 2. Garantir colunas adicionais em religiosos_designacoes e atualizar constraint de destino
 ALTER TABLE public.religiosos_designacoes ADD COLUMN IF NOT EXISTS numero_decreto TEXT;
 ALTER TABLE public.religiosos_designacoes ADD COLUMN IF NOT EXISTS data_decreto DATE;
 ALTER TABLE public.religiosos_designacoes ADD COLUMN IF NOT EXISTS observacoes TEXT;
+
+-- Remover a restrição legada XOR (que impedia comunidade_id e obra_id simultaneamente)
+ALTER TABLE public.religiosos_designacoes DROP CONSTRAINT IF EXISTS religiosos_designacoes_destino_check;
+ALTER TABLE public.religiosos_designacoes ADD CONSTRAINT religiosos_designacoes_destino_check
+  CHECK (comunidade_id IS NOT NULL OR obra_id IS NOT NULL);
 
 -- 3. Procedure Canônica de Registro de Transferência
 CREATE OR REPLACE FUNCTION public.registrar_transferencia_canonica(
@@ -95,30 +100,83 @@ BEGIN
       AND (periodo_fim IS NULL OR periodo_fim = '' OR periodo_fim = 'Atual');
   END IF;
 
-  -- 2. Inserir nova designação
-  INSERT INTO public.religiosos_designacoes (
-    religioso_id,
-    comunidade_id,
-    obra_id,
-    tipo_vinculo,
-    funcao,
-    vigencia_inicio,
-    ano_referencia,
-    numero_decreto,
-    data_decreto,
-    observacoes
-  ) VALUES (
-    p_religioso_id,
-    p_comunidade_id,
-    p_obra_id,
-    COALESCE(p_tipo_vinculo, 'pastoral'),
-    p_funcao,
-    p_vigencia_inicio,
-    v_ano,
-    p_numero_decreto,
-    p_data_decreto,
-    p_observacoes
-  ) RETURNING id INTO v_designacao_id;
+  -- 2. Inserir nova designação com tolerância resiliente
+  BEGIN
+    INSERT INTO public.religiosos_designacoes (
+      religioso_id,
+      comunidade_id,
+      obra_id,
+      tipo_vinculo,
+      funcao,
+      vigencia_inicio,
+      ano_referencia,
+      numero_decreto,
+      data_decreto,
+      observacoes
+    ) VALUES (
+      p_religioso_id,
+      p_comunidade_id,
+      p_obra_id,
+      COALESCE(p_tipo_vinculo, 'pastoral'),
+      p_funcao,
+      p_vigencia_inicio,
+      v_ano,
+      p_numero_decreto,
+      p_data_decreto,
+      p_observacoes
+    ) RETURNING id INTO v_designacao_id;
+  EXCEPTION WHEN check_violation THEN
+    -- Fallback se porventura a restrição legada XOR ainda existir no banco
+    IF p_obra_id IS NOT NULL THEN
+      INSERT INTO public.religiosos_designacoes (
+        religioso_id,
+        comunidade_id,
+        obra_id,
+        tipo_vinculo,
+        funcao,
+        vigencia_inicio,
+        ano_referencia,
+        numero_decreto,
+        data_decreto,
+        observacoes
+      ) VALUES (
+        p_religioso_id,
+        NULL,
+        p_obra_id,
+        COALESCE(p_tipo_vinculo, 'pastoral'),
+        p_funcao,
+        p_vigencia_inicio,
+        v_ano,
+        p_numero_decreto,
+        p_data_decreto,
+        p_observacoes
+      ) RETURNING id INTO v_designacao_id;
+    ELSE
+      INSERT INTO public.religiosos_designacoes (
+        religioso_id,
+        comunidade_id,
+        obra_id,
+        tipo_vinculo,
+        funcao,
+        vigencia_inicio,
+        ano_referencia,
+        numero_decreto,
+        data_decreto,
+        observacoes
+      ) VALUES (
+        p_religioso_id,
+        p_comunidade_id,
+        NULL,
+        COALESCE(p_tipo_vinculo, 'pastoral'),
+        p_funcao,
+        p_vigencia_inicio,
+        v_ano,
+        p_numero_decreto,
+        p_data_decreto,
+        p_observacoes
+      ) RETURNING id INTO v_designacao_id;
+    END IF;
+  END;
 
   -- 3. Atualizar diretamente a tabela de religiosos (Elenco)
   UPDATE public.religiosos

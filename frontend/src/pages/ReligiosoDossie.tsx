@@ -1137,7 +1137,7 @@ export const ReligiosoDossie: React.FC = () => {
                           {pInicio ? `${pInicio} - ${pFim}` : (d.ano_referencia || 'Vigente')}
                         </td>
                         <td className="font-semibold text-slate-900 py-0.5">
-                          {d.religiosos_obras_referencia?.nome || formatarComunidadeReligiosa(d.comunidades?.nome) || 'Comunidade Provincial'}
+                          {(d.religiosos_obras_referencia?.nome && d.comunidades?.nome && d.religiosos_obras_referencia.nome !== formatarComunidadeReligiosa(d.comunidades.nome)) ? `${formatarComunidadeReligiosa(d.comunidades.nome)} • ${d.religiosos_obras_referencia.nome}` : (d.religiosos_obras_referencia?.nome || formatarComunidadeReligiosa(d.comunidades?.nome) || 'Comunidade Provincial')}
                         </td>
                         <td className="text-[#226380] font-medium py-0.5">{d.funcao || d.tipo_vinculo || 'Membro'}</td>
                         <td className="text-slate-600 py-0.5">{localidade}</td>
