@@ -28,7 +28,7 @@ import { PortalDocumentosTab } from './tabs/PortalDocumentosTab';
 import { PortalHospedagemTab } from './tabs/PortalHospedagemTab';
 import { PortalLogin } from './PortalLogin';
 import { PortalPrimeiroAcessoSenha } from './PortalPrimeiroAcessoSenha';
-import { atribuirNomeReligioso } from '../../lib/religiosoNome';
+import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../../lib/religiosoNome';
 
 export type PortalSection = 'inicio' | 'perfil' | 'inscricao' | 'ficha-pdf' | 'calendario' | 'documentos' | 'anuario' | 'hospedagem';
 
@@ -191,13 +191,19 @@ export const PortalReligioso: React.FC = () => {
             const designacao = ['residencia', 'estudos', 'juridico']
               .map(tipo => atuais.find(item => item.tipo_vinculo === tipo))
               .find(Boolean) || atuais[0];
-            comunidadeAtual = designacao
-              ? designacao.comunidades?.[0]?.nome || designacao.religiosos_obras_referencia?.[0]?.nome || ''
-              : '';
-          } else {
-            comunidadeAtual = '';
+            const obraCasa = designacao?.religiosos_obras_referencia?.[0]?.nome;
+            const comNome = designacao?.comunidades?.[0]?.nome;
+            
+            // Prioriza obra/casa/paróquia concreta e nunca designação territorial ampla
+            comunidadeAtual = obraCasa 
+              || (comNome && !comNome.toLowerCase().startsWith('territorial') ? comNome : '')
+              || (officialData.comunidade_atual_nome && !officialData.comunidade_atual_nome.toLowerCase().startsWith('territorial') ? officialData.comunidade_atual_nome : '')
+              || comNome
+              || officialData.comunidade_atual_nome
+              || '';
           }
         }
+        comunidadeAtual = formatarComunidadeReligiosa(comunidadeAtual);
         let fotoUrl = '';
         if (data.foto_path) {
           const { data: signedPhoto, error: photoError } = await supabase.storage

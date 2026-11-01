@@ -10,6 +10,7 @@ import { staggerStyle } from '../../../hooks/useMotion';
 import { downloadArquivo } from '../../../lib/downloadHelper';
 import { AniversariosJubileusCard } from '../../../components/AniversariosJubileusCard';
 import { LiturgiaDiaCard } from '../../../components/LiturgiaDiaCard';
+import { formatarComunidadeReligiosa } from '../../../lib/religiosoNome';
 
 export interface PortalInicioTabProps {
   religiosoData: ReligiosoPortalData | null;
@@ -61,7 +62,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
               {religiosoData?.comunidade_atual_nome && (
                 <span className="flex min-w-0 items-center gap-1 text-[10px] text-white/70">
                   <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
-                  <span className="max-w-[145px] truncate">{religiosoData.comunidade_atual_nome}</span>
+                  <span className="max-w-[170px] truncate">{formatarComunidadeReligiosa(religiosoData.comunidade_atual_nome)}</span>
                 </span>
               )}
             </div>
@@ -210,9 +211,20 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
         <div className="portal-masthead bg-white dark:bg-[#161617] rounded-xl border border-[#d6d6d6]/60 dark:border-white/10 p-7 sm:p-9 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <span className="font-cinzel text-[11px] font-semibold uppercase tracking-[0.2em] text-[#707070] dark:text-[#86868b] block mb-1">
-                Província Brasileira Meridional
-              </span>
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <span className="font-cinzel text-[11px] font-semibold uppercase tracking-[0.2em] text-[#707070] dark:text-[#86868b]">
+                  Província Brasileira Meridional
+                </span>
+                {religiosoData?.comunidade_atual_nome && (
+                  <>
+                    <span className="text-[#707070] dark:text-[#86868b] text-[10px]">•</span>
+                    <span className="inline-flex items-center gap-1 text-[11px] text-[#226380] dark:text-[#A3C3C7] font-medium">
+                      <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
+                      <span>{formatarComunidadeReligiosa(religiosoData.comunidade_atual_nome)}</span>
+                    </span>
+                  </>
+                )}
+              </div>
               <h2 className="font-cinzel text-xl sm:text-[26px] font-bold tracking-wide text-[#113240] dark:text-[#f5f5f7]">
                 Vivat Cor Iesu, {displayName}
               </h2>

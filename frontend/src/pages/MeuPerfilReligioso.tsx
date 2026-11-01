@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { atribuirNomeReligioso } from '../lib/religiosoNome';
+import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../lib/religiosoNome';
 
 interface PerfilData {
   nome_civil: string;
@@ -131,7 +131,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
           data_nascimento: profile?.data_nascimento || metadata.data_nascimento || '',
           foto_url: photoUrl,
           foto_path: profile?.foto_path || '',
-          comunidade_atual_nome: profile?.comunidade_atual_nome || '',
+          comunidade_atual_nome: formatarComunidadeReligiosa(profile?.comunidade_atual_nome || ''),
           email_institucional: profile?.email_institucional || authResult.user?.email || user.email || '',
           whatsapp: profile?.whatsapp || '',
           telefone_celular: profile?.telefone_celular || '',

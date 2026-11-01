@@ -12,7 +12,7 @@ import { parseAddressString } from '../utils/addressParser';
 import { gotenbergService } from '../services/gotenbergService';
 import { obterFotoReligiosoBase64 } from '../services/religiosoFotoService';
 import { LOGO_TIMBRADO_DATA_URI } from '../assets/logoTimbradoBase64';
-import { atribuirNomeReligioso } from '../lib/religiosoNome';
+import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../lib/religiosoNome';
 
 import type { 
   ReligiosoDossieData, 
@@ -645,7 +645,7 @@ export const ReligiosoDossie: React.FC = () => {
       if (trabalhos.length === 0 && religioso.comunidade_atual_nome) {
         trabalhos.push({
           periodo: 'Atual',
-          instituicao: religioso.comunidade_atual_nome,
+          instituicao: formatarComunidadeReligiosa(religioso.comunidade_atual_nome),
           funcao: religioso.grau || 'Confrade',
           local: 'Província BRM'
         });
@@ -675,7 +675,7 @@ export const ReligiosoDossie: React.FC = () => {
 
       const blob = await gotenbergService.gerarFichaReligiosoPdf({
         nomeCivil: religioso.nome_civil,
-        nomeReligioso: religioso.nome_religioso || undefined,
+        nomeReligioso: atribuirNomeReligioso(religioso.grau, religioso.nome_civil) || religioso.nome_religioso || undefined,
         grau: religioso.grau || undefined,
         numeroCadastro: religioso.numero_cadastro || undefined,
         statusCadastro: religioso.status_cadastro || 'Aprovado',
@@ -693,7 +693,7 @@ export const ReligiosoDossie: React.FC = () => {
         filiacaoMae: maeNome !== '—' ? maeNome : undefined,
         fotoUrl: fotoBase64 || fotoUrl || undefined,
 
-        comunidadeAtualNome: religioso.comunidade_atual_nome || undefined,
+        comunidadeAtualNome: formatarComunidadeReligiosa(religioso.comunidade_atual_nome) || undefined,
         oficioAtual: canonicalData.designacoes[0]?.funcao || undefined,
         enderecoResidencial: (() => {
           const res = canonicalData.residencia;
@@ -824,7 +824,7 @@ export const ReligiosoDossie: React.FC = () => {
                 Nome civil: <span className="font-semibold">{religioso?.nome_civil}</span>
               </p>
               <p className="text-[7.5pt] text-slate-600 mt-0.5">
-                Comunidade atual: <span className="font-medium text-slate-900">{religioso?.comunidade_atual_nome || 'A designar'}</span>
+                Comunidade atual: <span className="font-medium text-slate-900">{formatarComunidadeReligiosa(religioso?.comunidade_atual_nome) || 'A designar'}</span>
                 {canonicalData.designacoes[0]?.funcao ? ` · Ofício: ${canonicalData.designacoes[0].funcao}` : ''}
               </p>
             </div>
@@ -1116,7 +1116,7 @@ export const ReligiosoDossie: React.FC = () => {
                   {canonicalData.designacoes.map((d: any, idx: number) => (
                     <tr key={`desig-${idx}`} className="py-0.5">
                       <td className="font-mono text-slate-500 py-0.5">{d.ano_referencia || 'Vigente'}</td>
-                      <td className="font-semibold text-slate-900 py-0.5">{d.comunidades?.nome || d.religiosos_obras_referencia?.nome || 'Comunidade Provincial'}</td>
+                      <td className="font-semibold text-slate-900 py-0.5">{d.religiosos_obras_referencia?.nome || formatarComunidadeReligiosa(d.comunidades?.nome) || 'Comunidade Provincial'}</td>
                       <td className="text-[#226380] font-medium py-0.5">{d.funcao || d.tipo_vinculo || 'Membro'}</td>
                       <td className="text-slate-600 py-0.5">Província BRM</td>
                     </tr>
@@ -1135,7 +1135,7 @@ export const ReligiosoDossie: React.FC = () => {
                 </tbody>
               </table>
             ) : (
-              <p className="text-slate-500 italic py-0.5">Comunidade atual designada: <strong>{religioso?.comunidade_atual_nome || 'Sede Provincial BRM'}</strong></p>
+              <p className="text-slate-500 italic py-0.5">Comunidade atual designada: <strong>{formatarComunidadeReligiosa(religioso?.comunidade_atual_nome) || 'Sede Provincial BRM'}</strong></p>
             )}
           </div>
         </div>

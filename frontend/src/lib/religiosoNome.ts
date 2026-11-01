@@ -84,3 +84,45 @@ export function formatarNomeApresentacao(
   if (limpo) return limpo;
   return fallback;
 }
+
+/**
+ * Formata o nome canônico de exibição da Comunidade Religiosa onde o confrade reside/atua.
+ * Elimina rótulos administrativos territoriais ("Territorial ...", "Local ...")
+ * e exibe o nome concreto da Comunidade / Casa / Paróquia Dehoniana.
+ */
+export function formatarComunidadeReligiosa(
+  comunidadeOuTerritorio?: string | null,
+  obraOuCasa?: string | null
+): string {
+  if (obraOuCasa && obraOuCasa.trim()) {
+    return obraOuCasa.trim();
+  }
+
+  if (!comunidadeOuTerritorio || !comunidadeOuTerritorio.trim()) {
+    return '';
+  }
+
+  let nome = comunidadeOuTerritorio.trim();
+
+  // Caso específico de Rondônia
+  if (/^territorial\s+(?:de\s+)?rond[ôo]nia/i.test(nome)) {
+    return 'Comunidade Dehoniana de Rondônia';
+  }
+
+  // Caso específico de Rio Grande do Sul
+  if (/^territorial\s+s[ãa]o\s+miguel/i.test(nome)) {
+    return 'Comunidade Dehoniana do Rio Grande do Sul';
+  }
+
+  // Casos territoriais gerais: converte "Territorial X" em "Comunidade X"
+  if (/^territorial\s+/i.test(nome)) {
+    return nome.replace(/^territorial\s+/i, 'Comunidade ');
+  }
+
+  // Casos "Local X": converte para "Comunidade X"
+  if (/^local\s+/i.test(nome)) {
+    return nome.replace(/^local\s+/i, 'Comunidade ');
+  }
+
+  return nome;
+}

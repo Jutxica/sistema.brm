@@ -11,7 +11,7 @@ import { showToast } from '../../hooks/useFeedback';
 import { PapelTimbradoBRM, type OrientacaoDocumento } from '../../components/PapelTimbradoBRM';
 import { gotenbergService } from '../../services/gotenbergService';
 import { obterFotoReligiosoBase64 } from '../../services/religiosoFotoService';
-import { atribuirNomeReligioso } from '../../lib/religiosoNome';
+import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../../lib/religiosoNome';
 
 interface FichaCanonicaPDFProps {
   religiosoId?: string;
@@ -220,7 +220,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
       }> = [];
 
       (data.designacoes || []).forEach((d: any) => {
-        const nomeInst = d.comunidades?.nome || d.religiosos_obras_referencia?.nome || 'Comunidade Provincial';
+        const nomeInst = d.religiosos_obras_referencia?.nome || formatarComunidadeReligiosa(d.comunidades?.nome) || 'Comunidade Provincial';
         const ano = d.ano_referencia || (d.vigencia_inicio ? new Date(d.vigencia_inicio).getFullYear() : '');
         const fim = d.vigencia_fim ? new Date(d.vigencia_fim).getFullYear() : 'Atual';
         const periodoStr = ano ? (ano === fim ? String(ano) : `${ano} - ${fim}`) : 'Vigente';
@@ -249,7 +249,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
       if (trabalhos.length === 0 && data.comunidade_atual_nome) {
         trabalhos.push({
           periodo: 'Atual',
-          instituicao: data.comunidade_atual_nome,
+          instituicao: formatarComunidadeReligiosa(data.comunidade_atual_nome),
           funcao: data.grau || 'Confrade',
           local: 'Província BRM'
         });
@@ -276,7 +276,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         filiacaoPai: pai || undefined,
         filiacaoMae: mae || undefined,
         fotoUrl: fotoBase64 || data.foto_url || undefined,
-        comunidadeAtualNome: data.comunidade_atual_nome || undefined,
+        comunidadeAtualNome: formatarComunidadeReligiosa(data.comunidade_atual_nome) || undefined,
         oficioAtual: data.designacoes?.[0]?.funcao || undefined,
         telefoneCelular: data.telefone_celular || undefined,
         whatsapp: data.whatsapp || undefined,
@@ -612,7 +612,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
                   {(data.designacoes || []).map((d: any, idx: number) => (
                     <tr key={`desig-${idx}`} className="py-1">
                       <td className="font-mono text-slate-500 py-1">{d.ano_referencia || 'Vigente'}</td>
-                      <td className="font-semibold text-slate-900 py-1">{d.comunidades?.nome || d.religiosos_obras_referencia?.nome || 'Comunidade Provincial'}</td>
+                      <td className="font-semibold text-slate-900 py-1">{d.religiosos_obras_referencia?.nome || formatarComunidadeReligiosa(d.comunidades?.nome) || 'Comunidade Provincial'}</td>
                       <td className="text-[#226380] font-medium py-1">{d.funcao || d.tipo_vinculo || 'Membro'}</td>
                       <td className="text-slate-600 py-1">Província BRM</td>
                     </tr>

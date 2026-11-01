@@ -4,7 +4,7 @@ import {
   Search, BookOpen, Users, Church, Cake, Phone, Mail, 
   MessageCircle, MapPin, Building, Loader2, RefreshCw 
 } from 'lucide-react';
-import { atribuirNomeReligioso } from '../lib/religiosoNome';
+import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../lib/religiosoNome';
 
 interface Confrade {
   id: string;
@@ -336,7 +336,7 @@ export const AnuarioBRM: React.FC = () => {
 
                       <div className="mt-3 flex items-start gap-1.5 text-xs text-slate-600 dark:text-slate-400 font-sans">
                         <Building className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                        <span className="line-clamp-1">{c.comunidade_atual_nome || 'Comunidade a designar'}</span>
+                        <span className="line-clamp-1">{formatarComunidadeReligiosa(c.comunidade_atual_nome) || 'Comunidade a designar'}</span>
                       </div>
                     </div>
 
@@ -427,7 +427,7 @@ export const AnuarioBRM: React.FC = () => {
                   <div className="border-l-2 border-slate-900 dark:border-slate-400 pl-3 mb-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <h3 className="font-cinzel text-base font-bold text-slate-900 dark:text-white">
-                        {com.nome}
+                        {formatarComunidadeReligiosa(com.nome)}
                       </h3>
                       {com.regiao && (
                         <span className="px-2 py-0.5 text-[10px] font-mono border border-sky-300 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300">
@@ -533,7 +533,7 @@ export const AnuarioBRM: React.FC = () => {
                         {atribuirNomeReligioso(a.grau, a.nome_civil) || a.nome_religioso || a.nome_civil}
                       </span>
                       <span className="text-slate-500 text-[11px] font-sans">
-                        {a.grau || 'Grau não informado'} • {a.comunidade_atual_nome || 'Província BRM'}
+                        {a.grau || 'Grau não informado'} • {formatarComunidadeReligiosa(a.comunidade_atual_nome) || 'Província BRM'}
                       </span>
                     </div>
                   </div>

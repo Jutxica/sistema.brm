@@ -8,7 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatCep, lookupCep } from '../lib/cep';
 import { validateCpf } from '../lib/cpf';
 import { parseAddressString } from '../utils/addressParser';
-import { atribuirNomeReligioso } from '../lib/religiosoNome';
+import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../lib/religiosoNome';
 
 interface FotoReligiosoItem {
   id: string;
@@ -2593,7 +2593,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               ) : (
                 <div className="rounded-[6px] border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-800 dark:bg-white/[0.03]">
                   <p className="font-semibold text-[#1d1d1f] dark:text-white">
-                    {base.comunidade_atual_nome || 'Nenhuma obra ou comunidade selecionada'}
+                    {formatarComunidadeReligiosa(base.comunidade_atual_nome) || 'Nenhuma obra ou comunidade selecionada'}
                   </p>
                   <p className="mt-1 text-[#707070] dark:text-[#a1a1aa]">
                     O endereço abaixo foi preenchido a partir da seleção feita no passo 1 e pode ser conferido ou ajustado.
@@ -2691,7 +2691,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                 <div><dt className="text-[#707070] dark:text-[#a1a1aa]">Nome</dt><dd className="font-medium">{base.nome_civil || '—'}</dd></div>
                 <div><dt className="text-[#707070] dark:text-[#a1a1aa]">Grau</dt><dd className="font-medium">{base.grau || '—'}</dd></div>
                 <div><dt className="text-[#707070] dark:text-[#a1a1aa]">E-mail</dt><dd className="font-medium">{base.email_institucional || base.email_pessoal || '—'}</dd></div>
-                <div><dt className="text-[#707070] dark:text-[#a1a1aa]">Obra atual</dt><dd className="font-medium">{obras.find(item => item.id === base.obra_atual_id)?.nome || base.comunidade_atual_nome || 'Não informada'}</dd></div>
+                <div><dt className="text-[#707070] dark:text-[#a1a1aa]">Obra atual</dt><dd className="font-medium">{obras.find(item => item.id === base.obra_atual_id)?.nome || formatarComunidadeReligiosa(base.comunidade_atual_nome) || 'Não informada'}</dd></div>
                 <div><dt className="text-[#707070] dark:text-[#a1a1aa]">Familiares / contatos</dt><dd className="font-medium">{familiares.filter(row => row.nome.trim()).length} / {contatosFamiliares.filter(row => row.nome.trim()).length}</dd></div>
                 <div><dt className="text-[#707070] dark:text-[#a1a1aa]">Registros formativos e vocacionais</dt><dd className="font-medium">{rows.filter(row => ['vocacional', 'formacao', 'voto'].includes(row.tipo) && hasAnyValues(row, ['ano', 'data', 'titulo', 'descricao', 'local', 'responsavel', 'etapa', 'instituicao', 'inicio', 'fim', 'formador', 'voto_tipo', 'renovacao', 'celebrante'])).length}</dd></div>
                 <div><dt className="text-[#707070] dark:text-[#a1a1aa]">Ministérios, estudos e idiomas</dt><dd className="font-medium">{rows.filter(row => ['ministerio', 'ordem', 'academica', 'idioma'].includes(row.tipo) && hasAnyValues(row, ['ministerio', 'data', 'local', 'celebrante', 'categoria', 'instituicao', 'periodo', 'pais', 'cidade', 'estado', 'idioma', 'nivel', 'fala', 'audicao', 'leitura', 'escrita'])).length}</dd></div>

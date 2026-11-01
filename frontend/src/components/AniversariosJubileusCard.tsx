@@ -12,7 +12,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
-import { atribuirNomeReligioso } from '../lib/religiosoNome';
+import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../lib/religiosoNome';
 
 export interface AniversarioItem {
   id: string;
@@ -256,7 +256,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
           religiosoId: rel.id,
           nome: nomeFormatado,
           grau: rel.grau,
-          comunidade: rel.comunidade_atual_nome || undefined,
+          comunidade: formatarComunidadeReligiosa(rel.comunidade_atual_nome) || undefined,
           fotoUrl: fotosMap.get(rel.id) || null,
           tipo: 'natalicio',
           dia: parsed.dia,
@@ -290,7 +290,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
           religiosoId: rel.id,
           nome: nomeFormatado,
           grau: rel.grau,
-          comunidade: rel.comunidade_atual_nome || undefined,
+          comunidade: formatarComunidadeReligiosa(rel.comunidade_atual_nome) || undefined,
           fotoUrl: fotosMap.get(rel.id) || null,
           tipo: 'votos',
           dia: parsed.dia,
@@ -328,7 +328,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
           religiosoId: rel.id,
           nome: nomeFormatado,
           grau: rel.grau,
-          comunidade: rel.comunidade_atual_nome || undefined,
+          comunidade: formatarComunidadeReligiosa(rel.comunidade_atual_nome) || undefined,
           fotoUrl: fotosMap.get(rel.id) || null,
           tipo: 'votos',
           dia: parsed.dia,
@@ -368,7 +368,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
           religiosoId: rel.id,
           nome: nomeFormatado,
           grau: rel.grau,
-          comunidade: rel.comunidade_atual_nome || undefined,
+          comunidade: formatarComunidadeReligiosa(rel.comunidade_atual_nome) || undefined,
           fotoUrl: fotosMap.get(rel.id) || null,
           tipo: 'ordenacao',
           dia: parsed.dia,
@@ -406,7 +406,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
           religiosoId: rel.id,
           nome: nomeFormatado,
           grau: rel.grau,
-          comunidade: rel.comunidade_atual_nome || undefined,
+          comunidade: formatarComunidadeReligiosa(rel.comunidade_atual_nome) || undefined,
           fotoUrl: fotosMap.get(rel.id) || null,
           tipo: 'ordenacao',
           dia: parsed.dia,
