@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { Mail, Lock, AlertCircle, CheckCircle2, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react';
-import { getPasswordResetRedirectUrl, getSystemLoginUrl } from '../../lib/portalUrls';
+import { getPasswordResetRedirectUrl } from '../../lib/portalUrls';
 
 /** Inline delay for the entrance sequence */
 const enter = (ms: number) => ({ ['--enter-delay' as string]: `${ms}ms` }) as React.CSSProperties;
@@ -265,20 +265,6 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ onSuccess }) => {
                     <span>Entrar no Portal</span>
                   )}
                 </button>
-              </div>
-
-              {/* Link to Admin Login */}
-              <div style={enter(560)} className="brm-enter-rise pt-4 mt-3 border-t border-slate-200/60 dark:border-slate-800/60 text-center">
-                <span className="text-[12px] text-slate-500 dark:text-slate-400 block mb-1">
-                  Acesso administrativo da Cúria ou Secretaria?
-                </span>
-                <a
-                  href={getSystemLoginUrl()}
-                  className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#8fc1c2] hover:text-[#b6d6d5] transition-colors"
-                >
-                  <span>Acessar o Sistema BRM</span>
-                  <span aria-hidden="true">&rarr;</span>
-                </a>
               </div>
 
             </form>

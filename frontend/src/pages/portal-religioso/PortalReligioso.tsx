@@ -1013,7 +1013,7 @@ export const PortalReligioso: React.FC = () => {
       </header>
 
       {/* 2. CORPO DO SITE: SIDEBAR + CONTEÚDO PRINCIPAL (APPLE FORMAT) */}
-      <div className="flex-1 flex flex-col md:flex-row max-w-[1400px] w-full mx-auto px-4 sm:px-6 py-6 gap-6">
+      <div className="flex-1 flex flex-col md:flex-row max-w-[1400px] w-full mx-auto px-4 sm:px-6 py-6 gap-6 items-start">
         <nav aria-label="Navegação do portal" className="portal-mobile-nav md:hidden flex gap-2 overflow-x-auto pb-1">
           {([
             ['inicio', 'Início'],
@@ -1047,7 +1047,7 @@ export const PortalReligioso: React.FC = () => {
         </nav>
         
         {/* SIDEBAR APPLE */}
-        <aside className="portal-navigation w-64 shrink-0 hidden md:block space-y-8 rounded-2xl p-4">
+        <aside className="portal-navigation w-64 shrink-0 hidden md:block space-y-8 rounded-2xl p-4 sticky top-24 self-start max-h-[calc(100vh-7rem)] overflow-y-auto">
           
           <div className="space-y-2">
             <span className="font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.18em] text-[#61767e] dark:text-[#a0aeaf] px-3 mb-2 block">
