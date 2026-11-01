@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { atribuirNomeReligioso } from '../lib/religiosoNome';
 
 export interface User {
   id: string;
@@ -68,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Falha ao consultar vínculo religioso:', religiosoError.message);
       } else if (relData) {
         religiosoId = relData.id;
-        religiosoNome = relData.nome_religioso || relData.nome_civil;
+        religiosoNome = atribuirNomeReligioso(relData.grau, relData.nome_civil) || relData.nome_religioso || relData.nome_civil;
         religiosoGrau = relData.grau;
         religiosoStatusCadastro = relData.status_cadastro;
         isReligioso = true;

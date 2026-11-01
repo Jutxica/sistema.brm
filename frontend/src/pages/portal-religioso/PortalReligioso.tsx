@@ -28,6 +28,7 @@ import { PortalDocumentosTab } from './tabs/PortalDocumentosTab';
 import { PortalHospedagemTab } from './tabs/PortalHospedagemTab';
 import { PortalLogin } from './PortalLogin';
 import { PortalPrimeiroAcessoSenha } from './PortalPrimeiroAcessoSenha';
+import { atribuirNomeReligioso } from '../../lib/religiosoNome';
 
 export type PortalSection = 'inicio' | 'perfil' | 'inscricao' | 'ficha-pdf' | 'calendario' | 'documentos' | 'anuario' | 'hospedagem';
 
@@ -558,8 +559,8 @@ export const PortalReligioso: React.FC = () => {
 
   // USUÁRIO AUTENTICADO: RENDERIZA O SITE DA ÁREA DE MEMBROS (APPLE FORMAT)
   const displayName = religiosoData?.nome_civil || user?.nome || 'Religioso Dehoniano';
-  const displayReligiousName = religiosoData?.nome_religioso || '';
   const displayGrau = religiosoData?.grau || 'Religioso SCJ';
+  const displayReligiousName = atribuirNomeReligioso(displayGrau, displayName) || religiosoData?.nome_religioso || '';
   const registrationStatus = religiosoData?.status_cadastro || user?.religiosoStatusCadastro;
   const canContinueRegistration = [
     'Em revisão',

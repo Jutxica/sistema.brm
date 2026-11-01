@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
+import { atribuirNomeReligioso } from '../lib/religiosoNome';
 
 interface PerfilData {
   nome_civil: string;
@@ -254,10 +255,13 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
           if (metaError) throw metaError;
         }
 
+        const nomeReligiosoAtribuido = atribuirNomeReligioso(form.grau, form.nome_civil);
+
         const payload: Record<string, unknown> = {
           auth_user_id: user.id,
           nome_civil: form.nome_civil,
-          nome_religioso: form.nome_religioso,
+          nome_religioso: nomeReligiosoAtribuido || form.nome_religioso,
+          nome_elenco: nomeReligiosoAtribuido || form.nome_religioso || form.nome_civil,
           grau: form.grau,
           data_nascimento: form.data_nascimento || null,
           comunidade_atual_nome: form.comunidade_atual_nome,
@@ -283,6 +287,21 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
           }
           throw error;
         }
+
+        // Sincroniza também com a tabela religiosos caso haja vínculo por auth_user_id
+        await supabase
+          .from('religiosos')
+          .update({
+            nome_civil: form.nome_civil,
+            nome_religioso: nomeReligiosoAtribuido,
+            nome_elenco: nomeReligiosoAtribuido,
+            grau: form.grau,
+            data_nascimento: form.data_nascimento || null,
+            comunidade_atual_nome: form.comunidade_atual_nome,
+            telefone_celular: form.whatsapp,
+            whatsapp: form.whatsapp,
+          })
+          .eq('auth_user_id', user.id);
 
         setForm(prev => ({ ...prev, foto_path: nextPhotoPath, foto_url: nextPhotoUrl }));
         setPendingPhoto(null);
@@ -482,18 +501,20 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
               />
             </div>
 
-            {/* Nome Religioso */}
+            {/* Nome Religioso Atribuído */}
             <div>
-              <label className={labelClass}>Nome Religioso / Forma Fraterna *</label>
-              <input
-                type="text"
-                required
-                maxLength={160}
-                value={form.nome_religioso}
-                onChange={e => setForm({ ...form, nome_religioso: e.target.value })}
-                placeholder="Ex: Pe. Carlos Eduardo, SCJ"
-                className={inputClass}
-              />
+              <label className={labelClass}>Nome Religioso Oficial (Atribuído)</label>
+              <div className={`${inputClass} bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 font-medium flex items-center justify-between`}>
+                <span className="truncate">
+                  {atribuirNomeReligioso(form.grau, form.nome_civil) || 'Preencha o nome civil para atribuir'}
+                </span>
+                <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7] font-semibold shrink-0 ml-2">
+                  Atribuído
+                </span>
+              </div>
+              <span className={`text-[11px] ${isPortal ? 'text-[#707070] dark:text-[#86868b]' : 'text-slate-500 font-mono'} mt-1 block`}>
+                Atribuído automaticamente pelo grau: Fr. / Dom / Diác. / Ir. / P. (nome e sobrenome), scj
+              </span>
             </div>
 
           </div>

@@ -26,6 +26,7 @@ import { supabase } from '../lib/supabaseClient';
 import { confirmAction, showToast } from '../hooks/useFeedback';
 
 import type { ReligiosoResumo, ContaAcesso } from '../types/religioso';
+import { atribuirNomeReligioso } from '../lib/religiosoNome';
 
 type AccountAction = 'invite' | 'block' | 'unblock' | 'delete';
 
@@ -157,7 +158,7 @@ export const ReligiososAdmin: React.FC = () => {
   }, [items, query, filtroAuditoria]);
 
   const nomeExibido = (item: ReligiosoResumo) =>
-    item.nome_elenco?.trim() || item.nome_religioso?.trim() || item.nome_civil?.trim() || 'Nome pendente';
+    atribuirNomeReligioso(item.grau, item.nome_civil) || item.nome_elenco?.trim() || item.nome_religioso?.trim() || item.nome_civil?.trim() || 'Nome pendente';
 
   const isBlocked = (account: ContaAcesso) => Boolean(
     account.banned_until && new Date(account.banned_until).getTime() > Date.now(),

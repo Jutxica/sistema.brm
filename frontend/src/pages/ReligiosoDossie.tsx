@@ -12,6 +12,7 @@ import { parseAddressString } from '../utils/addressParser';
 import { gotenbergService } from '../services/gotenbergService';
 import { obterFotoReligiosoBase64 } from '../services/religiosoFotoService';
 import { LOGO_TIMBRADO_DATA_URI } from '../assets/logoTimbradoBase64';
+import { atribuirNomeReligioso } from '../lib/religiosoNome';
 
 import type { 
   ReligiosoDossieData, 
@@ -817,7 +818,7 @@ export const ReligiosoDossie: React.FC = () => {
                 {religioso?.grau || 'Confrade'} Dehoniano
               </p>
               <h2 className="text-[16pt] font-serif font-bold text-slate-900 mt-0.5">
-                {religioso?.nome_religioso || religioso?.nome_civil}
+                {atribuirNomeReligioso(religioso?.grau, religioso?.nome_civil) || religioso?.nome_religioso || religioso?.nome_civil}
               </h2>
               <p className="text-[8.5pt] font-mono text-slate-700 mt-0.5">
                 Nome civil: <span className="font-semibold">{religioso?.nome_civil}</span>
@@ -1290,7 +1291,7 @@ export const ReligiosoDossie: React.FC = () => {
                 )}
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Arquivo Provincial</p>
-                  <h1 className="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">{religioso.nome_religioso || religioso.nome_civil}</h1>
+                  <h1 className="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">{atribuirNomeReligioso(religioso?.grau, religioso?.nome_civil) || religioso.nome_religioso || religioso.nome_civil}</h1>
                   <p className="text-sm text-slate-500 dark:text-slate-400">{religioso.nome_civil} • {religioso.grau || 'Grau pendente'}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <p className="inline-flex border border-[#226380]/20 bg-[#226380]/5 px-2.5 py-1 font-mono text-[11px] font-semibold tracking-wide text-[#226380] dark:border-[#A3C3C7]/20 dark:bg-[#A3C3C7]/10 dark:text-[#A3C3C7]">
@@ -1362,7 +1363,7 @@ export const ReligiosoDossie: React.FC = () => {
 
                   <dl className="grid gap-3 sm:grid-cols-2">
                     <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Nome civil</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{religioso.nome_civil || '—'}</dd></div>
-                    <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Nome religioso</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{religioso.nome_religioso || '—'}</dd></div>
+                    <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Nome religioso (atribuído)</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{atribuirNomeReligioso(religioso?.grau, religioso?.nome_civil) || religioso.nome_religioso || '—'}</dd></div>
                     <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Data de nascimento</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{formatDate(religioso.data_nascimento)}</dd></div>
                     <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">CPF</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{religioso.cpf || '—'}</dd></div>
                     <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">E-mail institucional</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{religioso.email_institucional || '—'}</dd></div>

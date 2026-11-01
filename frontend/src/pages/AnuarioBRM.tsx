@@ -4,6 +4,7 @@ import {
   Search, BookOpen, Users, Church, Cake, Phone, Mail, 
   MessageCircle, MapPin, Building, Loader2, RefreshCw 
 } from 'lucide-react';
+import { atribuirNomeReligioso } from '../lib/religiosoNome';
 
 interface Confrade {
   id: string;
@@ -302,7 +303,7 @@ export const AnuarioBRM: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredConfrades.map((c: Confrade) => {
-                const displayName = c.nome_religioso || c.nome_civil;
+                const displayName = atribuirNomeReligioso(c.grau, c.nome_civil) || c.nome_religioso || c.nome_civil;
                 const telClean = (c.whatsapp || c.telefone_celular || '').replace(/\D/g, '');
 
                 return (
@@ -483,7 +484,7 @@ export const AnuarioBRM: React.FC = () => {
                           <div key={m.id} className="py-2.5 flex items-center justify-between text-xs">
                             <div>
                               <span className="font-bold text-slate-900 dark:text-white block">
-                                {m.nome_religioso || m.nome_civil}
+                                {atribuirNomeReligioso(m.grau, m.nome_civil) || m.nome_religioso || m.nome_civil}
                               </span>
                               <span className="text-[10px] font-mono text-slate-500">{m.grau || 'Grau não informado'}</span>
                             </div>
@@ -529,7 +530,7 @@ export const AnuarioBRM: React.FC = () => {
                     </span>
                     <div>
                       <span className="font-bold text-slate-900 dark:text-white block">
-                        {a.nome_religioso || a.nome_civil}
+                        {atribuirNomeReligioso(a.grau, a.nome_civil) || a.nome_religioso || a.nome_civil}
                       </span>
                       <span className="text-slate-500 text-[11px] font-sans">
                         {a.grau || 'Grau não informado'} • {a.comunidade_atual_nome || 'Província BRM'}

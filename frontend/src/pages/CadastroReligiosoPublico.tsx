@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatCep, lookupCep } from '../lib/cep';
 import { validateCpf } from '../lib/cpf';
 import { parseAddressString } from '../utils/addressParser';
+import { atribuirNomeReligioso } from '../lib/religiosoNome';
 
 interface FotoReligiosoItem {
   id: string;
@@ -173,7 +174,7 @@ const dynamicRequiredFields: Record<string, string> = {
 };
 const inputClass = 'w-full px-4 py-2.5 text-sm border border-slate-200 dark:border-slate-800 rounded-[6px] bg-white dark:bg-[#161b22] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] shadow-none outline-none transition-all duration-200 focus:border-slate-900 dark:focus:border-white font-mono';
 const fieldLabels: Record<string, string> = {
-  grau: 'Grau', nome_civil: 'Nome completo', nome_religioso: 'Nome religioso', data_nascimento: 'Data de nascimento',
+  grau: 'Grau', nome_civil: 'Nome completo', nome_religioso: 'Nome religioso (atribuído)', data_nascimento: 'Data de nascimento',
   local_nascimento: 'Local de nascimento', municipio_nascimento: 'Município', estado_nascimento: 'Estado', pais_nascimento: 'País',
   nacionalidade: 'Nacionalidade', cpf: 'CPF', rg: 'RG', rg_orgao_expedidor: 'Órgão expedidor', rg_data_emissao: 'Data de emissão do RG',
   cep: 'CEP', logradouro: 'Logradouro', numero: 'Número', complemento: 'Complemento', bairro: 'Bairro',
@@ -195,7 +196,7 @@ const fieldLabels: Record<string, string> = {
 
 const defaultFieldPlaceholders: Record<string, string> = {
   nome_civil: 'Ex.: João Paulo da Silva',
-  nome_religioso: 'Ex.: Frater Lucas, Pe. André (se houver)',
+  nome_religioso: 'Atribuído: Fr. / Dom / Diác. / Ir. / P. (nome e sobrenome), scj',
   nome_elenco: 'Ex.: Pe. João Silva',
   data_nascimento: 'AAAA-MM-DD',
   local_nascimento: 'Ex.: Hospital São José ou Distrito',
@@ -521,7 +522,17 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         return;
       }
       if (religiosoData) {
-        setBase(previous => ({ ...previous, ...Object.fromEntries(Object.entries(religiosoData).filter(([key]) => key in previous).map(([key, value]) => [key, value == null ? '' : String(value)])), consentimento_dados: religiosoData.consentimento_dados ? 'true' : '' }));
+        setBase(previous => {
+          const loadedBase = Object.fromEntries(Object.entries(religiosoData).filter(([key]) => key in previous).map(([key, value]) => [key, value == null ? '' : String(value)]));
+          const autoNomeReligioso = atribuirNomeReligioso(loadedBase.grau, loadedBase.nome_civil);
+          return {
+            ...previous,
+            ...loadedBase,
+            nome_religioso: autoNomeReligioso || loadedBase.nome_religioso || '',
+            nome_elenco: autoNomeReligioso || loadedBase.nome_elenco || loadedBase.nome_civil || '',
+            consentimento_dados: religiosoData.consentimento_dados ? 'true' : ''
+          };
+        });
         if ((profileReligiosoId || memberMode) && religiosoData.status_cadastro === 'Aprovado') {
           const { data: designacoes, error: designacoesError } = await supabase
             .from('religiosos_designacoes')
@@ -930,7 +941,23 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       }));
       return;
     }
-    setBase(previous => ({ ...previous, [field]: value }));
+    setBase(previous => {
+      const nextGrau = field === 'grau' ? value : previous.grau;
+      const nextNomeCivil = field === 'nome_civil' ? value : previous.nome_civil;
+      const isNameOrDegree = field === 'grau' || field === 'nome_civil';
+      const nextNomeReligioso = isNameOrDegree
+        ? atribuirNomeReligioso(nextGrau, nextNomeCivil)
+        : previous.nome_religioso;
+
+      return {
+        ...previous,
+        [field]: value,
+        ...(isNameOrDegree ? {
+          nome_religioso: nextNomeReligioso,
+          nome_elenco: nextNomeReligioso,
+        } : {})
+      };
+    });
     if (field === 'cep') setCepError(null);
     if (invalidFields.includes(field)) {
       setInvalidFields(previous => previous.filter(f => f !== field));
@@ -1286,10 +1313,14 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
     try {
       const obraIdSanitized = isValidUuid(base.obra_atual_id) ? base.obra_atual_id.trim() : null;
 
+      const nomeReligiosoAtribuido = atribuirNomeReligioso(base.grau, base.nome_civil);
+
       const religiosoPayload: Record<string, unknown> = {
-        grau: base.grau, nome_civil: base.nome_civil, nome_religioso: base.nome_religioso || null,
+        grau: base.grau,
+        nome_civil: base.nome_civil,
+        nome_religioso: nomeReligiosoAtribuido || base.nome_religioso || null,
+        nome_elenco: nomeReligiosoAtribuido || base.nome_elenco || base.nome_civil || null,
         ...(adminMode || (memberMode && !religiosoId) ? {
-          nome_elenco: base.nome_elenco || base.nome_religioso || base.nome_civil || null,
           cadastro_elenco_provisorio: !adminMode,
         } : {}),
         data_nascimento: base.data_nascimento?.trim() ? base.data_nascimento.trim() : null,
@@ -2156,8 +2187,13 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               update={updateBase}
               invalidFields={invalidFields}
               requiredFields={memberMode ? requiredStep1.filter(field => field !== 'grau') : requiredStep1}
-              readOnlyFields={memberMode ? ['cpf'] : []}
+              readOnlyFields={['nome_religioso', ...(memberMode ? ['cpf'] : [])]}
               afterField={{
+                nome_religioso: (
+                  <span className="block text-[11px] text-[#707070] dark:text-[#a1a1aa] mt-0.5">
+                    Atribuído automaticamente: Fr. / Dom / Diác. / Ir. / P. (nome e sobrenome), scj
+                  </span>
+                ),
                 grau: (
                   <label className="block space-y-1.5" htmlFor="input-obra_atual_id">
                     <span className="flex items-center justify-between text-[12px] font-medium text-[#707070] dark:text-[#86868b]">

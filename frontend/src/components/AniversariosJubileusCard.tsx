@@ -12,6 +12,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import { atribuirNomeReligioso } from '../lib/religiosoNome';
 
 export interface AniversarioItem {
   id: string;
@@ -249,7 +250,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
 
       if (parsed.mes === mesAlvo) {
         const idade = anoAtual - parsed.ano;
-        const nomeFormatado = rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
+        const nomeFormatado = atribuirNomeReligioso(rel.grau, rel.nome_civil) || rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
         listaColetada.push({
           id: `natalicio-${rel.id}`,
           religiosoId: rel.id,
@@ -282,7 +283,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
         const isPerpetuo = tipoLower.includes('perp');
         const rotuloTipo = isPerpetuo ? 'Votos Perpétuos' : 'Primeiros Votos';
         const jubileu = getJubileuInfo(anosProfissao);
-        const nomeFormatado = rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
+        const nomeFormatado = atribuirNomeReligioso(rel.grau, rel.nome_civil) || rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
 
         listaColetada.push({
           id: `voto-${rel.id}-${rawDate}`,
@@ -320,7 +321,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
 
         const anos = anoAtual - parsed.ano;
         const jubileu = getJubileuInfo(anos);
-        const nomeFormatado = rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
+        const nomeFormatado = atribuirNomeReligioso(rel.grau, rel.nome_civil) || rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
 
         listaColetada.push({
           id: key,
@@ -360,7 +361,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
         else if (tipoLower.includes('episcop') || tipoLower.includes('bispo')) rotuloOrdem = 'Ordenação Episcopal';
 
         const jubileu = getJubileuInfo(anosOrdenacao);
-        const nomeFormatado = rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
+        const nomeFormatado = atribuirNomeReligioso(rel.grau, rel.nome_civil) || rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
 
         listaColetada.push({
           id: `ordem-${rel.id}-${rawDate}`,
@@ -398,7 +399,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
 
         const anos = anoAtual - parsed.ano;
         const jubileu = getJubileuInfo(anos);
-        const nomeFormatado = rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
+        const nomeFormatado = atribuirNomeReligioso(rel.grau, rel.nome_civil) || rel.nome_elenco || rel.nome_religioso || rel.nome_civil || 'Confrade';
 
         listaColetada.push({
           id: key,

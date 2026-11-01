@@ -11,6 +11,7 @@ import { showToast } from '../../hooks/useFeedback';
 import { PapelTimbradoBRM, type OrientacaoDocumento } from '../../components/PapelTimbradoBRM';
 import { gotenbergService } from '../../services/gotenbergService';
 import { obterFotoReligiosoBase64 } from '../../services/religiosoFotoService';
+import { atribuirNomeReligioso } from '../../lib/religiosoNome';
 
 interface FichaCanonicaPDFProps {
   religiosoId?: string;
@@ -258,7 +259,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
 
       const blob = await gotenbergService.gerarFichaReligiosoPdf({
         nomeCivil: data.nome_civil,
-        nomeReligioso: data.nome_religioso || undefined,
+        nomeReligioso: atribuirNomeReligioso(data.grau, data.nome_civil) || data.nome_religioso || undefined,
         grau: data.grau || 'Padre',
         numeroCadastro: data.numero_cadastro || undefined,
         statusCadastro: data.status_cadastro || 'Aprovado',
@@ -456,7 +457,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
                 Ficha Cadastral Canônica
               </p>
               <h2 className="text-[17pt] font-serif font-bold text-slate-900 mt-0.5">
-                {data?.nome_religioso || data?.nome_civil}
+                {atribuirNomeReligioso(data?.grau, data?.nome_civil) || data?.nome_religioso || data?.nome_civil}
               </h2>
             </div>
           </div>
@@ -498,7 +499,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
             </div>
             <div>
               <p className="text-[6.5pt] font-mono uppercase text-slate-500">Nome Religioso</p>
-              <p className="font-medium text-slate-900">{data?.nome_religioso || '—'}</p>
+              <p className="font-medium text-slate-900">{atribuirNomeReligioso(data?.grau, data?.nome_civil) || data?.nome_religioso || '—'}</p>
             </div>
             <div>
               <p className="text-[6.5pt] font-mono uppercase text-slate-500">Data de Nascimento</p>
@@ -663,7 +664,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         <div className="mt-8 pt-4 grid grid-cols-2 gap-12 text-center text-[7.5pt] break-inside-avoid">
           <div>
             <div className="border-t border-slate-800 mx-auto w-48 mb-1" />
-            <p className="font-semibold text-slate-800">{data?.nome_religioso || data?.nome_civil}</p>
+            <p className="font-semibold text-slate-800">{atribuirNomeReligioso(data?.grau, data?.nome_civil) || data?.nome_religioso || data?.nome_civil}</p>
             <p className="text-[6.5pt] text-slate-400">Assinatura do Religioso</p>
           </div>
           <div>
