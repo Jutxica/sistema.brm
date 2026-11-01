@@ -51,12 +51,12 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
   return (
     <>
       <div className="space-y-4 md:hidden">
-        <section className="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#16485a] to-[#113240] p-4 text-white shadow-[0_8px_24px_rgba(17,50,64,0.16)]">
+        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#16485a] to-[#113240] p-5 text-white shadow-[0_8px_24px_rgba(17,50,64,0.16)]">
           <div className="pointer-events-none absolute -right-10 -top-16 h-36 w-36 rounded-full border border-white/[0.08]" />
           <div className="relative">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65">
-                Portal do Religioso
+              <span className="font-cinzel text-[10px] font-semibold uppercase tracking-[0.16em] text-white/75">
+                Província Brasileira Meridional
               </span>
               {religiosoData?.comunidade_atual_nome && (
                 <span className="flex min-w-0 items-center gap-1 text-[10px] text-white/70">
@@ -66,14 +66,17 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
               )}
             </div>
 
-            <h2 className="mt-1.5 text-[20px] font-semibold leading-tight tracking-[-0.03em]">
+            <h2 className="font-cinzel mt-2 text-[20px] font-bold leading-tight tracking-wide text-white">
               Vivat Cor Iesu, {displayName}
             </h2>
+            <p className="mt-1 text-xs text-white/75 leading-relaxed">
+              Espaço digital de comunhão, serviços e acompanhamento canônico da Província BRM.
+            </p>
 
-            <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/15 pt-3">
+            <div className="mt-3.5 flex items-center justify-between gap-3 border-t border-white/15 pt-3">
               <div className="flex min-w-0 items-center gap-2">
                 <span className="text-[11px] text-white/65">Cadastro</span>
-                <span className="truncate rounded-full bg-white/12 px-2.5 py-1 text-[11px] font-semibold">
+                <span className="truncate rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold">
                   {religiosoData?.status_cadastro || 'Em revisão'}
                 </span>
               </div>

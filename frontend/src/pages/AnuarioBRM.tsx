@@ -200,11 +200,11 @@ export const AnuarioBRM: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#12151e]">
+      <div className="flex overflow-x-auto border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#12151e]">
         <button
           type="button"
           onClick={() => setActiveTab('confrades')}
-          className={`flex items-center gap-2 px-6 py-3 text-xs font-semibold border-b-2 transition-colors ${
+          className={`flex shrink-0 items-center gap-2 px-4 sm:px-6 py-3 text-xs font-semibold border-b-2 transition-colors ${
             activeTab === 'confrades'
               ? 'border-slate-900 text-slate-900 dark:border-white dark:text-white font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
@@ -217,7 +217,7 @@ export const AnuarioBRM: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('comunidades')}
-          className={`flex items-center gap-2 px-6 py-3 text-xs font-semibold border-b-2 transition-colors ${
+          className={`flex shrink-0 items-center gap-2 px-4 sm:px-6 py-3 text-xs font-semibold border-b-2 transition-colors ${
             activeTab === 'comunidades'
               ? 'border-slate-900 text-slate-900 dark:border-white dark:text-white font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
@@ -230,7 +230,7 @@ export const AnuarioBRM: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('aniversariantes')}
-          className={`flex items-center gap-2 px-6 py-3 text-xs font-semibold border-b-2 transition-colors ${
+          className={`flex shrink-0 items-center gap-2 px-4 sm:px-6 py-3 text-xs font-semibold border-b-2 transition-colors ${
             activeTab === 'aniversariantes'
               ? 'border-slate-900 text-slate-900 dark:border-white dark:text-white font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'

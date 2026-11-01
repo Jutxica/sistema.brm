@@ -813,18 +813,18 @@ export const PortalReligioso: React.FC = () => {
       <header className="portal-header sticky top-0 z-40 flex items-center justify-between border-b px-4 py-3 sm:px-8">
         
         {/* Lado Esquerdo: Identidade do Portal */}
-        <div className="portal-header-brand flex min-w-0 items-center gap-4">
+        <div className="portal-header-brand flex min-w-0 items-center gap-3 sm:gap-4">
           <div className="flex shrink-0 items-center justify-center">
-            <img src="/logo-sistema.png" alt="Província BRM" className="h-12 w-auto select-none object-contain dark:hidden sm:h-14" />
-            <img src="/logo-branco.png" alt="Província BRM" className="hidden h-12 w-auto select-none object-contain dark:block sm:h-14" />
+            <img src="/logo-sistema.png" alt="Província BRM" className="h-10 w-auto select-none object-contain dark:hidden sm:h-12" />
+            <img src="/logo-branco.png" alt="Província BRM" className="hidden h-10 w-auto select-none object-contain dark:block sm:h-12" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center">
-              <span className="portal-brand-title font-cinzel text-lg font-bold tracking-[0.08em] uppercase text-[#113240] dark:text-white sm:text-xl">
+              <span className="portal-brand-title font-cinzel text-base sm:text-lg md:text-xl font-bold tracking-[0.08em] uppercase text-[#113240] dark:text-white">
                 Província BRM
               </span>
             </div>
-            <span className="portal-brand-caption font-cinzel mt-0.5 block truncate text-[10px] tracking-[0.14em] uppercase text-[#61767e] dark:text-[#a0aeaf]">
+            <span className="portal-brand-caption font-cinzel mt-0.5 block truncate text-[9px] sm:text-[10px] tracking-[0.14em] uppercase text-[#61767e] dark:text-[#a0aeaf]">
               Portal do Religioso
             </span>
           </div>
@@ -1013,40 +1013,8 @@ export const PortalReligioso: React.FC = () => {
       </header>
 
       {/* 2. CORPO DO SITE: SIDEBAR + CONTEÚDO PRINCIPAL (APPLE FORMAT) */}
-      <div className="flex-1 flex flex-col md:flex-row max-w-[1400px] w-full mx-auto px-4 sm:px-6 py-6 gap-6 items-start">
-        <nav aria-label="Navegação do portal" className="portal-mobile-nav md:hidden flex gap-2 overflow-x-auto pb-1">
-          {([
-            ['inicio', 'Início'],
-            ['perfil', 'Perfil'],
-            ['inscricao', 'Ficha'],
-            ['ficha-pdf', 'Ficha PDF'],
-            ['calendario', 'Agenda'],
-            ['documentos', 'Documentos'],
-            ['anuario', 'Elenco BRM'],
-            ['hospedagem', 'Hospedagem'],
-          ] as const).map(([section, label]) => (
-            <button
-              key={section}
-              type="button"
-              onClick={() => {
-                if (section === 'inscricao') {
-                  void openRegistration();
-                  return;
-                }
-                setActiveSection(section);
-              }}
-              className={`shrink-0 rounded-md border px-3.5 py-1.5 font-cinzel text-[11px] font-semibold tracking-wider uppercase transition-colors ${
-                activeSection === section
-                  ? 'border-[#226380] bg-[#226380] text-white'
-                  : 'border-[#d6d6d6] bg-white text-[#1d1d1f] dark:border-white/10 dark:bg-[#161617] dark:text-white'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </nav>
-        
-        {/* SIDEBAR APPLE */}
+      <div className="flex-1 flex flex-col md:flex-row max-w-[1400px] w-full mx-auto px-3 sm:px-6 pt-3 pb-28 md:py-6 gap-6 items-stretch md:items-start">
+        {/* SIDEBAR APPLE (DESKTOP) */}
         <aside className="portal-navigation w-64 shrink-0 hidden md:block space-y-8 rounded-2xl p-4 sticky top-24 self-start max-h-[calc(100vh-7rem)] overflow-y-auto">
           
           <div className="space-y-2">
@@ -1148,7 +1116,7 @@ export const PortalReligioso: React.FC = () => {
         </aside>
 
         {/* 3. CONTEÚDO PRINCIPAL (PÁGINA NORMAL) */}
-        <main className="flex-1 min-w-0 space-y-6">
+        <main className="w-full flex-1 min-w-0 space-y-6">
           {recoveryMode && (
             <form onSubmit={handlePasswordUpdate} className="rounded-[6px] border border-[#226380]/30 bg-white p-5 dark:bg-[#161617]">
               <label className="block text-sm font-medium text-[#1d1d1f] dark:text-white">
@@ -1371,7 +1339,7 @@ export const PortalReligioso: React.FC = () => {
         <div className="mx-auto grid max-w-lg grid-cols-4">
           {([
             { id: 'inicio', label: 'Início', icon: Home },
-            { id: 'inscricao', label: 'Meu cadastro', icon: FileText },
+            { id: 'inscricao', label: 'Cadastro BRM', icon: FileText },
             { id: 'calendario', label: 'Agenda', icon: Calendar },
           ] as const).map(item => {
             const Icon = item.icon;
