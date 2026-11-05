@@ -86,6 +86,8 @@ export const FUNCOES_PADRAO_BRM: string[] = [
   'Superior Provincial',
   'Secretário Provincial',
   'Ecônomo Provincial',
+  'Superior da Comunidade',
+  'Superior Local',
   'Pároco',
   'Pároco-Reitor',
   'Reitor',

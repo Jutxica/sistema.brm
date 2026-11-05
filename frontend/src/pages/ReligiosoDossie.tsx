@@ -803,15 +803,44 @@ export const ReligiosoDossie: React.FC = () => {
         local?: string;
         formador?: string;
         observacoes?: string;
+        isFaseAtual?: boolean;
+        anoTeologia?: number;
       }> = [];
+
+      const grauNorm = (religioso.grau || '').toLowerCase();
+      const isFraterOuDiacono = grauNorm.includes('frater') || grauNorm.includes('diác') || grauNorm.includes('diac');
+      const anoAtual = new Date().getFullYear();
 
       (canonicalData.formacao || []).forEach(f => {
         const pIni = f.data_ingresso ? extrairAno(f.data_ingresso) : '';
         const pFim = f.data_conclusao ? extrairAno(f.data_conclusao) : '';
-        const periodoStr = pIni && pFim ? (pIni === pFim ? pIni : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Concluído` : 'Período Formativo');
-        const anoNum = pIni && !Number.isNaN(Number(pIni)) ? Number(pIni) : 2000;
         const etapaNome = f.etapa || 'Formação Inicial';
         const isTirocinio = etapaNome.toLowerCase().includes('tirocín') || etapaNome.toLowerCase().includes('tirocin');
+        const isConfiguracao = etapaNome.toLowerCase().includes('configur');
+        const isConventinho = (f.instituicao || f.local || '').toLowerCase().includes('conventinho') ||
+                              (f.cidade || '').toLowerCase().includes('taubat') ||
+                              (religioso.comunidade_atual_nome || '').toLowerCase().includes('conventinho');
+
+        const anoIniNum = pIni && !Number.isNaN(Number(pIni)) ? Number(pIni) : anoAtual;
+        const anoNum = anoIniNum;
+
+        // Se for diácono ou fráter no Conventinho (fase da Configuração / 4 anos de Teologia)
+        const isConventinhoAtivo = isFraterOuDiacono && (isConfiguracao || isConventinho) && (!pFim || Number(pFim) >= anoAtual);
+
+        let periodoStr: string;
+        let anoTeologia: number | undefined;
+
+        if (isConventinhoAtivo) {
+          // No Conventinho são 4 anos de Teologia (fase da configuração)
+          anoTeologia = Math.max(1, Math.min(4, anoAtual - anoIniNum + 1));
+          periodoStr = `${anoIniNum} - Fase Atual (${anoTeologia}º Ano)`;
+        } else if (pIni && pFim) {
+          periodoStr = pIni === pFim ? pIni : `${pIni} - ${pFim}`;
+        } else if (pIni) {
+          periodoStr = `${pIni} - Concluído`;
+        } else {
+          periodoStr = 'Período Formativo';
+        }
 
         if (isTirocinio) {
           trabalhos.push({
@@ -821,7 +850,7 @@ export const ReligiosoDossie: React.FC = () => {
             faseGrau: 'Tirocínio',
             funcao: 'Tirocinante / Atuação Pastoral',
             local: [f.cidade, f.local].filter(Boolean).join(' • ') || 'Província BRM',
-            observacoes: [f.formador ? `Formador: ${f.formador}` : null, f.observacoes].filter(Boolean).join(' • ') || undefined,
+            observacoes: [f.formador ? `Superior da Comunidade: ${f.formador}` : (f.superior ? `Superior da Comunidade: ${f.superior}` : null), f.observacoes].filter(Boolean).join(' • ') || undefined,
             ordenacaoAno: anoNum
           });
         } else {
@@ -832,7 +861,9 @@ export const ReligiosoDossie: React.FC = () => {
             cidade: f.cidade || f.local || undefined,
             local: f.local || undefined,
             formador: f.formador || undefined,
-            observacoes: f.observacoes || undefined
+            observacoes: f.observacoes || undefined,
+            isFaseAtual: isConventinhoAtivo,
+            anoTeologia: anoTeologia,
           });
         }
       });
@@ -1444,15 +1475,31 @@ export const ReligiosoDossie: React.FC = () => {
               {etapasFormacaoInicial.map((f: any, idx: number) => {
                 const pIni = f.data_ingresso ? extrairAno(f.data_ingresso) : '';
                 const pFim = f.data_conclusao ? extrairAno(f.data_conclusao) : '';
-                const periodoStr = pIni && pFim ? (pIni === pFim ? pIni : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Concluído` : 'Formativo');
+                const etapaNome = f.etapa || 'Etapa';
+                const isConfiguracao = etapaNome.toLowerCase().includes('configur');
+                const isConventinho = (f.instituicao || f.local || '').toLowerCase().includes('conventinho') ||
+                                      (f.cidade || '').toLowerCase().includes('taubat') ||
+                                      (religioso?.comunidade_atual_nome || '').toLowerCase().includes('conventinho');
+                const grauNorm = (religioso?.grau || '').toLowerCase();
+                const isFraterOuDiacono = grauNorm.includes('frater') || grauNorm.includes('diác') || grauNorm.includes('diac');
+                const anoAtual = new Date().getFullYear();
+                const anoIniNum = pIni && !Number.isNaN(Number(pIni)) ? Number(pIni) : anoAtual;
+                const isConventinhoAtivo = isFraterOuDiacono && (isConfiguracao || isConventinho) && (!pFim || Number(pFim) >= anoAtual);
+                const anoTeologia = isConventinhoAtivo ? Math.max(1, Math.min(4, anoAtual - anoIniNum + 1)) : undefined;
+
+                const periodoStr = isConventinhoAtivo
+                  ? `${anoIniNum} - Fase Atual (${anoTeologia}º Ano)`
+                  : (pIni && pFim ? (pIni === pFim ? pIni : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Concluído` : 'Formativo'));
+
                 return (
-                  <div key={`form-card-${idx}`} className="border border-slate-300 p-1.5 bg-white shadow-xs flex flex-col justify-between">
+                  <div key={`form-card-${idx}`} className={`border p-1.5 shadow-xs flex flex-col justify-between ${isConventinhoAtivo ? 'border-sky-400 bg-sky-50/40' : 'border-slate-300 bg-white'}`}>
                     <div>
-                      <span className="inline-block px-1 py-0.5 font-mono text-[6pt] font-bold uppercase bg-sky-50 text-sky-800 border border-sky-200 rounded mb-0.5">
-                        {f.etapa || 'Etapa'}
+                      <span className={`inline-block px-1 py-0.5 font-mono text-[6pt] font-bold uppercase rounded mb-0.5 ${isConventinhoAtivo ? 'bg-sky-100 text-sky-900 border border-sky-300' : 'bg-sky-50 text-sky-800 border border-sky-200'}`}>
+                        {f.etapa || 'Etapa'} {isConventinhoAtivo ? '• Fase Atual' : ''}
                       </span>
-                      <p className="text-[7.5pt] font-bold text-slate-900 mt-0.5">{periodoStr}</p>
+                      <p className={`text-[7.5pt] font-bold mt-0.5 ${isConventinhoAtivo ? 'text-sky-900' : 'text-slate-900'}`}>{periodoStr}</p>
                       <p className="text-[6.5pt] font-semibold text-slate-800 line-clamp-1">{f.instituicao || f.local || 'Casa Formativa'}</p>
+                      {anoTeologia && <p className="text-[6pt] font-bold text-sky-700 mt-0.5">{anoTeologia}º Ano de Teologia</p>}
                     </div>
                     <div className="mt-1 border-t border-slate-100 pt-0.5 text-[6pt] text-slate-500">
                       <p className="truncate">{f.cidade || '—'}</p>
@@ -1499,7 +1546,7 @@ export const ReligiosoDossie: React.FC = () => {
                           </span>
                         </td>
                         <td className="text-[#226380] font-medium py-0.5">Tirocinante / Pastoral</td>
-                        <td className="text-slate-600 py-0.5">{[f.cidade, f.formador ? `Formador: ${f.formador}` : null].filter(Boolean).join(' • ') || 'Província BRM'}</td>
+                        <td className="text-slate-600 py-0.5">{[f.cidade, f.formador ? `Superior da Comunidade: ${f.formador}` : (f.superior ? `Superior da Comunidade: ${f.superior}` : null)].filter(Boolean).join(' • ') || 'Província BRM'}</td>
                       </tr>
                     );
                   })}
@@ -1622,17 +1669,17 @@ export const ReligiosoDossie: React.FC = () => {
           </div>
         </div>
 
-        {/* Assinaturas Institucionais */}
-        <div className="mt-6 pt-3 grid grid-cols-2 gap-12 text-center text-[7.5pt]">
-          <div>
-            <div className="border-t border-slate-900 mx-auto w-48 mb-1" />
-            <p className="font-semibold text-slate-900">Secretaria Provincial</p>
-            <p className="text-[6pt] text-slate-500">Assinatura e carimbo oficial</p>
+        {/* Assinaturas Institucionais com espaço amplo para caneta */}
+        <div className="mt-12 pt-6 grid grid-cols-2 gap-12 text-center text-[7.5pt]">
+          <div className="pt-8">
+            <div className="border-t border-slate-900 mx-auto w-52 mb-1.5" />
+            <p className="font-semibold text-slate-900">{atribuirNomeReligioso(religioso?.grau, religioso?.nome_civil) || religioso?.nome_religioso || religioso?.nome_civil}</p>
+            <p className="text-[6pt] text-slate-500 uppercase tracking-wider">Assinatura do Religioso</p>
           </div>
-          <div>
-            <div className="border-t border-slate-900 mx-auto w-48 mb-1" />
+          <div className="pt-8">
+            <div className="border-t border-slate-900 mx-auto w-52 mb-1.5" />
             <p className="font-semibold text-slate-900">Chancelaria · Arquivo Provincial</p>
-            <p className="text-[6pt] text-slate-500">Assinatura e carimbo oficial</p>
+            <p className="text-[6pt] text-slate-500 uppercase tracking-wider">Assinatura e carimbo oficial</p>
           </div>
         </div>
 

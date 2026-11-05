@@ -39,6 +39,8 @@ export interface EtapaFormacaoInicialFicha {
   local?: string;
   formador?: string;
   observacoes?: string;
+  isFaseAtual?: boolean;
+  anoTeologia?: number;
 }
 
 export interface TrabalhoTrajetoria {
@@ -902,6 +904,13 @@ export const gotenbergService = {
       ? dados.historicoTrabalhos.map(t => {
         const comNome = t.comunidade || (t.instituicao && !t.obra ? t.instituicao : 'Comunidade Provincial');
         const obraNome = t.obra || (t.instituicao && t.instituicao !== t.comunidade ? t.instituicao : '—');
+        const isTirocinio = (t.faseGrau || '').toLowerCase().includes('tiroc') || (t.funcao || '').toLowerCase().includes('tirocin');
+        
+        let obsFormatada = t.observacoes || '';
+        if (isTirocinio && obsFormatada) {
+          obsFormatada = obsFormatada.replace(/Formador:/gi, 'Superior da Comunidade:');
+        }
+
         return `
         <tr>
           <td style="font-family: monospace; font-weight: bold; white-space: nowrap; font-size: 7.8pt; color: #1e293b; padding: 4.5px 6px;">
@@ -921,7 +930,7 @@ export const gotenbergService = {
           </td>
           <td style="font-size: 7.2pt; color: #475569; padding: 4.5px 6px;">
             <div>${t.local || '—'}</div>
-            ${t.observacoes ? `<div style="font-size: 6.5pt; color: #64748b; font-style: italic; margin-top: 1px;">${t.observacoes}</div>` : ''}
+            ${obsFormatada ? `<div style="font-size: 6.5pt; color: #64748b; font-style: italic; margin-top: 1px;">${obsFormatada}</div>` : ''}
           </td>
         </tr>
       `;
@@ -977,17 +986,18 @@ export const gotenbergService = {
           </p>
           <div style="display: grid; grid-template-columns: repeat(${numColunasFormacao}, 1fr); gap: 5px; text-align: center;">
             ${etapasIniciais.map(e => `
-              <div style="border: 1pt solid #cbd5e1; padding: 4.5px 5px; background: #fff; border-radius: 3px; display: flex; flex-direction: column; justify-content: space-between;">
+              <div style="border: 1pt solid ${e.isFaseAtual ? '#0284c7' : '#cbd5e1'}; padding: 4.5px 5px; background: ${e.isFaseAtual ? '#f0f9ff' : '#fff'}; border-radius: 3px; display: flex; flex-direction: column; justify-content: space-between;">
                 <div>
-                  <span style="display: inline-block; padding: 1px 4px; font-family: monospace; font-size: 6.2pt; font-weight: bold; text-transform: uppercase; color: #0369a1; background: #e0f2fe; border-radius: 2px; margin-bottom: 2px;">
-                    ${e.etapa}
+                  <span style="display: inline-block; padding: 1px 4px; font-family: monospace; font-size: 6.2pt; font-weight: bold; text-transform: uppercase; color: #0369a1; background: #e0f2fe; border: ${e.isFaseAtual ? '1px solid #bae6fd' : 'none'}; border-radius: 2px; margin-bottom: 2px;">
+                    ${e.etapa} ${e.isFaseAtual ? '• FASE ATUAL' : ''}
                   </span>
-                  <div style="font-family: monospace; font-size: 7.2pt; font-weight: bold; color: #1e293b; margin: 1px 0;">
+                  <div style="font-family: monospace; font-size: 7.2pt; font-weight: bold; color: ${e.isFaseAtual ? '#0284c7' : '#1e293b'}; margin: 1px 0;">
                     ${e.periodo || '—'}
                   </div>
                   <div style="font-size: 7pt; font-weight: 600; color: #113240; line-height: 1.15; margin-bottom: 1px;">
                     ${e.instituicao || e.local || '—'}
                   </div>
+                  ${e.anoTeologia ? `<div style="font-size: 6.2pt; color: #0284c7; font-weight: bold; margin-top: 1px;">${e.anoTeologia}º Ano de Teologia</div>` : ''}
                 </div>
                 <div style="margin-top: 3px; border-top: 0.5pt dashed #cbd5e1; padding-top: 2px;">
                   <div style="font-size: 6.2pt; color: #64748b;">${e.cidade || '—'}</div>
@@ -1342,19 +1352,21 @@ export const gotenbergService = {
       </div>
 
       <!-- 10. Chancelaria Provincial, Assinaturas Canônicas & Fé Pública Notarial -->
-      <div style="margin-top: 14px; page-break-inside: avoid;">
-        <div style="display: flex; justify-content: space-around; text-align: center; font-size: 8.5pt; margin-bottom: 12px;">
-          <div style="width: 42%; border-top: 1px solid #113240; padding-top: 4px;">
-            <strong>${nomeExibido}</strong><br>
-            <span style="font-size: 7pt; color: #64748b;">Assinatura do Religioso</span>
+      <div style="margin-top: 48px; page-break-inside: avoid;">
+        <div style="display: flex; justify-content: space-around; text-align: center; font-size: 8.5pt; margin-bottom: 24px;">
+          <div style="width: 44%; padding-top: 40px; position: relative;">
+            <div style="border-top: 1.2pt solid #113240; width: 100%; margin-bottom: 5px;"></div>
+            <strong style="color: #113240; font-size: 8.5pt;">${nomeExibido}</strong><br>
+            <span style="font-size: 7pt; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Assinatura do Religioso</span>
           </div>
-          <div style="width: 42%; border-top: 1px solid #113240; padding-top: 4px;">
-            <strong>Chancelaria Provincial • Província BRM</strong><br>
-            <span style="font-size: 7pt; color: #64748b;">Arquivo Canônico & Secretaria</span>
+          <div style="width: 44%; padding-top: 40px; position: relative;">
+            <div style="border-top: 1.2pt solid #113240; width: 100%; margin-bottom: 5px;"></div>
+            <strong style="color: #113240; font-size: 8.5pt;">Chancelaria Provincial • Província BRM</strong><br>
+            <span style="font-size: 7pt; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Arquivo Canônico & Secretaria</span>
           </div>
         </div>
 
-        <div style="border: 1pt dashed #cbd5e1; background: #f8fafc; padding: 6px 10px; font-size: 7.5pt; color: #475569; display: flex; justify-content: space-between; align-items: center; border-radius: 4px;">
+        <div style="border: 1pt dashed #cbd5e1; background: #f8fafc; padding: 7px 12px; font-size: 7.5pt; color: #475569; display: flex; justify-content: space-between; align-items: center; border-radius: 4px;">
           <div>
             <strong style="color: #113240; font-size: 7.8pt;">Certificação Notarial de Autenticidade Digital</strong><br>
             <span>Dossiê canônico registrado no arquivo geral da Província Brasileira Meridional (SCJ).</span><br>
@@ -1362,7 +1374,7 @@ export const gotenbergService = {
           </div>
           <div style="text-align: right; font-family: monospace; font-size: 7.5pt;">
             <span style="display: block; color: #64748b;">CÓDIGO DE VERIFICAÇÃO</span>
-            <strong style="color: #113240; font-size: 8.5pt;">${codigoAutenticidade}</strong>
+            <strong style="color: #113240; font-size: 9pt; letter-spacing: 0.05em;">${codigoAutenticidade}</strong>
           </div>
         </div>
       </div>

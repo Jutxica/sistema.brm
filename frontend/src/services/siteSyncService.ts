@@ -286,20 +286,24 @@ export const siteSyncService = {
       throw new Error(`Religioso não encontrado: ${relError?.message || 'ID inválido'}`);
     }
 
-    // 2. Busca sacramentos, votos e ordens
+    // 2. Busca sacramentos, votos, ordens e designações canônicas
     const [
       { data: votosData },
       { data: ordensData },
       { data: docsData },
+      { data: desigData },
     ] = await Promise.all([
       supabase.from('religiosos_profissoes_votos').select('*').eq('religioso_id', religiosoId).order('data', { ascending: true }),
       supabase.from('religiosos_ordens').select('*').eq('religioso_id', religiosoId).order('data', { ascending: true }),
       supabase.from('religiosos_documentos').select('*').eq('religioso_id', religiosoId).eq('status', 'Ativo'),
+      supabase.from('religiosos_designacoes').select('funcao, tipo_vinculo, ano_referencia, vigencia_inicio, comunidades(nome)').eq('religioso_id', religiosoId).order('vigencia_inicio', { ascending: false }).limit(1),
     ]);
 
     const votos = votosData || [];
     const ordens = ordensData || [];
     const documentos = docsData || [];
+    const desigAtiva = (desigData || [])[0];
+    const funcaoDesignada = desigAtiva?.funcao || null;
 
     // 3. Determina a foto oficial (perfil 4x4)
     let fotoUrl: string | null = null;
@@ -339,8 +343,22 @@ export const siteSyncService = {
     }
 
     // 6. Determina comunidade e cargo
-    const comunidadeNome = rel.comunidade_atual?.nome || rel.obra_atual?.nome || 'Província BRM';
-    const cargoNome = rel.cargo || (categoria === 'padres' ? 'Sacerdote Dehoniano' : categoria === 'fratres' ? 'Frater Dehoniano' : 'Religioso Dehoniano');
+    const comObj = desigAtiva?.comunidades;
+    const comDesignada = Array.isArray(comObj) ? (comObj[0] as any)?.nome : (comObj as any)?.nome;
+    const comunidadeNome = comDesignada || rel.comunidade_atual?.nome || rel.obra_atual?.nome || 'Província BRM';
+
+    // Se cadastrado ou designado como Superior de comunidade, garante identificação no perfil público
+    const isSuperior = (funcaoDesignada || '').toLowerCase().includes('superior') ||
+                       (rel.cargo || '').toLowerCase().includes('superior') ||
+                       (rel.oficio_atual || '').toLowerCase().includes('superior');
+
+    let cargoNome = funcaoDesignada || rel.cargo;
+    if (isSuperior && (!cargoNome || !cargoNome.toLowerCase().includes('superior'))) {
+      cargoNome = 'Superior da Comunidade';
+    }
+    if (!cargoNome) {
+      cargoNome = categoria === 'padres' ? 'Sacerdote Dehoniano' : categoria === 'fratres' ? 'Frater Dehoniano' : 'Religioso Dehoniano';
+    }
 
     // 7. Determina cidade
     const cidadeFormatada = rel.municipio_nascimento && rel.estado_nascimento 
@@ -369,7 +387,7 @@ export const siteSyncService = {
       comunidade: comunidadeNome,
       cidade: cidadeFormatada,
       categoria,
-      subcategoria: null,
+      subcategoria: isSuperior ? 'Superior da Comunidade' : null,
       nascimento: this.formatDateBr(rel.data_nascimento),
       profissao: this.formatDateBr(primVotos?.data),
       primeiraProfissao: this.formatDateBr(primVotos?.data),

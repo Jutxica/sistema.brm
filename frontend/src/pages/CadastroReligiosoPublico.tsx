@@ -257,7 +257,7 @@ const defaultFieldPlaceholders: Record<string, string> = {
   estado: 'Ex.: SC, PR, SP',
   idioma: 'Ex.: Italiano, Francês, Inglês, Espanhol, Alemão, Latim',
   competencia: 'Ex.: Eletricista predial, Marcenaria, Edição de vídeo...',
-  funcao: 'Ex.: Vigário Paroquial, Diretor Espiritual, Formador, Pároco',
+  funcao: 'Ex.: Superior da Comunidade, Pároco, Vigário Paroquial, Diretor Espiritual, Formador',
   servico_tipo: 'Selecione o tipo de serviço...',
   documento: 'Ex.: Decreto de Provisão nº 12/2024',
   observacao: 'Observações adicionais sobre o serviço ou missão',
@@ -2804,7 +2804,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               }}
               placeholders={{
                 instituicao: 'Ex.: Paróquia São Judas Tadeu',
-                funcao: 'Ex.: Vigário Paroquial',
+                funcao: 'Ex.: Superior da Comunidade, Pároco, Vigário',
                 cidade: 'Ex.: Curitiba',
                 local: 'Ex.: Hauer',
               }}
