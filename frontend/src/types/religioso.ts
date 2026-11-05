@@ -16,8 +16,11 @@ export type SituacaoElenco =
 export type FaseLema =
   | 'Primeira Profissão'
   | 'Votos Perpétuos'
+  | 'Ordenação Diaconal'
   | 'Ordenação Presbiteral'
-  | 'Ordenação Episcopal';
+  | 'Ordenação Episcopal'
+  | 'Jubileu de Vida Religiosa / Sacerdócio'
+  | 'Outro Lema Vocacional';
 
 export interface LemaReligioso {
   id: string;
