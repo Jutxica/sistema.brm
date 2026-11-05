@@ -60,14 +60,14 @@ export const ReligiososAdmin: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'fichas' | 'contas'>('fichas');
   const [accountDialog, setAccountDialog] = useState<AccountDialog | null>(null);
   const [accountActionLoading, setAccountActionLoading] = useState(false);
-  const [filtroAuditoria, setFiltroAuditoria] = useState<'todos' | 'sem_foto' | 'sem_docs' | 'pendente_revisao' | 'pendente_site' | 'publicado_site'>('todos');
+  const [filtroAuditoria, setFiltroAuditoria] = useState<'todos' | 'configuracao' | 'tirocinio' | 'sem_foto' | 'sem_docs' | 'pendente_revisao' | 'pendente_site' | 'publicado_site'>('todos');
 
   const load = async () => {
     setLoading(true);
     const [religiososResult, accountsResult, docsResult] = await Promise.all([
       supabase
         .from('religiosos')
-        .select('id,numero_cadastro,nome_civil,nome_religioso,nome_elenco,cadastro_elenco_provisorio,grau,status,status_cadastro,origem_cadastro,email_institucional,telefone_celular,created_at,auth_user_id,foto_path,publicado_site_em,publicado_site_id')
+        .select('id,numero_cadastro,nome_civil,nome_religioso,nome_elenco,cadastro_elenco_provisorio,grau,status,status_cadastro,origem_cadastro,email_institucional,telefone_celular,etapa_formativa_atual,ano_configuracao,ano_referencia_etapa,created_at,auth_user_id,foto_path,publicado_site_em,publicado_site_id')
         .order('nome_elenco', { ascending: true, nullsFirst: false })
         .order('nome_civil', { ascending: true }),
       supabase.functions.invoke<{ accounts: ContaAcesso[] }>('secretaria-contas', { body: { action: 'list' } }),
@@ -128,6 +128,8 @@ export const ReligiososAdmin: React.FC = () => {
 
   const auditCounts = useMemo(() => ({
     todos: items.length,
+    configuracao: items.filter(i => i.etapa_formativa_atual === 'Configuração (Teologia)').length,
+    tirocinio: items.filter(i => i.etapa_formativa_atual === 'Tirocínio').length,
     sem_foto: items.filter(i => !i.foto_path).length,
     sem_docs: items.filter(i => !i.has_documents).length,
     pendente_revisao: items.filter(i => ['Em revisão', 'Em verificação', 'Aguardando complementação'].includes(i.status_cadastro)).length,
@@ -138,7 +140,9 @@ export const ReligiososAdmin: React.FC = () => {
   const filtered = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase();
     return items.filter(item => {
-      // Filtro de Auditoria da Secretaria
+      // Filtros de Auditoria e Segmentação Formativa
+      if (filtroAuditoria === 'configuracao' && item.etapa_formativa_atual !== 'Configuração (Teologia)') return false;
+      if (filtroAuditoria === 'tirocinio' && item.etapa_formativa_atual !== 'Tirocínio') return false;
       if (filtroAuditoria === 'sem_foto' && item.foto_path) return false;
       if (filtroAuditoria === 'sem_docs' && item.has_documents) return false;
       if (filtroAuditoria === 'pendente_revisao' && !['Em revisão', 'Em verificação', 'Aguardando complementação'].includes(item.status_cadastro)) return false;
@@ -151,6 +155,8 @@ export const ReligiososAdmin: React.FC = () => {
         item.nome_civil || '',
         item.nome_religioso || '',
         item.grau || '',
+        item.etapa_formativa_atual || '',
+        item.ano_configuracao ? `${item.ano_configuracao} ano` : '',
         item.email_institucional || '',
         item.status_cadastro || '',
       ].join(' ').toLocaleLowerCase().includes(normalized);
@@ -387,6 +393,8 @@ export const ReligiososAdmin: React.FC = () => {
                 className="appearance-none rounded-md border border-slate-200 bg-slate-50 py-1.5 pl-3 pr-8 text-xs font-semibold text-slate-800 outline-none transition hover:bg-slate-100 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 cursor-pointer"
               >
                 <option value="todos">Todos os cadastros ({auditCounts.todos})</option>
+                <option value="configuracao">🎓 Configuração / Teologia ({auditCounts.configuracao})</option>
+                <option value="tirocinio">🌱 Tirocinantes ({auditCounts.tirocinio})</option>
                 <option value="sem_foto">📷 Sem Foto 4x4 ({auditCounts.sem_foto})</option>
                 <option value="sem_docs">📄 Sem Documentos ({auditCounts.sem_docs})</option>
                 <option value="pendente_revisao">⏳ Em Revisão ({auditCounts.pendente_revisao})</option>
@@ -426,7 +434,14 @@ export const ReligiososAdmin: React.FC = () => {
                           <span className="flex h-8 w-8 shrink-0 items-center justify-center border border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-white/5 dark:text-slate-300"><UserRound className="h-4 w-4" /></span>
                           <div>
                             <p className="font-semibold text-slate-900 dark:text-white">{nomeExibido(item)}</p>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400">{item.grau || 'Grau pendente'} · {item.nome_civil || 'Nome civil pendente'}</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                              {item.grau || 'Grau pendente'}
+                              {item.etapa_formativa_atual ? (
+                                item.etapa_formativa_atual === 'Configuração (Teologia)'
+                                  ? ` · ${item.ano_configuracao ? `${item.ano_configuracao}º Ano ` : ''}Configuração`
+                                  : ' · Tirocinante'
+                              ) : ''} · {item.nome_civil || 'Nome civil pendente'}
+                            </p>
                             <div className="mt-1 flex flex-wrap items-center gap-1.5">
                               <span className="font-mono text-[10px] font-medium tracking-wide text-[#226380] dark:text-[#A3C3C7] mr-1">
                                 BRM-{new Date(item.created_at).getFullYear()}-{String(item.numero_cadastro).padStart(6, '0')}

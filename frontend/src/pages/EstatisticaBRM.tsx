@@ -31,27 +31,42 @@ interface RawFormacao {
 }
 
 // Canonical categorization helper
-function categorizeGrau(grauRaw: string, etapaFormacao?: string, comunidadeNome?: string): string {
+function categorizeGrau(
+  grauRaw: string,
+  etapaFormacao?: string,
+  comunidadeNome?: string,
+  etapaFormativaAtual?: string | null,
+  anoConfiguracao?: number | string | null
+): string {
   const g = (grauRaw || '').trim().toLowerCase();
   const e = (etapaFormacao || '').trim().toLowerCase();
   const c = (comunidadeNome || '').trim().toLowerCase();
+  const ef = (etapaFormativaAtual || '').trim().toLowerCase();
 
   if (g.includes('bispo')) return 'Bispo';
   if (g.includes('padre') || g.includes('presbítero')) return 'Padre';
   if (g.includes('diácono') || g.includes('diacono')) return 'Diácono Transitório';
   if (g.includes('irmão') || g.includes('irmao')) return 'Irmão';
 
-  if (g.includes('tirocinante') || e.includes('tirocínio') || e.includes('tirocinio')) {
+  // Se explicitamente cadastrado como Tirocínio
+  if (ef.includes('tirocín') || ef.includes('tirocin') || g.includes('tirocinante') || e.includes('tirocín') || e.includes('tirocin')) {
     return 'Frater (Tirocinante)';
   }
-  if (g.includes('configuração') || g.includes('configuracao') || g.includes('teologia') || e.includes('teologia')) {
-    return 'Frater (Configuração)';
+
+  // Se explicitamente cadastrado como Configuração
+  if (ef.includes('configur') || ef.includes('teologia') || g.includes('configuração') || g.includes('configuracao') || g.includes('teologia') || e.includes('teologia')) {
+    const ano = anoConfiguracao ? `${anoConfiguracao}º Ano` : '';
+    return ano ? `Frater (Configuração - ${ano})` : 'Frater (Configuração)';
   }
+
+  // Se for Frater, deduz pela comunidade
   if (g.includes('frater')) {
-    if (e.includes('teologia')) {
-      return 'Frater (Configuração)';
+    const isConventinho = c.includes('conventinho') || c.includes('taubat');
+    if (isConventinho) {
+      const ano = anoConfiguracao ? `${anoConfiguracao}º Ano` : '';
+      return ano ? `Frater (Configuração - ${ano})` : 'Frater (Configuração)';
     }
-    return 'Frater (Configuração)';
+    return 'Frater (Tirocinante)';
   }
 
   return grauRaw || 'Outro';
@@ -83,7 +98,7 @@ export const EstatisticaBRM: React.FC = () => {
     setLoading(true);
     try {
       const [religiososRes, ordensRes, votosRes, saudeRes, formacoesRes] = await Promise.all([
-        supabase.from('religiosos').select('id, grau, nome_civil, nome_religioso, data_nascimento, comunidade_atual_nome, obra_atual_id, status, status_cadastro, estado_nascimento, municipio_nascimento, created_at'),
+        supabase.from('religiosos').select('id, grau, nome_civil, nome_religioso, data_nascimento, comunidade_atual_nome, obra_atual_id, etapa_formativa_atual, ano_configuracao, ano_referencia_etapa, status, status_cadastro, estado_nascimento, municipio_nascimento, created_at'),
         supabase.from('religiosos_ministerios_ordens').select('*'),
         supabase.from('religiosos_profissoes_votos').select('*'),
         supabase.from('religiosos_saude').select('id, religioso_id, plano_saude, tipo_sanguineo, medicamentos_continuos'),
@@ -137,7 +152,7 @@ export const EstatisticaBRM: React.FC = () => {
   const enrichedList = useMemo(() => {
     return religiosos.map(item => {
       const etapa = formacoesMap.get(item.id);
-      const canonicalGrau = categorizeGrau(item.grau, etapa, item.comunidade_atual_nome || undefined);
+      const canonicalGrau = categorizeGrau(item.grau, etapa, item.comunidade_atual_nome || undefined, item.etapa_formativa_atual, item.ano_configuracao);
       const age = calculateAge(item.data_nascimento);
       const isCasaSaoJoao = (item.comunidade_atual_nome || '').toLowerCase().includes('são joão') || 
                             (item.comunidade_atual_nome || '').toLowerCase().includes('sao joao') ||
@@ -177,8 +192,8 @@ export const EstatisticaBRM: React.FC = () => {
   const totalGeral = enrichedList.length;
   const totalPadres = enrichedList.filter(r => r.canonicalGrau === 'Padre').length;
   const totalDiaconos = enrichedList.filter(r => r.canonicalGrau === 'Diácono Transitório').length;
-  const totalFratresConfig = enrichedList.filter(r => r.canonicalGrau === 'Frater (Configuração)').length;
-  const totalFratresTiroc = enrichedList.filter(r => r.canonicalGrau === 'Frater (Tirocinante)').length;
+  const totalFratresConfig = enrichedList.filter(r => r.canonicalGrau.includes('Configuração')).length;
+  const totalFratresTiroc = enrichedList.filter(r => r.canonicalGrau.includes('Tirocinante')).length;
   const totalIrmaos = enrichedList.filter(r => r.canonicalGrau === 'Irmão').length;
   const totalBispos = enrichedList.filter(r => r.canonicalGrau === 'Bispo').length;
   const totalCasaSaoJoao = enrichedList.filter(r => r.isCasaSaoJoao).length;
@@ -706,6 +721,17 @@ export const EstatisticaBRM: React.FC = () => {
                 </h3>
                 <span className="font-serif text-base font-bold text-[#113240] dark:text-white tabular-nums">
                   {totalFratresConfig} <span className="font-sans text-xs font-normal text-slate-500">fratres</span>
+                </span>
+              </div>
+            </div>
+
+            <div className="border-l-2 border-amber-600/80 dark:border-amber-400/60 pl-4 py-2">
+              <div className="flex items-center justify-between">
+                <h3 className="font-cinzel text-xs font-bold tracking-wide text-[#113240] dark:text-white uppercase">
+                  Etapa do Tirocínio
+                </h3>
+                <span className="font-serif text-base font-bold text-[#113240] dark:text-white tabular-nums">
+                  {totalFratresTiroc} <span className="font-sans text-xs font-normal text-slate-500">tirocinantes</span>
                 </span>
               </div>
             </div>

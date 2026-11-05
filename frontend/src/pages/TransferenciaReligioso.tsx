@@ -87,7 +87,7 @@ export const TransferenciaReligioso: React.FC = () => {
       ] = await Promise.all([
         supabase
           .from('religiosos')
-          .select('id, auth_user_id, nome_civil, nome_religioso, nome_elenco, grau, status, situacao_elenco, comunidade_atual_id, comunidade_atual_nome, obra_atual_id, obra_atual_nome, foto_url')
+          .select('id, auth_user_id, nome_civil, nome_religioso, nome_elenco, grau, etapa_formativa_atual, ano_configuracao, ano_referencia_etapa, status, situacao_elenco, comunidade_atual_id, comunidade_atual_nome, obra_atual_id, obra_atual_nome, foto_url')
           .order('nome_civil'),
         supabase
           .from('comunidades')
@@ -363,14 +363,25 @@ export const TransferenciaReligioso: React.FC = () => {
         }
 
         // Atualizar tabela public.religiosos (Elenco e Dossiê)
+        const updateRelPayload: Record<string, any> = {
+          comunidade_atual_id: effectiveNovaComunidadeId || null,
+          comunidade_atual_nome: comNome,
+          obra_atual_id: finalObraId,
+          obra_atual_nome: obrNome,
+        };
+
+        // Se for Frater, auto-deduz ou atualiza etapa formativa conforme o destino
+        if (religiosoSelecionado?.grau === 'Frater') {
+          if (comNome.toLowerCase().includes('conventinho')) {
+            updateRelPayload.etapa_formativa_atual = 'Configuração (Teologia)';
+          } else {
+            updateRelPayload.etapa_formativa_atual = 'Tirocínio';
+          }
+        }
+
         const { error: upRelErr } = await supabase
           .from('religiosos')
-          .update({
-            comunidade_atual_id: effectiveNovaComunidadeId || null,
-            comunidade_atual_nome: comNome,
-            obra_atual_id: finalObraId,
-            obra_atual_nome: obrNome,
-          })
+          .update(updateRelPayload)
           .eq('id', selectedReligiosoId);
         if (upRelErr) throw upRelErr;
 
@@ -625,9 +636,14 @@ export const TransferenciaReligioso: React.FC = () => {
                     <option value="">-- Escolha um confrade ({religiosos.length} cadastrados) --</option>
                     {religiososFiltradosParaSelecao.map(rel => {
                       const nomeCanonical = atribuirNomeReligioso(rel.grau, rel.nome_civil) || rel.nome_civil;
+                      const etapaStr = rel.grau === 'Frater'
+                        ? ((rel.etapa_formativa_atual?.toLowerCase().includes('tiroc') || (!rel.etapa_formativa_atual && rel.comunidade_atual_nome && !rel.comunidade_atual_nome.toLowerCase().includes('conventinho')))
+                            ? ' • Tirocinante'
+                            : (rel.ano_configuracao ? ` • ${rel.ano_configuracao}º Ano Teologia` : ' • Configuração'))
+                        : '';
                       return (
                         <option key={rel.id} value={rel.id}>
-                          {nomeCanonical} ({rel.grau || 'Confrade'}) — {formatarComunidadeReligiosa(rel.comunidade_atual_nome) || 'Província BRM'}
+                          {nomeCanonical} ({rel.grau || 'Confrade'}{etapaStr}) — {formatarComunidadeReligiosa(rel.comunidade_atual_nome) || 'Província BRM'}
                         </option>
                       );
                     })}
@@ -647,9 +663,22 @@ export const TransferenciaReligioso: React.FC = () => {
                           <p className="text-[11px] text-slate-500 dark:text-slate-400">
                             Nome civil: {religiosoSelecionado.nome_civil}
                           </p>
-                          <span className="inline-block mt-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-                            {religiosoSelecionado.situacao_elenco || 'Ativo no Elenco'}
-                          </span>
+                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                              {religiosoSelecionado.situacao_elenco || 'Ativo no Elenco'}
+                            </span>
+                            {religiosoSelecionado.grau === 'Frater' && (
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
+                                (religiosoSelecionado.etapa_formativa_atual?.toLowerCase().includes('tiroc') || (!religiosoSelecionado.etapa_formativa_atual && religiosoSelecionado.comunidade_atual_nome && !religiosoSelecionado.comunidade_atual_nome.toLowerCase().includes('conventinho')))
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+                                  : 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800'
+                              }`}>
+                                {(religiosoSelecionado.etapa_formativa_atual?.toLowerCase().includes('tiroc') || (!religiosoSelecionado.etapa_formativa_atual && religiosoSelecionado.comunidade_atual_nome && !religiosoSelecionado.comunidade_atual_nome.toLowerCase().includes('conventinho')))
+                                  ? 'Tirocinante'
+                                  : (religiosoSelecionado.ano_configuracao ? `${religiosoSelecionado.ano_configuracao}º Ano Teologia` : 'Configuração')}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 

@@ -33,6 +33,9 @@ export interface DossierFolder {
   nome_religioso: string | null;
   nome_elenco: string | null;
   grau: string | null;
+  etapa_formativa_atual?: string | null;
+  ano_configuracao?: number | string | null;
+  ano_referencia_etapa?: number | string | null;
   status_cadastro: string;
   numero_cadastro: number | null;
   created_at: string;
@@ -43,7 +46,7 @@ export interface DossierFolder {
   total_documentos?: number;
 }
 
-type CategoriaFiltro = 'all' | 'fratres' | 'padres' | 'diaconos' | 'bispos' | 'em_revisao' | 'aprovados';
+type CategoriaFiltro = 'all' | 'configuracao' | 'tirocinio' | 'padres' | 'diaconos' | 'bispos' | 'em_revisao' | 'aprovados';
 type ModoVisualizacao = 'grid' | 'table';
 type Ordenacao = 'numero_asc' | 'numero_desc' | 'nome_asc' | 'comunidade_asc' | 'recentes' | 'status';
 
@@ -110,7 +113,7 @@ export const ReligiososDossies: React.FC = () => {
       const [{ data: relData, error: relErr }, { data: secDocsData }, { data: relDocsData }] = await Promise.all([
         supabase
           .from('religiosos')
-          .select('id,nome_civil,nome_religioso,nome_elenco,grau,status_cadastro,numero_cadastro,created_at,comunidade_atual_nome,obra_atual_nome,foto_url,situacao_elenco')
+          .select('id,nome_civil,nome_religioso,nome_elenco,grau,etapa_formativa_atual,ano_configuracao,ano_referencia_etapa,status_cadastro,numero_cadastro,created_at,comunidade_atual_nome,obra_atual_nome,foto_url,situacao_elenco')
           .order('numero_cadastro', { ascending: true }),
         supabase
           .from('secretaria_dossie_documentos')
@@ -142,6 +145,9 @@ export const ReligiososDossies: React.FC = () => {
         nome_religioso: r.nome_religioso,
         nome_elenco: r.nome_elenco,
         grau: r.grau,
+        etapa_formativa_atual: r.etapa_formativa_atual,
+        ano_configuracao: r.ano_configuracao,
+        ano_referencia_etapa: r.ano_referencia_etapa,
         status_cadastro: r.status_cadastro || 'Em revisão',
         numero_cadastro: r.numero_cadastro,
         created_at: r.created_at,
@@ -168,6 +174,8 @@ export const ReligiososDossies: React.FC = () => {
 
   // Contagens para os cards de pastas do Nextcloud
   const statsCategorias = useMemo(() => {
+    let configuracao = 0;
+    let tirocinio = 0;
     let fratres = 0;
     let padres = 0;
     let diaconos = 0;
@@ -178,7 +186,17 @@ export const ReligiososDossies: React.FC = () => {
 
     folders.forEach(f => {
       const grau = (f.grau || '').toLowerCase();
-      if (grau.includes('frater')) fratres++;
+      const etapa = (f.etapa_formativa_atual || '').toLowerCase();
+      const com = (f.comunidade_atual_nome || '').toLowerCase();
+
+      if (grau.includes('frater')) {
+        fratres++;
+        if (etapa.includes('tiroc') || (!etapa && com && !com.includes('conventinho'))) {
+          tirocinio++;
+        } else {
+          configuracao++;
+        }
+      }
       else if (grau.includes('bispo') || grau.includes('dom')) bispos++;
       else if (grau.includes('diác') || grau.includes('diac')) diaconos++;
       else if (grau.includes('padre') || grau.includes('presb') || grau.includes('pe.')) padres++;
@@ -192,6 +210,8 @@ export const ReligiososDossies: React.FC = () => {
 
     return {
       total: folders.length,
+      configuracao,
+      tirocinio,
       fratres,
       padres,
       diaconos,
@@ -207,8 +227,22 @@ export const ReligiososDossies: React.FC = () => {
     let list = folders;
 
     // Filtro por pasta / categoria
-    if (categoriaAtiva === 'fratres') {
-      list = list.filter(f => (f.grau || '').toLowerCase().includes('frater'));
+    if (categoriaAtiva === 'configuracao') {
+      list = list.filter(f => {
+        const g = (f.grau || '').toLowerCase();
+        if (!g.includes('frater')) return false;
+        const e = (f.etapa_formativa_atual || '').toLowerCase();
+        const c = (f.comunidade_atual_nome || '').toLowerCase();
+        return e.includes('configura') || (!e && (!c || c.includes('conventinho')));
+      });
+    } else if (categoriaAtiva === 'tirocinio') {
+      list = list.filter(f => {
+        const g = (f.grau || '').toLowerCase();
+        if (!g.includes('frater')) return false;
+        const e = (f.etapa_formativa_atual || '').toLowerCase();
+        const c = (f.comunidade_atual_nome || '').toLowerCase();
+        return e.includes('tiroc') || (!e && c && !c.includes('conventinho'));
+      });
     } else if (categoriaAtiva === 'padres') {
       list = list.filter(f => {
         const g = (f.grau || '').toLowerCase();
@@ -241,6 +275,9 @@ export const ReligiososDossies: React.FC = () => {
         const grau = (f.grau || '').toLowerCase();
         const com = (f.comunidade_atual_nome || '').toLowerCase();
         const status = (f.status_cadastro || '').toLowerCase();
+        const etapa = (f.etapa_formativa_atual || '').toLowerCase();
+        const anoCfg = f.ano_configuracao ? `${f.ano_configuracao} ano` : '';
+        const isTiroc = etapa.includes('tiroc') || (!etapa && com && !com.includes('conventinho'));
 
         return (
           reg.includes(term) ||
@@ -249,7 +286,10 @@ export const ReligiososDossies: React.FC = () => {
           elenco.includes(term) ||
           grau.includes(term) ||
           com.includes(term) ||
-          status.includes(term)
+          status.includes(term) ||
+          etapa.includes(term) ||
+          anoCfg.includes(term) ||
+          (isTiroc && 'tirocínio'.includes(term))
         );
       });
     }
@@ -282,7 +322,8 @@ export const ReligiososDossies: React.FC = () => {
 
   const nomeCategoriaAtual = useMemo(() => {
     switch (categoriaAtiva) {
-      case 'fratres': return 'Fratres & Estudantes';
+      case 'configuracao': return 'Fratres na Configuração (Teologia)';
+      case 'tirocinio': return 'Fratres no Tirocínio';
       case 'padres': return 'Padres & Presbíteros';
       case 'diaconos': return 'Diáconos';
       case 'bispos': return 'Bispos & Prelados';
@@ -409,19 +450,37 @@ export const ReligiososDossies: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => setCategoriaAtiva('fratres')}
+          onClick={() => setCategoriaAtiva('configuracao')}
           className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
-            categoriaAtiva === 'fratres'
+            categoriaAtiva === 'configuracao'
               ? 'bg-[#113240] text-white shadow-sm dark:bg-[#226380]'
               : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-[#161b22] dark:text-slate-300 dark:hover:bg-slate-800'
           }`}
         >
           <FolderClosed className="h-3.5 w-3.5" />
-          <span>Fratres & Estudantes</span>
+          <span>Configuração (Teologia)</span>
           <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-            categoriaAtiva === 'fratres' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+            categoriaAtiva === 'configuracao' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
           }`}>
-            {statsCategorias.fratres}
+            {statsCategorias.configuracao}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setCategoriaAtiva('tirocinio')}
+          className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
+            categoriaAtiva === 'tirocinio'
+              ? 'bg-[#113240] text-white shadow-sm dark:bg-[#226380]'
+              : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-[#161b22] dark:text-slate-300 dark:hover:bg-slate-800'
+          }`}
+        >
+          <FolderClosed className="h-3.5 w-3.5" />
+          <span>Tirocinantes</span>
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+            categoriaAtiva === 'tirocinio' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+          }`}>
+            {statsCategorias.tirocinio}
           </span>
         </button>
 
@@ -526,24 +585,44 @@ export const ReligiososDossies: React.FC = () => {
             <span className="text-[11px] text-slate-400">Clique para abrir a coleção</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {/* Fratres */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+            {/* Configuração (Teologia) */}
             <button
               type="button"
-              onClick={() => setCategoriaAtiva('fratres')}
+              onClick={() => setCategoriaAtiva('configuracao')}
               className="group flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-3.5 text-left transition hover:border-[#226380] hover:shadow-md dark:border-slate-800 dark:bg-[#161b22] dark:hover:border-[#A3C3C7]"
             >
               <div className="flex items-center justify-between">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#226380]/10 text-[#226380] transition group-hover:scale-105 group-hover:bg-[#113240] group-hover:text-white dark:bg-[#A3C3C7]/15 dark:text-[#A3C3C7] dark:group-hover:bg-[#226380]">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 transition group-hover:scale-105 group-hover:bg-indigo-600 group-hover:text-white dark:bg-indigo-950/30 dark:text-indigo-400">
                   <FolderClosed className="h-5 w-5" />
                 </div>
                 <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                  {statsCategorias.fratres}
+                  {statsCategorias.configuracao}
                 </span>
               </div>
               <div className="mt-3">
-                <p className="truncate text-xs font-bold text-slate-900 dark:text-white">Fratres</p>
-                <p className="text-[10px] text-slate-500">Estudantes SCJ</p>
+                <p className="truncate text-xs font-bold text-slate-900 dark:text-white">Configuração</p>
+                <p className="text-[10px] text-slate-500">Teologia SCJ</p>
+              </div>
+            </button>
+
+            {/* Tirocinantes */}
+            <button
+              type="button"
+              onClick={() => setCategoriaAtiva('tirocinio')}
+              className="group flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-3.5 text-left transition hover:border-[#226380] hover:shadow-md dark:border-slate-800 dark:bg-[#161b22] dark:hover:border-[#A3C3C7]"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-700 transition group-hover:scale-105 group-hover:bg-amber-600 group-hover:text-white dark:bg-amber-950/30 dark:text-amber-400">
+                  <FolderClosed className="h-5 w-5" />
+                </div>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                  {statsCategorias.tirocinio}
+                </span>
+              </div>
+              <div className="mt-3">
+                <p className="truncate text-xs font-bold text-slate-900 dark:text-white">Tirocinantes</p>
+                <p className="text-[10px] text-slate-500">Etapa Tirocínio</p>
               </div>
             </button>
 
@@ -818,6 +897,17 @@ export const ReligiososDossies: React.FC = () => {
                       </h3>
                       <p className="mt-0.5 truncate text-[11px] text-slate-500 dark:text-slate-400">
                         {folder.nome_civil} · <strong className="font-semibold text-slate-700 dark:text-slate-300">{folder.grau || 'Confrade'}</strong>
+                        {folder.grau === 'Frater' && (
+                          <span className={`ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
+                            (folder.etapa_formativa_atual?.toLowerCase().includes('tiroc') || (!folder.etapa_formativa_atual && folder.comunidade_atual_nome && !folder.comunidade_atual_nome.toLowerCase().includes('conventinho')))
+                              ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+                              : 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800'
+                          }`}>
+                            {(folder.etapa_formativa_atual?.toLowerCase().includes('tiroc') || (!folder.etapa_formativa_atual && folder.comunidade_atual_nome && !folder.comunidade_atual_nome.toLowerCase().includes('conventinho')))
+                              ? 'Tirocinante'
+                              : (folder.ano_configuracao ? `${folder.ano_configuracao}º Ano Teologia` : 'Configuração')}
+                          </span>
+                        )}
                       </p>
 
                       <div className="mt-3 flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400">
@@ -897,7 +987,14 @@ export const ReligiososDossies: React.FC = () => {
                       </td>
 
                       <td className="whitespace-nowrap px-3 py-3.5 font-semibold text-slate-700 dark:text-slate-300">
-                        {folder.grau || 'Confrade'}
+                        <div>{folder.grau || 'Confrade'}</div>
+                        {folder.grau === 'Frater' && (
+                          <div className="text-[10px] font-normal text-slate-500 dark:text-slate-400">
+                            {(folder.etapa_formativa_atual?.toLowerCase().includes('tiroc') || (!folder.etapa_formativa_atual && folder.comunidade_atual_nome && !folder.comunidade_atual_nome.toLowerCase().includes('conventinho')))
+                              ? 'Tirocinante'
+                              : (folder.ano_configuracao ? `${folder.ano_configuracao}º Ano Teologia` : 'Configuração')}
+                          </div>
+                        )}
                       </td>
 
                       <td className="px-3 py-3.5 text-slate-600 dark:text-slate-400">

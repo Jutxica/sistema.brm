@@ -48,7 +48,7 @@ const dataHoje = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Ameri
 
 const consultarElenco = async () => Promise.all([
   supabase.from('religiosos')
-    .select('id,nome_civil,nome_religioso,nome_elenco,cadastro_elenco_provisorio,auth_user_id,grau,status,situacao_elenco,comunidade_atual_id,comunidade_atual_nome,obra_atual_id,obra_atual_nome')
+    .select('id,nome_civil,nome_religioso,nome_elenco,cadastro_elenco_provisorio,auth_user_id,grau,etapa_formativa_atual,ano_configuracao,ano_referencia_etapa,status,situacao_elenco,comunidade_atual_id,comunidade_atual_nome,obra_atual_id,obra_atual_nome')
     .order('nome_elenco')
     .order('nome_civil'),
   supabase.from('comunidades')
@@ -299,7 +299,15 @@ export const ElencoSecretaria: React.FC = () => {
 
       // Filtro por Texto
       if (!termo) return true;
-      const nomes = [religioso.nome_elenco || '', religioso.nome_civil || '', religioso.nome_religioso || '', religioso.grau];
+      const nomes = [
+        religioso.nome_elenco || '',
+        religioso.nome_civil || '',
+        religioso.nome_religioso || '',
+        religioso.grau || '',
+        religioso.etapa_formativa_atual || '',
+        religioso.ano_configuracao ? `${religioso.ano_configuracao} ano` : '',
+        ((religioso.etapa_formativa_atual?.toLowerCase().includes('tiroc') || (!religioso.etapa_formativa_atual && religioso.comunidade_atual_nome && !religioso.comunidade_atual_nome.toLowerCase().includes('conventinho'))) ? 'tirocínio tirocinante' : '')
+      ];
       const lugares = relacoes.flatMap(item => [
         item.funcao,
         mapaComunidades.get(item.comunidade_id || '')?.nome || '',
@@ -757,6 +765,17 @@ export const ElencoSecretaria: React.FC = () => {
                           <p className="font-semibold text-slate-900 dark:text-white">{nomeExibido(religioso)}</p>
                           <p className="mt-0.5 text-xs text-slate-500">
                             {religioso.grau}
+                            {religioso.grau === 'Frater' && (
+                              <span className={`ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
+                                (religioso.etapa_formativa_atual?.toLowerCase().includes('tiroc') || (!religioso.etapa_formativa_atual && religioso.comunidade_atual_nome && !religioso.comunidade_atual_nome.toLowerCase().includes('conventinho')))
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+                                  : 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800'
+                              }`}>
+                                {(religioso.etapa_formativa_atual?.toLowerCase().includes('tiroc') || (!religioso.etapa_formativa_atual && religioso.comunidade_atual_nome && !religioso.comunidade_atual_nome.toLowerCase().includes('conventinho')))
+                                  ? 'Tirocinante'
+                                  : (religioso.ano_configuracao ? `${religioso.ano_configuracao}º Ano Teologia` : 'Configuração')}
+                              </span>
+                            )}
                             {religioso.cadastro_elenco_provisorio && <span className="ml-2 rounded-full bg-sky-50 px-2 py-0.5 text-[10px] text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">Cadastro básico</span>}
                             {religioso.nome_civil && ` · ${religioso.nome_civil}`}
                           </p>
@@ -1095,6 +1114,11 @@ export const ElencoSecretaria: React.FC = () => {
 
                         <span className="text-[11px] text-slate-400 shrink-0 ml-2">
                           {rel.grau}
+                          {rel.grau === 'Frater' && (
+                            (rel.etapa_formativa_atual?.toLowerCase().includes('tiroc') || (!rel.etapa_formativa_atual && rel.comunidade_atual_nome && !rel.comunidade_atual_nome.toLowerCase().includes('conventinho')))
+                              ? ' (Tirocínio)'
+                              : (rel.ano_configuracao ? ` (${rel.ano_configuracao}º Ano)` : ' (Configuração)')
+                          )}
                         </span>
                       </div>
                     );

@@ -84,6 +84,9 @@ export interface ReligiosoResumo {
   origem_cadastro: string;
   email_institucional: string | null;
   telefone_celular: string | null;
+  etapa_formativa_atual?: string | null;
+  ano_configuracao?: number | string | null;
+  ano_referencia_etapa?: number | string | null;
   foto_path?: string | null;
   publicado_site_em?: string | null;
   publicado_site_id?: string | null;

@@ -15,6 +15,9 @@ interface Confrade {
   comunidade_atual_id?: string | null;
   obra_atual_id?: string | null;
   obra_atual_nome?: string | null;
+  etapa_formativa_atual?: string | null;
+  ano_configuracao?: number | string | null;
+  ano_referencia_etapa?: number | string | null;
   email_institucional: string | null;
   email_pessoal: string | null;
   telefone_celular: string | null;
@@ -58,7 +61,7 @@ export const AnuarioBRM: React.FC = () => {
       const [relRes, comRes, obrasRes] = await Promise.all([
         supabase
           .from('religiosos')
-          .select('id, nome_civil, nome_religioso, grau, comunidade_atual_nome, comunidade_atual_id, obra_atual_id, obra_atual_nome, email_institucional, email_pessoal, telefone_celular, whatsapp, data_nascimento, status')
+          .select('id, nome_civil, nome_religioso, grau, etapa_formativa_atual, ano_configuracao, ano_referencia_etapa, comunidade_atual_nome, comunidade_atual_id, obra_atual_id, obra_atual_nome, email_institucional, email_pessoal, telefone_celular, whatsapp, data_nascimento, status')
           .eq('status', 'Ativo')
           .order('grau', { ascending: true })
           .order('nome_civil', { ascending: true }),
@@ -94,6 +97,15 @@ export const AnuarioBRM: React.FC = () => {
     return Array.from(set).sort();
   }, [comunidadesRaw]);
 
+  const getFraterSubtipo = (c: Confrade): 'Frater (Configuração)' | 'Frater (Tirocinante)' => {
+    const etapa = (c.etapa_formativa_atual || '').toLowerCase();
+    const com = (c.comunidade_atual_nome || '').toLowerCase();
+    if (etapa.includes('tiroc') || (!etapa && com && !com.includes('conventinho'))) {
+      return 'Frater (Tirocinante)';
+    }
+    return 'Frater (Configuração)';
+  };
+
   // Filtragem dos confrades
   const filteredConfrades = useMemo(() => {
     return confrades.filter(c => {
@@ -107,7 +119,13 @@ export const AnuarioBRM: React.FC = () => {
         ? true
         : grauFilter === 'Diácono (Transitório)'
           ? ((c.grau || '').includes('Diácono') || (c.grau || '').includes('Diacono'))
-          : c.grau === grauFilter;
+          : grauFilter === 'Frater'
+            ? c.grau === 'Frater'
+            : grauFilter === 'Frater (Configuração)'
+              ? (c.grau === 'Frater' && getFraterSubtipo(c) === 'Frater (Configuração)')
+              : grauFilter === 'Frater (Tirocinante)'
+                ? (c.grau === 'Frater' && getFraterSubtipo(c) === 'Frater (Tirocinante)')
+                : c.grau === grauFilter;
 
       let matchesRegiao = true;
       if (regiaoFilter !== 'Todas') {
@@ -276,7 +294,7 @@ export const AnuarioBRM: React.FC = () => {
                 ))}
               </select>
 
-              {['Todos', 'Padre', 'Diácono (Transitório)', 'Frater', 'Irmão', 'Bispo'].map(grau => (
+              {['Todos', 'Padre', 'Diácono (Transitório)', 'Frater (Configuração)', 'Frater (Tirocinante)', 'Irmão', 'Bispo'].map(grau => (
                 <button
                   key={grau}
                   type="button"
@@ -316,9 +334,22 @@ export const AnuarioBRM: React.FC = () => {
                   >
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="px-2 py-0.5 text-[9px] font-mono uppercase font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                          {c.grau || 'Grau não informado'}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="px-2 py-0.5 text-[9px] font-mono uppercase font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                            {c.grau || 'Grau não informado'}
+                          </span>
+                          {c.grau === 'Frater' && (
+                            <span className={`px-2 py-0.5 text-[9px] font-mono uppercase font-semibold border ${
+                              getFraterSubtipo(c) === 'Frater (Tirocinante)'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+                                : 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800'
+                            }`}>
+                              {getFraterSubtipo(c) === 'Frater (Tirocinante)' 
+                                ? 'Tirocinante' 
+                                : (c.ano_configuracao ? `${c.ano_configuracao}º Ano Teologia` : 'Configuração')}
+                            </span>
+                          )}
+                        </div>
                         {c.data_nascimento && (
                           <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
                             <Cake className="w-3 h-3 text-slate-400" />
@@ -504,7 +535,13 @@ export const AnuarioBRM: React.FC = () => {
                                 {atribuirNomeReligioso(m.grau, m.nome_civil) || m.nome_religioso || m.nome_civil}
                               </span>
                               <span className="text-[10px] font-mono text-slate-500">
-                                {m.grau || 'Grau não informado'}{m.obra_atual_nome ? ` • ${m.obra_atual_nome}` : ''}
+                                {m.grau || 'Grau não informado'}
+                                {m.grau === 'Frater' && (
+                                  getFraterSubtipo(m) === 'Frater (Tirocinante)'
+                                    ? ' (Tirocinante)'
+                                    : (m.ano_configuracao ? ` (${m.ano_configuracao}º Ano Teologia)` : ' (Configuração)')
+                                )}
+                                {m.obra_atual_nome ? ` • ${m.obra_atual_nome}` : ''}
                               </span>
                             </div>
                             <div className="font-mono text-[11px] text-slate-600 dark:text-slate-400">
