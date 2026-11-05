@@ -11,8 +11,7 @@ import {
   ShieldCheck, 
   User, 
   Lock,
-  ArrowRight,
-  Sparkles
+  ArrowRight
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -593,21 +592,26 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
 
           {/* Fase Atual de Formação (para Frater ou Diácono) */}
           {(form.grau === 'Frater' || form.grau === 'Diácono') && (
-            <div className="rounded-xl border border-sky-200/80 bg-sky-50/50 p-4 dark:border-sky-900/50 dark:bg-sky-950/20">
-              <div className="flex items-center justify-between mb-3 border-b border-sky-100 pb-2.5 dark:border-sky-900/40">
-                <span className="text-[12px] font-semibold text-sky-900 dark:text-sky-200 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
-                  Fase Atual de Formação ({form.grau})
-                </span>
-                <span className="text-[10px] font-mono font-medium rounded-full bg-sky-100/80 px-2 py-0.5 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300">
-                  Ano Letivo {form.ano_referencia_etapa || new Date().getFullYear()}
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#12151e]/80 p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 border-b border-slate-200/80 dark:border-slate-800 pb-3">
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 font-cinzel">
+                    Situação Formativa Canônica ({form.grau})
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Atualização da fase em curso para os registros oficiais da Província.
+                  </p>
+                </div>
+                <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 shrink-0">
+                  Ano Referência: {form.ano_referencia_etapa || new Date().getFullYear()}
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Situação Formativa Atual *
+                  <label className="block text-[12px] font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    <span>Situação Formativa Atual</span>
+                    <span className="text-rose-500 ml-1 font-bold">*</span>
                   </label>
                   <select
                     value={form.etapa_formativa_atual || ''}
@@ -630,8 +634,9 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
 
                 {form.etapa_formativa_atual === 'Configuração (Teologia)' && (
                   <div>
-                    <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Ano de Configuração *
+                    <label className="block text-[12px] font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                      <span>Ano de Configuração</span>
+                      <span className="text-rose-500 ml-1 font-bold">*</span>
                     </label>
                     <select
                       value={form.ano_configuracao || ''}
@@ -648,13 +653,13 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
                 )}
               </div>
 
-              <p className="mt-2.5 text-[11px] text-sky-800/80 dark:text-sky-300/80 leading-relaxed">
+              <div className="rounded-lg border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-[#0c0e14] p-3 text-[11.5px] text-slate-600 dark:text-slate-400 leading-relaxed">
                 {form.etapa_formativa_atual === 'Configuração (Teologia)'
-                  ? 'Estudos teológicos (cursados na Comunidade do Conventinho SCJ em Taubaté ou em polos no exterior).'
+                  ? 'Estudos teológicos cursados na Comunidade do Conventinho SCJ em Taubaté ou em polos no exterior.'
                   : form.etapa_formativa_atual === 'Tirocínio'
-                  ? 'Etapa prática pós-noviciado realizada em comunidades e obras da Província. Caso esteja cursando a Configuração (Teologia) fora do Brasil (ex.: Roma, Alemanha), selecione "Configuração (Teologia)".'
+                  ? 'Etapa de estágio e vivência pastoral comunitária pós-noviciado realizada nas comunidades da Província.'
                   : 'Mantenha atualizado o seu ano formativo na virada de cada ano letivo.'}
-              </p>
+              </div>
             </div>
           )}
 

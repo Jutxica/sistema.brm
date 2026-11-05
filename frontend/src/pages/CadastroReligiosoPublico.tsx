@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { Quote, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileUp, Info, Loader2, Plus, Trash2, Printer, Camera, Star, Check, Upload, Sparkles, Wrench, Eye, RefreshCw, FileText } from 'lucide-react';
+import { Quote, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileUp, Info, Loader2, Plus, Trash2, Printer, Camera, Star, Check, Upload, Wrench, Eye, RefreshCw, FileText } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { getPortalRedirectUrl } from '../lib/portalUrls';
 import { confirmAction, showToast } from '../hooks/useFeedback';
@@ -2299,16 +2299,95 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               readOnlyFields={['nome_religioso', ...(memberMode ? ['cpf'] : [])]}
               afterField={{
                 nome_religioso: (
-                  <span className="block text-[11px] text-[#707070] dark:text-[#a1a1aa] mt-0.5">
-                    Atribuído automaticamente: Fr. / Dom / Diác. / Ir. / P. (nome e sobrenome), SCJ
-                  </span>
+                  <>
+                    <span className="block text-[11px] text-[#707070] dark:text-[#a1a1aa] mt-0.5">
+                      Atribuído automaticamente: Fr. / Dom / Diác. / Ir. / P. (nome e sobrenome), SCJ
+                    </span>
+
+                    {/* Bloco Canônico de Fase Atual de Formação (para Frater ou Diácono) */}
+                    {(base.grau === 'Frater' || base.grau === 'Diácono') && (
+                      <div className="col-span-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#12151e]/80 p-5 mt-2 transition-all">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 border-b border-slate-200/80 dark:border-slate-800 pb-3 mb-4">
+                          <div>
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 font-cinzel">
+                              Situação Formativa Canônica ({base.grau})
+                            </h4>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                              Etapa em curso na Província para composição do anuário, elenco e relatórios canônicos.
+                            </p>
+                          </div>
+                          <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 shrink-0">
+                            Ano de Referência: {base.ano_referencia_etapa || new Date().getFullYear()}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+                          <div>
+                            <label htmlFor="input-etapa_formativa_atual" className="block text-[12px] font-medium text-[#707070] dark:text-[#86868b] mb-1.5">
+                              <span>Etapa Formativa Atual</span>
+                              <span className="text-rose-500 ml-1 font-bold">*</span>
+                            </label>
+                            <select
+                              id="input-etapa_formativa_atual"
+                              value={base.etapa_formativa_atual || ''}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setBase(prev => ({
+                                  ...prev,
+                                  etapa_formativa_atual: val,
+                                  ano_configuracao: val === 'Configuração (Teologia)' ? (prev.ano_configuracao || '1') : '',
+                                  ano_referencia_etapa: prev.ano_referencia_etapa || String(new Date().getFullYear()),
+                                }));
+                              }}
+                              className={inputClass}
+                            >
+                              <option value="">Selecione a etapa formativa...</option>
+                              <option value="Configuração (Teologia)">Configuração (Teologia)</option>
+                              <option value="Tirocínio">Tirocínio</option>
+                            </select>
+                          </div>
+
+                          {base.etapa_formativa_atual === 'Configuração (Teologia)' && (
+                            <div>
+                              <label htmlFor="input-ano_configuracao" className="block text-[12px] font-medium text-[#707070] dark:text-[#86868b] mb-1.5">
+                                <span>Ano de Configuração</span>
+                                <span className="text-rose-500 ml-1 font-bold">*</span>
+                              </label>
+                              <select
+                                id="input-ano_configuracao"
+                                value={base.ano_configuracao || ''}
+                                onChange={e => setBase(prev => ({ ...prev, ano_configuracao: e.target.value }))}
+                                className={inputClass}
+                              >
+                                <option value="">Selecione o ano...</option>
+                                <option value="1">1º Ano de Teologia / Configuração</option>
+                                <option value="2">2º Ano de Teologia / Configuração</option>
+                                <option value="3">3º Ano de Teologia / Configuração</option>
+                                <option value="4">4º Ano de Teologia / Configuração</option>
+                              </select>
+                            </div>
+                          )}
+
+                          <div className={`${base.etapa_formativa_atual === 'Configuração (Teologia)' ? 'sm:col-span-2 lg:col-span-1' : 'sm:col-span-1 lg:col-span-2'} pt-0.5`}>
+                            <div className="rounded-lg border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-[#0c0e14] p-3 text-[11.5px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                              {base.etapa_formativa_atual === 'Configuração (Teologia)'
+                                ? 'Estudos teológicos cursados na Comunidade do Conventinho SCJ (Taubaté) ou em casas no exterior.'
+                                : base.etapa_formativa_atual === 'Tirocínio'
+                                ? 'Etapa de estágio e vivência pastoral comunitária pós-noviciado nas comunidades da Província.'
+                                : 'Preenchido a partir da comunidade atual de residência, podendo ser ajustado conforme a etapa em andamento.'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 ),
                 grau: (
-                  <label className="block space-y-1.5" htmlFor="input-obra_atual_id">
-                    <span className="flex items-center justify-between text-[12px] font-medium text-[#707070] dark:text-[#86868b]">
+                  <div className="space-y-1.5 block">
+                    <label htmlFor="input-obra_atual_id" className="flex items-center justify-between text-[12px] font-medium text-[#707070] dark:text-[#86868b]">
                       <span>Comunidade / Obra atual</span>
                       <span className="text-[10px] font-normal lowercase text-[#86868b]">(opcional)</span>
-                    </span>
+                    </label>
                     <select
                       id="input-obra_atual_id"
                       className={inputClass}
@@ -2367,76 +2446,9 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                       {obras.map(obra => <option key={obra.id} value={obra.id}>{obra.nome}</option>)}
                     </select>
                     <span className="block text-[11px] text-[#707070] dark:text-[#a1a1aa]">
-                      Ao selecionar, o endereço e dados da comunidade são preenchidos automaticamente.
+                      Ao selecionar, os dados de residência são preenchidos automaticamente.
                     </span>
-
-                    {/* Bloco Dinâmico de Etapa Formativa (para Frater ou Diácono) */}
-                    {(base.grau === 'Frater' || base.grau === 'Diácono') && (
-                      <div className="mt-3 rounded-xl border border-sky-200/80 bg-sky-50/50 p-4 dark:border-sky-900/50 dark:bg-sky-950/20">
-                        <div className="flex items-center justify-between mb-3 border-b border-sky-100 pb-2.5 dark:border-sky-900/40">
-                          <span className="text-[12px] font-semibold text-sky-900 dark:text-sky-200 flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
-                            Fase Atual de Formação ({base.grau})
-                          </span>
-                          <span className="text-[10px] font-mono font-medium rounded-full bg-sky-100/80 px-2 py-0.5 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300">
-                            Ano Letivo {base.ano_referencia_etapa || new Date().getFullYear()}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                          <div>
-                            <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
-                              Situação Formativa Atual *
-                            </label>
-                            <select
-                              value={base.etapa_formativa_atual || ''}
-                              onChange={e => {
-                                const val = e.target.value;
-                                setBase(prev => ({
-                                  ...prev,
-                                  etapa_formativa_atual: val,
-                                  ano_configuracao: val === 'Configuração (Teologia)' ? (prev.ano_configuracao || '1') : '',
-                                  ano_referencia_etapa: prev.ano_referencia_etapa || String(new Date().getFullYear()),
-                                }));
-                              }}
-                              className={inputClass}
-                            >
-                              <option value="">Selecione a etapa formativa...</option>
-                              <option value="Configuração (Teologia)">Configuração (Teologia)</option>
-                              <option value="Tirocínio">Tirocínio</option>
-                            </select>
-                          </div>
-
-                          {base.etapa_formativa_atual === 'Configuração (Teologia)' && (
-                            <div>
-                              <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                Ano de Configuração *
-                              </label>
-                              <select
-                                value={base.ano_configuracao || ''}
-                                onChange={e => setBase(prev => ({ ...prev, ano_configuracao: e.target.value }))}
-                                className={inputClass}
-                              >
-                                <option value="">Selecione o ano...</option>
-                                <option value="1">1º Ano de Teologia / Configuração</option>
-                                <option value="2">2º Ano de Teologia / Configuração</option>
-                                <option value="3">3º Ano de Teologia / Configuração</option>
-                                <option value="4">4º Ano de Teologia / Configuração</option>
-                              </select>
-                            </div>
-                          )}
-                        </div>
-
-                        <p className="mt-2.5 text-[11px] text-sky-800/80 dark:text-sky-300/80 leading-relaxed">
-                          {base.etapa_formativa_atual === 'Configuração (Teologia)'
-                            ? 'Etapa de estudos teológicos (cursada na Comunidade do Conventinho SCJ em Taubaté ou em polos no exterior).'
-                            : base.etapa_formativa_atual === 'Tirocínio'
-                            ? 'Etapa prática pós-noviciado realizada em comunidades e obras da Província. Caso esteja cursando a Configuração (Teologia) fora do Brasil (ex.: Roma, Alemanha), selecione "Configuração (Teologia)" acima.'
-                            : 'Deduzido automaticamente pela comunidade onde reside, com possibilidade de ajuste manual.'}
-                        </p>
-                      </div>
-                    )}
-                  </label>
+                  </div>
                 ),
               }}
               selects={{
