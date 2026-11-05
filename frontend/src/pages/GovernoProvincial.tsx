@@ -37,6 +37,7 @@ import {
 import { supabase } from '../lib/supabaseClient';
 import { confirmAction, showToast } from '../hooks/useFeedback';
 import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../lib/religiosoNome';
+import { formatarDataBR } from '../utils/dateUtils';
 import {
   CARGOS_GOVERNO_PADRAO,
   type CargoGoverno,
@@ -670,7 +671,7 @@ CREATE POLICY governo_provincial_all ON public.governo_provincial FOR ALL USING 
                           {superior.data_posse && (
                             <span className="flex items-center gap-1 text-[11px]">
                               <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                              Posse: {new Date(superior.data_posse).toLocaleDateString('pt-BR')}
+                              Posse: {formatarDataBR(superior.data_posse)}
                             </span>
                           )}
                           {superior.email_institucional_governo && (
@@ -796,8 +797,7 @@ CREATE POLICY governo_provincial_all ON public.governo_provincial FOR ALL USING 
                           </div>
 
                           {conselheiro.religioso?.comunidade_atual_nome && (
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 truncate">
-                              <Building2 className="h-3 w-3 shrink-0 text-[#226380]" />
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                               <span className="truncate">{formatarComunidadeReligiosa(conselheiro.religioso.comunidade_atual_nome)}</span>
                             </p>
                           )}
@@ -923,8 +923,7 @@ CREATE POLICY governo_provincial_all ON public.governo_provincial FOR ALL USING 
 
                           <div className="grid gap-1 text-xs text-slate-600 dark:text-slate-300 pt-1">
                             {oficial.religioso?.comunidade_atual_nome && (
-                              <p className="flex items-center gap-1.5">
-                                <Building2 className="h-3.5 w-3.5 text-[#226380] shrink-0" />
+                              <p className="text-slate-500 dark:text-slate-400">
                                 <span>{formatarComunidadeReligiosa(oficial.religioso.comunidade_atual_nome)}</span>
                               </p>
                             )}
@@ -1488,8 +1487,8 @@ CREATE POLICY governo_provincial_all ON public.governo_provincial FOR ALL USING 
                         </td>
 
                         <td className="py-3 px-3 text-[11px] text-slate-600 dark:text-slate-400 font-mono">
-                          {item.data_posse ? new Date(item.data_posse).toLocaleDateString('pt-BR') : 'Posse inicial'}
-                          {item.data_termino ? ` até ${new Date(item.data_termino).toLocaleDateString('pt-BR')}` : ''}
+                          {item.data_posse ? formatarDataBR(item.data_posse) : 'Posse inicial'}
+                          {item.data_termino ? ` até ${formatarDataBR(item.data_termino)}` : ''}
                         </td>
 
                         <td className="py-3 px-3 text-[11px] text-slate-600 dark:text-slate-300">

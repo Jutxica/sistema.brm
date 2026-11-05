@@ -62,18 +62,12 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
               {(religiosoData?.comunidade_atual_nome || religiosoData?.obra_atual_nome) && (
                 <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-white/80">
                   {religiosoData?.comunidade_atual_nome && (
-                    <span className="flex min-w-0 items-center gap-1">
-                      <Building2 className="h-3 w-3 shrink-0 text-white/70" aria-hidden="true" />
-                      <span className="max-w-[150px] truncate">{formatarComunidadeReligiosa(religiosoData.comunidade_atual_nome)}</span>
-                    </span>
+                    <span className="max-w-[180px] truncate">{formatarComunidadeReligiosa(religiosoData.comunidade_atual_nome)}</span>
                   )}
                   {religiosoData?.obra_atual_nome && (
                     <>
                       {religiosoData?.comunidade_atual_nome && <span className="text-white/40">•</span>}
-                      <span className="flex min-w-0 items-center gap-1">
-                        <Church className="h-3 w-3 shrink-0 text-white/70" aria-hidden="true" />
-                        <span className="max-w-[150px] truncate">{religiosoData.obra_atual_nome}</span>
-                      </span>
+                      <span className="max-w-[180px] truncate">{religiosoData.obra_atual_nome}</span>
                     </>
                   )}
                 </div>
@@ -237,18 +231,16 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
                 {religiosoData?.comunidade_atual_nome && (
                   <>
                     <span className="text-[#707070] dark:text-[#86868b] text-[10px]">•</span>
-                    <span className="inline-flex items-center gap-1 text-[11px] text-[#226380] dark:text-[#A3C3C7] font-medium">
-                      <Building2 className="h-3 w-3 shrink-0" aria-hidden="true" />
-                      <span>{formatarComunidadeReligiosa(religiosoData.comunidade_atual_nome)}</span>
+                    <span className="text-[11px] text-[#226380] dark:text-[#A3C3C7] font-medium">
+                      {formatarComunidadeReligiosa(religiosoData.comunidade_atual_nome)}
                     </span>
                   </>
                 )}
                 {religiosoData?.obra_atual_nome && (
                   <>
                     <span className="text-[#707070] dark:text-[#86868b] text-[10px]">•</span>
-                    <span className="inline-flex items-center gap-1 text-[11px] text-[#226380] dark:text-[#A3C3C7] font-medium">
-                      <Church className="h-3 w-3 shrink-0" aria-hidden="true" />
-                      <span>{religiosoData.obra_atual_nome}</span>
+                    <span className="text-[11px] text-[#226380] dark:text-[#A3C3C7] font-medium">
+                      {religiosoData.obra_atual_nome}
                     </span>
                   </>
                 )}

@@ -113,30 +113,85 @@ BEGIN
       AND (periodo_fim IS NULL OR periodo_fim = '' OR periodo_fim = 'Atual');
   END IF;
 
-  -- 2. Inserir nova designação
-  INSERT INTO public.religiosos_designacoes (
-    religioso_id,
-    comunidade_id,
-    obra_id,
-    tipo_vinculo,
-    funcao,
-    vigencia_inicio,
-    ano_referencia,
-    numero_decreto,
-    data_decreto,
-    observacoes
-  ) VALUES (
-    p_religioso_id,
-    p_comunidade_id,
-    p_obra_id,
-    COALESCE(p_tipo_vinculo, 'pastoral'),
-    p_funcao,
-    p_vigencia_inicio,
-    v_ano,
-    p_numero_decreto,
-    p_data_decreto,
-    p_observacoes
-  ) RETURNING id INTO v_designacao_id;
+  -- 2. Inserir nova designação com tolerância resiliente
+  BEGIN
+    INSERT INTO public.religiosos_designacoes (
+      religioso_id,
+      comunidade_id,
+      obra_id,
+      tipo_vinculo,
+      funcao,
+      vigencia_inicio,
+      ano_referencia,
+      numero_decreto,
+      data_decreto,
+      observacoes
+    ) VALUES (
+      p_religioso_id,
+      p_comunidade_id,
+      p_obra_id,
+      COALESCE(p_tipo_vinculo, 'pastoral'),
+      p_funcao,
+      p_vigencia_inicio,
+      v_ano,
+      p_numero_decreto,
+      p_data_decreto,
+      p_observacoes
+    ) RETURNING id INTO v_designacao_id;
+  EXCEPTION WHEN check_violation THEN
+    -- Fallback se porventura a restrição legada XOR ainda existir no banco
+    IF p_obra_id IS NOT NULL THEN
+      INSERT INTO public.religiosos_designacoes (
+        religioso_id,
+        comunidade_id,
+        obra_id,
+        tipo_vinculo,
+        funcao,
+        vigencia_inicio,
+        ano_referencia,
+        numero_decreto,
+        data_decreto,
+        observacoes
+      ) VALUES (
+        p_religioso_id,
+        NULL,
+        p_obra_id,
+        COALESCE(p_tipo_vinculo, 'pastoral'),
+        p_funcao,
+        p_vigencia_inicio,
+        v_ano,
+        p_numero_decreto,
+        p_data_decreto,
+        p_observacoes
+      ) RETURNING id INTO v_designacao_id;
+    ELSIF p_comunidade_id IS NOT NULL THEN
+      INSERT INTO public.religiosos_designacoes (
+        religioso_id,
+        comunidade_id,
+        obra_id,
+        tipo_vinculo,
+        funcao,
+        vigencia_inicio,
+        ano_referencia,
+        numero_decreto,
+        data_decreto,
+        observacoes
+      ) VALUES (
+        p_religioso_id,
+        p_comunidade_id,
+        NULL,
+        COALESCE(p_tipo_vinculo, 'pastoral'),
+        p_funcao,
+        p_vigencia_inicio,
+        v_ano,
+        p_numero_decreto,
+        p_data_decreto,
+        p_observacoes
+      ) RETURNING id INTO v_designacao_id;
+    ELSE
+      v_designacao_id := NULL;
+    END IF;
+  END;
 
   -- 3. Atualizar public.religiosos (Elenco e Dossiê)
   UPDATE public.religiosos

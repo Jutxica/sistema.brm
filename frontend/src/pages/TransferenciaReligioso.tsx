@@ -8,6 +8,7 @@ import {
 import { supabase } from '../lib/supabaseClient';
 import { showToast } from '../hooks/useFeedback';
 import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../lib/religiosoNome';
+import { formatarDataBR } from '../utils/dateUtils';
 import type { Religioso } from '../types/religioso';
 import type {
   Comunidade, Obra, Designacao, TipoVinculo, FuncaoCatalogo
@@ -639,37 +640,28 @@ export const TransferenciaReligioso: React.FC = () => {
                       </div>
 
                       <div className="border-t border-[#226380]/15 pt-2.5 space-y-1.5 text-[11px]">
-                        <div className="flex items-start gap-1.5">
-                          <Building2 className="h-3.5 w-3.5 shrink-0 text-[#226380] mt-0.5" />
-                          <div>
-                            <span className="text-slate-500 font-medium">Comunidade Atual:</span>{' '}
-                            <strong className="text-slate-800 dark:text-slate-200">
-                              {formatarComunidadeReligiosa(religiosoSelecionado.comunidade_atual_nome) || 'Comunidade Provincial'}
-                            </strong>
-                          </div>
+                        <div>
+                          <span className="text-slate-500 font-medium">Comunidade Atual:</span>{' '}
+                          <strong className="text-slate-800 dark:text-slate-200">
+                            {formatarComunidadeReligiosa(religiosoSelecionado.comunidade_atual_nome) || 'Comunidade Provincial'}
+                          </strong>
                         </div>
 
                         {religiosoSelecionado.obra_atual_nome && (
-                          <div className="flex items-start gap-1.5">
-                            <Church className="h-3.5 w-3.5 shrink-0 text-[#226380] mt-0.5" />
-                            <div>
-                              <span className="text-slate-500 font-medium">Obra / Paróquia Atual:</span>{' '}
-                              <strong className="text-slate-800 dark:text-slate-200">
-                                {religiosoSelecionado.obra_atual_nome}
-                              </strong>
-                            </div>
+                          <div>
+                            <span className="text-slate-500 font-medium">Obra / Paróquia Atual:</span>{' '}
+                            <strong className="text-slate-800 dark:text-slate-200">
+                              {religiosoSelecionado.obra_atual_nome}
+                            </strong>
                           </div>
                         )}
 
                         {designacoesAtivasDoReligioso.length > 0 && (
-                          <div className="flex items-start gap-1.5">
-                            <UserCheck className="h-3.5 w-3.5 shrink-0 text-[#226380] mt-0.5" />
-                            <div>
-                              <span className="text-slate-500 font-medium">Ofício Vigente:</span>{' '}
-                              <strong className="text-[#226380] dark:text-[#A3C3C7]">
-                                {designacoesAtivasDoReligioso.map(d => d.funcao).join(', ')}
-                              </strong>
-                            </div>
+                          <div>
+                            <span className="text-slate-500 font-medium">Ofício Vigente:</span>{' '}
+                            <strong className="text-[#226380] dark:text-[#A3C3C7]">
+                              {designacoesAtivasDoReligioso.map(d => d.funcao).join(', ')}
+                            </strong>
                           </div>
                         )}
                       </div>
@@ -1056,7 +1048,7 @@ export const TransferenciaReligioso: React.FC = () => {
                       <tr key={item.id} className="hover:bg-slate-50/70 dark:hover:bg-white/[0.02]">
                         <td className="py-3 px-3 font-mono text-[11px]">
                           <span className="font-semibold text-slate-900 dark:text-white">
-                            {item.vigencia_inicio ? new Date(item.vigencia_inicio).toLocaleDateString('pt-BR') : item.ano_referencia}
+                            {item.vigencia_inicio ? formatarDataBR(item.vigencia_inicio) : item.ano_referencia}
                           </span>
                           {isVigente ? (
                             <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
@@ -1064,7 +1056,7 @@ export const TransferenciaReligioso: React.FC = () => {
                             </span>
                           ) : (
                             <span className="ml-2 text-slate-400 text-[10px]">
-                              até {new Date(item.vigencia_fim!).toLocaleDateString('pt-BR')}
+                              até {formatarDataBR(item.vigencia_fim)}
                             </span>
                           )}
                         </td>

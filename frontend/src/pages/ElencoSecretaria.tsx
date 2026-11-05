@@ -783,18 +783,17 @@ export const ElencoSecretaria: React.FC = () => {
 
                             return (
                               <span key={item.id} className="inline-flex max-w-full flex-col rounded-lg border border-slate-200 px-2.5 py-1.5 dark:border-slate-700 bg-slate-50/50 dark:bg-white/[0.02]">
-                                <span className="truncate text-xs font-medium text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                                  <Building2 className="h-3.5 w-3.5 text-[#226380] shrink-0" />
-                                  <span>{comNome} · {item.funcao}</span>
+                                <span className="truncate text-xs font-semibold text-slate-800 dark:text-slate-200">
+                                  {comNome} · {item.funcao}
                                 </span>
                                 {obrNome && (
-                                  <span className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-[#226380] dark:text-[#A3C3C7]">
-                                    <Church className="h-3 w-3 shrink-0" /> {obrNome}
+                                  <span className="mt-0.5 text-[11px] font-medium text-[#226380] dark:text-[#A3C3C7]">
+                                    {obrNome}
                                   </span>
                                 )}
                                 {localLimpo && (
-                                  <span className="mt-0.5 flex items-center gap-1 text-[10px] text-slate-500">
-                                    <MapPin className="h-3 w-3 shrink-0" /> {localLimpo} · {tiposVinculo.find(type => type.value === item.tipo_vinculo)?.label || item.tipo_vinculo}
+                                  <span className="mt-0.5 text-[10px] text-slate-500">
+                                    {localLimpo} · {tiposVinculo.find(type => type.value === item.tipo_vinculo)?.label || item.tipo_vinculo}
                                   </span>
                                 )}
                               </span>
@@ -804,13 +803,12 @@ export const ElencoSecretaria: React.FC = () => {
                       ) : (religioso.comunidade_atual_nome || religioso.obra_atual_nome) ? (
                         <div className="flex flex-wrap gap-2">
                           <span className="inline-flex max-w-full flex-col rounded-lg border border-slate-200 px-2.5 py-1.5 dark:border-slate-700 bg-slate-50/50 dark:bg-white/[0.02]">
-                            <span className="truncate text-xs font-medium text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                              <Building2 className="h-3.5 w-3.5 text-[#226380]" />
+                            <span className="truncate text-xs font-semibold text-slate-800 dark:text-slate-200">
                               {formatarComunidadeReligiosa(religioso.comunidade_atual_nome) || 'Comunidade Provincial'}
                             </span>
                             {religioso.obra_atual_nome && (
-                              <span className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-[#226380] dark:text-[#A3C3C7]">
-                                <Church className="h-3 w-3" /> {religioso.obra_atual_nome}
+                              <span className="mt-0.5 text-[11px] font-medium text-[#226380] dark:text-[#A3C3C7]">
+                                {religioso.obra_atual_nome}
                               </span>
                             )}
                           </span>
