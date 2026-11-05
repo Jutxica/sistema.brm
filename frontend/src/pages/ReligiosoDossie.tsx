@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { 
-  ArrowLeft, ArrowRightLeft, Archive, Check, CheckCircle2, Download, ExternalLink, FileText, 
-  FolderClosed, FolderOpen, Globe, Loader2, Printer, ShieldCheck, Sparkles, Upload, UserRound, X 
+  ArrowLeft, ArrowRightLeft, Archive, Check, CheckCircle2, ChevronRight, Download, ExternalLink, 
+  Eye, FileImage, FileText, FolderClosed, FolderOpen, Globe, History, LayoutGrid, List, Loader2, 
+  Printer, Search, ShieldCheck, Sparkles, Upload, UserRound, X 
 } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
@@ -23,7 +24,19 @@ import type {
 } from '../types/religioso';
 
 const reviewOptions = ['Em revisão', 'Em verificação', 'Aguardando complementação', 'Aprovado', 'Recusado', 'Arquivado'];
-const archiveCategories = ['Transferência', 'Advertência', 'Carta', 'Identidade', 'Saúde', 'Canônico', 'Outro'];
+const archiveCategories = [
+  'Certidão de nascimento',
+  'Documentos civis (RG / CNH / CPF)',
+  'Sacramentos e ordens',
+  'Formação e votos',
+  'Transferência',
+  'Provisões e decretos',
+  'Cartas e correspondências',
+  'Certificados e diplomas',
+  'Saúde',
+  'Fotografia',
+  'Outro',
+];
 const allowedArchiveMimeTypes = [
   'application/pdf',
   'image/jpeg',
@@ -130,6 +143,30 @@ export const ReligiosoDossie: React.FC = () => {
   const [archiveSaving, setArchiveSaving] = useState(false);
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<Set<string>>(new Set());
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
+
+  // Estados do Gestor de Arquivos e Documentos (Nextcloud / Explorer)
+  const [currentFolder, setCurrentFolder] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [searchDocTerm, setSearchDocTerm] = useState<string>('');
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showHistoricoModal, setShowHistoricoModal] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<{
+    isOpen: boolean;
+    title: string;
+    url: string | null;
+    mimeType: string;
+    fileName: string;
+    documento: DocumentoFicha | null;
+    loading: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    url: null,
+    mimeType: '',
+    fileName: '',
+    documento: null,
+    loading: false,
+  });
 
   // Estados da Publicação no Site Oficial
   const [showPublishModal, setShowPublishModal] = useState(false);
@@ -479,7 +516,71 @@ export const ReligiosoDossie: React.FC = () => {
     setArchiveNote('');
     setArchiveFile(null);
     setArchiveSaving(false);
+    setShowUploadModal(false);
     await load();
+  };
+
+  const getFileMeta = (fileName: string, mime?: string | null) => {
+    const ext = fileName.split('.').pop()?.toLowerCase() || '';
+    const isPdf = ext === 'pdf' || (mime ? mime.includes('pdf') : false);
+    const isImg = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'tif', 'tiff'].includes(ext) || (mime ? mime.startsWith('image/') : false);
+    const isDoc = ['doc', 'docx', 'odt', 'rtf'].includes(ext) || (mime ? (mime.includes('word') || mime.includes('officedocument')) : false);
+    const isSheet = ['xls', 'xlsx', 'csv'].includes(ext) || (mime ? (mime.includes('excel') || mime.includes('spreadsheet')) : false);
+    return { ext, isPdf, isImg, isDoc, isSheet };
+  };
+
+  const handleOpenPreview = async (documento: DocumentoFicha) => {
+    setPreviewDoc({
+      isOpen: true,
+      title: documento.titulo || documento.nome_arquivo,
+      url: null,
+      mimeType: documento.mime_type || '',
+      fileName: documento.nome_arquivo,
+      documento,
+      loading: true,
+    });
+
+    try {
+      const { data, error } = await supabase.storage.from(documento.storage_bucket).download(documento.caminho_storage);
+      if (error) throw error;
+      const objectUrl = window.URL.createObjectURL(data);
+      setPreviewDoc(prev => ({
+        ...prev,
+        url: objectUrl,
+        loading: false,
+      }));
+    } catch (err: any) {
+      showToast.error(`Não foi possível abrir o arquivo: ${err.message}`);
+      setPreviewDoc(prev => ({ ...prev, loading: false, isOpen: false }));
+    }
+  };
+
+  const handleClosePreview = () => {
+    if (previewDoc.url) {
+      window.URL.revokeObjectURL(previewDoc.url);
+    }
+    setPreviewDoc({
+      isOpen: false,
+      title: '',
+      url: null,
+      mimeType: '',
+      fileName: '',
+      documento: null,
+      loading: false,
+    });
+  };
+
+  const handleBatchDownload = async () => {
+    const toDownload = documentos.filter(d => selectedDocumentIds.has(d.id));
+    if (toDownload.length === 0) {
+      showToast.warning('Selecione ao menos um documento para baixar.');
+      return;
+    }
+    showToast.info(`Iniciando download de ${toDownload.length} documento(s)...`);
+    for (const doc of toDownload) {
+      await handleDownload(doc);
+      await new Promise(res => setTimeout(res, 350));
+    }
   };
 
   const toggleDocumentSelection = (documentId: string) => {
@@ -508,6 +609,56 @@ export const ReligiosoDossie: React.FC = () => {
     });
     return Object.entries(grouped).sort(([left], [right]) => left.localeCompare(right, 'pt-BR'));
   }, [documentos]);
+
+  const allCategories = useMemo(() => {
+    const set = new Set<string>();
+    archiveCategories.forEach(c => set.add(c));
+    documentos.forEach(d => {
+      if (d.categoria) set.add(d.categoria);
+    });
+    return Array.from(set);
+  }, [documentos]);
+
+  const foldersWithCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    documentos.forEach(d => {
+      const cat = d.categoria || 'Outro';
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return Object.entries(counts).sort(([a], [b]) => a.localeCompare(b, 'pt-BR'));
+  }, [documentos]);
+
+  const filteredDocuments = useMemo(() => {
+    let list = documentos;
+    if (currentFolder !== 'all') {
+      list = list.filter(d => (d.categoria || 'Outro') === currentFolder);
+    }
+    if (searchDocTerm.trim()) {
+      const term = searchDocTerm.toLowerCase().trim();
+      list = list.filter(d => 
+        (d.titulo && d.titulo.toLowerCase().includes(term)) ||
+        (d.nome_arquivo && d.nome_arquivo.toLowerCase().includes(term)) ||
+        (d.categoria && d.categoria.toLowerCase().includes(term)) ||
+        (d.enviado_por_nome && d.enviado_por_nome.toLowerCase().includes(term)) ||
+        (d.quem_cadastrou && d.quem_cadastrou.toLowerCase().includes(term))
+      );
+    }
+    return list;
+  }, [documentos, currentFolder, searchDocTerm]);
+
+  const handleSelectAllFiltered = () => {
+    const allIds = filteredDocuments.map(d => d.id);
+    const allSelected = allIds.length > 0 && allIds.every(id => selectedDocumentIds.has(id));
+    setSelectedDocumentIds(prev => {
+      const next = new Set(prev);
+      if (allSelected) {
+        allIds.forEach(id => next.delete(id));
+      } else {
+        allIds.forEach(id => next.add(id));
+      }
+      return next;
+    });
+  };
 
   const totalContas = allAccounts.length;
   const selectedDocuments = documentos.filter(documento => selectedDocumentIds.has(documento.id));
@@ -1584,10 +1735,21 @@ export const ReligiosoDossie: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <span className={`inline-flex px-2.5 py-1 text-[10px] font-medium ${statusClass[religioso.status_cadastro] || statusClass.Arquivado}`}>
-                  {religioso.status_cadastro}
-                </span>
+              <div className="space-y-2 text-right">
+                <div className="flex items-center justify-end gap-2">
+                  <span className={`inline-flex px-2.5 py-1 text-[10px] font-medium ${statusClass[religioso.status_cadastro] || statusClass.Arquivado}`}>
+                    {religioso.status_cadastro}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowHistoricoModal(true)}
+                    className="inline-flex items-center gap-1.5 border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                    title="Ver histórico de revisões e auditoria"
+                  >
+                    <History className="h-3 w-3 text-[#113240] dark:text-[#b58a55]" />
+                    <span>Histórico ({historico.length})</span>
+                  </button>
+                </div>
                 <select
                   value={religioso.status_cadastro}
                   onChange={(event) => void updateStatus(event.target.value)}
@@ -1609,9 +1771,17 @@ export const ReligiosoDossie: React.FC = () => {
                 <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Documentos</p>
                 <p className="mt-3 text-3xl font-semibold text-slate-900 dark:text-white">{documentos.length}</p>
               </div>
-              <div className="border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-white/[0.02]">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Última revisão</p>
+              <div
+                onClick={() => setShowHistoricoModal(true)}
+                className="group cursor-pointer border border-slate-200 bg-slate-50 p-4 transition hover:border-[#113240]/40 dark:border-slate-800 dark:bg-white/[0.02] dark:hover:border-[#b58a55]/40"
+                title="Clique para ver o histórico completo"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Última revisão</p>
+                  <History className="h-3.5 w-3.5 text-slate-400 group-hover:text-[#113240] dark:group-hover:text-[#b58a55]" />
+                </div>
                 <p className="mt-3 text-lg font-semibold text-slate-900 dark:text-white">{historico[0] ? formatDate(historico[0].criado_em) : '—'}</p>
+                <p className="mt-1 text-[11px] font-medium text-[#226380] dark:text-[#A3C3C7]">Ver histórico ({historico.length}) →</p>
               </div>
               <div className="border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-white/[0.02]">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Origem</p>
@@ -1619,127 +1789,182 @@ export const ReligiosoDossie: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid gap-5 xl:grid-cols-[1.2fr_1fr]">
-              <div className="space-y-5">
-                <section className="border border-slate-200 p-4 dark:border-slate-800">
-                  <div className="mb-3 flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-[#113240] dark:text-[#b58a55]" />
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-200">Ficha geral</h2>
-                  </div>
+            {/* FICHA GERAL E CONTA DE ACESSO LADO A LADO */}
+            <div className="grid gap-5 lg:grid-cols-2">
+              <section className="border border-slate-200 p-4 dark:border-slate-800">
+                <div className="mb-3 flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-[#113240] dark:text-[#b58a55]" />
+                  <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-200">Ficha geral</h2>
+                </div>
 
-                  <dl className="grid gap-3 sm:grid-cols-2">
-                    <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Nome civil</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{religioso.nome_civil || '—'}</dd></div>
-                    <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Nome religioso (atribuído)</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{atribuirNomeReligioso(religioso?.grau, religioso?.nome_civil) || religioso.nome_religioso || '—'}</dd></div>
-                    <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Data de nascimento</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{formatDate(religioso.data_nascimento)}</dd></div>
-                    <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">CPF</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{religioso.cpf || '—'}</dd></div>
-                    <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">E-mail institucional</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{religioso.email_institucional || '—'}</dd></div>
-                    <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Celular</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{religioso.telefone_celular || '—'}</dd></div>
-                  </dl>
-                </section>
+                <dl className="grid gap-3 sm:grid-cols-2">
+                  <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Nome civil</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{religioso.nome_civil || '—'}</dd></div>
+                  <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Nome religioso (atribuído)</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{atribuirNomeReligioso(religioso?.grau, religioso?.nome_civil) || religioso.nome_religioso || '—'}</dd></div>
+                  <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Data de nascimento</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{formatDate(religioso.data_nascimento)}</dd></div>
+                  <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">CPF</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{religioso.cpf || '—'}</dd></div>
+                  <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">E-mail institucional</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{religioso.email_institucional || '—'}</dd></div>
+                  <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Celular</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{religioso.telefone_celular || '—'}</dd></div>
+                </dl>
+              </section>
 
-                <section className="border border-slate-200 p-4 dark:border-slate-800">
-                  <div className="mb-3 flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-[#113240] dark:text-[#b58a55]" />
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-200">Conta de acesso</h2>
-                  </div>
+              <section className="border border-slate-200 p-4 dark:border-slate-800">
+                <div className="mb-3 flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-[#113240] dark:text-[#b58a55]" />
+                  <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-200">Conta de acesso</h2>
+                </div>
 
-                  <dl className="grid gap-3 sm:grid-cols-2">
-                    <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">E-mail</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{conta?.email || 'Sem conta vinculada'}</dd></div>
-                    <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Estado</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{conta ? (conta.banned_until && new Date(conta.banned_until).getTime() > Date.now() ? 'Bloqueada' : 'Ativa') : '—'}</dd></div>
-                    <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Origem</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{conta?.ledger?.origin || '—'}</dd></div>
-                    <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Criado por</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{conta?.ledger?.created_by_name || 'Não identificado'}</dd></div>
-                  </dl>
-                </section>
-              </div>
-
-              <div className="space-y-5">
-                <section className="border border-slate-200 p-4 dark:border-slate-800">
-                  <div className="mb-3 flex items-center gap-2">
-                    <Archive className="h-4 w-4 text-[#113240] dark:text-[#b58a55]" />
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-200">Arquivo provincial</h2>
-                  </div>
-
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {Object.entries(documentoSummary).length ? Object.entries(documentoSummary).map(([categoria, quantidade]) => (
-                      <div key={categoria} className="border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-white/[0.02]">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500">{categoria}</p>
-                        <p className="mt-2 text-xl font-semibold text-slate-900 dark:text-white">{quantidade}</p>
-                      </div>
-                    )) : (
-                      <div className="sm:col-span-2 border border-dashed border-slate-300 p-4 text-center text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                        Nenhum documento classificado na pasta provincial.
-                      </div>
-                    )}
-                  </div>
-                </section>
-
-                <section className="border border-slate-200 p-4 dark:border-slate-800">
-                  <div className="mb-3 flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-[#113240] dark:text-[#b58a55]" />
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-200">Histórico de revisão</h2>
-                  </div>
-
-                  <div className="space-y-3">
-                    {historico.length ? historico.map(evento => (
-                      <div key={evento.id} className="border border-slate-200 p-3 dark:border-slate-700">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className={`inline-flex px-2 py-0.5 text-[9px] font-medium ${statusClass[evento.status_novo] || statusClass.Arquivado}`}>
-                            {evento.status_novo}
-                          </span>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400">{formatDate(evento.criado_em)}</span>
-                        </div>
-                        <p className="mt-2 text-xs font-medium text-slate-700 dark:text-slate-200">{evento.ator_nome}</p>
-                        <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{evento.observacao || 'Sem observação registrada.'}</p>
-                      </div>
-                    )) : (
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Ainda não há histórico de revisão para este religioso.</p>
-                    )}
-                  </div>
-                </section>
-              </div>
+                <dl className="grid gap-3 sm:grid-cols-2">
+                  <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">E-mail</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{conta?.email || 'Sem conta vinculada'}</dd></div>
+                  <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Estado</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{conta ? (conta.banned_until && new Date(conta.banned_until).getTime() > Date.now() ? 'Bloqueada' : 'Ativa') : '—'}</dd></div>
+                  <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Origem</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{conta?.ledger?.origin || '—'}</dd></div>
+                  <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Criado por</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{conta?.ledger?.created_by_name || 'Não identificado'}</dd></div>
+                </dl>
+              </section>
             </div>
 
-            <section className="border border-slate-200 p-4 dark:border-slate-800">
-              <div className="dossie-no-print mb-4 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <Download className="h-4 w-4 text-[#113240] dark:text-[#b58a55]" />
-                  <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-200">Documentos e pastas do arquivo</h2>
+            {/* GESTOR DE DOCUMENTOS E PASTAS DO ARQUIVO (ESTILO NEXTCLOUD / EXPLORER) */}
+            <section className="border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/40">
+              {/* Barra Superior do Explorer */}
+              <div className="dossie-no-print border-b border-slate-200 p-4 dark:border-slate-800">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  {/* Breadcrumbs de Navegação */}
+                  <nav className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentFolder('all')}
+                      className="flex items-center gap-1 font-semibold hover:text-[#113240] dark:hover:text-[#b58a55]"
+                      title="Ir para a raiz do arquivo"
+                    >
+                      <Archive className="h-3.5 w-3.5 text-[#113240] dark:text-[#b58a55]" />
+                      <span>Arquivo Provincial</span>
+                    </button>
+                    <ChevronRight className="h-3 w-3 text-slate-400" />
+                    <span className="font-medium text-slate-500 dark:text-slate-400">
+                      {religioso.nome_civil}
+                    </span>
+                    {currentFolder !== 'all' && (
+                      <>
+                        <ChevronRight className="h-3 w-3 text-slate-400" />
+                        <span className="font-semibold text-slate-900 dark:text-white">
+                          {currentFolder}
+                        </span>
+                      </>
+                    )}
+                  </nav>
+
+                  {/* Ações e Filtro de Busca */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Buscar arquivo..."
+                        value={searchDocTerm}
+                        onChange={e => setSearchDocTerm(e.target.value)}
+                        className="h-8 w-44 rounded border border-slate-200 bg-slate-50 pl-8 pr-7 text-xs text-slate-800 placeholder-slate-400 focus:border-[#113240] focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-[#b58a55] sm:w-56"
+                      />
+                      {searchDocTerm && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchDocTerm('')}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Alternador de Visualização (Grade / Lista) */}
+                    <div className="flex items-center rounded border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-700 dark:bg-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('grid')}
+                        className={`rounded p-1.5 transition ${viewMode === 'grid' ? 'bg-white text-slate-900 shadow-xs dark:bg-slate-700 dark:text-white' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
+                        title="Visão em Grade (Explorer)"
+                      >
+                        <LayoutGrid className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('list')}
+                        className={`rounded p-1.5 transition ${viewMode === 'list' ? 'bg-white text-slate-900 shadow-xs dark:bg-slate-700 dark:text-white' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
+                        title="Visão em Lista Detalhada"
+                      >
+                        <List className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Download em lote */}
+                    {selectedDocumentIds.size > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => void handleBatchDownload()}
+                        className="inline-flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-xs hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                        title="Baixar documentos marcados"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        <span>Baixar ({selectedDocumentIds.size})</span>
+                      </button>
+                    )}
+
+                    {/* Botão Novo Documento */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (currentFolder !== 'all') {
+                          setArchiveCategory(currentFolder);
+                        }
+                        setShowUploadModal(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded bg-[#113240] px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#194b5d] dark:bg-[#226380] dark:hover:bg-[#1b4f66]"
+                    >
+                      <Upload className="h-3.5 w-3.5" />
+                      <span>Novo Documento</span>
+                    </button>
+                  </div>
                 </div>
-                <span className="text-[10px] uppercase tracking-[0.12em] text-slate-500">{documentos.length} arquivo(s)</span>
+
+                {/* Chips de Pastas / Categorias */}
+                <div className="mt-3.5 flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentFolder('all')}
+                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 font-medium transition ${
+                      currentFolder === 'all'
+                        ? 'bg-[#113240] text-white shadow-xs dark:bg-[#226380]'
+                        : 'border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <FolderClosed className="h-3.5 w-3.5" />
+                    <span>Todas as Pastas</span>
+                    <span className={`ml-0.5 rounded-full px-1.5 py-0.2 text-[10px] ${currentFolder === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>
+                      {documentos.length}
+                    </span>
+                  </button>
+
+                  {foldersWithCounts.map(([folderName, count]) => (
+                    <button
+                      key={folderName}
+                      type="button"
+                      onClick={() => setCurrentFolder(folderName)}
+                      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 font-medium transition ${
+                        currentFolder === folderName
+                          ? 'bg-[#113240] text-white shadow-xs dark:bg-[#226380]'
+                          : 'border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <FolderClosed className="h-3.5 w-3.5" />
+                      <span>{folderName}</span>
+                      <span className={`ml-0.5 rounded-full px-1.5 py-0.2 text-[10px] ${currentFolder === folderName ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>
+                        {count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <form onSubmit={(event) => void uploadArchiveDocument(event)} className="dossie-no-print mb-5 grid gap-3 border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-white/[0.02] md:grid-cols-2">
-                <div className="flex items-center gap-2 md:col-span-2">
-                  <FolderOpen className="h-4 w-4 text-[#113240] dark:text-[#b58a55]" />
-                  <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-200">Adicionar à pasta provincial</h3>
-                </div>
-                <label className="space-y-1.5 text-xs font-medium text-slate-700 dark:text-slate-300">
-                  Categoria / pasta
-                  <select value={archiveCategory} onChange={event => setArchiveCategory(event.target.value)} className="w-full border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white">
-                    {archiveCategories.map(category => <option key={category} value={category}>{category}</option>)}
-                  </select>
-                </label>
-                <label className="space-y-1.5 text-xs font-medium text-slate-700 dark:text-slate-300">
-                  Título do documento
-                  <input required maxLength={200} value={archiveTitle} onChange={event => setArchiveTitle(event.target.value)} className="w-full border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white" />
-                </label>
-                <label className="space-y-1.5 text-xs font-medium text-slate-700 dark:text-slate-300">
-                  Arquivo (PDF, imagem, DOC ou DOCX; até 50 MB)
-                  <input required type="file" accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff,.doc,.docx" onChange={handleArchiveFile} className="w-full text-xs file:mr-3 file:border-0 file:bg-slate-200 file:px-3 file:py-2 file:text-xs dark:file:bg-slate-700 dark:file:text-slate-100" />
-                </label>
-                <label className="space-y-1.5 text-xs font-medium text-slate-700 dark:text-slate-300">
-                  Observação (opcional)
-                  <input maxLength={1000} value={archiveNote} onChange={event => setArchiveNote(event.target.value)} className="w-full border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white" />
-                </label>
-                <div className="flex justify-end md:col-span-2">
-                  <button type="submit" disabled={archiveSaving || !archiveFile} className="inline-flex items-center gap-2 bg-[#113240] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#194b5d] disabled:cursor-not-allowed disabled:opacity-50">
-                    {archiveSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                    Arquivar documento
-                  </button>
-                </div>
-              </form>
-
-              <div className="dossie-print-only mb-4 border-b border-slate-300 pb-4">
+              {/* Relação de documentos para checklist na impressão oficial */}
+              <div className="dossie-print-only border-b border-slate-300 p-4">
                 <h2 className="text-sm font-semibold uppercase tracking-wide">Relação de documentos selecionados</h2>
                 <p className="mt-1 text-xs">Religioso: {religioso.nome_religioso || religioso.nome_civil} · {selectedDocuments.length} documento(s)</p>
                 <ol className="mt-3 list-decimal space-y-1 pl-5 text-xs">
@@ -1749,61 +1974,570 @@ export const ReligiosoDossie: React.FC = () => {
                 </ol>
               </div>
 
-              {documentos.length ? (
-                <div className="space-y-3">
-                  {documentFolders.map(([category, categoryDocuments]) => (
-                    <details key={category} open className="overflow-hidden border border-slate-200 dark:border-slate-700">
-                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-slate-50 px-4 py-3 dark:bg-white/[0.03]">
-                        <span className="flex items-center gap-2 text-xs font-semibold text-slate-800 dark:text-slate-200">
-                          <FolderClosed className="h-4 w-4 text-[#226380] dark:text-[#A3C3C7]" />
-                          {category}
-                        </span>
-                        <span className="text-[10px] text-slate-500">{categoryDocuments.length} documento(s)</span>
-                      </summary>
-                      <div className="space-y-2 p-3">
-                        {categoryDocuments.map(documento => (
-                          <div key={documento.id} className="flex flex-col gap-3 border border-slate-200 p-3 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="flex min-w-0 items-start gap-3">
+              {/* Área de Conteúdo do Explorer */}
+              <div className="dossie-no-print p-4">
+                {/* Visualização de Cartões de Pastas no topo (estilo Nextcloud / Drive) quando em Todas as Pastas */}
+                {currentFolder === 'all' && !searchDocTerm && foldersWithCounts.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="mb-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                      Pastas do Arquivo ({foldersWithCounts.length})
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                      {foldersWithCounts.map(([folderName, count]) => (
+                        <button
+                          key={folderName}
+                          type="button"
+                          onClick={() => setCurrentFolder(folderName)}
+                          className="group flex flex-col items-start rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-left transition hover:border-[#113240]/40 hover:bg-white hover:shadow-xs dark:border-slate-700 dark:bg-slate-800/40 dark:hover:border-[#b58a55]/40 dark:hover:bg-slate-800"
+                        >
+                          <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-md bg-[#226380]/10 text-[#226380] transition group-hover:scale-105 group-hover:bg-[#113240] group-hover:text-white dark:bg-[#A3C3C7]/10 dark:text-[#A3C3C7] dark:group-hover:bg-[#b58a55] dark:group-hover:text-slate-900">
+                            <FolderClosed className="h-4 w-4" />
+                          </div>
+                          <p className="w-full truncate text-xs font-semibold text-slate-800 dark:text-slate-200">{folderName}</p>
+                          <p className="mt-0.5 text-[10px] text-slate-500">{count} documento(s)</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Cabeçalho da Lista / Ações de Seleção */}
+                <div className="mb-3 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-slate-900 dark:text-white">
+                      {currentFolder === 'all' ? 'Todos os Arquivos' : currentFolder}
+                    </span>
+                    <span>•</span>
+                    <span>{filteredDocuments.length} documento(s)</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleSelectAllFiltered}
+                      className="text-[11px] font-medium text-[#226380] hover:underline dark:text-[#A3C3C7]"
+                    >
+                      {filteredDocuments.length > 0 && filteredDocuments.every(d => selectedDocumentIds.has(d.id))
+                        ? 'Desmarcar todos'
+                        : 'Selecionar todos'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Grade ou Tabela de Documentos */}
+                {filteredDocuments.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 py-12 text-center dark:border-slate-700">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800">
+                      <FolderOpen className="h-6 w-6" />
+                    </div>
+                    <p className="mt-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                      {searchDocTerm ? 'Nenhum documento encontrado para a busca.' : 'Esta pasta está vazia.'}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Clique em "Novo Documento" para arquivar novos comprovantes, cartas ou certidões.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (currentFolder !== 'all') setArchiveCategory(currentFolder);
+                        setShowUploadModal(true);
+                      }}
+                      className="mt-4 inline-flex items-center gap-1.5 rounded bg-[#113240] px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-[#194b5d]"
+                    >
+                      <Upload className="h-3.5 w-3.5" />
+                      <span>Enviar Documento</span>
+                    </button>
+                  </div>
+                ) : viewMode === 'grid' ? (
+                  /* VISÃO EM GRADE (NEXTCLOUD CARDS) */
+                  <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                    {filteredDocuments.map(doc => {
+                      const meta = getFileMeta(doc.nome_arquivo, doc.mime_type);
+                      const isChecked = selectedDocumentIds.has(doc.id);
+
+                      return (
+                        <div
+                          key={doc.id}
+                          className={`group relative flex flex-col justify-between rounded-lg border transition hover:shadow-md ${
+                            isChecked
+                              ? 'border-[#226380] bg-[#226380]/5 dark:border-[#A3C3C7] dark:bg-[#A3C3C7]/5'
+                              : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-slate-700'
+                          }`}
+                        >
+                          {/* Barra superior do card */}
+                          <div className="flex items-center justify-between border-b border-slate-100 p-2.5 dark:border-slate-800">
+                            <label className="flex cursor-pointer items-center gap-2">
                               <input
                                 type="checkbox"
-                                checked={selectedDocumentIds.has(documento.id)}
-                                onChange={() => toggleDocumentSelection(documento.id)}
-                                aria-label={`Incluir ${documento.nome_arquivo} no checklist impresso`}
-                                className="dossie-no-print mt-1 h-4 w-4 accent-[#113240]"
+                                checked={isChecked}
+                                onChange={() => toggleDocumentSelection(doc.id)}
+                                aria-label={`Incluir ${doc.nome_arquivo} no checklist`}
+                                className="h-4 w-4 rounded border-slate-300 text-[#113240] focus:ring-[#113240]"
                               />
-                              <div className="min-w-0">
-                                <p className="break-words text-sm font-medium text-slate-900 dark:text-white">{documento.titulo || documento.nome_arquivo}</p>
-                                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                                  {documento.nome_arquivo} • {formatDate(documento.data_cadastro || documento.criado_em)} • {formatBytes(documento.tamanho_bytes)}
-                                </p>
-                                {(documento.quem_cadastrou || documento.enviado_por_nome) && <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">Enviado por {documento.enviado_por_nome || documento.quem_cadastrou}</p>}
-                              </div>
+                              <span className="text-[10px] uppercase tracking-wider text-slate-400">
+                                {doc.storage_bucket === 'religiosos-documentos' ? 'Portal' : 'Secretaria'}
+                              </span>
+                            </label>
+                            <span className="truncate max-w-[120px] rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300" title={doc.categoria || 'Arquivo'}>
+                              {doc.categoria || 'Arquivo'}
+                            </span>
+                          </div>
+
+                          {/* Centro com Ícone / Tipo de Arquivo */}
+                          <div
+                            onClick={() => void handleOpenPreview(doc)}
+                            className="flex cursor-pointer flex-col items-center justify-center py-6 px-3 transition group-hover:scale-102"
+                            title="Clique para pré-visualizar"
+                          >
+                            <div className="relative flex h-14 w-14 items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800">
+                              {meta.isPdf ? (
+                                <div className="flex flex-col items-center text-rose-600 dark:text-rose-400">
+                                  <FileText className="h-8 w-8" />
+                                  <span className="absolute -bottom-1 rounded bg-rose-600 px-1 text-[8px] font-bold text-white uppercase">PDF</span>
+                                </div>
+                              ) : meta.isImg ? (
+                                <div className="flex flex-col items-center text-emerald-600 dark:text-emerald-400">
+                                  <FileImage className="h-8 w-8" />
+                                  <span className="absolute -bottom-1 rounded bg-emerald-600 px-1 text-[8px] font-bold text-white uppercase">IMG</span>
+                                </div>
+                              ) : meta.isDoc ? (
+                                <div className="flex flex-col items-center text-blue-600 dark:text-blue-400">
+                                  <FileText className="h-8 w-8" />
+                                  <span className="absolute -bottom-1 rounded bg-blue-600 px-1 text-[8px] font-bold text-white uppercase">DOC</span>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center text-slate-600 dark:text-slate-400">
+                                  <FileText className="h-8 w-8" />
+                                  <span className="absolute -bottom-1 rounded bg-slate-600 px-1 text-[8px] font-bold text-white uppercase">{meta.ext || 'ARQ'}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Detalhes do Documento */}
+                          <div className="border-t border-slate-100 p-3 dark:border-slate-800">
+                            <p
+                              className="truncate text-xs font-semibold text-slate-900 dark:text-white"
+                              title={doc.titulo || doc.nome_arquivo}
+                            >
+                              {doc.titulo || doc.nome_arquivo}
+                            </p>
+                            <p className="mt-0.5 truncate text-[11px] text-slate-500" title={doc.nome_arquivo}>
+                              {doc.nome_arquivo}
+                            </p>
+                            <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-400">
+                              <span>{formatBytes(doc.tamanho_bytes)}</span>
+                              <span>{formatDate(doc.data_cadastro || doc.criado_em)}</span>
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={() => void handleDownload(documento)}
-                              className="dossie-no-print inline-flex shrink-0 items-center justify-center gap-2 border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                            >
-                              <Download className="h-3.5 w-3.5" />
-                              Baixar
-                            </button>
+                            {/* Botões de Ação Rápida */}
+                            <div className="mt-2.5 flex items-center gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                              <button
+                                type="button"
+                                onClick={() => void handleOpenPreview(doc)}
+                                className="flex flex-1 items-center justify-center gap-1 rounded border border-slate-200 bg-white py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                              >
+                                <Eye className="h-3 w-3" />
+                                <span>Visualizar</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void handleDownload(doc)}
+                                className="flex flex-1 items-center justify-center gap-1 rounded border border-slate-200 bg-white py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                                title="Baixar arquivo"
+                              >
+                                <Download className="h-3 w-3" />
+                                <span>Baixar</span>
+                              </button>
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    </details>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-slate-500 dark:text-slate-400">Nenhum documento anexado a este religioso até o momento.</p>
-              )}
-              {documentos.length > 0 && selectedDocuments.length === 0 && (
-                <p className="dossie-no-print mt-3 text-[11px] text-amber-700 dark:text-amber-300">Selecione os documentos que devem constar no checklist impresso.</p>
-              )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  /* VISÃO EM TABELA / LISTA DETALHADA */
+                  <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+                    <table className="w-full text-left text-xs">
+                      <thead className="border-b border-slate-200 bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-900/60">
+                        <tr>
+                          <th className="w-10 px-3 py-2.5">
+                            <input
+                              type="checkbox"
+                              checked={filteredDocuments.length > 0 && filteredDocuments.every(d => selectedDocumentIds.has(d.id))}
+                              onChange={handleSelectAllFiltered}
+                              className="h-3.5 w-3.5 rounded border-slate-300 text-[#113240] focus:ring-[#113240]"
+                            />
+                          </th>
+                          <th className="px-3 py-2.5">Documento</th>
+                          <th className="px-3 py-2.5">Pasta / Categoria</th>
+                          <th className="px-3 py-2.5">Tamanho</th>
+                          <th className="px-3 py-2.5">Data</th>
+                          <th className="px-3 py-2.5">Enviado por</th>
+                          <th className="px-3 py-2.5 text-right">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {filteredDocuments.map(doc => {
+                          const meta = getFileMeta(doc.nome_arquivo, doc.mime_type);
+                          const isChecked = selectedDocumentIds.has(doc.id);
+
+                          return (
+                            <tr
+                              key={doc.id}
+                              className={`hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition ${isChecked ? 'bg-[#226380]/5 dark:bg-[#A3C3C7]/5' : ''}`}
+                            >
+                              <td className="px-3 py-2.5">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => toggleDocumentSelection(doc.id)}
+                                  className="h-3.5 w-3.5 rounded border-slate-300 text-[#113240] focus:ring-[#113240]"
+                                />
+                              </td>
+                              <td className="px-3 py-2.5">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-slate-100 dark:bg-slate-800">
+                                    {meta.isPdf ? (
+                                      <FileText className="h-4 w-4 text-rose-500" />
+                                    ) : meta.isImg ? (
+                                      <FileImage className="h-4 w-4 text-emerald-500" />
+                                    ) : meta.isDoc ? (
+                                      <FileText className="h-4 w-4 text-blue-500" />
+                                    ) : (
+                                      <FileText className="h-4 w-4 text-slate-500" />
+                                    )}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="truncate font-semibold text-slate-900 dark:text-white" title={doc.titulo || doc.nome_arquivo}>
+                                      {doc.titulo || doc.nome_arquivo}
+                                    </p>
+                                    <p className="truncate text-[10px] text-slate-400" title={doc.nome_arquivo}>
+                                      {doc.nome_arquivo}
+                                    </p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2.5">
+                                <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                  {doc.categoria || 'Geral'}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2.5 text-slate-500">
+                                {formatBytes(doc.tamanho_bytes)}
+                              </td>
+                              <td className="px-3 py-2.5 text-slate-500">
+                                {formatDate(doc.data_cadastro || doc.criado_em)}
+                              </td>
+                              <td className="px-3 py-2.5 text-slate-500">
+                                {doc.enviado_por_nome || doc.quem_cadastrou || (doc.storage_bucket === 'religiosos-documentos' ? 'Portal' : 'Secretaria')}
+                              </td>
+                              <td className="px-3 py-2.5 text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleOpenPreview(doc)}
+                                    className="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
+                                    title="Visualizar"
+                                  >
+                                    <Eye className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleDownload(doc)}
+                                    className="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
+                                    title="Baixar"
+                                  >
+                                    <Download className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Indicação de checklist para impressão */}
+                {selectedDocuments.length > 0 && (
+                  <p className="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
+                    ✓ {selectedDocuments.length} documento(s) selecionado(s) para o checklist da ficha canônica impressa.
+                  </p>
+                )}
+              </div>
             </section>
           </div>
         )}
       </div>
+
+      {/* MODAL DE UPLOAD DE DOCUMENTO (NEXTCLOUD STYLE) */}
+      {showUploadModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-fade-in dossie-no-print">
+          <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-[#161b22]">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#226380]/10 text-[#226380] dark:bg-[#226380]/20">
+                  <Upload className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Arquivar Documento no Dossiê
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    O documento será armazenado com segurança no arquivo provincial.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowUploadModal(false)}
+                className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => void uploadArchiveDocument(e)} className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Pasta / Categoria
+                </label>
+                <select
+                  value={archiveCategory}
+                  onChange={e => setArchiveCategory(e.target.value)}
+                  className="mt-1 w-full rounded border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-900 focus:border-[#113240] focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                >
+                  {allCategories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Título do Documento *
+                </label>
+                <input
+                  required
+                  maxLength={200}
+                  placeholder="ex: Certidão de Batismo, Provisão 2026..."
+                  value={archiveTitle}
+                  onChange={e => setArchiveTitle(e.target.value)}
+                  className="mt-1 w-full rounded border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-[#113240] focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Arquivo (PDF, Imagem, DOC ou DOCX; até 50 MB) *
+                </label>
+                <div className="relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-300 p-6 transition hover:border-[#113240] dark:border-slate-700 dark:hover:border-[#b58a55]">
+                  <Upload className="h-8 w-8 text-slate-400" />
+                  <p className="mt-2 text-xs font-medium text-slate-700 dark:text-slate-300">
+                    {archiveFile ? archiveFile.name : 'Clique para selecionar um arquivo do seu computador'}
+                  </p>
+                  <p className="mt-1 text-[10px] text-slate-500">
+                    {archiveFile ? `${formatBytes(archiveFile.size)} selecionado` : 'PDF, JPEG, PNG, TIFF, DOC, DOCX até 50 MB'}
+                  </p>
+                  <input
+                    type="file"
+                    required={!archiveFile}
+                    accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff,.doc,.docx"
+                    onChange={handleArchiveFile}
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Observação interna (opcional)
+                </label>
+                <input
+                  maxLength={1000}
+                  placeholder="Notas adicionais sobre este arquivo..."
+                  value={archiveNote}
+                  onChange={e => setArchiveNote(e.target.value)}
+                  className="mt-1 w-full rounded border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-[#113240] focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowUploadModal(false)}
+                  className="rounded border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={archiveSaving || !archiveFile || !archiveTitle.trim()}
+                  className="inline-flex items-center gap-1.5 rounded bg-[#113240] px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#194b5d] disabled:opacity-50"
+                >
+                  {archiveSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                  <span>Arquivar Documento</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE HISTÓRICO DE REVISÃO E AUDITORIA */}
+      {showHistoricoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-fade-in dossie-no-print">
+          <div className="flex flex-col w-full max-w-xl max-h-[85vh] rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-[#161b22]">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#226380]/10 text-[#226380] dark:bg-[#226380]/20">
+                  <History className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Histórico de Revisão e Auditoria
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Registro cronológico de aprovações e tramitações da ficha.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowHistoricoModal(false)}
+                className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-3">
+              {historico.length ? (
+                historico.map(evento => (
+                  <div key={evento.id} className="rounded-lg border border-slate-200 p-3.5 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900/40">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className={`inline-flex px-2 py-0.5 text-[9px] font-medium rounded ${statusClass[evento.status_novo] || statusClass.Arquivado}`}>
+                        {evento.status_novo}
+                      </span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        {formatDate(evento.criado_em)}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs font-semibold text-slate-800 dark:text-slate-200">
+                      {evento.ator_nome}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                      {evento.observacao || 'Sem observação registrada.'}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <div className="py-8 text-center text-xs text-slate-500">
+                  Ainda não há histórico de revisão registrado para este religioso.
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end border-t border-slate-200 p-3.5 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowHistoricoModal(false)}
+                className="rounded border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE PRÉ-VISUALIZAÇÃO DE ARQUIVO */}
+      {previewDoc.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/75 p-4 backdrop-blur-sm animate-fade-in dossie-no-print">
+          <div className="flex flex-col w-full max-w-4xl max-h-[90vh] rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-[#161b22]">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3.5 dark:border-slate-800">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <FileText className="h-5 w-5 text-[#226380] dark:text-[#A3C3C7] shrink-0" />
+                <div className="min-w-0">
+                  <h3 className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                    {previewDoc.title}
+                  </h3>
+                  <p className="truncate text-[10px] text-slate-500">
+                    {previewDoc.fileName} {previewDoc.documento ? `• ${formatBytes(previewDoc.documento.tamanho_bytes)}` : ''}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {previewDoc.documento && (
+                  <button
+                    type="button"
+                    onClick={() => previewDoc.documento && void handleDownload(previewDoc.documento)}
+                    className="inline-flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    <span>Baixar</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleClosePreview}
+                  className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Conteúdo da Visualização */}
+            <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-slate-100/70 dark:bg-slate-950/50 min-h-[400px]">
+              {previewDoc.loading ? (
+                <div className="flex flex-col items-center gap-2 text-slate-500">
+                  <Loader2 className="h-8 w-8 animate-spin text-[#113240] dark:text-[#b58a55]" />
+                  <p className="text-xs">Carregando arquivo...</p>
+                </div>
+              ) : previewDoc.url ? (
+                previewDoc.mimeType.includes('pdf') || previewDoc.fileName.toLowerCase().endsWith('.pdf') ? (
+                  <iframe
+                    src={previewDoc.url}
+                    title={previewDoc.title}
+                    className="w-full h-[70vh] rounded border border-slate-200 bg-white dark:border-slate-800"
+                  />
+                ) : previewDoc.mimeType.startsWith('image/') || /\.(jpe?g|png|webp|gif|svg)$/i.test(previewDoc.fileName) ? (
+                  <img
+                    src={previewDoc.url}
+                    alt={previewDoc.title}
+                    className="max-h-[70vh] max-w-full rounded object-contain shadow-md"
+                  />
+                ) : (
+                  <div className="text-center p-6">
+                    <FileText className="mx-auto h-12 w-12 text-slate-400" />
+                    <p className="mt-3 text-sm font-medium text-slate-800 dark:text-slate-200">
+                      Visualização direta não disponível para este formato no navegador.
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Você pode baixar o arquivo para abri-lo em seu dispositivo.
+                    </p>
+                    {previewDoc.documento && (
+                      <button
+                        type="button"
+                        onClick={() => previewDoc.documento && void handleDownload(previewDoc.documento)}
+                        className="mt-4 inline-flex items-center gap-2 rounded bg-[#113240] px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-[#194b5d]"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        <span>Baixar {previewDoc.fileName}</span>
+                      </button>
+                    )}
+                  </div>
+                )
+              ) : (
+                <p className="text-xs text-slate-500">Arquivo indisponível para pré-visualização.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL DE REVISÃO E CONFIRMAÇÃO: PUBLICAR NO SITE OFICIAL */}
       {showPublishModal && publishPayload && (
