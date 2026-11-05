@@ -15,6 +15,7 @@
 
 import { LOGO_TIMBRADO_DATA_URI } from '../assets/logoTimbradoBase64';
 import { registrarDocumentoOficial } from '../lib/autenticacaoDocumental';
+import { extrairAno } from '../utils/dateUtils';
 
 export interface OpcoesDocumentoGotenberg {
   titulo: string;
@@ -27,14 +28,38 @@ export interface OpcoesDocumentoGotenberg {
   formatoPdfA?: boolean;
   omitirTituloPadrao?: boolean;
   cabecalhoCompacto?: boolean;
+  omitirSeloPadrao?: boolean;
 }
 
 export interface TrabalhoTrajetoria {
-  periodo: string; // Ex: '2015 - 2020' ou '2023 - Atual'
-  instituicao: string; // Ex: 'Paróquia São Luiz Gonzaga', 'Seminário São José'
-  funcao: string; // Ex: 'Pároco', 'Vigário Paroquial', 'Reitor', 'Formador', 'Ecônomo'
-  local?: string; // Ex: 'Brusque / SC', 'Corupá / SC'
-  observacoes?: string;
+  periodo: string; // Ex: '2018 - 2020' ou '2026 - Atual'
+  instituicao?: string; // Compatibilidade legada
+  comunidade?: string; // Comunidade Religiosa
+  obra?: string; // Obra ou Paróquia onde atua/atuou
+  faseGrau?: string; // Fase de formação ou grau: Postulante, Noviço, Frater, Padre, etc.
+  funcao: string; // Ofício canônico exercido: Estudante, Vigário, Pároco, etc.
+  local?: string; // Cidade / Estado
+  observacoes?: string; // Decreto, provisão canônica ou notas
+}
+
+export interface DocumentoFichaCanonica {
+  categoria: string;
+  nomeArquivo: string;
+  data?: string;
+  status?: string;
+}
+
+export interface LemaVocacionalFicha {
+  fase: string;
+  texto: string;
+  destacado?: boolean;
+}
+
+export interface OrigemVocacionalFicha {
+  paroquiaOrigem?: string;
+  cidade?: string;
+  diocese?: string;
+  promotorVocacional?: string;
 }
 
 export interface MissaoServicoTrajetoria {
@@ -72,9 +97,13 @@ export interface DadosFichaReligioso {
   fotoUrl?: string | null;
   lemaPrincipal?: string;
   lemaPrincipalFase?: string;
+  lemasVocacionais?: LemaVocacionalFicha[];
+  origemVocacional?: OrigemVocacionalFicha;
+  documentosCadastrados?: DocumentoFichaCanonica[];
 
   // Contatos e Residência
   comunidadeAtualNome?: string;
+  obraAtualNome?: string;
   oficioAtual?: string;
   enderecoResidencial?: string;
   telefoneCelular?: string;
@@ -487,15 +516,15 @@ export const gotenbergService = {
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 15px 0;
+      margin: 8px 0;
       page-break-inside: auto;
     }
     tr { page-break-inside: avoid; }
     th, td {
       border: 1px solid #cbd5e1;
-      padding: 7px 10px;
+      padding: 5px 8px;
       text-align: left;
-      font-size: 9.5pt;
+      font-size: 8.5pt;
     }
     th {
       background-color: #f1f5f9;
@@ -517,7 +546,7 @@ export const gotenbergService = {
 
     ${opcoes.corpoHtml}
 
-    ${opcoes.codigoAutenticidade ? `
+    ${!opcoes.omitirSeloPadrao && opcoes.codigoAutenticidade ? `
     <div class="selo-autenticidade">
       <div>
         <strong>Documento Canônico Autenticado Digitalmente</strong><br>
@@ -845,55 +874,134 @@ export const gotenbergService = {
   },
 
   /**
-   * 6. Gera a Ficha Cadastral Canônica Completa do Religioso (Dossiê com Trajetória e Trabalhos)
+   * 6. Gera a Ficha Cadastral Canônica Completa do Religioso (Dossiê com Trajetória e Trabalhos em 2 Páginas Equilibradas)
    */
   async gerarFichaReligiosoPdf(dados: DadosFichaReligioso): Promise<Blob> {
     const dataEmissao = dados.dataEmissao || new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
     const nomeExibido = dados.nomeReligioso || dados.nomeCivil;
     const filiacaoTexto = [dados.filiacaoPai, dados.filiacaoMae].filter(Boolean).join(' e ') || '—';
+    const registroStr = dados.numeroCadastro ? 'BRM-' + String(dados.numeroCadastro).padStart(4, '0') : 'BRM-2026';
+    const anoIngresso = extrairAno(dados.dataIngresso);
+    const telefonesTexto = [dados.telefoneCelular, dados.whatsapp && dados.whatsapp !== dados.telefoneCelular ? `Zap: ${dados.whatsapp}` : null].filter(Boolean).join(' • ') || '—';
 
-    // Monta tabela de Onde já trabalhou e Funções
+    // Monta tabela de Onde já trabalhou, Comunidades, Obras e Funções
     const linhasTrabalhos = dados.historicoTrabalhos && dados.historicoTrabalhos.length > 0
-      ? dados.historicoTrabalhos.map(t => `
+      ? dados.historicoTrabalhos.map(t => {
+        const comNome = t.comunidade || (t.instituicao && !t.obra ? t.instituicao : 'Comunidade Provincial');
+        const obraNome = t.obra || (t.instituicao && t.instituicao !== t.comunidade ? t.instituicao : '—');
+        return `
         <tr>
-          <td style="font-family: monospace; font-weight: bold; white-space: nowrap;">${t.periodo || '—'}</td>
-          <td><strong>${t.instituicao}</strong></td>
-          <td style="color: #113240; font-weight: 600;">${t.funcao || '—'}</td>
-          <td>${t.local || '—'}</td>
-          <td style="font-size: 8.5pt; color: #555;">${t.observacoes || '—'}</td>
+          <td style="font-family: monospace; font-weight: bold; white-space: nowrap; font-size: 7.8pt; color: #1e293b; padding: 4.5px 6px;">
+            ${t.periodo || '—'}
+          </td>
+          <td style="font-size: 8pt; color: #0f172a; padding: 4.5px 6px;">
+            <strong>${comNome}</strong>
+          </td>
+          <td style="font-size: 8pt; color: #334155; padding: 4.5px 6px;">
+            ${obraNome !== '—' ? `<strong>${obraNome}</strong>` : '<span style="color: #94a3b8;">—</span>'}
+          </td>
+          <td style="font-size: 7.2pt; color: #113240; font-weight: 600; padding: 4.5px 6px;">
+            ${t.faseGrau ? `<span style="background: #e0f2fe; color: #0369a1; padding: 1.5px 5px; border-radius: 3px; font-family: monospace; font-size: 6.8pt; display: inline-block;">${t.faseGrau}</span>` : '<span style="color: #94a3b8;">—</span>'}
+          </td>
+          <td style="font-size: 7.8pt; color: #113240; font-weight: 600; padding: 4.5px 6px;">
+            ${t.funcao || '—'}
+          </td>
+          <td style="font-size: 7.2pt; color: #475569; padding: 4.5px 6px;">
+            <div>${t.local || '—'}</div>
+            ${t.observacoes ? `<div style="font-size: 6.5pt; color: #64748b; font-style: italic; margin-top: 1px;">${t.observacoes}</div>` : ''}
+          </td>
         </tr>
-      `).join('')
+      `;
+      }).join('')
       : `
         <tr>
-          <td colspan="5" style="text-align: center; font-style: italic; color: #64748b; padding: 12px;">
-            Nenhum histórico anterior registrado nos livros digitais da Província até o momento.
+          <td colspan="6" style="text-align: center; font-style: italic; color: #64748b; padding: 10px; font-size: 8pt;">
+            Nenhum histórico anterior registrado nos livros canônicos da Província até o momento.
           </td>
         </tr>
       `;
 
+    // Monta tabela de Documentos Cadastrados / Arquivo Digital
+    const linhasDocumentos = dados.documentosCadastrados && dados.documentosCadastrados.length > 0
+      ? dados.documentosCadastrados.map(d => `
+        <tr>
+          <td style="font-size: 7.8pt; font-weight: 600; color: #113240; padding: 3.5px 6px;">
+            ${d.categoria}
+          </td>
+          <td style="font-family: monospace; font-size: 7.2pt; color: #334155; padding: 3.5px 6px; word-break: break-all;">
+            ${d.nomeArquivo}
+          </td>
+          <td style="font-family: monospace; font-size: 7.2pt; color: #64748b; text-align: center; padding: 3.5px 6px; white-space: nowrap;">
+            ${d.data || '—'}
+          </td>
+          <td style="font-size: 6.8pt; text-align: center; padding: 3.5px 6px; white-space: nowrap;">
+            <span style="background: #f1f5f9; border: 1px solid #cbd5e1; color: #334155; padding: 1px 5px; border-radius: 3px; font-weight: 500;">
+              ${d.status || 'Arquivo Provincial'}
+            </span>
+          </td>
+        </tr>
+      `).join('')
+      : `
+        <tr>
+          <td colspan="4" style="text-align: center; font-style: italic; color: #64748b; padding: 8px; font-size: 7.8pt;">
+            Documentos sacramentais e civis originais arquivados fisicamente na Chancelaria Provincial.
+          </td>
+        </tr>
+      `;
+
+    // Monta lemas vocacionais
+    const lemasList = dados.lemasVocacionais && dados.lemasVocacionais.length > 0
+      ? dados.lemasVocacionais
+      : (dados.lemaPrincipal ? [{ fase: dados.lemaPrincipalFase || 'Lema Canônico', texto: dados.lemaPrincipal, destacado: true }] : []);
+
+    const htmlLemas = lemasList.length > 0
+      ? `
+        <div style="margin-top: 8px; margin-bottom: 8px;">
+          <p style="font-family: monospace; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 4px;">
+            05. Lemas Vocacionais & Inspiração Espiritual
+          </p>
+          <div style="display: grid; grid-template-columns: ${lemasList.length > 1 ? 'repeat(2, 1fr)' : '1fr'}; gap: 5px;">
+            ${lemasList.map(l => `
+              <div style="border: 1pt solid ${l.destacado ? '#226380' : '#cbd5e1'}; background: ${l.destacado ? '#f0f9ff' : '#ffffff'}; padding: 4px 7px; border-radius: 3px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1px;">
+                  <span style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; font-weight: bold; color: ${l.destacado ? '#0369a1' : '#64748b'};">
+                    ${l.fase}
+                  </span>
+                  ${l.destacado ? `<span style="font-size: 5.8pt; text-transform: uppercase; font-family: monospace; background: #0284c7; color: #ffffff; padding: 0.5px 4px; border-radius: 2px; font-weight: bold;">Lema Principal</span>` : ''}
+                </div>
+                <div style="font-family: 'Cinzel', serif, Georgia; font-style: italic; font-size: 8pt; color: #113240; line-height: 1.25;">
+                  "${l.texto}"
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `
+      : '';
+
     // Monta missões e serviços provinciais
     const linhasMissoes = dados.missoesServicos && dados.missoesServicos.length > 0
       ? `
-        <div style="margin-top: 20px;">
-          <p style="font-family: monospace; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 6px;">
-            05. Missões, Encargos & Serviços Confiados
+        <div style="margin-top: 8px; margin-bottom: 8px;">
+          <p style="font-family: monospace; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 4px;">
+            Missões, Encargos & Serviços Provinciais
           </p>
-          <table>
+          <table style="width: 100%; border-collapse: collapse;">
             <thead>
               <tr>
-                <th style="width: 18%;">Tipo</th>
-                <th style="width: 32%;">Instituição / Comissão</th>
-                <th style="width: 25%;">Função</th>
-                <th style="width: 25%;">Período / Local</th>
+                <th style="width: 20%; font-size: 7.2pt; padding: 3px 5px;">Tipo</th>
+                <th style="width: 35%; font-size: 7.2pt; padding: 3px 5px;">Instituição / Comissão</th>
+                <th style="width: 25%; font-size: 7.2pt; padding: 3px 5px;">Função</th>
+                <th style="width: 20%; font-size: 7.2pt; padding: 3px 5px;">Período / Local</th>
               </tr>
             </thead>
             <tbody>
               ${dados.missoesServicos.map(m => `
                 <tr>
-                  <td><strong>${m.tipo || 'Missão'}</strong></td>
-                  <td>${m.instituicao || '—'}</td>
-                  <td>${m.funcao || '—'}</td>
-                  <td>${[m.periodo, m.local].filter(Boolean).join(' • ') || '—'}</td>
+                  <td style="font-size: 7.5pt; padding: 3px 5px;"><strong>${m.tipo || 'Missão'}</strong></td>
+                  <td style="font-size: 7.5pt; padding: 3px 5px;">${m.instituicao || '—'}</td>
+                  <td style="font-size: 7.5pt; padding: 3px 5px;">${m.funcao || '—'}</td>
+                  <td style="font-size: 7.2pt; padding: 3px 5px;">${[m.periodo, m.local].filter(Boolean).join(' • ') || '—'}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -905,201 +1013,12 @@ export const gotenbergService = {
     // Monta formação acadêmica
     const listaFormacoes = dados.formacoesAcademicas && dados.formacoesAcademicas.length > 0
       ? dados.formacoesAcademicas.map(f => `
-        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding: 4px 0; font-size: 9pt;">
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding: 3px 0; font-size: 8pt;">
           <span><strong>${f.curso}</strong> — ${f.instituicao}</span>
-          <span style="font-family: monospace; color: #64748b;">${f.anoOuPeriodo || ''}</span>
+          <span style="font-family: monospace; color: #64748b; font-size: 7.5pt;">${f.anoOuPeriodo || ''}</span>
         </div>
       `).join('')
-      : '<p style="font-style: italic; color: #64748b; font-size: 9pt;">Filosofia e Teologia nos centros formativos da Congregação.</p>';
-
-    const corpo = `
-      <!-- Cabeçalho Oficial no topo da Página 1 -->
-      <div style="text-align: center; border-bottom: 1.5pt solid #113240; padding-bottom: 6px; margin-bottom: 12px; position: relative;">
-        <span style="position: absolute; top: 0; right: 0; font-size: 6.5pt; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; font-family: monospace;">Secretaria Provincial</span>
-        <img src="${LOGO_TIMBRADO_DATA_URI}" style="height: 44px; width: auto; margin: 0 auto 3px auto; display: block; object-fit: contain;" alt="Brasão Dehoniano" />
-        <h1 style="font-size: 9.5pt; font-weight: normal; color: #113240; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; line-height: 1.2;">CONGREGAÇÃO DOS SACERDOTES DO SAGRADO CORAÇÃO DE JESUS</h1>
-        <h2 style="font-size: 11pt; font-weight: bold; color: #113240; margin: 1px 0 0 0; line-height: 1.2;">Província Brasileira Meridional</h2>
-        <div style="font-size: 11.5pt; font-weight: bold; color: #113240; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.05em;">FICHA CADASTRAL CANÔNICA DO RELIGIOSO</div>
-        <div style="font-size: 7.5pt; color: #64748b; font-family: monospace; margin-top: 1px;">Dossiê Canônico Completo • ${nomeExibido}</div>
-      </div>
-
-      <!-- Identificação Principal & Foto Oficial -->
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5pt solid #113240; padding-bottom: 12px; margin-bottom: 14px;">
-        <div style="display: flex; align-items: center; gap: 16px;">
-          ${dados.fotoUrl ? `
-            <div style="width: 75px; height: 95px; border: 1.5pt solid #113240; overflow: hidden; background: #f8fafc; flex-shrink: 0;">
-              <img src="${dados.fotoUrl}" style="width: 100%; height: 100%; object-fit: cover;" alt="Foto Oficial" />
-            </div>
-          ` : `
-            <div style="width: 75px; height: 95px; border: 1.5pt dashed #94a3b8; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; font-family: monospace; font-size: 7pt; color: #64748b; text-align: center; flex-shrink: 0;">
-              <span>FOTO OFICIAL</span>
-              <strong style="color: #113240; font-size: 8pt;">4x4</strong>
-            </div>
-          `}
-          <div>
-            <div style="font-family: monospace; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.15em; color: #226380; font-weight: bold;">
-              ${dados.grau || 'Confrade'} Dehoniano • Província BRM
-            </div>
-            <h2 style="font-size: 17pt; font-weight: bold; margin: 2px 0; color: #113240; letter-spacing: -0.01em;">
-              ${nomeExibido}
-            </h2>
-            ${dados.lemaPrincipal ? `
-              <div style="font-size: 9.5pt; font-style: italic; color: #226380; margin: 2px 0 3px 0; font-family: 'Cinzel', serif;">
-                ${dados.lemaPrincipal} ${dados.lemaPrincipalFase ? `<span style="font-size: 7.5pt; font-style: normal; font-family: sans-serif; text-transform: uppercase; color: #64748b; margin-left: 6px;">(${dados.lemaPrincipalFase})</span>` : ''}
-              </div>
-            ` : ''}
-            <div style="font-size: 9pt; color: #475569;">
-              Nome Civil: <strong>${dados.nomeCivil}</strong>
-            </div>
-            <div style="font-size: 8.5pt; color: #475569; margin-top: 2px;">
-              Comunidade Atual: <strong style="color: #113240;">${dados.comunidadeAtualNome || 'Província BRM'}</strong>
-              ${dados.oficioAtual ? ` • Ofício: <em>${dados.oficioAtual}</em>` : ''}
-            </div>
-          </div>
-        </div>
-
-        <div style="text-align: right;">
-          <div style="display: inline-block; border: 1.5pt solid #113240; padding: 4px 10px; font-family: monospace; font-size: 8pt; font-weight: bold; text-transform: uppercase; background: #f8fafc;">
-            CADASTRO ${dados.statusCadastro || 'APROVADO'}
-          </div>
-          <div style="font-family: monospace; font-size: 8.5pt; color: #64748b; margin-top: 4px;">
-            Nº Registro: <strong>${dados.numeroCadastro ? 'BRM-' + String(dados.numeroCadastro).padStart(4, '0') : 'BRM-2026'}</strong>
-          </div>
-        </div>
-      </div>
-
-      <!-- Grid de Indicadores Canônicos Rápidos -->
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); border: 1pt solid #cbd5e1; background: #f8fafc; text-align: center; margin-bottom: 16px;">
-        <div style="padding: 6px 8px; border-right: 1pt solid #cbd5e1;">
-          <div style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b;">Grau Canônico</div>
-          <div style="font-size: 9.5pt; font-weight: bold; color: #113240; margin-top: 2px;">${dados.grau || 'Padre'}</div>
-        </div>
-        <div style="padding: 6px 8px; border-right: 1pt solid #cbd5e1;">
-          <div style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b;">Ingresso na SCJ</div>
-          <div style="font-size: 9.5pt; font-weight: bold; color: #113240; margin-top: 2px;">${dados.dataIngresso ? dados.dataIngresso.slice(0, 4) : '—'}</div>
-        </div>
-        <div style="padding: 6px 8px; border-right: 1pt solid #cbd5e1;">
-          <div style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b;">Votos Perpétuos</div>
-          <div style="font-size: 9.5pt; font-weight: bold; color: #113240; margin-top: 2px;">${dados.dataVotosPerpetuos || '—'}</div>
-        </div>
-        <div style="padding: 6px 8px;">
-          <div style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b;">Ordenação</div>
-          <div style="font-size: 9.5pt; font-weight: bold; color: #113240; margin-top: 2px;">${dados.dataPresbiterato || dados.dataDiaconato || '—'}</div>
-        </div>
-      </div>
-
-      <!-- 01. Dados Pessoais & Documentação Civil -->
-      <div style="margin-bottom: 14px;">
-        <p style="font-family: monospace; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 6px;">
-          01. Dados Pessoais & Documentação Civil
-        </p>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 14px; font-size: 8.5pt;">
-          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">Data de Nascimento</span><strong>${dados.dataNascimento || '—'}</strong></div>
-          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">Naturalidade</span><strong>${dados.naturalidade || '—'}</strong></div>
-          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">Nacionalidade</span><strong>${dados.nacionalidade || 'Brasileira'}</strong></div>
-          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">CPF</span><strong style="font-family: monospace;">${dados.cpf || '—'}</strong></div>
-          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">RG / Órgão</span><strong style="font-family: monospace;">${dados.rg || '—'} ${dados.rgOrgao ? `(${dados.rgOrgao})` : ''}</strong></div>
-          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">Título de Eleitor / PIS</span><strong style="font-family: monospace;">${[dados.tituloEleitor, dados.pis].filter(Boolean).join(' • ') || '—'}</strong></div>
-          <div style="grid-column: span 3;"><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">Filiação (Pai e Mãe)</span><strong>${filiacaoTexto}</strong></div>
-        </div>
-      </div>
-
-      <!-- 02. Contatos, Residência & Saúde -->
-      <div style="margin-bottom: 14px;">
-        <p style="font-family: monospace; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 6px;">
-          02. Contatos, Residência Canônica & Saúde
-        </p>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 14px; font-size: 8.5pt;">
-          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">Telefones</span><strong>${[dados.telefoneCelular, dados.whatsapp && dados.whatsapp !== dados.telefoneCelular ? `Zap: ${dados.whatsapp}` : null].filter(Boolean).join(' • ') || '—'}</strong></div>
-          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">E-mail Institucional</span><strong style="font-family: monospace;">${dados.emailInstitucional || '—'}</strong></div>
-          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">Tipo Sanguíneo / Plano</span><strong>${[dados.tipoSanguineo, dados.planoSaude].filter(Boolean).join(' • ') || '—'}</strong></div>
-          <div style="grid-column: span 2;"><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">Endereço Residencial</span><strong>${dados.enderecoResidencial || dados.comunidadeAtualNome || 'Sede Provincial BRM'}</strong></div>
-          <div><span style="font-family: monospace; font-size: 6.5pt; text-transform: uppercase; color: #64748b; display: block;">Contato de Emergência</span><strong>${dados.contatoEmergencia || '—'}</strong></div>
-        </div>
-      </div>
-
-      <!-- 03. Trajetória Canônica (Linha do Tempo) -->
-      <div style="margin-bottom: 16px;">
-        <p style="font-family: monospace; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 8px;">
-          03. Trajetória Canônica & Sacramentos
-        </p>
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center;">
-          <div style="border: 1pt solid #cbd5e1; padding: 6px; background: #fff;">
-            <div style="font-family: monospace; font-size: 6.5pt; font-weight: bold; text-transform: uppercase; color: #64748b;">Batismo</div>
-            <div style="font-size: 8pt; font-weight: bold; margin-top: 2px;">${dados.dataBatismo || '—'}</div>
-            <div style="font-size: 6.5pt; color: #64748b; margin-top: 1px;">${dados.paroquiaBatismo || '—'}</div>
-          </div>
-          <div style="border: 1pt solid #cbd5e1; padding: 6px; background: #fff;">
-            <div style="font-family: monospace; font-size: 6.5pt; font-weight: bold; text-transform: uppercase; color: #64748b;">Primeira Profissão</div>
-            <div style="font-size: 8pt; font-weight: bold; margin-top: 2px;">${dados.dataPrimeirosVotos || '—'}</div>
-            <div style="font-size: 6.5pt; color: #64748b; margin-top: 1px;">${dados.localPrimeirosVotos || '—'}</div>
-          </div>
-          <div style="border: 1pt solid #cbd5e1; padding: 6px; background: #fff;">
-            <div style="font-family: monospace; font-size: 6.5pt; font-weight: bold; text-transform: uppercase; color: #64748b;">Profissão Perpétua</div>
-            <div style="font-size: 8pt; font-weight: bold; margin-top: 2px;">${dados.dataVotosPerpetuos || '—'}</div>
-            <div style="font-size: 6.5pt; color: #64748b; margin-top: 1px;">${dados.localVotosPerpetuos || '—'}</div>
-          </div>
-          <div style="border: 1pt solid #cbd5e1; padding: 6px; background: #fff;">
-            <div style="font-family: monospace; font-size: 6.5pt; font-weight: bold; text-transform: uppercase; color: #64748b;">Ordenação Presbiteral</div>
-            <div style="font-size: 8pt; font-weight: bold; margin-top: 2px;">${dados.dataPresbiterato || dados.dataDiaconato || '—'}</div>
-            <div style="font-size: 6.5pt; color: #64748b; margin-top: 1px;">${dados.bispoOrdenante || dados.localPresbiterato || '—'}</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 04. Trajetória de Comunidades e Trabalhos (Onde já trabalhou e Funções) -->
-      <div style="margin-bottom: 16px; page-break-inside: auto;">
-        <p style="font-family: monospace; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 6px;">
-          04. Trajetória de Comunidades e Trabalhos (Onde Trabalhou • Ofícios e Cargos)
-        </p>
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 15%;">Período</th>
-              <th style="width: 30%;">Comunidade / Paróquia / Casa</th>
-              <th style="width: 25%;">Ofício / Função</th>
-              <th style="width: 15%;">Localidade</th>
-              <th style="width: 15%;">Notas</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${linhasTrabalhos}
-          </tbody>
-        </table>
-      </div>
-
-      ${linhasMissoes}
-
-      <!-- 05/06. Formação Acadêmica & Idiomas -->
-      <div style="margin-top: 14px; margin-bottom: 24px; display: grid; grid-template-columns: 2fr 1fr; gap: 14px;">
-        <div>
-          <p style="font-family: monospace; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 6px;">
-            Formação Acadêmica & Graus
-          </p>
-          ${listaFormacoes}
-        </div>
-        <div>
-          <p style="font-family: monospace; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 6px;">
-            Idiomas
-          </p>
-          <div style="font-size: 8.5pt; color: #334155; line-height: 1.6;">
-            ${dados.idiomas && dados.idiomas.length > 0 ? dados.idiomas.map(i => `<span style="display: inline-block; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 2px 6px; margin: 2px; border-radius: 3px;">${i}</span>`).join('') : 'Português (nativo)'}
-          </div>
-        </div>
-      </div>
-
-      <!-- Assinaturas Canônicas -->
-      <div style="margin-top: 45px; display: flex; justify-content: space-around; text-align: center; font-size: 9pt; page-break-inside: avoid;">
-        <div style="width: 42%; border-top: 1px solid #113240; padding-top: 6px;">
-          <strong>${nomeExibido}</strong><br>
-          <span style="font-size: 7.5pt; color: #64748b;">Assinatura do Religioso</span>
-        </div>
-        <div style="width: 42%; border-top: 1px solid #113240; padding-top: 6px;">
-          <strong>Chancelaria Provincial • Província BRM</strong><br>
-          <span style="font-size: 7.5pt; color: #64748b;">Arquivo Canônico & Secretaria</span>
-        </div>
-      </div>
-    `;
+      : '<p style="font-style: italic; color: #64748b; font-size: 8pt; margin: 3px 0;">Filosofia e Teologia nos centros formativos da Congregação SCJ.</p>';
 
     const codigoAutenticidade = `BRM-FICH-${Date.now().toString(36).toUpperCase()}`;
 
@@ -1114,6 +1033,287 @@ export const gotenbergService = {
       situacao: `Regular / Cadastro ${dados.statusCadastro || 'Aprovado'}`
     });
 
+    const corpo = `
+      <!-- ========================================================================= -->
+      <!-- PÁGINA 1: DADOS CIVIS, PESSOAIS, CANÔNICOS, ORIGEM E CONSAGRAÇÃO         -->
+      <!-- ========================================================================= -->
+
+      <!-- Cabeçalho Oficial no topo da Página 1 -->
+      <div style="text-align: center; border-bottom: 1.5pt solid #113240; padding-bottom: 4px; margin-bottom: 8px; position: relative;">
+        <span style="position: absolute; top: 0; right: 0; font-size: 6.5pt; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; font-family: monospace;">Secretaria Provincial</span>
+        <img src="${LOGO_TIMBRADO_DATA_URI}" style="height: 40px; width: auto; margin: 0 auto 2px auto; display: block; object-fit: contain;" alt="Brasão Dehoniano" />
+        <h1 style="font-size: 9pt; font-weight: normal; color: #113240; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; line-height: 1.15;">CONGREGAÇÃO DOS SACERDOTES DO SAGRADO CORAÇÃO DE JESUS</h1>
+        <h2 style="font-size: 10.5pt; font-weight: bold; color: #113240; margin: 1px 0 0 0; line-height: 1.15;">Província Brasileira Meridional</h2>
+        <div style="font-size: 10.5pt; font-weight: bold; color: #113240; text-transform: uppercase; margin-top: 3px; letter-spacing: 0.05em;">FICHA CADASTRAL CANÔNICA DO RELIGIOSO</div>
+        <div style="font-size: 7pt; color: #64748b; font-family: monospace; margin-top: 1px;">Dossiê Canônico Completo • ${nomeExibido} • Página 1 de 2</div>
+      </div>
+
+      <!-- Identificação Principal & Foto Oficial -->
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.2pt solid #113240; padding-bottom: 8px; margin-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          ${dados.fotoUrl ? `
+            <div style="width: 70px; height: 88px; border: 1.5pt solid #113240; overflow: hidden; background: #f8fafc; flex-shrink: 0; border-radius: 2px;">
+              <img src="${dados.fotoUrl}" style="width: 100%; height: 100%; object-fit: cover;" alt="Foto Oficial" />
+            </div>
+          ` : `
+            <div style="width: 70px; height: 88px; border: 1.5pt dashed #94a3b8; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; font-family: monospace; font-size: 7pt; color: #64748b; text-align: center; flex-shrink: 0; border-radius: 2px;">
+              <span>FOTO OFICIAL</span>
+              <strong style="color: #113240; font-size: 7.5pt;">4x4</strong>
+            </div>
+          `}
+          <div>
+            <div style="font-family: monospace; font-size: 7pt; text-transform: uppercase; letter-spacing: 0.15em; color: #226380; font-weight: bold;">
+              ${dados.grau || 'Confrade'} Dehoniano • Província BRM
+            </div>
+            <h2 style="font-size: 15pt; font-weight: bold; margin: 1px 0; color: #113240; letter-spacing: -0.01em;">
+              ${nomeExibido}
+            </h2>
+            ${dados.lemaPrincipal ? `
+              <div style="font-size: 8.8pt; font-style: italic; color: #226380; margin: 1px 0 2px 0; font-family: 'Cinzel', serif;">
+                "${dados.lemaPrincipal}" ${dados.lemaPrincipalFase ? `<span style="font-size: 6.8pt; font-style: normal; font-family: sans-serif; text-transform: uppercase; color: #64748b; margin-left: 5px;">(${dados.lemaPrincipalFase})</span>` : ''}
+              </div>
+            ` : ''}
+            <div style="font-size: 8.5pt; color: #475569;">
+              Nome Civil: <strong>${dados.nomeCivil}</strong>
+            </div>
+            <div style="font-size: 8pt; color: #475569; margin-top: 1px;">
+              Comunidade Atual: <strong style="color: #113240;">${dados.comunidadeAtualNome || 'Província BRM'}</strong>
+              ${dados.obraAtualNome ? ` • Obra / Residência: <strong style="color: #113240;">${dados.obraAtualNome}</strong>` : ''}
+              ${dados.oficioAtual ? ` • Ofício: <em>${dados.oficioAtual}</em>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <div style="text-align: right;">
+          <div style="display: inline-block; border: 1.5pt solid #113240; padding: 3px 8px; font-family: monospace; font-size: 7.5pt; font-weight: bold; text-transform: uppercase; background: #f8fafc;">
+            CADASTRO ${dados.statusCadastro || 'APROVADO'}
+          </div>
+          <div style="font-family: monospace; font-size: 8pt; color: #64748b; margin-top: 3px;">
+            Nº Registro: <strong>${registroStr}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid de Indicadores Canônicos Rápidos -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); border: 1pt solid #cbd5e1; background: #f8fafc; text-align: center; margin-bottom: 10px;">
+        <div style="padding: 5px 6px; border-right: 1pt solid #cbd5e1;">
+          <div style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b;">Grau Canônico</div>
+          <div style="font-size: 9pt; font-weight: bold; color: #113240; margin-top: 1px;">${dados.grau || 'Padre'}</div>
+        </div>
+        <div style="padding: 5px 6px; border-right: 1pt solid #cbd5e1;">
+          <div style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b;">Ingresso na SCJ</div>
+          <div style="font-size: 9pt; font-weight: bold; color: #113240; margin-top: 1px;">${anoIngresso}</div>
+        </div>
+        <div style="padding: 5px 6px; border-right: 1pt solid #cbd5e1;">
+          <div style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b;">Votos Perpétuos</div>
+          <div style="font-size: 9pt; font-weight: bold; color: #113240; margin-top: 1px;">${dados.dataVotosPerpetuos || dados.dataPrimeirosVotos || '—'}</div>
+        </div>
+        <div style="padding: 5px 6px;">
+          <div style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b;">Ordenação Sacra</div>
+          <div style="font-size: 9pt; font-weight: bold; color: #113240; margin-top: 1px;">${dados.dataPresbiterato || dados.dataDiaconato || '—'}</div>
+        </div>
+      </div>
+
+      <!-- 01. Dados Pessoais & Documentação Civil -->
+      <div style="margin-bottom: 10px;">
+        <p style="font-family: monospace; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 5px;">
+          01. Identificação Civil, Filiação & Registros
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px 12px; font-size: 8pt;">
+          <div><span style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b; display: block;">Data de Nascimento</span><strong>${dados.dataNascimento || '—'}</strong></div>
+          <div><span style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b; display: block;">Naturalidade</span><strong>${dados.naturalidade || '—'}</strong></div>
+          <div><span style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b; display: block;">Nacionalidade</span><strong>${dados.nacionalidade || 'Brasileira'}</strong></div>
+          <div><span style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b; display: block;">CPF</span><strong style="font-family: monospace;">${dados.cpf || '—'}</strong></div>
+          <div><span style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b; display: block;">RG / Órgão Expedidor</span><strong style="font-family: monospace;">${dados.rg || '—'} ${dados.rgOrgao ? `(${dados.rgOrgao})` : ''}</strong></div>
+          <div><span style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b; display: block;">Título Eleitoral / PIS</span><strong style="font-family: monospace;">${[dados.tituloEleitor, dados.pis].filter(Boolean).join(' • ') || '—'}</strong></div>
+          <div><span style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b; display: block;">CNH</span><strong style="font-family: monospace;">${dados.cnh || '—'} ${dados.cnhCategoria ? `(Cat. ${dados.cnhCategoria})` : ''}</strong></div>
+          <div style="grid-column: span 2;"><span style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b; display: block;">Filiação (Pai e Mãe)</span><strong>${filiacaoTexto}</strong></div>
+        </div>
+      </div>
+
+      <!-- 02. Contatos, Residência & Saúde -->
+      <div style="margin-bottom: 10px;">
+        <p style="font-family: monospace; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 5px;">
+          02. Contatos, Residência Canônica & Saúde
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px 12px; font-size: 8pt;">
+          <div><span style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b; display: block;">Telefones de Contato</span><strong>${telefonesTexto}</strong></div>
+          <div><span style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b; display: block;">E-mail Institucional</span><strong style="font-family: monospace;">${dados.emailInstitucional || '—'}</strong></div>
+          <div><span style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b; display: block;">Tipo Sanguíneo / Plano</span><strong>${[dados.tipoSanguineo, dados.planoSaude].filter(Boolean).join(' • ') || '—'}</strong></div>
+          <div style="grid-column: span 2;"><span style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b; display: block;">Endereço Residencial</span><strong>${dados.enderecoResidencial || dados.comunidadeAtualNome || 'Sede Provincial BRM'}</strong></div>
+          <div><span style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b; display: block;">Contato de Emergência</span><strong>${dados.contatoEmergencia || '—'}</strong></div>
+        </div>
+      </div>
+
+      <!-- 03. Origem Vocacional & Ingresso -->
+      <div style="margin-bottom: 10px;">
+        <p style="font-family: monospace; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 5px;">
+          03. Origem Vocacional & Ingresso na Congregação
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px 10px; font-size: 8pt;">
+          <div>
+            <span style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b; display: block;">Paróquia de Origem</span>
+            <strong>${dados.origemVocacional?.paroquiaOrigem || dados.paroquiaBatismo || '—'}</strong>
+          </div>
+          <div>
+            <span style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b; display: block;">Cidade / Diocese</span>
+            <strong>${[dados.origemVocacional?.cidade, dados.origemVocacional?.diocese].filter(Boolean).join(' • ') || '—'}</strong>
+          </div>
+          <div>
+            <span style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b; display: block;">Promotor Vocacional</span>
+            <strong>${dados.origemVocacional?.promotorVocacional || 'Secretaria Vocacional BRM'}</strong>
+          </div>
+          <div>
+            <span style="font-family: monospace; font-size: 6.2pt; text-transform: uppercase; color: #64748b; display: block;">Ingresso no Seminário</span>
+            <strong style="font-family: monospace;">${dados.dataIngresso || '—'}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- 04. Trajetória Canônica & Sacramentos -->
+      <div style="margin-bottom: 8px;">
+        <p style="font-family: monospace; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 5px;">
+          04. Trajetória Sacramental & Consagração Canônica
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center;">
+          <div style="border: 1pt solid #cbd5e1; padding: 5px 6px; background: #fff; border-radius: 3px;">
+            <div style="font-family: monospace; font-size: 6.2pt; font-weight: bold; text-transform: uppercase; color: #64748b;">Batismo</div>
+            <div style="font-size: 8pt; font-weight: bold; margin-top: 1px;">${dados.dataBatismo || '—'}</div>
+            <div style="font-size: 6.5pt; color: #64748b; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${dados.paroquiaBatismo || '—'}</div>
+          </div>
+          <div style="border: 1pt solid #cbd5e1; padding: 5px 6px; background: #fff; border-radius: 3px;">
+            <div style="font-family: monospace; font-size: 6.2pt; font-weight: bold; text-transform: uppercase; color: #64748b;">Primeira Profissão</div>
+            <div style="font-size: 8pt; font-weight: bold; margin-top: 1px;">${dados.dataPrimeirosVotos || '—'}</div>
+            <div style="font-size: 6.5pt; color: #64748b; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${dados.localPrimeirosVotos || '—'}</div>
+          </div>
+          <div style="border: 1pt solid #cbd5e1; padding: 5px 6px; background: #fff; border-radius: 3px;">
+            <div style="font-family: monospace; font-size: 6.2pt; font-weight: bold; text-transform: uppercase; color: #64748b;">Profissão Perpétua</div>
+            <div style="font-size: 8pt; font-weight: bold; margin-top: 1px;">${dados.dataVotosPerpetuos || '—'}</div>
+            <div style="font-size: 6.5pt; color: #64748b; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${dados.localVotosPerpetuos || '—'}</div>
+          </div>
+          <div style="border: 1pt solid #cbd5e1; padding: 5px 6px; background: #fff; border-radius: 3px;">
+            <div style="font-family: monospace; font-size: 6.2pt; font-weight: bold; text-transform: uppercase; color: #64748b;">Ordenação Sacra</div>
+            <div style="font-size: 8pt; font-weight: bold; margin-top: 1px;">${dados.dataPresbiterato || dados.dataDiaconato || '—'}</div>
+            <div style="font-size: 6.5pt; color: #64748b; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${dados.bispoOrdenante || dados.localPresbiterato || dados.localDiaconato || '—'}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 05. Lemas Vocacionais -->
+      ${htmlLemas}
+
+      <!-- ========================================================================= -->
+      <!-- QUEBRA EXPLÍCITA DE PÁGINA (PÁGINA 1 -> PÁGINA 2)                         -->
+      <!-- ========================================================================= -->
+      <div style="page-break-after: always; break-after: page; height: 0; line-height: 0; clear: both; margin: 0; padding: 0;"></div>
+
+      <!-- ========================================================================= -->
+      <!-- PÁGINA 2: TRAJETÓRIA COMPLETA DE TRABALHOS, FORMAÇÃO, DOCUMENTOS & NOTÁRIO -->
+      <!-- ========================================================================= -->
+
+      <!-- Faixa de Continuação da Página 2 -->
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5pt solid #113240; padding-bottom: 4px; margin-bottom: 10px; font-family: monospace; font-size: 7pt; color: #475569;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <strong style="color: #113240; font-family: serif; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.05em;">Província Brasileira Meridional • SCJ</strong>
+          <span>|</span>
+          <span>Dossiê Canônico • Página 2</span>
+        </div>
+        <div style="text-align: right;">
+          <strong>${nomeExibido}</strong> • Registro Canônico: <strong>${registroStr}</strong>
+        </div>
+      </div>
+
+      <!-- 06. Trajetória de Comunidades e Trabalhos -->
+      <div style="margin-bottom: 12px;">
+        <p style="font-family: monospace; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 5px;">
+          06. Trajetória de Comunidades e Trabalhos (Onde Trabalhou • Comunidades, Obras, Etapas & Funções)
+        </p>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 3px;">
+          <thead>
+            <tr>
+              <th style="width: 12%; font-size: 7.2pt; padding: 4px 6px;">Período</th>
+              <th style="width: 22%; font-size: 7.2pt; padding: 4px 6px;">Comunidade Religiosa</th>
+              <th style="width: 22%; font-size: 7.2pt; padding: 4px 6px;">Obra / Paróquia / Atividade</th>
+              <th style="width: 13%; font-size: 7.2pt; padding: 4px 6px;">Fase / Grau</th>
+              <th style="width: 16%; font-size: 7.2pt; padding: 4px 6px;">Função / Ofício Canônico</th>
+              <th style="width: 15%; font-size: 7.2pt; padding: 4px 6px;">Localidade & Notas</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linhasTrabalhos}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 07. Formação Acadêmica & Idiomas -->
+      <div style="margin-bottom: 10px; display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+        <div>
+          <p style="font-family: monospace; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 4px;">
+            07. Formação Acadêmica & Graus Obtidos
+          </p>
+          <div style="font-size: 8pt;">
+            ${listaFormacoes}
+          </div>
+        </div>
+        <div>
+          <p style="font-family: monospace; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 4px;">
+            Idiomas
+          </p>
+          <div style="font-size: 7.5pt; color: #334155; line-height: 1.5;">
+            ${dados.idiomas && dados.idiomas.length > 0 ? dados.idiomas.map(i => `<span style="display: inline-block; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 1.5px 5px; margin: 1.5px; border-radius: 3px;">${i}</span>`).join('') : 'Português (nativo)'}
+          </div>
+        </div>
+      </div>
+
+      ${linhasMissoes}
+
+      <!-- 08. Documentação Cadastrada & Arquivo Digital Provincial -->
+      <div style="margin-bottom: 14px;">
+        <p style="font-family: monospace; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 4px;">
+          08. Documentação Cadastrada & Arquivo Digital Provincial
+        </p>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 3px;">
+          <thead>
+            <tr>
+              <th style="width: 30%; font-size: 7.2pt; padding: 3.5px 6px;">Documento / Categoria Canônica</th>
+              <th style="width: 40%; font-size: 7.2pt; padding: 3.5px 6px;">Identificador / Arquivo Digital</th>
+              <th style="width: 15%; font-size: 7.2pt; padding: 3.5px 6px; text-align: center;">Data Registro</th>
+              <th style="width: 15%; font-size: 7.2pt; padding: 3.5px 6px; text-align: center;">Autenticidade</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linhasDocumentos}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 09. Chancelaria Provincial, Assinaturas Canônicas & Fé Pública Notarial -->
+      <div style="margin-top: 14px; page-break-inside: avoid;">
+        <div style="display: flex; justify-content: space-around; text-align: center; font-size: 8.5pt; margin-bottom: 12px;">
+          <div style="width: 42%; border-top: 1px solid #113240; padding-top: 4px;">
+            <strong>${nomeExibido}</strong><br>
+            <span style="font-size: 7pt; color: #64748b;">Assinatura do Religioso</span>
+          </div>
+          <div style="width: 42%; border-top: 1px solid #113240; padding-top: 4px;">
+            <strong>Chancelaria Provincial • Província BRM</strong><br>
+            <span style="font-size: 7pt; color: #64748b;">Arquivo Canônico & Secretaria</span>
+          </div>
+        </div>
+
+        <div style="border: 1pt dashed #cbd5e1; background: #f8fafc; padding: 6px 10px; font-size: 7.5pt; color: #475569; display: flex; justify-content: space-between; align-items: center; border-radius: 4px;">
+          <div>
+            <strong style="color: #113240; font-size: 7.8pt;">Certificação Notarial de Autenticidade Digital</strong><br>
+            <span>Dossiê canônico registrado no arquivo geral da Província Brasileira Meridional (SCJ).</span><br>
+            <span style="font-family: monospace; font-size: 7pt; color: #64748b;">Validação pública: <strong>sistema.brm.org.br/validar</strong></span>
+          </div>
+          <div style="text-align: right; font-family: monospace; font-size: 7.5pt;">
+            <span style="display: block; color: #64748b;">CÓDIGO DE VERIFICAÇÃO</span>
+            <strong style="color: #113240; font-size: 8.5pt;">${codigoAutenticidade}</strong>
+          </div>
+        </div>
+      </div>
+    `;
+
     return await this.gerarPdfDocumento({
       titulo: 'FICHA CADASTRAL CANÔNICA DO RELIGIOSO',
       subtitulo: `Dossiê Canônico Completo • ${nomeExibido}`,
@@ -1123,7 +1323,8 @@ export const gotenbergService = {
       codigoAutenticidade,
       formatoPdfA: true,
       omitirTituloPadrao: true,
-      cabecalhoCompacto: true
+      cabecalhoCompacto: true,
+      omitirSeloPadrao: true
     });
   },
 

@@ -303,31 +303,84 @@ export const GotenbergConfigCard: React.FC = () => {
             dataPresbiterato: '10/12/2011',
             localPresbiterato: 'Santuário Sagrado Coração de Jesus - Joinville/SC',
             bispoOrdenante: 'Dom Wilson Tadeu Jönck, SCJ',
+            lemaPrincipal: 'Sint Unum — Para que todos sejam um',
+            lemaPrincipalFase: 'Ordenação Presbiteral',
+            lemasVocacionais: [
+              { fase: 'Primeira Profissão', texto: 'Eis que venho para fazer a Tua vontade (Hb 10, 9)', destacado: false },
+              { fase: 'Ordenação Presbiteral', texto: 'Sint Unum — Para que todos sejam um (Jo 17, 21)', destacado: true }
+            ],
+            origemVocacional: {
+              paroquiaOrigem: 'Paróquia São Luiz Gonzaga',
+              cidade: 'Brusque / SC',
+              diocese: 'Arquidiocese de Florianópolis',
+              promotorVocacional: 'Pe. Zezinho, SCJ'
+            },
+            documentosCadastrados: [
+              { categoria: 'Cédula de Identidade (RG/CPF)', nomeArquivo: 'carlos_eduardo_rg_cpf.pdf', data: '10/01/2026', status: 'Conferido' },
+              { categoria: 'Certidão de Batismo', nomeArquivo: 'certidao_batismo_brusque.pdf', data: '12/01/2026', status: 'Autenticado' },
+              { categoria: 'Atestado de Votos Perpétuos', nomeArquivo: 'votos_perpetuos_corupa.pdf', data: '15/01/2026', status: 'Arquivo Canônico' },
+              { categoria: 'Certidão de Ordenação Presbiteral', nomeArquivo: 'ordenacao_presbiteral_joinville.pdf', data: '15/01/2026', status: 'Livro de Ordens' }
+            ],
             historicoTrabalhos: [
               {
+                periodo: '2004 - 2005',
+                comunidade: 'Seminário São José',
+                obra: 'Seminário Menor São José',
+                faseGrau: 'Propedêutico',
+                funcao: 'Seminarista Menor • Formação Inicial',
+                local: 'Rio Negrinho / SC',
+                observacoes: 'Início da caminhada e discernimento vocacional.'
+              },
+              {
+                periodo: '2005 - 2006',
+                comunidade: 'Noviciado Nossa Senhora de Fátima',
+                obra: 'Casa de Formação do Noviciado',
+                faseGrau: 'Noviciado',
+                funcao: 'Noviço Dehoniano',
+                local: 'Jaraguá do Sul / SC',
+                observacoes: 'Ano canônico de noviciado sob a Regra de Vida SCJ.'
+              },
+              {
+                periodo: '2006 - 2008',
+                comunidade: 'Convento Sagrado Coração de Jesus',
+                obra: 'Faculdade Dehoniana (Estudos de Filosofia)',
+                faseGrau: 'Frater',
+                funcao: 'Religioso Estudante de Filosofia',
+                local: 'Taubaté / SP',
+                observacoes: 'Votos temporários e dedicação acadêmica.'
+              },
+              {
                 periodo: '2012 - 2015',
-                instituicao: 'Paróquia São Luiz Gonzaga',
+                comunidade: 'Comunidade Padre Gabriel Lux',
+                obra: 'Paróquia São Luiz Gonzaga',
+                faseGrau: 'Padre',
                 funcao: 'Vigário Paroquial e Pastoral Juvenil',
                 local: 'Brusque / SC',
                 observacoes: 'Acompanhamento do setor juventude e catequese.'
               },
               {
                 periodo: '2015 - 2019',
-                instituicao: 'Seminário São José',
+                comunidade: 'Comunidade São José',
+                obra: 'Seminário São José',
+                faseGrau: 'Padre',
                 funcao: 'Reitor e Formador dos Seminaristas Menores',
                 local: 'Rio Negrinho / SC',
                 observacoes: 'Direção pedagógica e acompanhamento vocacional.'
               },
               {
                 periodo: '2019 - 2023',
-                instituicao: 'Santuário Sagrado Coração de Jesus',
+                comunidade: 'Comunidade Sagrado Coração',
+                obra: 'Santuário Sagrado Coração de Jesus',
+                faseGrau: 'Padre',
                 funcao: 'Pároco e Reitor do Santuário',
                 local: 'Joinville / SC',
-                observacoes: 'Coordenação pastoral e atendimento ao confessionário.'
+                observacoes: 'Coordenação pastoral e atendimento sacramental.'
               },
               {
                 periodo: '2023 - Atual',
-                instituicao: 'Sede Provincial BRM',
+                comunidade: 'Comunidade Dehoniana da Sede',
+                obra: 'Sede Provincial BRM',
+                faseGrau: 'Padre',
                 funcao: 'Ecônomo Adjunto e Membro do Conselho Provincial',
                 local: 'Corupá / SC',
                 observacoes: 'Governo Provincial e administração patrimonial.'

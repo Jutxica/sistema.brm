@@ -12,6 +12,7 @@ import { PapelTimbradoBRM, type OrientacaoDocumento } from '../../components/Pap
 import { gotenbergService } from '../../services/gotenbergService';
 import { obterFotoReligiosoBase64 } from '../../services/religiosoFotoService';
 import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../../lib/religiosoNome';
+import { extrairAno } from '../../utils/dateUtils';
 
 interface FichaCanonicaPDFProps {
   religiosoId?: string;
@@ -104,55 +105,40 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
             return;
           }
 
-          // Buscar votos se houver tabela
-          const { data: votos } = await supabase
-            .from('religiosos_profissoes_votos')
-            .select('*')
-            .eq('religioso_id', targetId)
-            .order('data', { ascending: true });
-
-          // Buscar ordens se houver tabela
-          const { data: ordens } = await supabase
-            .from('religiosos_ministerios_ordens')
-            .select('*')
-            .eq('religioso_id', targetId)
-            .order('data', { ascending: true });
-
-          // Buscar etapas de formação religiosa
-          const { data: formacaoReligiosa } = await supabase
-            .from('religiosos_formacao_religiosa')
-            .select('*')
-            .eq('religioso_id', targetId)
-            .order('data_ingresso', { ascending: true });
-
-          // Buscar formações acadêmicas se houver tabela
-          const { data: formacoes } = await supabase
-            .from('religiosos_formacao_academica')
-            .select('*')
-            .eq('religioso_id', targetId);
-
-          // Buscar familiares se houver tabela
-          const { data: familiares } = await supabase
-            .from('religiosos_familiares')
-            .select('*')
-            .eq('religioso_id', targetId);
-
-          const { data: designacoes } = await supabase
-            .from('religiosos_designacoes')
-            .select('*, comunidades(nome), religiosos_obras_referencia(nome)')
-            .eq('religioso_id', targetId);
-
-          const { data: historicoComunidades } = await supabase
-            .from('religiosos_historico_comunidades')
-            .select('*')
-            .eq('religioso_id', targetId)
-            .order('periodo_inicio', { ascending: true });
-
-          const { data: missoesServicos } = await supabase
-            .from('religiosos_missoes_servicos')
-            .select('*')
-            .eq('religioso_id', targetId)
-            .order('created_at', { ascending: true });
+          // Buscar dados canônicos e documentais em paralelo
+          const [
+            { data: votos },
+            { data: ordens },
+            { data: formacaoReligiosa },
+            { data: formacoes },
+            { data: familiares },
+            { data: designacoes },
+            { data: historicoComunidades },
+            { data: missoesServicos },
+            { data: documentosAntigos },
+            { data: documentosArquivo },
+            { data: origemVocacional },
+            { data: idiomasData },
+            { data: saudeData },
+            { data: sacramentosData },
+            { data: enderecoData }
+          ] = await Promise.all([
+            supabase.from('religiosos_profissoes_votos').select('*').eq('religioso_id', targetId).order('data', { ascending: true }),
+            supabase.from('religiosos_ministerios_ordens').select('*').eq('religioso_id', targetId).order('data', { ascending: true }),
+            supabase.from('religiosos_formacao_religiosa').select('*').eq('religioso_id', targetId).order('data_ingresso', { ascending: true }),
+            supabase.from('religiosos_formacao_academica').select('*').eq('religioso_id', targetId).order('created_at', { ascending: true }),
+            supabase.from('religiosos_familiares').select('*').eq('religioso_id', targetId),
+            supabase.from('religiosos_designacoes').select('*, comunidades(nome, cidade, estado), religiosos_obras_referencia(nome, cidade, localidade)').eq('religioso_id', targetId).order('vigencia_inicio', { ascending: false }),
+            supabase.from('religiosos_historico_comunidades').select('*').eq('religioso_id', targetId).order('periodo_inicio', { ascending: true }),
+            supabase.from('religiosos_missoes_servicos').select('*').eq('religioso_id', targetId).order('created_at', { ascending: true }),
+            supabase.from('religiosos_documentos').select('id,categoria,nome_arquivo,caminho_storage,mime_type,tamanho_bytes,data_cadastro,status').eq('religioso_id', targetId).order('data_cadastro', { ascending: false }),
+            supabase.from('secretaria_dossie_documentos').select('id,categoria,titulo,nome_arquivo,caminho_storage,mime_type,tamanho_bytes,criado_em').eq('religioso_id', targetId).order('criado_em', { ascending: false }),
+            supabase.from('religiosos_origem_vocacional').select('*').eq('religioso_id', targetId).limit(1).maybeSingle(),
+            supabase.from('religiosos_idiomas').select('*').eq('religioso_id', targetId),
+            supabase.from('religiosos_saude').select('*').eq('religioso_id', targetId).limit(1).maybeSingle(),
+            supabase.from('religiosos_sacramentos').select('*').eq('religioso_id', targetId).order('data', { ascending: true }),
+            supabase.from('religiosos_enderecos_contatos').select('*').eq('religioso_id', targetId).limit(1).maybeSingle()
+          ]);
 
           // Obter foto assinada se foto_path existir
           let resolvedFotoUrl = relRecord.foto_url || null;
@@ -176,6 +162,20 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
           const perpVotos = votos?.find((v: any) => (v.tipo || '').toLowerCase().includes('perp'));
           const diaconato = ordens?.find((o: any) => (o.tipo || '').toLowerCase().includes('diacon'));
           const presbiterato = ordens?.find((o: any) => (o.tipo || '').toLowerCase().includes('presb') || (o.tipo || '').toLowerCase().includes('sacerd'));
+          const batismoItem = sacramentosData?.find((s: any) => (s.tipo || '').toLowerCase().includes('batis')) || null;
+
+          const docList = [
+            ...(documentosAntigos || []).map(d => ({
+              ...d,
+              data: d.data_cadastro,
+              origem: 'religiosos_documentos'
+            })),
+            ...(documentosArquivo || []).map(d => ({
+              ...d,
+              data: d.criado_em,
+              origem: 'secretaria_dossie_documentos'
+            }))
+          ];
 
           setData({
             ...relRecord,
@@ -194,7 +194,14 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
             familiares: familiares || [],
             designacoes: designacoes || [],
             historicoComunidades: historicoComunidades || [],
-            missoesServicos: missoesServicos || []
+            missoesServicos: missoesServicos || [],
+            documentosCadastrados: docList,
+            origemVocacional: origemVocacional || null,
+            idiomas: (idiomasData || []).map(i => `${i.idioma} (${i.nivel || i.fala || 'Fluente'})`),
+            saude: saudeData || null,
+            sacramentosList: sacramentosData || [],
+            batismo: batismoItem,
+            endereco: enderecoData || null
           });
         }
       } catch (err) {
@@ -213,47 +220,125 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
     try {
       const trabalhos: Array<{
         periodo: string;
-        instituicao: string;
+        comunidade?: string;
+        obra?: string;
+        faseGrau?: string;
         funcao: string;
         local?: string;
         observacoes?: string;
+        ordenacaoAno?: number;
       }> = [];
 
-      (data.designacoes || []).forEach((d: any) => {
-        const nomeInst = d.religiosos_obras_referencia?.nome || formatarComunidadeReligiosa(d.comunidades?.nome) || 'Comunidade Provincial';
-        const ano = d.ano_referencia || (d.vigencia_inicio ? new Date(d.vigencia_inicio).getFullYear() : '');
-        const fim = d.vigencia_fim ? new Date(d.vigencia_fim).getFullYear() : 'Atual';
-        const periodoStr = ano ? (ano === fim ? String(ano) : `${ano} - ${fim}`) : 'Vigente';
+      // A. Inclui etapas de formação religiosa
+      (data.formacaoReligiosa || []).forEach((f: any) => {
+        const pIni = f.data_ingresso ? extrairAno(f.data_ingresso) : '';
+        const pFim = f.data_conclusao ? extrairAno(f.data_conclusao) : '';
+        const periodoStr = pIni && pFim ? (pIni === pFim ? pIni : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Concluído` : 'Período Formativo');
+        const anoNum = pIni && !Number.isNaN(Number(pIni)) ? Number(pIni) : 2000;
+
         trabalhos.push({
           periodo: periodoStr,
-          instituicao: nomeInst,
-          funcao: d.funcao || d.tipo_vinculo || 'Membro',
-          local: 'Província BRM',
-          observacoes: d.tipo_vinculo ? `Vínculo: ${d.tipo_vinculo}` : undefined
+          comunidade: f.instituicao || f.local || 'Casa de Formação Dehoniana',
+          obra: f.instituicao || 'Seminário / Casa Formativa',
+          faseGrau: f.etapa || 'Formação Inicial',
+          funcao: f.etapa ? `${f.etapa} • Religioso Estudante` : 'Estudante SCJ',
+          local: [f.cidade, f.local].filter(Boolean).join(' • ') || 'Província BRM',
+          observacoes: [f.formador ? `Formador: ${f.formador}` : null, f.observacoes].filter(Boolean).join(' • ') || undefined,
+          ordenacaoAno: anoNum
         });
       });
 
+      // B. Inclui histórico de comunidades
       (data.historicoComunidades || []).forEach((h: any) => {
-        const pIni = h.periodo_inicio ? new Date(h.periodo_inicio).getFullYear() : '';
-        const pFim = h.periodo_fim ? new Date(h.periodo_fim).getFullYear() : '';
-        const periodoStr = pIni && pFim ? (pIni === pFim ? String(pIni) : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Atual` : '—');
+        const pIni = h.periodo_inicio ? extrairAno(h.periodo_inicio) : '';
+        const pFim = h.periodo_fim ? extrairAno(h.periodo_fim) : '';
+        const periodoStr = pIni && pFim ? (pIni === pFim ? pIni : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Atual` : '—');
+        const anoNum = pIni && !Number.isNaN(Number(pIni)) ? Number(pIni) : 2010;
+
         trabalhos.push({
           periodo: periodoStr,
-          instituicao: h.instituicao || 'Instituição SCJ',
+          comunidade: h.instituicao || 'Comunidade SCJ',
+          obra: h.instituicao || 'Paróquia / Obra',
+          faseGrau: data.grau || 'Religioso SCJ',
           funcao: h.funcao || 'Atuação Pastoral',
           local: h.local || undefined,
-          observacoes: h.observacoes || undefined
+          observacoes: h.observacoes || undefined,
+          ordenacaoAno: anoNum
         });
       });
 
-      if (trabalhos.length === 0 && (data.comunidade_atual_nome || data.obra_atual_nome)) {
+      // C. Inclui designações canônicas
+      (data.designacoes || []).forEach((d: any) => {
+        const comNome = formatarComunidadeReligiosa(d.comunidades?.nome) || 'Comunidade Provincial';
+        const obraNome = d.religiosos_obras_referencia?.nome || 'Atuação Pastoral';
+        const ano = d.ano_referencia || (d.vigencia_inicio ? extrairAno(d.vigencia_inicio) : '');
+        const fim = d.vigencia_fim ? extrairAno(d.vigencia_fim) : 'Atual';
+        const periodoStr = ano ? (ano === fim ? String(ano) : `${ano} - ${fim}`) : 'Vigente';
+        const localidade = [d.comunidades?.cidade, d.religiosos_obras_referencia?.cidade].filter(Boolean)[0] || 'Província BRM';
+        const anoNum = ano && !Number.isNaN(Number(ano)) ? Number(ano) : 2026;
+
+        trabalhos.push({
+          periodo: periodoStr,
+          comunidade: comNome,
+          obra: obraNome,
+          faseGrau: data.grau || 'Religioso',
+          funcao: d.funcao || d.tipo_vinculo || 'Membro da Comunidade',
+          local: localidade,
+          observacoes: [d.tipo_vinculo ? `Vínculo: ${d.tipo_vinculo}` : null, d.observacoes].filter(Boolean).join(' • ') || undefined,
+          ordenacaoAno: anoNum
+        });
+      });
+
+      // D. Se não houver atual explícito
+      const temAtual = trabalhos.some(t => t.periodo.includes('Atual') || t.periodo.includes('Vigente'));
+      if (!temAtual && (data.comunidade_atual_nome || data.obra_atual_nome)) {
         trabalhos.push({
           periodo: 'Atual',
-          instituicao: [formatarComunidadeReligiosa(data.comunidade_atual_nome), data.obra_atual_nome].filter(Boolean).join(' • '),
-          funcao: data.grau || 'Confrade',
-          local: 'Província BRM'
+          comunidade: formatarComunidadeReligiosa(data.comunidade_atual_nome) || 'Comunidade Provincial',
+          obra: data.obra_atual_nome || 'Residência Canônica',
+          faseGrau: data.grau || 'Confrade',
+          funcao: data.designacoes?.[0]?.funcao || 'Membro Ativo',
+          local: 'Província BRM',
+          ordenacaoAno: 9999
         });
       }
+
+      // Ordena cronologicamente
+      trabalhos.sort((a, b) => (a.ordenacaoAno || 0) - (b.ordenacaoAno || 0));
+
+      const documentosParaPdf = (data.documentosCadastrados || [])
+        .filter((d: any) => d.status !== 'Excluido')
+        .map((d: any) => ({
+          categoria: d.categoria || 'Documento Geral',
+          nomeArquivo: d.nome_arquivo || d.titulo || 'Registro Digital',
+          data: d.data ? formatarData(d.data) : undefined,
+          status: d.status || 'Arquivo Digital Provincial'
+        }));
+
+      const lemasParaPdf: Array<{ fase: string; texto: string; destacado?: boolean }> = (data.lemas || []).map((l: any) => ({
+        fase: l.fase,
+        texto: l.texto,
+        destacado: l.destacado
+      }));
+      if (lemasParaPdf.length === 0 && (data.lema_destacado || data.lema)) {
+        lemasParaPdf.push({
+          fase: (data.lema_destacado_fase as string) || 'Lema Canônico',
+          texto: String(data.lema_destacado || data.lema).replace(/^[“"']|[”"']$/g, '').trim(),
+          destacado: true
+        });
+      }
+
+      const origemVocacionalParaPdf = {
+        paroquiaOrigem: data.origemVocacional?.paroquia_origem || data.batismo?.paroquia || undefined,
+        cidade: [data.origemVocacional?.cidade_origem, data.origemVocacional?.estado_origem].filter(Boolean).join(' / ') || undefined,
+        diocese: data.origemVocacional?.diocese_origem || undefined,
+        promotorVocacional: data.origemVocacional?.promotor_vocacional || undefined
+      };
+
+      const primVotos = (data.votosList || []).find((v: any) => (v.tipo || '').toLowerCase().includes('primeir'));
+      const perpVotos = (data.votosList || []).find((v: any) => (v.tipo || '').toLowerCase().includes('perp'));
+      const diaconato = (data.ordensList || []).find((o: any) => (o.tipo || '').toLowerCase().includes('diacon'));
+      const presbiterato = (data.ordensList || []).find((o: any) => (o.tipo || '').toLowerCase().includes('presb') || (o.tipo || '').toLowerCase().includes('sacerd'));
 
       const fotoBase64 = await obterFotoReligiosoBase64(data);
 
@@ -276,25 +361,38 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         filiacaoPai: pai || undefined,
         filiacaoMae: mae || undefined,
         fotoUrl: fotoBase64 || data.foto_url || undefined,
-        lemaPrincipal: data.lema_destacado || undefined,
+        lemaPrincipal: data.lema_destacado || data.lema || undefined,
         lemaPrincipalFase: data.lema_destacado_fase || undefined,
+        lemasVocacionais: lemasParaPdf,
+        origemVocacional: origemVocacionalParaPdf,
+        documentosCadastrados: documentosParaPdf,
+
         comunidadeAtualNome: formatarComunidadeReligiosa(data.comunidade_atual_nome) || undefined,
+        obraAtualNome: data.obra_atual_nome || undefined,
         oficioAtual: data.designacoes?.[0]?.funcao || undefined,
         telefoneCelular: data.telefone_celular || undefined,
         whatsapp: data.whatsapp || undefined,
         emailInstitucional: data.email_institucional || undefined,
         emailPessoal: data.email_pessoal || undefined,
-        dataBatismo: batismo?.data ? formatarData(batismo.data) : undefined,
-        paroquiaBatismo: batismo?.paroquia || undefined,
+        tipoSanguineo: data.saude?.tipo_sanguineo ? `${data.saude.tipo_sanguineo} ${data.saude.fator_rh || ''}` : undefined,
+        planoSaude: data.saude?.plano_saude || undefined,
+
+        dataBatismo: data.batismo?.data ? formatarData(data.batismo.data) : undefined,
+        paroquiaBatismo: data.batismo?.paroquia || undefined,
         dataPrimeirosVotos: formatarData(data.data_primeiros_votos),
+        localPrimeirosVotos: primVotos?.local || primVotos?.cidade || undefined,
         dataVotosPerpetuos: formatarData(data.data_votos_perpetuos),
+        localVotosPerpetuos: perpVotos?.local || perpVotos?.cidade || undefined,
         dataDiaconato: formatarData(data.data_diaconato),
+        localDiaconato: diaconato?.local || undefined,
         dataPresbiterato: formatarData(data.data_presbiterato),
+        localPresbiterato: data.local_ordenacao || presbiterato?.local || undefined,
         bispoOrdenante: data.bispo_ordenante || undefined,
-        localPresbiterato: data.local_ordenacao || undefined,
+
         historicoTrabalhos: trabalhos,
         missoesServicos: (data.missoesServicos || []).map((m: any) => ({ tipo: m.tipo, instituicao: m.instituicao, funcao: m.funcao, periodo: m.periodo, local: m.local })),
         formacoesAcademicas: (data.formacoes || []).map((f: any) => ({ curso: f.curso || f.categoria || '', instituicao: f.instituicao || '', anoOuPeriodo: f.ano || f.periodo })),
+        idiomas: data.idiomas || [],
         dataEmissao: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
       });
 
@@ -386,8 +484,8 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
   const mae = data?.familiares?.find((f: any) => (f.parentesco || f.tipo || '').toLowerCase().includes('mãe') || (f.parentesco || f.tipo || '').toLowerCase().includes('mae'))?.nome;
   const paisTexto = [pai, mae].filter(Boolean).join(' e ') || '—';
 
-  const anoIngresso = data?.data_ingresso ? data.data_ingresso.slice(0, 4) : '—';
-  const batismo = data?.sacramentosList?.find((s: any) => (s.tipo || '').toLowerCase().includes('batis')) || null;
+  const anoIngresso = extrairAno(data?.data_ingresso);
+  const batismo = data?.batismo || data?.sacramentosList?.find((s: any) => (s.tipo || '').toLowerCase().includes('batis')) || null;
 
   return (
     <div className="w-full">
@@ -611,39 +709,79 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         {/* Bloco 04: Trajetória de Comunidades e Trabalhos */}
         <div className="mb-4">
           <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
-            04. Trajetória de Comunidades e Trabalhos (Onde Trabalhou • Ofícios e Funções)
+            04. Trajetória de Comunidades e Trabalhos (Onde Trabalhou • Comunidades, Obras, Etapas & Funções)
           </p>
           <div className="space-y-1 text-[8pt]">
-            {(data?.historicoComunidades && data.historicoComunidades.length > 0) || (data?.designacoes && data.designacoes.length > 0) ? (
-              <table className="w-full border-collapse text-[8pt]">
+            {(data?.formacaoReligiosa && data.formacaoReligiosa.length > 0) || (data?.historicoComunidades && data.historicoComunidades.length > 0) || (data?.designacoes && data.designacoes.length > 0) ? (
+              <table className="w-full border-collapse text-[7.5pt]">
                 <thead>
-                  <tr className="border-b border-slate-200 text-slate-500 font-mono text-[7pt] uppercase text-left">
+                  <tr className="border-b border-slate-200 text-slate-500 font-mono text-[6.8pt] uppercase text-left">
                     <th className="py-1 w-24">Período</th>
-                    <th className="py-1">Comunidade / Paróquia / Casa</th>
+                    <th className="py-1">Comunidade</th>
+                    <th className="py-1">Obra / Atividade</th>
+                    <th className="py-1">Fase / Grau</th>
                     <th className="py-1">Ofício / Função</th>
-                    <th className="py-1">Local</th>
+                    <th className="py-1">Localidade & Notas</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {(data.designacoes || []).map((d: any, idx: number) => (
-                    <tr key={`desig-${idx}`} className="py-1">
-                      <td className="font-mono text-slate-500 py-1">{d.ano_referencia || 'Vigente'}</td>
-                      <td className="font-semibold text-slate-900 py-1">{d.religiosos_obras_referencia?.nome || formatarComunidadeReligiosa(d.comunidades?.nome) || 'Comunidade Provincial'}</td>
-                      <td className="text-[#226380] font-medium py-1">{d.funcao || d.tipo_vinculo || 'Membro'}</td>
-                      <td className="text-slate-600 py-1">Província BRM</td>
-                    </tr>
-                  ))}
-                  {(data.historicoComunidades || []).map((h: any, idx: number) => (
-                    <tr key={`hist-${idx}`} className="py-1">
-                      <td className="font-mono text-slate-500 py-1">
-                        {h.periodo_inicio ? new Date(h.periodo_inicio).getFullYear() : '—'}
-                        {h.periodo_fim ? ` - ${new Date(h.periodo_fim).getFullYear()}` : ' - Atual'}
-                      </td>
-                      <td className="font-semibold text-slate-900 py-1">{h.instituicao}</td>
-                      <td className="text-[#226380] font-medium py-1">{h.funcao || 'Atuação Pastoral'}</td>
-                      <td className="text-slate-600 py-1">{h.local || '—'}</td>
-                    </tr>
-                  ))}
+                  {(data.formacaoReligiosa || []).map((f: any, idx: number) => {
+                    const pIni = f.data_ingresso ? extrairAno(f.data_ingresso) : '';
+                    const pFim = f.data_conclusao ? extrairAno(f.data_conclusao) : '';
+                    const periodoStr = pIni && pFim ? (pIni === pFim ? pIni : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Concluído` : 'Formativo');
+                    return (
+                      <tr key={`form-${idx}`} className="py-1">
+                        <td className="font-mono text-slate-500 py-1">{periodoStr}</td>
+                        <td className="font-semibold text-slate-900 py-1">{f.instituicao || f.local || 'Casa Formativa'}</td>
+                        <td className="text-slate-700 py-1">{f.instituicao || 'Seminário / Formação'}</td>
+                        <td className="py-1">
+                          <span className="font-mono text-[6.5pt] bg-sky-50 text-sky-800 border border-sky-200 px-1 py-0.2 rounded">
+                            {f.etapa || 'Formação Inicial'}
+                          </span>
+                        </td>
+                        <td className="text-[#226380] font-medium py-1">{f.etapa ? `${f.etapa} • Estudante` : 'Estudante SCJ'}</td>
+                        <td className="text-slate-600 py-1">{[f.cidade, f.formador ? `Formador: ${f.formador}` : null].filter(Boolean).join(' • ') || 'Província BRM'}</td>
+                      </tr>
+                    );
+                  })}
+                  {(data.historicoComunidades || []).map((h: any, idx: number) => {
+                    const pIni = h.periodo_inicio ? extrairAno(h.periodo_inicio) : '';
+                    const pFim = h.periodo_fim ? extrairAno(h.periodo_fim) : '';
+                    const periodoStr = pIni && pFim ? (pIni === pFim ? pIni : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Atual` : '—');
+                    return (
+                      <tr key={`hist-${idx}`} className="py-1">
+                        <td className="font-mono text-slate-500 py-1">{periodoStr}</td>
+                        <td className="font-semibold text-slate-900 py-1">{h.instituicao}</td>
+                        <td className="text-slate-700 py-1">{h.instituicao}</td>
+                        <td className="py-1">
+                          <span className="font-mono text-[6.5pt] bg-slate-50 text-slate-700 border border-slate-200 px-1 py-0.2 rounded">
+                            {data.grau || 'Religioso'}
+                          </span>
+                        </td>
+                        <td className="text-[#226380] font-medium py-1">{h.funcao || 'Atuação Pastoral'}</td>
+                        <td className="text-slate-600 py-1">{[h.cidade || h.local, h.observacoes].filter(Boolean).join(' • ') || '—'}</td>
+                      </tr>
+                    );
+                  })}
+                  {(data.designacoes || []).map((d: any, idx: number) => {
+                    const pInicio = d.vigencia_inicio ? extrairAno(d.vigencia_inicio) : d.ano_referencia;
+                    const pFim = d.vigencia_fim ? extrairAno(d.vigencia_fim) : 'Atual';
+                    const localidade = [d.comunidades?.cidade, d.religiosos_obras_referencia?.cidade].filter(Boolean)[0] || 'Província BRM';
+                    return (
+                      <tr key={`desig-${idx}`} className="py-1">
+                        <td className="font-mono text-slate-500 py-1">{pInicio ? (pInicio === pFim ? String(pInicio) : `${pInicio} - ${pFim}`) : (d.ano_referencia || 'Vigente')}</td>
+                        <td className="font-semibold text-slate-900 py-1">{formatarComunidadeReligiosa(d.comunidades?.nome) || 'Comunidade Provincial'}</td>
+                        <td className="text-slate-700 py-1">{d.religiosos_obras_referencia?.nome || 'Atuação Pastoral / Paróquia'}</td>
+                        <td className="py-1">
+                          <span className="font-mono text-[6.5pt] bg-slate-50 text-slate-700 border border-slate-200 px-1 py-0.2 rounded">
+                            {data.grau || 'Consagrado'}
+                          </span>
+                        </td>
+                        <td className="text-[#226380] font-medium py-1">{d.funcao || d.tipo_vinculo || 'Membro'}</td>
+                        <td className="text-slate-600 py-1">{[localidade, d.numero_decreto ? `Dec. ${d.numero_decreto}` : null].filter(Boolean).join(' • ')}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             ) : (
@@ -656,7 +794,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         </div>
 
         {/* Bloco 5: Formação Acadêmica & Graus Obtidos */}
-        <div className="mb-6">
+        <div className="mb-4">
           <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
             05. Formação Acadêmica & Graus Obtidos
           </p>
@@ -675,6 +813,43 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
               })
             ) : (
               <p className="text-slate-500 italic py-1">Filosofia e Teologia — Província Brasileira Meridional</p>
+            )}
+          </div>
+        </div>
+
+        {/* Bloco 06: Documentação Cadastrada & Arquivo Digital */}
+        <div className="mb-6">
+          <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
+            06. Documentação Cadastrada & Arquivo Digital Provincial
+          </p>
+          <div className="space-y-1 text-[7.5pt]">
+            {data?.documentosCadastrados && data.documentosCadastrados.length > 0 ? (
+              <table className="w-full border-collapse text-[7.5pt]">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-500 font-mono text-[6.8pt] uppercase text-left">
+                    <th className="py-1">Categoria</th>
+                    <th className="py-1">Arquivo Digital</th>
+                    <th className="py-1 w-24 text-center">Data Registro</th>
+                    <th className="py-1 w-28 text-center">Situação</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {data.documentosCadastrados.map((d: any, idx: number) => (
+                    <tr key={`doc-${idx}`} className="py-0.5">
+                      <td className="font-semibold text-slate-900 py-0.5">{d.categoria || 'Geral'}</td>
+                      <td className="font-mono text-slate-600 py-0.5 truncate max-w-xs">{d.nome_arquivo || d.titulo || 'Registro Digital'}</td>
+                      <td className="font-mono text-slate-500 py-0.5 text-center">{d.data ? formatarData(d.data) : '—'}</td>
+                      <td className="text-center py-0.5">
+                        <span className="font-mono text-[6.5pt] bg-emerald-50 text-emerald-800 border border-emerald-200 px-1 py-0.2 rounded">
+                          {d.status || 'Arquivo Provincial'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-slate-500 italic py-1">Documentos civis e canônicos originais arquivados na pasta física da Chancelaria Provincial.</p>
             )}
           </div>
         </div>

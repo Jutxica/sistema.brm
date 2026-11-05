@@ -28,3 +28,22 @@ export const formatarDataBR = (value?: string | Date | null): string => {
   if (Number.isNaN(date.getTime())) return '—';
   return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
 };
+
+export const extrairAno = (value?: string | Date | null): string => {
+  if (!value) return '—';
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return '—';
+    return String(value.getFullYear());
+  }
+  const str = String(value).trim();
+  if (!str) return '—';
+  const match = str.match(/\b(19\d\d|20\d\d)\b/);
+  if (match) return match[1];
+  if (/^\d{4}$/.test(str)) return str;
+  if (str.length >= 4) {
+    const possivelAno = str.slice(-4);
+    if (/^\d{4}$/.test(possivelAno)) return possivelAno;
+  }
+  return str;
+};
+

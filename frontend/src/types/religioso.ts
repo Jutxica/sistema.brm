@@ -213,6 +213,7 @@ export interface DocumentoFicha {
   quem_cadastrou: string | null;
   criado_em?: string | null;
   enviado_por_nome?: string | null;
+  status?: string | null;
   storage_bucket: 'religiosos-documentos' | 'arquivo-religiosos-confidencial';
 }
 

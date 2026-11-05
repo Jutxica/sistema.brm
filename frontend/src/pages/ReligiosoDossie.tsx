@@ -13,6 +13,7 @@ import { gotenbergService } from '../services/gotenbergService';
 import { obterFotoReligiosoBase64 } from '../services/religiosoFotoService';
 import { LOGO_TIMBRADO_DATA_URI } from '../assets/logoTimbradoBase64';
 import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../lib/religiosoNome';
+import { extrairAno } from '../utils/dateUtils';
 
 import type { 
   ReligiosoDossieData, 
@@ -619,53 +620,94 @@ export const ReligiosoDossie: React.FC = () => {
     if (!religioso) return;
     setExportandoGotenberg(true);
     try {
-      // 1. Mapeia histórico de comunidades e designações em histórico de trabalhos
+      // 1. Mapeia etapas formativas, designações e histórico em trajetória de trabalhos completa
       const trabalhos: Array<{
         periodo: string;
-        instituicao: string;
+        comunidade?: string;
+        obra?: string;
+        faseGrau?: string;
         funcao: string;
         local?: string;
         observacoes?: string;
+        ordenacaoAno?: number;
       }> = [];
 
-      // Inclui designações atuais/anteriores
-      (canonicalData.designacoes || []).forEach(d => {
-        const nomeInst = d.comunidades?.nome || d.religiosos_obras_referencia?.nome || 'Comunidade Provincial';
-        const ano = d.ano_referencia || (d.vigencia_inicio ? new Date(d.vigencia_inicio).getFullYear() : '');
-        const fim = d.vigencia_fim ? new Date(d.vigencia_fim).getFullYear() : 'Atual';
-        const periodoStr = ano ? (ano === fim ? String(ano) : `${ano} - ${fim}`) : 'Vigente';
+      // A. Inclui etapas de formação religiosa (Postulantado, Noviciado, Filosofia, Teologia, Tirocínio, etc.)
+      (canonicalData.formacao || []).forEach(f => {
+        const pIni = f.data_ingresso ? extrairAno(f.data_ingresso) : '';
+        const pFim = f.data_conclusao ? extrairAno(f.data_conclusao) : '';
+        const periodoStr = pIni && pFim ? (pIni === pFim ? pIni : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Concluído` : 'Período Formativo');
+        const anoNum = pIni && !Number.isNaN(Number(pIni)) ? Number(pIni) : 2000;
+
         trabalhos.push({
           periodo: periodoStr,
-          instituicao: nomeInst,
-          funcao: d.funcao || d.tipo_vinculo || 'Membro da Comunidade',
-          local: 'Província BRM',
-          observacoes: d.tipo_vinculo ? `Vínculo: ${d.tipo_vinculo}` : undefined
+          comunidade: f.instituicao || f.local || 'Casa de Formação Dehoniana',
+          obra: f.instituicao || 'Seminário / Casa Formativa',
+          faseGrau: f.etapa || 'Formação Inicial',
+          funcao: f.etapa ? `${f.etapa} • Religioso Estudante` : 'Estudante SCJ',
+          local: [f.cidade, f.local].filter(Boolean).join(' • ') || 'Província BRM',
+          observacoes: [f.formador ? `Formador: ${f.formador}` : null, f.observacoes].filter(Boolean).join(' • ') || undefined,
+          ordenacaoAno: anoNum
         });
       });
 
-      // Inclui histórico de comunidades
+      // B. Inclui histórico de comunidades
       (canonicalData.historicoComunidades || []).forEach(h => {
-        const pIni = h.periodo_inicio ? new Date(h.periodo_inicio).getFullYear() : '';
-        const pFim = h.periodo_fim ? new Date(h.periodo_fim).getFullYear() : '';
-        const periodoStr = pIni && pFim ? (pIni === pFim ? String(pIni) : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Atual` : '—');
+        const pIni = h.periodo_inicio ? extrairAno(h.periodo_inicio) : '';
+        const pFim = h.periodo_fim ? extrairAno(h.periodo_fim) : '';
+        const periodoStr = pIni && pFim ? (pIni === pFim ? pIni : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Atual` : '—');
+        const anoNum = pIni && !Number.isNaN(Number(pIni)) ? Number(pIni) : 2010;
+
         trabalhos.push({
           periodo: periodoStr,
-          instituicao: h.instituicao || 'Instituição SCJ',
-          funcao: h.funcao || 'Atuação Pastoral',
+          comunidade: h.instituicao || 'Comunidade SCJ',
+          obra: h.instituicao || 'Paróquia / Obra',
+          faseGrau: religioso.grau || 'Religioso SCJ',
+          funcao: h.funcao || 'Atuação Pastoral e Fraterna',
           local: h.local || undefined,
-          observacoes: h.observacoes || undefined
+          observacoes: h.observacoes || undefined,
+          ordenacaoAno: anoNum
         });
       });
 
-      // Se não houver registros explícitos, adiciona a comunidade atual
-      if (trabalhos.length === 0 && religioso.comunidade_atual_nome) {
+      // C. Inclui designações canônicas (atuais e anteriores)
+      (canonicalData.designacoes || []).forEach(d => {
+        const comNome = formatarComunidadeReligiosa(d.comunidades?.nome) || 'Comunidade Provincial';
+        const obraNome = d.religiosos_obras_referencia?.nome || 'Atuação Pastoral';
+        const ano = d.ano_referencia || (d.vigencia_inicio ? extrairAno(d.vigencia_inicio) : '');
+        const fim = d.vigencia_fim ? extrairAno(d.vigencia_fim) : 'Atual';
+        const periodoStr = ano ? (ano === fim ? String(ano) : `${ano} - ${fim}`) : 'Vigente';
+        const localidade = [d.comunidades?.cidade, d.religiosos_obras_referencia?.cidade].filter(Boolean)[0] || 'Província BRM';
+        const anoNum = ano && !Number.isNaN(Number(ano)) ? Number(ano) : 2026;
+
+        trabalhos.push({
+          periodo: periodoStr,
+          comunidade: comNome,
+          obra: obraNome,
+          faseGrau: religioso.grau || 'Religioso',
+          funcao: d.funcao || d.tipo_vinculo || 'Membro da Comunidade',
+          local: localidade,
+          observacoes: [d.tipo_vinculo ? `Vínculo: ${d.tipo_vinculo}` : null, d.observacoes].filter(Boolean).join(' • ') || undefined,
+          ordenacaoAno: anoNum
+        });
+      });
+
+      // D. Se não houver designação ativa listada, adiciona a comunidade/obra atual
+      const temAtual = trabalhos.some(t => t.periodo.includes('Atual') || t.periodo.includes('Vigente'));
+      if (!temAtual && (religioso.comunidade_atual_nome || religioso.obra_atual_nome)) {
         trabalhos.push({
           periodo: 'Atual',
-          instituicao: formatarComunidadeReligiosa(religioso.comunidade_atual_nome),
-          funcao: religioso.grau || 'Confrade',
-          local: 'Província BRM'
+          comunidade: formatarComunidadeReligiosa(religioso.comunidade_atual_nome) || 'Comunidade Provincial',
+          obra: religioso.obra_atual_nome || 'Residência Canônica',
+          faseGrau: religioso.grau || 'Confrade',
+          funcao: canonicalData.designacoes[0]?.funcao || 'Membro Ativo',
+          local: canonicalData.residencia?.cidade || 'Província BRM',
+          ordenacaoAno: 9999
         });
       }
+
+      // Ordena cronologicamente: do início da formação até a atualidade
+      trabalhos.sort((a, b) => (a.ordenacaoAno || 0) - (b.ordenacaoAno || 0));
 
       // 2. Mapeia missões e serviços
       const missoes = (canonicalData.missoesServicos || []).map(m => ({
@@ -686,7 +728,39 @@ export const ReligiosoDossie: React.FC = () => {
       // 4. Mapeia idiomas
       const idiomas = (canonicalData.idiomas || []).map(i => `${i.idioma} (${i.nivel || i.fala || 'Fluente'})`);
 
-      // 5. Obtém a foto oficial em Base64 para garantir renderização no Gotenberg
+      // 5. Mapeia documentos cadastrados (legados + arquivo confidencial)
+      const documentosParaPdf = (documentos || [])
+        .filter(d => d.status !== 'Excluido')
+        .map(d => ({
+          categoria: d.categoria || 'Documento Geral',
+          nomeArquivo: d.nome_arquivo || (d as any).titulo || 'Registro Digital',
+          data: d.data_cadastro ? formatDate(d.data_cadastro) : (d.criado_em ? formatDate(d.criado_em) : undefined),
+          status: d.status || 'Arquivo Digital Provincial'
+        }));
+
+      // 6. Mapeia lemas vocacionais
+      const lemasParaPdf: Array<{ fase: string; texto: string; destacado?: boolean }> = (religioso.lemas || []).map(l => ({
+        fase: l.fase,
+        texto: l.texto,
+        destacado: l.destacado
+      }));
+      if (lemasParaPdf.length === 0 && (religioso.lema_destacado || (religioso as any).lema)) {
+        lemasParaPdf.push({
+          fase: (religioso.lema_destacado_fase as string) || 'Lema Canônico',
+          texto: String(religioso.lema_destacado || (religioso as any).lema).replace(/^[“"']|[”"']$/g, '').trim(),
+          destacado: true
+        });
+      }
+
+      // 7. Mapeia origem vocacional
+      const origemVocacionalParaPdf = {
+        paroquiaOrigem: canonicalData.origemVocacional?.paroquia_origem || batismo?.paroquia || undefined,
+        cidade: [canonicalData.origemVocacional?.cidade_origem, canonicalData.origemVocacional?.estado_origem].filter(Boolean).join(' / ') || undefined,
+        diocese: canonicalData.origemVocacional?.diocese_origem || undefined,
+        promotorVocacional: canonicalData.origemVocacional?.promotor_vocacional || undefined
+      };
+
+      // 8. Obtém a foto oficial em Base64 para garantir renderização no Gotenberg
       const fotoBase64 = await obterFotoReligiosoBase64(religioso);
 
       const blob = await gotenbergService.gerarFichaReligiosoPdf({
@@ -708,8 +782,14 @@ export const ReligiosoDossie: React.FC = () => {
         filiacaoPai: paiNome !== '—' ? paiNome : undefined,
         filiacaoMae: maeNome !== '—' ? maeNome : undefined,
         fotoUrl: fotoBase64 || fotoUrl || undefined,
+        lemaPrincipal: religioso.lema_destacado || (religioso as any).lema || undefined,
+        lemaPrincipalFase: religioso.lema_destacado_fase || undefined,
+        lemasVocacionais: lemasParaPdf,
+        origemVocacional: origemVocacionalParaPdf,
+        documentosCadastrados: documentosParaPdf,
 
         comunidadeAtualNome: formatarComunidadeReligiosa(religioso.comunidade_atual_nome) || undefined,
+        obraAtualNome: religioso.obra_atual_nome || undefined,
         oficioAtual: canonicalData.designacoes[0]?.funcao || undefined,
         enderecoResidencial: (() => {
           const res = canonicalData.residencia;
@@ -1170,51 +1250,85 @@ export const ReligiosoDossie: React.FC = () => {
         {/* Bloco 5: Trajetória de Comunidades e Trabalhos */}
         <div className="mb-3">
           <p className="text-[7pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-800 border-b border-slate-300 pb-0.5 mb-1.5">
-            5. Trajetória de Comunidades e Trabalhos (Onde Trabalhou • Ofícios e Cargos)
+            5. Trajetória de Comunidades e Trabalhos (Onde Trabalhou • Comunidades, Obras, Etapas & Funções)
           </p>
           <div className="space-y-1 text-[7.5pt]">
-            {(canonicalData.historicoComunidades && canonicalData.historicoComunidades.length > 0) || (canonicalData.designacoes && canonicalData.designacoes.length > 0) ? (
+            {(canonicalData.formacao && canonicalData.formacao.length > 0) || (canonicalData.historicoComunidades && canonicalData.historicoComunidades.length > 0) || (canonicalData.designacoes && canonicalData.designacoes.length > 0) ? (
               <table className="w-full border-collapse text-[7.5pt]">
                 <thead>
                   <tr className="border-b border-slate-300 text-slate-600 font-mono text-[6.5pt] uppercase">
-                    <th className="text-left py-1 w-28">Período</th>
-                    <th className="text-left py-1">Instituição / Comunidade</th>
+                    <th className="text-left py-1 w-24">Período</th>
+                    <th className="text-left py-1">Comunidade</th>
+                    <th className="text-left py-1">Obra / Atividade</th>
+                    <th className="text-left py-1">Fase / Grau</th>
                     <th className="text-left py-1">Ofício / Função</th>
-                    <th className="text-left py-1">Localidade</th>
-                    <th className="text-left py-1">Ato / Decreto</th>
+                    <th className="text-left py-1">Localidade & Notas</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
+                  {canonicalData.formacao.map((f: any, idx: number) => {
+                    const pIni = f.data_ingresso ? extrairAno(f.data_ingresso) : '';
+                    const pFim = f.data_conclusao ? extrairAno(f.data_conclusao) : '';
+                    const periodoStr = pIni && pFim ? (pIni === pFim ? pIni : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Concluído` : 'Formativo');
+                    return (
+                      <tr key={`form-${idx}`} className="py-0.5">
+                        <td className="font-mono text-slate-500 py-0.5">{periodoStr}</td>
+                        <td className="font-semibold text-slate-900 py-0.5">{f.instituicao || f.local || 'Casa Formativa'}</td>
+                        <td className="text-slate-700 py-0.5">{f.instituicao || 'Seminário / Formação'}</td>
+                        <td className="py-0.5">
+                          <span className="font-mono text-[6.5pt] bg-sky-50 text-sky-800 border border-sky-200 px-1 py-0.2 rounded">
+                            {f.etapa || 'Formação Inicial'}
+                          </span>
+                        </td>
+                        <td className="text-[#226380] font-medium py-0.5">{f.etapa ? `${f.etapa} • Estudante` : 'Estudante SCJ'}</td>
+                        <td className="text-slate-600 py-0.5">{[f.cidade, f.formador ? `Formador: ${f.formador}` : null].filter(Boolean).join(' • ') || 'Província BRM'}</td>
+                      </tr>
+                    );
+                  })}
+                  {canonicalData.historicoComunidades.map((h: any, idx: number) => {
+                    const pIni = h.periodo_inicio ? extrairAno(h.periodo_inicio) : '';
+                    const pFim = h.periodo_fim ? extrairAno(h.periodo_fim) : '';
+                    const periodoStr = pIni && pFim ? (pIni === pFim ? pIni : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Atual` : '—');
+                    return (
+                      <tr key={`hist-${idx}`} className="py-0.5">
+                        <td className="font-mono text-slate-500 py-0.5">{periodoStr}</td>
+                        <td className="font-semibold text-slate-900 py-0.5">{h.instituicao}</td>
+                        <td className="text-slate-700 py-0.5">{h.instituicao}</td>
+                        <td className="py-0.5">
+                          <span className="font-mono text-[6.5pt] bg-slate-50 text-slate-700 border border-slate-200 px-1 py-0.2 rounded">
+                            {religioso?.grau || 'Religioso'}
+                          </span>
+                        </td>
+                        <td className="text-[#226380] font-medium py-0.5">{h.funcao || 'Atuação Pastoral'}</td>
+                        <td className="text-slate-600 py-0.5">{[h.cidade || h.local, h.observacoes].filter(Boolean).join(' • ') || '—'}</td>
+                      </tr>
+                    );
+                  })}
                   {canonicalData.designacoes.map((d: any, idx: number) => {
-                    const pInicio = d.vigencia_inicio ? new Date(d.vigencia_inicio).getFullYear() : d.ano_referencia;
-                    const pFim = d.vigencia_fim ? new Date(d.vigencia_fim).getFullYear() : 'Atual';
+                    const pInicio = d.vigencia_inicio ? extrairAno(d.vigencia_inicio) : d.ano_referencia;
+                    const pFim = d.vigencia_fim ? extrairAno(d.vigencia_fim) : 'Atual';
                     const localidade = [d.comunidades?.cidade, d.religiosos_obras_referencia?.cidade].filter(Boolean)[0] || 'Província BRM';
                     return (
                       <tr key={`desig-${idx}`} className="py-0.5">
                         <td className="font-mono text-slate-500 py-0.5">
-                          {pInicio ? `${pInicio} - ${pFim}` : (d.ano_referencia || 'Vigente')}
+                          {pInicio ? (pInicio === pFim ? String(pInicio) : `${pInicio} - ${pFim}`) : (d.ano_referencia || 'Vigente')}
                         </td>
                         <td className="font-semibold text-slate-900 py-0.5">
-                          {(d.religiosos_obras_referencia?.nome && d.comunidades?.nome && d.religiosos_obras_referencia.nome !== formatarComunidadeReligiosa(d.comunidades.nome)) ? `${formatarComunidadeReligiosa(d.comunidades.nome)} • ${d.religiosos_obras_referencia.nome}` : (d.religiosos_obras_referencia?.nome || formatarComunidadeReligiosa(d.comunidades?.nome) || 'Comunidade Provincial')}
+                          {formatarComunidadeReligiosa(d.comunidades?.nome) || 'Comunidade Provincial'}
+                        </td>
+                        <td className="text-slate-700 py-0.5">
+                          {d.religiosos_obras_referencia?.nome || 'Atuação Pastoral / Paróquia'}
+                        </td>
+                        <td className="py-0.5">
+                          <span className="font-mono text-[6.5pt] bg-slate-50 text-slate-700 border border-slate-200 px-1 py-0.2 rounded">
+                            {religioso?.grau || 'Consagrado'}
+                          </span>
                         </td>
                         <td className="text-[#226380] font-medium py-0.5">{d.funcao || d.tipo_vinculo || 'Membro'}</td>
-                        <td className="text-slate-600 py-0.5">{localidade}</td>
-                        <td className="font-mono text-slate-500 py-0.5">{d.numero_decreto ? d.numero_decreto : '—'}</td>
+                        <td className="text-slate-600 py-0.5">{[localidade, d.numero_decreto ? `Dec. ${d.numero_decreto}` : null].filter(Boolean).join(' • ')}</td>
                       </tr>
                     );
                   })}
-                  {canonicalData.historicoComunidades.map((h: any, idx: number) => (
-                    <tr key={`hist-${idx}`} className="py-0.5">
-                      <td className="font-mono text-slate-500 py-0.5">
-                        {h.periodo_inicio ? new Date(h.periodo_inicio).getFullYear() : '—'}
-                        {h.periodo_fim ? ` - ${new Date(h.periodo_fim).getFullYear()}` : ' - Atual'}
-                      </td>
-                      <td className="font-semibold text-slate-900 py-0.5">{h.instituicao}</td>
-                      <td className="text-[#226380] font-medium py-0.5">{h.funcao || 'Atuação Pastoral'}</td>
-                      <td className="text-slate-600 py-0.5">{h.cidade || h.local || '—'}</td>
-                      <td className="font-mono text-slate-500 py-0.5">{h.observacoes || '—'}</td>
-                    </tr>
-                  ))}
                 </tbody>
               </table>
             ) : (
