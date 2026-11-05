@@ -11,7 +11,7 @@ import { showToast } from '../../hooks/useFeedback';
 import { PapelTimbradoBRM, type OrientacaoDocumento } from '../../components/PapelTimbradoBRM';
 import { gotenbergService } from '../../services/gotenbergService';
 import { obterFotoReligiosoBase64 } from '../../services/religiosoFotoService';
-import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../../lib/religiosoNome';
+import { atribuirNomeReligioso, formatarComunidadeReligiosa, padronizarSufixoSCJ } from '../../lib/religiosoNome';
 import { extrairAno } from '../../utils/dateUtils';
 
 interface FichaCanonicaPDFProps {
@@ -397,7 +397,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
 
       const blob = await gotenbergService.gerarFichaReligiosoPdf({
         nomeCivil: data.nome_civil,
-        nomeReligioso: atribuirNomeReligioso(data.grau, data.nome_civil) || data.nome_religioso || undefined,
+        nomeReligioso: atribuirNomeReligioso(data.grau, data.nome_civil) || padronizarSufixoSCJ(data.nome_religioso) || undefined,
         grau: data.grau || 'Padre',
         numeroCadastro: data.numero_cadastro || undefined,
         statusCadastro: data.status_cadastro || 'Aprovado',
@@ -677,7 +677,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
             </div>
             <div>
               <p className="text-[6.5pt] font-mono uppercase text-slate-500">Nome Religioso</p>
-              <p className="font-medium text-slate-900">{atribuirNomeReligioso(data?.grau, data?.nome_civil) || data?.nome_religioso || '—'}</p>
+              <p className="font-medium text-slate-900">{atribuirNomeReligioso(data?.grau, data?.nome_civil) || padronizarSufixoSCJ(data?.nome_religioso) || '—'}</p>
             </div>
             <div>
               <p className="text-[6.5pt] font-mono uppercase text-slate-500">Data de Nascimento</p>

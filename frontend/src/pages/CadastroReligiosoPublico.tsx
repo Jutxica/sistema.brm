@@ -127,14 +127,16 @@ const ministryTypeToDatabase: Record<string, string> = {
   'Diaconato': 'Diaconado',
   'Diaconado': 'Diaconado',
   'Presbiterado': 'Presbiterado',
+  'Presbiterato': 'Presbiterado',
   'Episcopado': 'Episcopado',
 };
 const ministryTypeFromDatabase: Record<string, string> = {
   'Leitorado': 'Leitorado',
   'Acolitado': 'Acolitado',
-  'Diaconado': 'Diaconato',
-  'Diaconato': 'Diaconato',
+  'Diaconado': 'Diaconado',
+  'Diaconato': 'Diaconado',
   'Presbiterado': 'Presbiterado',
+  'Presbiterato': 'Presbiterado',
   'Episcopado': 'Episcopado',
 };
 const renewalOptions = Array.from({ length: 9 }, (_, index) => String(index + 1));
@@ -197,7 +199,7 @@ const fieldLabels: Record<string, string> = {
 
 const defaultFieldPlaceholders: Record<string, string> = {
   nome_civil: 'Ex.: João Paulo da Silva',
-  nome_religioso: 'Atribuído: Fr. / Dom / Diác. / Ir. / P. (nome e sobrenome), scj',
+  nome_religioso: 'Atribuído: Fr. / Dom / Diác. / Ir. / P. (nome e sobrenome), SCJ',
   nome_elenco: 'Ex.: Pe. João Silva',
   data_nascimento: 'AAAA-MM-DD',
   local_nascimento: 'Ex.: Hospital São José ou Distrito',
@@ -237,7 +239,7 @@ const defaultFieldPlaceholders: Record<string, string> = {
   cidade_origem: 'Ex.: Joinville',
   diocese_origem: 'Ex.: Diocese de Joinville',
   grupo_movimento_pastoral: 'Ex.: Grupo de Coroinhas, Pastoral Juvenil',
-  promotor_vocacional: 'Ex.: Pe. João Silva, scj',
+  promotor_vocacional: 'Ex.: Pe. João Silva, SCJ',
   ano: 'Ex.: 2018',
   titulo: 'Ex.: Despertar Vocacional, Convivência',
   descricao: 'Ex.: Retiro vocacional e acompanhamento na casa formativa',
@@ -250,7 +252,7 @@ const defaultFieldPlaceholders: Record<string, string> = {
   renovacao: 'Ex.: 1',
   local: 'Ex.: Noviciado N. Sra. de Fátima, Convento SCJ, Paróquia N. Sra. das Graças...',
   ministerio: 'Selecione o ministério ou ordem...',
-  bispo_ordenante: 'Ex.: Dom Murilo Krieger, SCJ',
+  bispo_ordenante: 'Ex.: Dom Murilo S. R. Krieger, SCJ',
   categoria: 'Selecione a formação (Filosofia, Teologia, etc.)...',
   periodo: 'Ex.: 2020 a 2023',
   pais: 'Ex.: Brasil',
@@ -2270,7 +2272,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               afterField={{
                 nome_religioso: (
                   <span className="block text-[11px] text-[#707070] dark:text-[#a1a1aa] mt-0.5">
-                    Atribuído automaticamente: Fr. / Dom / Diác. / Ir. / P. (nome e sobrenome), scj
+                    Atribuído automaticamente: Fr. / Dom / Diác. / Ir. / P. (nome e sobrenome), SCJ
                   </span>
                 ),
                 grau: (
@@ -2582,7 +2584,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                   cidade_origem: 'Ex.: Joinville',
                   diocese_origem: 'Ex.: Diocese de Joinville',
                   grupo_movimento_pastoral: 'Ex.: Grupo de Jovens, Acólitos',
-                  promotor_vocacional: 'Ex.: Pe. João Silva, scj',
+                  promotor_vocacional: 'Ex.: Pe. João Silva, SCJ',
                 }}
               />
             </div>
@@ -2609,22 +2611,20 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               <DynamicSection
                 title="Etapas da Formação"
                 type="formacao"
-                fields={['etapa', 'instituicao', 'cidade', 'local', 'inicio', 'fim', 'formador']}
+                fields={['etapa', 'instituicao', 'cidade', 'inicio', 'fim', 'formador']}
                 rows={rows}
                 addRow={addRow}
                 updateRow={updateRow}
                 removeRow={removeRow}
                 selects={{ etapa: formationOptions }}
                 labels={{
-                  instituicao: 'Instituição / Seminário',
+                  instituicao: 'Instituição / Seminário / Casa Formativa',
                   cidade: 'Cidade',
-                  local: 'Local / Casa / Campus',
                   formador: 'Formador responsável',
                 }}
                 placeholders={{
                   instituicao: 'Ex.: Noviciado N. Sra. de Fátima',
                   cidade: 'Ex.: Jaraguá do Sul',
-                  local: 'Ex.: Casa de Formação',
                 }}
               />
             </div>
@@ -2674,8 +2674,9 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               addRow={addRow}
               updateRow={updateRow}
               removeRow={removeRow}
-              selects={{ ministerio: ['Leitorado', 'Acolitado', 'Ministério da Palavra', 'Ministério do Altar'] }}
+              selects={{ ministerio: ['Leitorado', 'Acolitado', 'Diaconado', 'Presbiterado', 'Episcopado'] }}
               labels={{
+                ministerio: 'Ministério / Ordem',
                 cidade: 'Cidade',
                 local: 'Local (paróquia, convento ou capela)',
                 celebrante: 'Celebrante / Bispo',
@@ -2683,7 +2684,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               placeholders={{
                 cidade: 'Ex.: Taubaté',
                 local: 'Ex.: Convento SCJ ou Paróquia Sagrado Coração',
-                celebrante: 'Ex.: Dom Carmo João Rhoden, SCJ',
+                celebrante: 'Ex.: Dom Murilo S. R. Krieger, SCJ',
               }}
               visibleFields={() => ['ministerio', 'data', 'cidade', 'local', 'celebrante']}
             />
@@ -2700,13 +2701,10 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                   updateRow={updateRow}
                   removeRow={removeRow}
                   selects={{
-                    ministerio: base.grau === 'Diácono'
-                      ? ['Diaconato']
-                      : base.grau === 'Padre'
-                        ? ['Diaconato', 'Presbiterado']
-                        : ['Diaconato', 'Presbiterado', 'Episcopado']
+                    ministerio: ['Leitorado', 'Acolitado', 'Diaconado', 'Presbiterado', 'Episcopado']
                   }}
                   labels={{
+                    ministerio: 'Grau da Ordem Sacra',
                     cidade: 'Cidade da ordenação',
                     local: 'Local da ordenação (Catedral, Paróquia, Santuário)',
                     celebrante: 'Celebrante',
@@ -2715,7 +2713,8 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                   placeholders={{
                     cidade: 'Ex.: Curitiba',
                     local: 'Ex.: Santuário Santa Rita de Cássia',
-                    bispo_ordenante: 'Ex.: Dom Wilson Tadeu Jönck, SCJ',
+                    celebrante: 'Ex.: Dom Murilo S. R. Krieger, SCJ',
+                    bispo_ordenante: 'Ex.: Dom Murilo S. R. Krieger, SCJ',
                   }}
                   visibleFields={() => ['ministerio', 'data', 'cidade', 'local', 'celebrante', 'bispo_ordenante']}
                 />
@@ -2800,13 +2799,13 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                 instituicao: 'Instituição / Paróquia / Comunidade',
                 funcao: 'Função / Ofício exercido',
                 cidade: 'Cidade',
-                local: 'Local / Bairro / Setor',
+                local: 'Estado (UF)',
               }}
               placeholders={{
                 instituicao: 'Ex.: Paróquia São Judas Tadeu',
                 funcao: 'Ex.: Superior da Comunidade, Pároco, Vigário',
                 cidade: 'Ex.: Curitiba',
-                local: 'Ex.: Hauer',
+                local: 'Ex.: PR',
               }}
             />
             <div className="mt-8 border-t border-[#e5e5ea] pt-6 dark:border-white/10">
@@ -2945,7 +2944,15 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               <button type="button" onClick={() => { setErrorMessage(null); setStep(1); }} className="mt-4 text-xs font-semibold text-[#226380] underline dark:text-[#A3C3C7]">Voltar ao início para revisar ou corrigir os dados</button>
             </div>
             <h3 className="mb-4 text-sm font-semibold text-[#1d1d1f] dark:text-white font-serif">Informações de Saúde</h3>
-            <Fields fields={['plano_saude', 'numero_plano_saude', 'local_plano_saude', 'sus', 'tipo_sanguineo', 'fator_rh', 'alergias', 'medicamentos_continuos', 'medico_responsavel', 'contato_emergencia', 'informacoes_clinicas', 'cirurgias', 'proteses', 'observacoes_saude']} base={base} update={updateBase} selects={{ fator_rh: ['Positivo', 'Negativo', 'Não informado'] }} />
+            <Fields
+              fields={['plano_saude', 'numero_plano_saude', 'local_plano_saude', 'sus', 'tipo_sanguineo', 'fator_rh', 'alergias', 'medicamentos_continuos', 'medico_responsavel', 'contato_emergencia', 'informacoes_clinicas', 'cirurgias', 'proteses', 'observacoes_saude']}
+              base={base}
+              update={updateBase}
+              selects={{
+                tipo_sanguineo: ['A', 'B', 'AB', 'O'],
+                fator_rh: ['Positivo', 'Negativo', 'Não informado'],
+              }}
+            />
           </Section>
           <Section title="Documentos e Consentimento">
             <p className="mb-6 text-sm text-[#707070] dark:text-[#86868b] leading-relaxed">

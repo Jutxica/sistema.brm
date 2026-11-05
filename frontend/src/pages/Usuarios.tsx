@@ -331,7 +331,7 @@ export const Usuarios: React.FC = () => {
                   required
                   value={editingUser.usu_nome || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, usu_nome: e.target.value })}
-                  placeholder="Ex: Pe. João da Silva, scj"
+                  placeholder="Ex: Pe. João da Silva, SCJ"
                   className="w-full apple-input rounded-[6px] px-3.5 py-2.5 text-xs outline-none"
                 />
               </div>

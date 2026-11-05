@@ -16,6 +16,7 @@
 import { LOGO_TIMBRADO_DATA_URI } from '../assets/logoTimbradoBase64';
 import { registrarDocumentoOficial } from '../lib/autenticacaoDocumental';
 import { extrairAno } from '../utils/dateUtils';
+import { padronizarSufixoSCJ } from '../lib/religiosoNome';
 
 export interface OpcoesDocumentoGotenberg {
   titulo: string;
@@ -646,11 +647,11 @@ export const gotenbergService = {
 
       <div style="margin-top: 70px; display: flex; justify-content: space-around; text-align: center; font-size: 10pt; page-break-inside: avoid;">
         <div style="width: 40%; border-top: 1px solid #1e293b; padding-top: 8px;">
-          <strong>${dados.provincialNome || 'Pe. Superior Provincial, scj'}</strong><br>
+          <strong>${dados.provincialNome || 'Pe. Superior Provincial, SCJ'}</strong><br>
           Superior Provincial • Província BRM
         </div>
         <div style="width: 40%; border-top: 1px solid #1e293b; padding-top: 8px;">
-          <strong>${dados.secretarioNome || 'Pe. Secretário Provincial, scj'}</strong><br>
+          <strong>${dados.secretarioNome || 'Pe. Secretário Provincial, SCJ'}</strong><br>
           Secretário Provincial • Chancelaria
         </div>
       </div>
@@ -699,11 +700,11 @@ export const gotenbergService = {
 
       <div style="margin-top: 70px; display: flex; justify-content: space-around; text-align: center; font-size: 10pt; page-break-inside: avoid;">
         <div style="width: 40%; border-top: 1px solid #1e293b; padding-top: 8px;">
-          <strong>${dados.provincialNome || 'Pe. Superior Provincial, scj'}</strong><br>
+          <strong>${dados.provincialNome || 'Pe. Superior Provincial, SCJ'}</strong><br>
           Superior Provincial
         </div>
         <div style="width: 40%; border-top: 1px solid #1e293b; padding-top: 8px;">
-          <strong>${dados.secretarioNome || 'Pe. Secretário Provincial, scj'}</strong><br>
+          <strong>${dados.secretarioNome || 'Pe. Secretário Provincial, SCJ'}</strong><br>
           Secretário Provincial
         </div>
       </div>
@@ -759,7 +760,7 @@ export const gotenbergService = {
 
       <div style="margin-top: 60px; display: flex; justify-content: center; text-align: center; font-size: 10pt; page-break-inside: avoid;">
         <div style="width: 50%; border-top: 1px solid #1e293b; padding-top: 8px;">
-          <strong>${dados.provincialNome || 'Pe. Superior Provincial, scj'}</strong><br>
+          <strong>${dados.provincialNome || 'Pe. Superior Provincial, SCJ'}</strong><br>
           Superior Provincial • Província BRM
         </div>
       </div>
@@ -815,7 +816,7 @@ export const gotenbergService = {
 
       <div style="margin-top: 60px; display: flex; justify-content: center; text-align: center; font-size: 10pt; page-break-inside: avoid;">
         <div style="width: 50%; border-top: 1px solid #1e293b; padding-top: 8px;">
-          <strong>${dados.secretarioNome || 'Pe. Secretário Provincial, scj'}</strong><br>
+          <strong>${dados.secretarioNome || 'Pe. Secretário Provincial, SCJ'}</strong><br>
           Chanceler / Secretário Provincial
         </div>
       </div>
@@ -861,7 +862,7 @@ export const gotenbergService = {
 
       <div style="margin-top: 70px; display: flex; justify-content: center; text-align: center; font-size: 10pt; page-break-inside: avoid;">
         <div style="width: 50%; border-top: 1px solid #1e293b; padding-top: 8px;">
-          <strong>${dados.provincialNome || 'Pe. Superior Provincial, scj'}</strong><br>
+          <strong>${dados.provincialNome || 'Pe. Superior Provincial, SCJ'}</strong><br>
           Superior Provincial • Província BRM
         </div>
       </div>
@@ -893,7 +894,7 @@ export const gotenbergService = {
    */
   async gerarFichaReligiosoPdf(dados: DadosFichaReligioso): Promise<Blob> {
     const dataEmissao = dados.dataEmissao || new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
-    const nomeExibido = dados.nomeReligioso || dados.nomeCivil;
+    const nomeExibido = padronizarSufixoSCJ(dados.nomeReligioso) || dados.nomeCivil;
     const filiacaoTexto = [dados.filiacaoPai, dados.filiacaoMae].filter(Boolean).join(' e ') || '—';
     const registroStr = dados.numeroCadastro ? 'BRM-' + String(dados.numeroCadastro).padStart(4, '0') : 'BRM-2026';
     const anoIngresso = extrairAno(dados.dataIngresso);

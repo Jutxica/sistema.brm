@@ -7,7 +7,7 @@ import {
 import { supabase } from '../lib/supabaseClient';
 import { confirmAction, showToast } from '../hooks/useFeedback';
 import { siteSyncService } from '../services/siteSyncService';
-import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../lib/religiosoNome';
+import { atribuirNomeReligioso, formatarComunidadeReligiosa, padronizarSufixoSCJ } from '../lib/religiosoNome';
 
 import type { Religioso, SituacaoElenco } from '../types/religioso';
 import type { TipoVinculo, Destino, Comunidade, Obra, Designacao } from '../types/obra';
@@ -144,7 +144,7 @@ export const ElencoSecretaria: React.FC = () => {
 
   const mapaComunidades = useMemo(() => new Map(comunidades.map(item => [item.id, item])), [comunidades]);
   const mapaObras = useMemo(() => new Map(obras.map(item => [item.id, item])), [obras]);
-  const nomeExibido = (religioso: Religioso) => atribuirNomeReligioso(religioso.grau, religioso.nome_civil) || religioso.nome_elenco || religioso.nome_religioso || religioso.nome_civil || 'Nome pendente';
+  const nomeExibido = (religioso: Religioso) => atribuirNomeReligioso(religioso.grau, religioso.nome_civil) || padronizarSufixoSCJ(religioso.nome_elenco) || padronizarSufixoSCJ(religioso.nome_religioso) || religioso.nome_civil || 'Nome pendente';
   const hoje = dataHoje();
 
   const vigentes = useMemo(

@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { showToast } from '../hooks/useFeedback';
-import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../lib/religiosoNome';
+import { atribuirNomeReligioso, formatarComunidadeReligiosa, padronizarSufixoSCJ } from '../lib/religiosoNome';
 
 export interface DossierFolder {
   id: string;
@@ -758,7 +758,9 @@ export const ReligiososDossies: React.FC = () => {
         /* VISÃO 1: GRADE DE PASTAS ESTILO NEXTCLOUD */
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredFolders.map(folder => {
-            const canonicalName = folder.nome_elenco || atribuirNomeReligioso(folder.grau, folder.nome_civil) || folder.nome_religioso || folder.nome_civil;
+            const canonicalName = folder.nome_elenco
+              ? padronizarSufixoSCJ(folder.nome_elenco)
+              : (atribuirNomeReligioso(folder.grau, folder.nome_civil) || padronizarSufixoSCJ(folder.nome_religioso) || folder.nome_civil);
             const regNum = formatRegistrationNumber(folder.numero_cadastro, folder.created_at);
             const statusInfo = statusConfig[folder.status_cadastro] || statusConfig.Arquivado;
             const StatusIcon = statusInfo.icon;
@@ -860,7 +862,9 @@ export const ReligiososDossies: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredFolders.map(folder => {
-                  const canonicalName = folder.nome_elenco || atribuirNomeReligioso(folder.grau, folder.nome_civil) || folder.nome_religioso || folder.nome_civil;
+                  const canonicalName = folder.nome_elenco
+              ? padronizarSufixoSCJ(folder.nome_elenco)
+              : (atribuirNomeReligioso(folder.grau, folder.nome_civil) || padronizarSufixoSCJ(folder.nome_religioso) || folder.nome_civil);
                   const regNum = formatRegistrationNumber(folder.numero_cadastro, folder.created_at);
                   const statusInfo = statusConfig[folder.status_cadastro] || statusConfig.Arquivado;
                   const StatusIcon = statusInfo.icon;

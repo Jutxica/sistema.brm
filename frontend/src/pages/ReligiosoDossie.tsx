@@ -13,7 +13,7 @@ import { parseAddressString } from '../utils/addressParser';
 import { gotenbergService } from '../services/gotenbergService';
 import { obterFotoReligiosoBase64 } from '../services/religiosoFotoService';
 import { LOGO_TIMBRADO_DATA_URI } from '../assets/logoTimbradoBase64';
-import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../lib/religiosoNome';
+import { atribuirNomeReligioso, formatarComunidadeReligiosa, padronizarSufixoSCJ } from '../lib/religiosoNome';
 import { extrairAno } from '../utils/dateUtils';
 
 import type { 
@@ -982,7 +982,7 @@ export const ReligiosoDossie: React.FC = () => {
 
       const blob = await gotenbergService.gerarFichaReligiosoPdf({
         nomeCivil: religioso.nome_civil,
-        nomeReligioso: atribuirNomeReligioso(religioso.grau, religioso.nome_civil) || religioso.nome_religioso || undefined,
+        nomeReligioso: atribuirNomeReligioso(religioso.grau, religioso.nome_civil) || padronizarSufixoSCJ(religioso.nome_religioso) || undefined,
         grau: religioso.grau || undefined,
         numeroCadastro: religioso.numero_cadastro || undefined,
         statusCadastro: religioso.status_cadastro || 'Aprovado',
@@ -1846,7 +1846,7 @@ export const ReligiosoDossie: React.FC = () => {
 
                 <dl className="grid gap-3 sm:grid-cols-2">
                   <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Nome civil</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{religioso.nome_civil || '—'}</dd></div>
-                  <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Nome religioso (atribuído)</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{atribuirNomeReligioso(religioso?.grau, religioso?.nome_civil) || religioso.nome_religioso || '—'}</dd></div>
+                  <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Nome religioso (atribuído)</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{atribuirNomeReligioso(religioso?.grau, religioso?.nome_civil) || padronizarSufixoSCJ(religioso.nome_religioso) || '—'}</dd></div>
                   <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Data de nascimento</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{formatDate(religioso.data_nascimento)}</dd></div>
                   <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">CPF</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{religioso.cpf || '—'}</dd></div>
                   <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">E-mail institucional</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{religioso.email_institucional || '—'}</dd></div>

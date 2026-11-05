@@ -40,7 +40,7 @@ export const GotenbergConfigCard: React.FC = () => {
   // Campos do Formulário do Documento
   const [numeroDoc, setNumeroDoc] = useState('DEC-BRM-014/2026');
   const [assuntoDoc, setAssuntoDoc] = useState('Provisão Canônica de Pároco e Reitor');
-  const [religiosoNome, setReligiosoNome] = useState('Pe. João Maria dehoniano, scj');
+  const [religiosoNome, setReligiosoNome] = useState('Pe. João Maria dehoniano, SCJ');
   const [oficioReligioso, setOficioReligioso] = useState('Pároco e Reitor');
   const [comunidadeDestino, setComunidadeDestino] = useState('Paróquia São Luiz Gonzaga');
   const [cidadeUf, setCidadeUf] = useState('Brusque / SC');
@@ -128,8 +128,8 @@ export const GotenbergConfigCard: React.FC = () => {
           cidadeUf,
           textoProvisao: textoCorpo,
           dataEmissao: dataHoje,
-          provincialNome: 'Pe. Superior Provincial, scj',
-          secretarioNome: 'Pe. Secretário Provincial, scj'
+          provincialNome: 'Pe. Superior Provincial, SCJ',
+          secretarioNome: 'Pe. Secretário Provincial, SCJ'
         });
       } else if (tipoDoc === 'ficha') {
         if (religiosoSelecionadoId) {
@@ -450,8 +450,8 @@ export const GotenbergConfigCard: React.FC = () => {
           finalidade: comunidadeDestino,
           textoPortaria: textoCorpo,
           dataEmissao: dataHoje,
-          provincialNome: 'Pe. Superior Provincial, scj',
-          secretarioNome: 'Pe. Secretário Provincial, scj'
+          provincialNome: 'Pe. Superior Provincial, SCJ',
+          secretarioNome: 'Pe. Secretário Provincial, SCJ'
         });
       } else if (tipoDoc === 'celebret') {
         blob = await gotenbergService.gerarCelebretPdf({
@@ -459,11 +459,11 @@ export const GotenbergConfigCard: React.FC = () => {
           religiosoNome,
           grauMinisterial: 'Presbítero',
           dataOrdenacao: '12 de dezembro de 2018',
-          bispoOrdenante: 'Dom Murilo Sebastião Ramos Krieger, scj',
+          bispoOrdenante: 'Dom Murilo Sebastião Ramos Krieger, SCJ',
           validadeAte: '1 ano após a data de emissão',
           observacoes: 'Nada consta contra o exercício de suas ordens sacras.',
           dataEmissao: dataHoje,
-          provincialNome: 'Pe. Superior Provincial, scj'
+          provincialNome: 'Pe. Superior Provincial, SCJ'
         });
       } else if (tipoDoc === 'votos') {
         blob = await gotenbergService.gerarCertidaoVotosPdf({
@@ -472,12 +472,12 @@ export const GotenbergConfigCard: React.FC = () => {
           tipoVotos: 'Perpétuos',
           dataProfissao: '02 de fevereiro de 2022',
           localProfissao: 'Igreja Matriz São Luiz Gonzaga - Brusque/SC',
-          superiorRecebedor: 'Pe. Superior Provincial, scj',
+          superiorRecebedor: 'Pe. Superior Provincial, SCJ',
           livroRegistro: '04',
           folhaRegistro: '128',
           termoRegistro: '254',
           dataEmissao: dataHoje,
-          secretarioNome: 'Pe. Secretário Provincial, scj'
+          secretarioNome: 'Pe. Secretário Provincial, SCJ'
         });
       } else {
         blob = await gotenbergService.gerarCircularPdf({
@@ -486,7 +486,7 @@ export const GotenbergConfigCard: React.FC = () => {
           saudacao: 'Caríssimos Confrades, Paz e Bem no Coração de Jesus!',
           corpoTexto: `<p>${textoCorpo}</p>`,
           dataEmissao: dataHoje,
-          provincialNome: 'Pe. Superior Provincial, scj'
+          provincialNome: 'Pe. Superior Provincial, SCJ'
         });
       }
 

@@ -1,19 +1,27 @@
 /**
  * Utilitário Canônico de Atribuição de Nomes Religiosos da Província BRM
- * Regra Dehoniana:
- * - Frater -> "Fr. [nome e sobrenome], scj"
- * - Bispo / Dom -> "Dom [nome e sobrenome], scj"
- * - Diácono -> "Diác. [nome e sobrenome], scj"
- * - Irmão -> "Ir. [nome e sobrenome], scj"
- * - Padre / Presbítero -> "P. [nome e sobrenome], scj"
+ * Regra Dehoniana Oficial:
+ * - Frater -> "Fr. [nome e sobrenome], SCJ"
+ * - Bispo / Dom -> "Dom [nome e sobrenome], SCJ"
+ * - Diácono -> "Diác. [nome e sobrenome], SCJ"
+ * - Irmão -> "Ir. [nome e sobrenome], SCJ"
+ * - Padre / Presbítero -> "P. [nome e sobrenome], SCJ"
  * 
  * Nomes religiosos são atribuídos e não inscritos livremente.
  */
 
 /**
+ * Normaliza qualquer sufixo congregacional pré-existente para o padrão maiúsculo ", SCJ".
+ */
+export function padronizarSufixoSCJ(nome?: string | null): string {
+  if (!nome) return '';
+  return nome.replace(/,\s*(?:scj|s\.c\.j\.)\b/gi, ', SCJ');
+}
+
+/**
  * Limpa o nome civil retirando títulos, prefixos ou sufixos congregacionais prévios.
  * Ex: "Pe. Carlos Eduardo, SCJ" -> "Carlos Eduardo"
- *     "Fr. Daugmar Zeitz Kraus, scj" -> "Daugmar Zeitz Kraus"
+ *     "Fr. Daugmar Zeitz Kraus, SCJ" -> "Daugmar Zeitz Kraus"
  */
 export function limparNomeCivil(nome?: string | null): string {
   if (!nome) return '';
@@ -56,18 +64,18 @@ export function obterPrefixoPorGrau(grau?: string | null): string {
 
 /**
  * Atribui o Nome Religioso oficial Dehoniano a partir do Grau e Nome:
- * - se uma pessoa é Frater: Fr. (nome e sobrenome), scj
- * - se for Bispo: Dom (nome e sobrenome), scj
- * - se for Diacono: Diác. (nome e sobrenome), scj
- * - se for Irmão: Ir. (nome e sobrenome), scj
- * - se for Padre: P. (nome e sobrenome), scj
+ * - se uma pessoa é Frater: Fr. (nome e sobrenome), SCJ
+ * - se for Bispo: Dom (nome e sobrenome), SCJ
+ * - se for Diacono: Diác. (nome e sobrenome), SCJ
+ * - se for Irmão: Ir. (nome e sobrenome), SCJ
+ * - se for Padre: P. (nome e sobrenome), SCJ
  */
 export function atribuirNomeReligioso(grau?: string | null, nomeCivil?: string | null): string {
   const nomeLimpo = limparNomeCivil(nomeCivil);
   if (!nomeLimpo) return '';
 
   const prefixo = obterPrefixoPorGrau(grau);
-  return `${prefixo} ${nomeLimpo}, scj`;
+  return `${prefixo} ${nomeLimpo}, SCJ`;
 }
 
 /**
@@ -81,7 +89,7 @@ export function formatarNomeApresentacao(
   const atribuido = atribuirNomeReligioso(grau, nomeCivil);
   if (atribuido) return atribuido;
   const limpo = limparNomeCivil(nomeCivil);
-  if (limpo) return limpo;
+  if (limpo) return padronizarSufixoSCJ(limpo);
   return fallback;
 }
 

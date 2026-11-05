@@ -418,7 +418,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
                   ? "text-[11px] font-semibold uppercase tracking-[0.16em] text-[#226380] dark:text-[#A3C3C7]"
                   : "text-[10px] font-semibold uppercase tracking-[0.2em] text-[#226380] font-cinzel"
               }>
-                Conta do Confrade • {form.grau || 'Padre'}
+                Conta do Religioso • {form.grau || 'Padre'}
               </span>
               <span className={
                 isPortal
@@ -519,7 +519,7 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
                 </span>
               </div>
               <span className={`text-[11px] ${isPortal ? 'text-[#707070] dark:text-[#86868b]' : 'text-slate-500 font-mono'} mt-1 block`}>
-                Atribuído automaticamente pelo grau: Fr. / Dom / Diác. / Ir. / P. (nome e sobrenome), scj
+                Atribuído automaticamente pelo grau: Fr. / Dom / Diác. / Ir. / P. (nome e sobrenome), SCJ
               </span>
             </div>
 
