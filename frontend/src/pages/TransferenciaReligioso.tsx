@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabaseClient';
 import { showToast } from '../hooks/useFeedback';
 import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../lib/religiosoNome';
 import { formatarDataBR } from '../utils/dateUtils';
+import { deduplicarObras } from '../utils/obrasUtils';
 import type { Religioso } from '../types/religioso';
 import type {
   Comunidade, Obra, Designacao, TipoVinculo, FuncaoCatalogo
@@ -108,7 +109,7 @@ export const TransferenciaReligioso: React.FC = () => {
 
       setReligiosos((relData || []) as unknown as Religioso[]);
       setComunidades((comData || []) as Comunidade[]);
-      setObras((obrData || []) as Obra[]);
+      setObras(deduplicarObras((obrData || []) as Obra[]));
       setDesignacoes((desigData || []) as Designacao[]);
 
       // Carregar catálogo de funções

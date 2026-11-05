@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { deduplicarObras } from '../utils/obrasUtils';
 import { 
   Loader2, CheckCircle2, ChevronRight, ChevronLeft, Building, 
   AlertCircle, FileText, ShieldCheck
@@ -204,7 +205,7 @@ export const InscricaoPublica: React.FC = () => {
         setEstadias(estList);
         setModulos((modulosData || []).map(m => ({ ...m, idmodulos: String(m.idmodulos) })) as Modulo[]);
         setLavanderias((lavanderiaData || []).map(l => ({ ...l, idlavanderia: String(l.idlavanderia) })) as Lavanderia[]);
-        setCasasAcolhida((obrasData || []) as CasaReferencia[]);
+        setCasasAcolhida(deduplicarObras((obrasData || []) as CasaReferencia[]));
 
         // Verificar pré-seleção vinda de URL (?casa=...)
         const urlParams = new URLSearchParams(window.location.search);

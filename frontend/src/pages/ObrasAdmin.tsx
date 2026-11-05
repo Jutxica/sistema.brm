@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
+import { deduplicarObras } from '../utils/obrasUtils';
 import { confirmAction, showToast } from '../hooks/useFeedback';
 import { 
   FileSpreadsheet, 
@@ -320,7 +321,7 @@ export const ObrasAdmin: React.FC = () => {
       };
     });
 
-    setItems(enriched); 
+    setItems(deduplicarObras(enriched)); 
     setLoading(false); 
   };
   

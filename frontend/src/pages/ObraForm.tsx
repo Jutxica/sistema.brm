@@ -320,7 +320,12 @@ export const ObraForm: React.FC = () => {
         }
       }
 
-      if (saveError) throw saveError;
+      if (saveError) {
+        if (saveError.code === '23505' || saveError.message?.toLowerCase().includes('duplicate') || saveError.message?.toLowerCase().includes('unique') || saveError.message?.toLowerCase().includes('uq_religiosos_obras')) {
+          throw new Error(`Já existe uma obra ou presença cadastrada com o nome "${form.nome.trim()}". Para evitar duplicatas, localize o registro existente e edite seus dados.`);
+        }
+        throw saveError;
+      }
 
       setSuccessMsg('Registro gravado com sucesso! Redirecionando...');
       setTimeout(() => {

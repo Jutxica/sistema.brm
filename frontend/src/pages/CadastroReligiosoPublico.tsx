@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatCep, lookupCep } from '../lib/cep';
 import { validateCpf } from '../lib/cpf';
 import { parseAddressString } from '../utils/addressParser';
+import { processarObrasReferencia } from '../utils/obrasUtils';
 import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../lib/religiosoNome';
 import type { LemaReligioso, FaseLema } from '../types/religioso';
 
@@ -441,6 +442,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   }, [step]);
   const [invalidFields, setInvalidFields] = useState<string[]>([]);
   const [obras, setObras] = useState<ObraReferencia[]>([]);
+  const [obraAliasMap, setObraAliasMap] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState<string | null>(null);
@@ -572,7 +574,9 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         religiosoId && (adminMode || memberMode || profileReligiosoId) ? supabase.from('religiosos').select('*').eq('id', religiosoId).maybeSingle() : Promise.resolve({ data: null }),
         supabase.from('religiosos_configuracoes').select('ativo,titulo,mensagem_abertura,mensagem_fechamento,mensagem_confirmacao,termos,exigir_documentos,instrucoes_documentos').limit(1).maybeSingle(),
       ]);
-      setObras((obrasData || []) as ObraReferencia[]);
+      const { obrasDeduplicadas, aliasMap } = processarObrasReferencia((obrasData || []) as ObraReferencia[]);
+      setObras(obrasDeduplicadas);
+      setObraAliasMap(aliasMap);
       if (configData) setPublicConfig({ ...defaultPublicConfig, ...configData });
       if (religiosoId && (adminMode || memberMode || profileReligiosoId) && !religiosoData) {
         setProfileUnavailable(true);
@@ -595,9 +599,14 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         setBase(previous => {
           const loadedBase = Object.fromEntries(Object.entries(religiosoData).filter(([key]) => key in previous).map(([key, value]) => [key, value == null ? '' : String(value)]));
           const autoNomeReligioso = atribuirNomeReligioso(loadedBase.grau, loadedBase.nome_civil);
+          const rawObraId = loadedBase.obra_atual_id;
+          const canonicalObraId = (rawObraId && aliasMap.get(rawObraId)) ||
+            (loadedBase.comunidade_atual_nome && aliasMap.get(loadedBase.comunidade_atual_nome.trim().toLowerCase())) ||
+            rawObraId || '';
           return {
             ...previous,
             ...loadedBase,
+            obra_atual_id: canonicalObraId,
             nome_religioso: autoNomeReligioso || loadedBase.nome_religioso || '',
             nome_elenco: autoNomeReligioso || loadedBase.nome_elenco || loadedBase.nome_civil || '',
             consentimento_dados: religiosoData.consentimento_dados ? 'true' : ''
@@ -2284,7 +2293,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                     <select
                       id="input-obra_atual_id"
                       className={inputClass}
-                      value={base.obra_atual_id || ''}
+                      value={(base.obra_atual_id && obraAliasMap.get(base.obra_atual_id)) || (base.comunidade_atual_nome && obraAliasMap.get(base.comunidade_atual_nome.trim().toLowerCase())) || base.obra_atual_id || ''}
                       onChange={event => {
                         const selectedObra = obras.find(obra => obra.id === event.target.value);
                         const rawAddr = selectedObra?.endereco || selectedObra?.logradouro || '';
