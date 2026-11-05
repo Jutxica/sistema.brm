@@ -11,7 +11,8 @@ import {
   ShieldCheck, 
   User, 
   Lock,
-  ArrowRight
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,6 +27,9 @@ interface PerfilData {
   foto_path: string;
   comunidade_atual_nome: string;
   obra_atual_nome: string;
+  etapa_formativa_atual?: string;
+  ano_configuracao?: string;
+  ano_referencia_etapa?: string;
   email_institucional: string;
   whatsapp: string;
   telefone_celular: string;
@@ -71,6 +75,9 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
     foto_path: '',
     comunidade_atual_nome: '',
     obra_atual_nome: '',
+    etapa_formativa_atual: '',
+    ano_configuracao: '',
+    ano_referencia_etapa: '2026',
     email_institucional: '',
     whatsapp: '',
     telefone_celular: ''
@@ -136,6 +143,9 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
           foto_path: profile?.foto_path || '',
           comunidade_atual_nome: formatarComunidadeReligiosa(profile?.comunidade_atual_nome || ''),
           obra_atual_nome: profile?.obra_atual_nome || '',
+          etapa_formativa_atual: profile?.etapa_formativa_atual || '',
+          ano_configuracao: profile?.ano_configuracao ? String(profile.ano_configuracao) : '',
+          ano_referencia_etapa: profile?.ano_referencia_etapa ? String(profile.ano_referencia_etapa) : '2026',
           email_institucional: profile?.email_institucional || authResult.user?.email || user.email || '',
           whatsapp: profile?.whatsapp || '',
           telefone_celular: profile?.telefone_celular || '',
@@ -270,6 +280,9 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
           data_nascimento: form.data_nascimento || null,
           comunidade_atual_nome: form.comunidade_atual_nome,
           obra_atual_nome: form.obra_atual_nome,
+          etapa_formativa_atual: (form.grau === 'Frater' || form.grau === 'Diácono') ? (form.etapa_formativa_atual || null) : null,
+          ano_configuracao: (form.grau === 'Frater' || form.grau === 'Diácono') && form.etapa_formativa_atual === 'Configuração (Teologia)' && form.ano_configuracao ? Number(form.ano_configuracao) : null,
+          ano_referencia_etapa: (form.grau === 'Frater' || form.grau === 'Diácono') ? (Number(form.ano_referencia_etapa) || new Date().getFullYear()) : null,
           email_institucional: form.email_institucional,
           whatsapp: form.whatsapp,
           telefone_celular: form.whatsapp,
@@ -304,6 +317,9 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
             data_nascimento: form.data_nascimento || null,
             comunidade_atual_nome: form.comunidade_atual_nome,
             obra_atual_nome: form.obra_atual_nome,
+            etapa_formativa_atual: (form.grau === 'Frater' || form.grau === 'Diácono') ? (form.etapa_formativa_atual || null) : null,
+            ano_configuracao: (form.grau === 'Frater' || form.grau === 'Diácono') && form.etapa_formativa_atual === 'Configuração (Teologia)' && form.ano_configuracao ? Number(form.ano_configuracao) : null,
+            ano_referencia_etapa: (form.grau === 'Frater' || form.grau === 'Diácono') ? (Number(form.ano_referencia_etapa) || new Date().getFullYear()) : null,
             telefone_celular: form.whatsapp,
             whatsapp: form.whatsapp,
           })
@@ -574,6 +590,73 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
               A Secretaria mantém esta informação no Elenco. Para solicitar uma correção, entre em contato com a Secretaria Provincial.
             </span>
           </div>
+
+          {/* Fase Atual de Formação (para Frater ou Diácono) */}
+          {(form.grau === 'Frater' || form.grau === 'Diácono') && (
+            <div className="rounded-xl border border-sky-200/80 bg-sky-50/50 p-4 dark:border-sky-900/50 dark:bg-sky-950/20">
+              <div className="flex items-center justify-between mb-3 border-b border-sky-100 pb-2.5 dark:border-sky-900/40">
+                <span className="text-[12px] font-semibold text-sky-900 dark:text-sky-200 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                  Fase Atual de Formação ({form.grau})
+                </span>
+                <span className="text-[10px] font-mono font-medium rounded-full bg-sky-100/80 px-2 py-0.5 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300">
+                  Ano Letivo {form.ano_referencia_etapa || new Date().getFullYear()}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Situação Formativa Atual *
+                  </label>
+                  <select
+                    value={form.etapa_formativa_atual || ''}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setForm(prev => ({
+                        ...prev,
+                        etapa_formativa_atual: val,
+                        ano_configuracao: val === 'Configuração (Teologia)' ? (prev.ano_configuracao || '1') : '',
+                        ano_referencia_etapa: prev.ano_referencia_etapa || String(new Date().getFullYear()),
+                      }));
+                    }}
+                    className={inputClass}
+                  >
+                    <option value="">Selecione a etapa formativa...</option>
+                    <option value="Configuração (Teologia)">Configuração (Teologia)</option>
+                    <option value="Tirocínio">Tirocínio</option>
+                  </select>
+                </div>
+
+                {form.etapa_formativa_atual === 'Configuração (Teologia)' && (
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      Ano de Configuração *
+                    </label>
+                    <select
+                      value={form.ano_configuracao || ''}
+                      onChange={e => setForm(prev => ({ ...prev, ano_configuracao: e.target.value }))}
+                      className={inputClass}
+                    >
+                      <option value="">Selecione o ano...</option>
+                      <option value="1">1º Ano de Teologia / Configuração</option>
+                      <option value="2">2º Ano de Teologia / Configuração</option>
+                      <option value="3">3º Ano de Teologia / Configuração</option>
+                      <option value="4">4º Ano de Teologia / Configuração</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <p className="mt-2.5 text-[11px] text-sky-800/80 dark:text-sky-300/80 leading-relaxed">
+                {form.etapa_formativa_atual === 'Configuração (Teologia)'
+                  ? 'Estudos teológicos (cursados na Comunidade do Conventinho SCJ em Taubaté ou em polos no exterior).'
+                  : form.etapa_formativa_atual === 'Tirocínio'
+                  ? 'Etapa prática pós-noviciado realizada em comunidades e obras da Província. Caso esteja cursando a Configuração (Teologia) fora do Brasil (ex.: Roma, Alemanha), selecione "Configuração (Teologia)".'
+                  : 'Mantenha atualizado o seu ano formativo na virada de cada ano letivo.'}
+              </p>
+            </div>
+          )}
 
           {/* Obra / Paróquia Atual */}
           <div>

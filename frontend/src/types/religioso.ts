@@ -47,6 +47,9 @@ export interface Religioso {
   lemas?: LemaReligioso[];
   lema_destacado?: string | null;
   lema_destacado_fase?: string | null;
+  etapa_formativa_atual?: string | null;
+  ano_configuracao?: number | string | null;
+  ano_referencia_etapa?: number | string | null;
 }
 
 export interface RawReligioso {
@@ -58,6 +61,9 @@ export interface RawReligioso {
   comunidade_atual_nome: string | null;
   obra_atual_id: string | null;
   obra_atual_nome?: string | null;
+  etapa_formativa_atual?: string | null;
+  ano_configuracao?: number | string | null;
+  ano_referencia_etapa?: number | string | null;
   status: string;
   status_cadastro: string;
   estado_nascimento: string | null;
@@ -107,6 +113,9 @@ export interface ReligiosoPortalData {
   lemas?: LemaReligioso[];
   lema_destacado?: string | null;
   lema_destacado_fase?: string | null;
+  etapa_formativa_atual?: string | null;
+  ano_configuracao?: number | string | null;
+  ano_referencia_etapa?: number | string | null;
 }
 
 export interface ReligiosoDossieData {
@@ -129,6 +138,9 @@ export interface ReligiosoDossieData {
   comunidade_atual_nome?: string | null;
   obra_atual_id?: string | null;
   obra_atual_nome?: string | null;
+  etapa_formativa_atual?: string | null;
+  ano_configuracao?: number | string | null;
+  ano_referencia_etapa?: number | string | null;
   lemas?: LemaReligioso[];
   lema_destacado?: string | null;
   lema_destacado_fase?: string | null;

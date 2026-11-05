@@ -259,13 +259,16 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         const anoIniNum = pIni && !Number.isNaN(Number(pIni)) ? Number(pIni) : anoAtual;
         const anoNum = anoIniNum;
 
-        const isConventinhoAtivo = isFraterOuDiacono && (isConfiguracao || isConventinho) && (!pFim || Number(pFim) >= anoAtual);
+        const isConfiguracaoAtiva = isFraterOuDiacono && (
+          data.etapa_formativa_atual === 'Configuração (Teologia)' ||
+          ((isConfiguracao || isConventinho) && (!pFim || Number(pFim) >= anoAtual))
+        );
 
         let periodoStr: string;
         let anoTeologia: number | undefined;
 
-        if (isConventinhoAtivo) {
-          anoTeologia = Math.max(1, Math.min(4, anoAtual - anoIniNum + 1));
+        if (isConfiguracaoAtiva) {
+          anoTeologia = data.ano_configuracao ? Number(data.ano_configuracao) : Math.max(1, Math.min(4, anoAtual - anoIniNum + 1));
           periodoStr = `${anoIniNum} - Fase Atual (${anoTeologia}º Ano)`;
         } else if (pIni && pFim) {
           periodoStr = pIni === pFim ? pIni : `${pIni} - ${pFim}`;
@@ -279,9 +282,9 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
           trabalhos.push({
             periodo: periodoStr,
             comunidade: f.instituicao || f.local || 'Comunidade do Tirocínio',
-            obra: f.instituicao || 'Tirocínio Pastoral',
+            obra: f.instituicao || 'Tirocínio',
             faseGrau: 'Tirocínio',
-            funcao: 'Tirocinante / Atuação Pastoral',
+            funcao: 'Tirocinante',
             local: [f.cidade, f.local].filter(Boolean).join(' • ') || 'Província BRM',
             observacoes: [f.formador ? `Superior da Comunidade: ${f.formador}` : (f.superior ? `Superior da Comunidade: ${f.superior}` : null), f.observacoes].filter(Boolean).join(' • ') || undefined,
             ordenacaoAno: anoNum
@@ -295,7 +298,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
             local: f.local || undefined,
             formador: f.formador || undefined,
             observacoes: f.observacoes || undefined,
-            isFaseAtual: isConventinhoAtivo,
+            isFaseAtual: isConfiguracaoAtiva,
             anoTeologia: anoTeologia,
           });
         }
@@ -349,8 +352,8 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
           periodo: 'Atual',
           comunidade: formatarComunidadeReligiosa(data.comunidade_atual_nome) || 'Comunidade Provincial',
           obra: data.obra_atual_nome || 'Residência Canônica',
-          faseGrau: data.grau || 'Confrade',
-          funcao: data.designacoes?.[0]?.funcao || 'Membro Ativo',
+          faseGrau: data.etapa_formativa_atual === 'Tirocínio' ? 'Tirocínio' : (data.grau || 'Confrade'),
+          funcao: data.etapa_formativa_atual === 'Tirocínio' ? 'Tirocinante' : (data.designacoes?.[0]?.funcao || 'Membro Ativo'),
           local: 'Província BRM',
           ordenacaoAno: 9999
         });

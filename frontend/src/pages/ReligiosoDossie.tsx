@@ -1756,7 +1756,17 @@ export const ReligiosoDossie: React.FC = () => {
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Arquivo Provincial</p>
                   <h1 className="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">{atribuirNomeReligioso(religioso?.grau, religioso?.nome_civil) || religioso.nome_religioso || religioso.nome_civil}</h1>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">{religioso.nome_civil} • {religioso.grau || 'Grau pendente'}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {religioso.nome_civil} • {religioso.grau || 'Grau pendente'}
+                    {religioso.etapa_formativa_atual && (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800 dark:bg-sky-950/60 dark:text-sky-300">
+                        {religioso.etapa_formativa_atual === 'Configuração (Teologia)'
+                          ? `${religioso.ano_configuracao ? religioso.ano_configuracao + 'º Ano • ' : ''}Configuração`
+                          : 'Tirocínio'}
+                        {religioso.ano_referencia_etapa ? ` (${religioso.ano_referencia_etapa})` : ''}
+                      </span>
+                    )}
+                  </p>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <p className="inline-flex border border-[#226380]/20 bg-[#226380]/5 px-2.5 py-1 font-mono text-[11px] font-semibold tracking-wide text-[#226380] dark:border-[#A3C3C7]/20 dark:bg-[#A3C3C7]/10 dark:text-[#A3C3C7]">
                       Cadastro {formatRegistrationNumber(religioso.numero_cadastro, religioso.created_at)}
@@ -1851,6 +1861,16 @@ export const ReligiosoDossie: React.FC = () => {
                   <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">CPF</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{religioso.cpf || '—'}</dd></div>
                   <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">E-mail institucional</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{religioso.email_institucional || '—'}</dd></div>
                   <div><dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Celular</dt><dd className="mt-1 text-sm text-slate-900 dark:text-white">{religioso.telefone_celular || '—'}</dd></div>
+                  {religioso.etapa_formativa_atual && (
+                    <div className="sm:col-span-2 border-t border-slate-100 pt-2 dark:border-white/5">
+                      <dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Etapa Formativa Atual ({religioso.ano_referencia_etapa || 2026})</dt>
+                      <dd className="mt-1 text-sm font-medium text-sky-800 dark:text-sky-300">
+                        {religioso.etapa_formativa_atual === 'Configuração (Teologia)'
+                          ? `${religioso.ano_configuracao ? religioso.ano_configuracao + 'º Ano • ' : ''}Configuração (Teologia)`
+                          : 'Tirocínio'}
+                      </dd>
+                    </div>
+                  )}
                 </dl>
               </section>
 
