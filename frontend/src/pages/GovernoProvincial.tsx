@@ -112,7 +112,9 @@ export const GovernoProvincial: React.FC = () => {
           nome_elenco,
           cpf,
           data_nascimento,
+          comunidade_atual_id,
           comunidade_atual_nome,
+          obra_atual_id,
           obra_atual_nome,
           email_institucional,
           email_pessoal,
@@ -351,10 +353,12 @@ export const GovernoProvincial: React.FC = () => {
       if (sincronizarElenco && statusMandato === 'Vigente') {
         try {
           const anoVigencia = dataPosse ? new Date(dataPosse).getFullYear() : new Date().getFullYear();
+          const comId = religiosoSelecionado?.comunidade_atual_id || null;
           await supabase.from('religiosos_designacoes').insert({
             religioso_id: religiosoSelecionadoId,
+            comunidade_id: comId,
             funcao: cargoSelecionado,
-            tipo_vinculo: 'governo',
+            tipo_vinculo: 'funcao',
             vigencia_inicio: dataPosse || new Date().toISOString().slice(0, 10),
             ano_referencia: anoVigencia,
             numero_decreto: numeroAtoDecreto.trim() || null,

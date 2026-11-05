@@ -50,15 +50,12 @@ const formatDate = (value?: string | null) => {
   if (!str) return '—';
   if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return str;
 
-  // Formato de data YYYY-MM-DD (com ou sem sufixos de tempo UTC)
+  // Formato de data YYYY-MM-DD (com ou sem sufixos de tempo UTC / ISO)
+  // Preserva dia/mês/ano exatos para que a data de nascimento e ordenações nunca sofram recuo de 1 dia pelo fuso UTC-3
   const match = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (match) {
     const [, ano, mes, dia] = match;
-    // Se for data pura (ex: "1992-05-12") ou meia-noite UTC (ex: "1992-05-12T00:00:00.000Z"),
-    // preserva o dia civil exato para evitar que fusos como UTC-3 no Brasil retrocedam 1 dia
-    if (!str.includes('T') || str.includes('T00:00:00')) {
-      return `${dia}/${mes}/${ano}`;
-    }
+    return `${dia}/${mes}/${ano}`;
   }
 
   // Fallback para timestamps com horários específicos
@@ -590,9 +587,23 @@ export const ReligiosoDossie: React.FC = () => {
       : '—'
   );
 
+  const { etapasFormacaoInicial, etapasTirocinio } = useMemo(() => {
+    const iniciais: any[] = [];
+    const tirocinio: any[] = [];
+    (canonicalData.formacao || []).forEach((f: any) => {
+      const etapaNome = f.etapa || '';
+      if (etapaNome.toLowerCase().includes('tirocín') || etapaNome.toLowerCase().includes('tirocin')) {
+        tirocinio.push(f);
+      } else {
+        iniciais.push(f);
+      }
+    });
+    return { etapasFormacaoInicial: iniciais, etapasTirocinio: tirocinio };
+  }, [canonicalData.formacao]);
+
   const anoIngresso = canonicalData.formacao[0]?.data_ingresso
-    ? new Date(canonicalData.formacao[0].data_ingresso).getFullYear()
-    : (religioso?.created_at ? new Date(religioso.created_at).getFullYear() : '2026');
+    ? extrairAno(canonicalData.formacao[0].data_ingresso)
+    : (religioso?.created_at ? extrairAno(religioso.created_at) : '2026');
 
   const docCategories = [
     { label: 'RG e CPF', match: ['rg', 'cpf', 'identidade', 'cnh'] },
@@ -632,23 +643,47 @@ export const ReligiosoDossie: React.FC = () => {
         ordenacaoAno?: number;
       }> = [];
 
-      // A. Inclui etapas de formação religiosa (Postulantado, Noviciado, Filosofia, Teologia, Tirocínio, etc.)
+      // A. Separa etapas de Formação Inicial (cards) vs Trajetória de Trabalhos (a partir do Tirocínio)
+      const etapasIniciaisParaPdf: Array<{
+        etapa: string;
+        periodo?: string;
+        instituicao?: string;
+        cidade?: string;
+        local?: string;
+        formador?: string;
+        observacoes?: string;
+      }> = [];
+
       (canonicalData.formacao || []).forEach(f => {
         const pIni = f.data_ingresso ? extrairAno(f.data_ingresso) : '';
         const pFim = f.data_conclusao ? extrairAno(f.data_conclusao) : '';
         const periodoStr = pIni && pFim ? (pIni === pFim ? pIni : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Concluído` : 'Período Formativo');
         const anoNum = pIni && !Number.isNaN(Number(pIni)) ? Number(pIni) : 2000;
+        const etapaNome = f.etapa || 'Formação Inicial';
+        const isTirocinio = etapaNome.toLowerCase().includes('tirocín') || etapaNome.toLowerCase().includes('tirocin');
 
-        trabalhos.push({
-          periodo: periodoStr,
-          comunidade: f.instituicao || f.local || 'Casa de Formação Dehoniana',
-          obra: f.instituicao || 'Seminário / Casa Formativa',
-          faseGrau: f.etapa || 'Formação Inicial',
-          funcao: f.etapa ? `${f.etapa} • Religioso Estudante` : 'Estudante SCJ',
-          local: [f.cidade, f.local].filter(Boolean).join(' • ') || 'Província BRM',
-          observacoes: [f.formador ? `Formador: ${f.formador}` : null, f.observacoes].filter(Boolean).join(' • ') || undefined,
-          ordenacaoAno: anoNum
-        });
+        if (isTirocinio) {
+          trabalhos.push({
+            periodo: periodoStr,
+            comunidade: f.instituicao || f.local || 'Comunidade do Tirocínio',
+            obra: f.instituicao || 'Tirocínio Pastoral',
+            faseGrau: 'Tirocínio',
+            funcao: 'Tirocinante / Atuação Pastoral',
+            local: [f.cidade, f.local].filter(Boolean).join(' • ') || 'Província BRM',
+            observacoes: [f.formador ? `Formador: ${f.formador}` : null, f.observacoes].filter(Boolean).join(' • ') || undefined,
+            ordenacaoAno: anoNum
+          });
+        } else {
+          etapasIniciaisParaPdf.push({
+            etapa: etapaNome,
+            periodo: periodoStr,
+            instituicao: f.instituicao || f.local || 'Casa de Formação SCJ',
+            cidade: f.cidade || f.local || undefined,
+            local: f.local || undefined,
+            formador: f.formador || undefined,
+            observacoes: f.observacoes || undefined
+          });
+        }
       });
 
       // B. Inclui histórico de comunidades
@@ -824,6 +859,7 @@ export const ReligiosoDossie: React.FC = () => {
         localPresbiterato: [ordenacaoPresbiteral?.cidade, ordenacaoPresbiteral?.local].filter(Boolean).join(' - ') || undefined,
         bispoOrdenante: ordenacaoPresbiteral?.bispo_ordenante || ordenacaoDiaconal?.bispo_ordenante || undefined,
 
+        etapasFormacaoInicial: etapasIniciaisParaPdf,
         historicoTrabalhos: trabalhos,
         missoesServicos: missoes,
         formacoesAcademicas: formacoes,
@@ -1247,13 +1283,44 @@ export const ReligiosoDossie: React.FC = () => {
           </div>
         </div>
 
-        {/* Bloco 5: Trajetória de Comunidades e Trabalhos */}
+        {/* Bloco 5: Formação Inicial (Trajetória Formativa Vocacional em Cartões) */}
+        {etapasFormacaoInicial.length > 0 && (
+          <div className="mb-3">
+            <p className="text-[7pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-800 border-b border-slate-300 pb-0.5 mb-1.5">
+              5. Formação Inicial (Trajetória Formativa Vocacional)
+            </p>
+            <div className={`grid grid-cols-${Math.min(etapasFormacaoInicial.length, 5)} gap-2 text-center pt-1`}>
+              {etapasFormacaoInicial.map((f: any, idx: number) => {
+                const pIni = f.data_ingresso ? extrairAno(f.data_ingresso) : '';
+                const pFim = f.data_conclusao ? extrairAno(f.data_conclusao) : '';
+                const periodoStr = pIni && pFim ? (pIni === pFim ? pIni : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Concluído` : 'Formativo');
+                return (
+                  <div key={`form-card-${idx}`} className="border border-slate-300 p-1.5 bg-white shadow-xs flex flex-col justify-between">
+                    <div>
+                      <span className="inline-block px-1 py-0.5 font-mono text-[6pt] font-bold uppercase bg-sky-50 text-sky-800 border border-sky-200 rounded mb-0.5">
+                        {f.etapa || 'Etapa'}
+                      </span>
+                      <p className="text-[7.5pt] font-bold text-slate-900 mt-0.5">{periodoStr}</p>
+                      <p className="text-[6.5pt] font-semibold text-slate-800 line-clamp-1">{f.instituicao || f.local || 'Casa Formativa'}</p>
+                    </div>
+                    <div className="mt-1 border-t border-slate-100 pt-0.5 text-[6pt] text-slate-500">
+                      <p className="truncate">{f.cidade || '—'}</p>
+                      {f.formador && <p className="italic text-slate-600 truncate">Formador: {f.formador}</p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Bloco 6: Trajetória de Comunidades e Trabalhos */}
         <div className="mb-3">
           <p className="text-[7pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-800 border-b border-slate-300 pb-0.5 mb-1.5">
-            5. Trajetória de Comunidades e Trabalhos (Onde Trabalhou • Comunidades, Obras, Etapas & Funções)
+            6. Trajetória de Comunidades e Trabalhos (Obras, Comunidades e Ofícios a partir do Tirocínio)
           </p>
           <div className="space-y-1 text-[7.5pt]">
-            {(canonicalData.formacao && canonicalData.formacao.length > 0) || (canonicalData.historicoComunidades && canonicalData.historicoComunidades.length > 0) || (canonicalData.designacoes && canonicalData.designacoes.length > 0) ? (
+            {(etapasTirocinio.length > 0) || (canonicalData.historicoComunidades && canonicalData.historicoComunidades.length > 0) || (canonicalData.designacoes && canonicalData.designacoes.length > 0) ? (
               <table className="w-full border-collapse text-[7.5pt]">
                 <thead>
                   <tr className="border-b border-slate-300 text-slate-600 font-mono text-[6.5pt] uppercase">
@@ -1266,21 +1333,21 @@ export const ReligiosoDossie: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {canonicalData.formacao.map((f: any, idx: number) => {
+                  {etapasTirocinio.map((f: any, idx: number) => {
                     const pIni = f.data_ingresso ? extrairAno(f.data_ingresso) : '';
                     const pFim = f.data_conclusao ? extrairAno(f.data_conclusao) : '';
                     const periodoStr = pIni && pFim ? (pIni === pFim ? pIni : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Concluído` : 'Formativo');
                     return (
-                      <tr key={`form-${idx}`} className="py-0.5">
+                      <tr key={`tiroc-${idx}`} className="py-0.5">
                         <td className="font-mono text-slate-500 py-0.5">{periodoStr}</td>
-                        <td className="font-semibold text-slate-900 py-0.5">{f.instituicao || f.local || 'Casa Formativa'}</td>
-                        <td className="text-slate-700 py-0.5">{f.instituicao || 'Seminário / Formação'}</td>
+                        <td className="font-semibold text-slate-900 py-0.5">{f.instituicao || f.local || 'Comunidade do Tirocínio'}</td>
+                        <td className="text-slate-700 py-0.5">{f.instituicao || 'Tirocínio Pastoral'}</td>
                         <td className="py-0.5">
                           <span className="font-mono text-[6.5pt] bg-sky-50 text-sky-800 border border-sky-200 px-1 py-0.2 rounded">
-                            {f.etapa || 'Formação Inicial'}
+                            Tirocínio
                           </span>
                         </td>
-                        <td className="text-[#226380] font-medium py-0.5">{f.etapa ? `${f.etapa} • Estudante` : 'Estudante SCJ'}</td>
+                        <td className="text-[#226380] font-medium py-0.5">Tirocinante / Pastoral</td>
                         <td className="text-slate-600 py-0.5">{[f.cidade, f.formador ? `Formador: ${f.formador}` : null].filter(Boolean).join(' • ') || 'Província BRM'}</td>
                       </tr>
                     );
@@ -1332,9 +1399,8 @@ export const ReligiosoDossie: React.FC = () => {
                 </tbody>
               </table>
             ) : (
-              <p className="text-slate-500 italic py-0.5">
-                Comunidade atual designada: <strong>{formatarComunidadeReligiosa(religioso?.comunidade_atual_nome) || 'Sede Provincial BRM'}</strong>
-                {religioso?.obra_atual_nome ? <> · Obra/Residência: <strong>{religioso.obra_atual_nome}</strong></> : null}
+              <p className="text-slate-500 italic py-2 text-center text-[7pt]">
+                Religioso em etapa formativa inicial. As designações de comunidades e trabalhos têm início a partir do Tirocínio.
               </p>
             )}
           </div>

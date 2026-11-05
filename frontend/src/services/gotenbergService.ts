@@ -31,13 +31,23 @@ export interface OpcoesDocumentoGotenberg {
   omitirSeloPadrao?: boolean;
 }
 
+export interface EtapaFormacaoInicialFicha {
+  etapa: string; // Seminário Menor, Propedêutico, Discipulado, Postulantado, Noviciado, Configuração
+  periodo?: string;
+  instituicao?: string;
+  cidade?: string;
+  local?: string;
+  formador?: string;
+  observacoes?: string;
+}
+
 export interface TrabalhoTrajetoria {
   periodo: string; // Ex: '2018 - 2020' ou '2026 - Atual'
   instituicao?: string; // Compatibilidade legada
   comunidade?: string; // Comunidade Religiosa
   obra?: string; // Obra ou Paróquia onde atua/atuou
-  faseGrau?: string; // Fase de formação ou grau: Postulante, Noviço, Frater, Padre, etc.
-  funcao: string; // Ofício canônico exercido: Estudante, Vigário, Pároco, etc.
+  faseGrau?: string; // Fase de formação ou grau: Tirocinante, Frater, Padre, etc.
+  funcao: string; // Ofício canônico exercido: Tirocínio, Vigário, Pároco, etc.
   local?: string; // Cidade / Estado
   observacoes?: string; // Decreto, provisão canônica ou notas
 }
@@ -131,7 +141,10 @@ export interface DadosFichaReligioso {
   bispoOrdenante?: string;
   ministeriosInstituidos?: Array<{ tipo: string; data?: string; local?: string }>;
 
-  // Onde já trabalhou, com o que trabalhou (Trajetória & Obras)
+  // Etapas formativas iniciais (Seminário Menor, Propedêutico, Discipulado, Postulantado, Noviciado, Configuração)
+  etapasFormacaoInicial?: EtapaFormacaoInicialFicha[];
+
+  // Onde já trabalhou, com o que trabalhou (Trajetória & Obras a partir do Tirocínio)
   historicoTrabalhos: TrabalhoTrajetoria[];
   missoesServicos?: MissaoServicoTrajetoria[];
   formacoesAcademicas?: FormacaoAcademicaFicha[];
@@ -915,8 +928,8 @@ export const gotenbergService = {
       }).join('')
       : `
         <tr>
-          <td colspan="6" style="text-align: center; font-style: italic; color: #64748b; padding: 10px; font-size: 8pt;">
-            Nenhum histórico anterior registrado nos livros canônicos da Província até o momento.
+          <td colspan="6" style="text-align: center; font-style: italic; color: #64748b; padding: 12px; font-size: 8pt;">
+            Religioso em etapa formativa inicial. As designações de comunidades e trabalhos têm início a partir do Tirocínio pastoral.
           </td>
         </tr>
       `;
@@ -949,6 +962,44 @@ export const gotenbergService = {
         </tr>
       `;
 
+    // Monta cartões de Formação Inicial (Trajetória Formativa Vocacional)
+    const etapasIniciais = dados.etapasFormacaoInicial && dados.etapasFormacaoInicial.length > 0
+      ? dados.etapasFormacaoInicial
+      : [];
+
+    const numColunasFormacao = Math.max(1, Math.min(etapasIniciais.length, 5));
+
+    const htmlFormacaoInicial = etapasIniciais.length > 0
+      ? `
+        <div style="margin-bottom: 8px;">
+          <p style="font-family: monospace; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 5px;">
+            04. Formação Inicial (Trajetória Formativa Vocacional)
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(${numColunasFormacao}, 1fr); gap: 5px; text-align: center;">
+            ${etapasIniciais.map(e => `
+              <div style="border: 1pt solid #cbd5e1; padding: 4.5px 5px; background: #fff; border-radius: 3px; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                  <span style="display: inline-block; padding: 1px 4px; font-family: monospace; font-size: 6.2pt; font-weight: bold; text-transform: uppercase; color: #0369a1; background: #e0f2fe; border-radius: 2px; margin-bottom: 2px;">
+                    ${e.etapa}
+                  </span>
+                  <div style="font-family: monospace; font-size: 7.2pt; font-weight: bold; color: #1e293b; margin: 1px 0;">
+                    ${e.periodo || '—'}
+                  </div>
+                  <div style="font-size: 7pt; font-weight: 600; color: #113240; line-height: 1.15; margin-bottom: 1px;">
+                    ${e.instituicao || e.local || '—'}
+                  </div>
+                </div>
+                <div style="margin-top: 3px; border-top: 0.5pt dashed #cbd5e1; padding-top: 2px;">
+                  <div style="font-size: 6.2pt; color: #64748b;">${e.cidade || '—'}</div>
+                  ${e.formador ? `<div style="font-size: 6pt; color: #475569; font-style: italic; margin-top: 1px;">Formador: ${e.formador}</div>` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `
+      : '';
+
     // Monta lemas vocacionais
     const lemasList = dados.lemasVocacionais && dados.lemasVocacionais.length > 0
       ? dados.lemasVocacionais
@@ -958,7 +1009,7 @@ export const gotenbergService = {
       ? `
         <div style="margin-top: 8px; margin-bottom: 8px;">
           <p style="font-family: monospace; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 4px;">
-            05. Lemas Vocacionais & Inspiração Espiritual
+            06. Lemas Vocacionais & Inspiração Espiritual
           </p>
           <div style="display: grid; grid-template-columns: ${lemasList.length > 1 ? 'repeat(2, 1fr)' : '1fr'}; gap: 5px;">
             ${lemasList.map(l => `
@@ -1170,10 +1221,13 @@ export const gotenbergService = {
         </div>
       </div>
 
-      <!-- 04. Trajetória Canônica & Sacramentos -->
+      <!-- 04. Formação Inicial (Trajetória Formativa Vocacional em Cartões) -->
+      ${htmlFormacaoInicial}
+
+      <!-- 05. Trajetória Canônica & Sacramentos -->
       <div style="margin-bottom: 8px;">
         <p style="font-family: monospace; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 5px;">
-          04. Trajetória Sacramental & Consagração Canônica
+          05. Trajetória Sacramental & Consagração Canônica
         </p>
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center;">
           <div style="border: 1pt solid #cbd5e1; padding: 5px 6px; background: #fff; border-radius: 3px;">
@@ -1199,7 +1253,7 @@ export const gotenbergService = {
         </div>
       </div>
 
-      <!-- 05. Lemas Vocacionais -->
+      <!-- 06. Lemas Vocacionais -->
       ${htmlLemas}
 
       <!-- ========================================================================= -->
@@ -1223,10 +1277,10 @@ export const gotenbergService = {
         </div>
       </div>
 
-      <!-- 06. Trajetória de Comunidades e Trabalhos -->
+      <!-- 07. Trajetória de Comunidades e Trabalhos -->
       <div style="margin-bottom: 12px;">
         <p style="font-family: monospace; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 5px;">
-          06. Trajetória de Comunidades e Trabalhos (Onde Trabalhou • Comunidades, Obras, Etapas & Funções)
+          07. Trajetória de Comunidades e Trabalhos (Obras, Comunidades e Ofícios a partir do Tirocínio)
         </p>
         <table style="width: 100%; border-collapse: collapse; margin-top: 3px;">
           <thead>
@@ -1245,11 +1299,11 @@ export const gotenbergService = {
         </table>
       </div>
 
-      <!-- 07. Formação Acadêmica & Idiomas -->
+      <!-- 08. Formação Acadêmica & Idiomas -->
       <div style="margin-bottom: 10px; display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
         <div>
           <p style="font-family: monospace; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 4px;">
-            07. Formação Acadêmica & Graus Obtidos
+            08. Formação Acadêmica & Graus Obtidos
           </p>
           <div style="font-size: 8pt;">
             ${listaFormacoes}
@@ -1267,10 +1321,10 @@ export const gotenbergService = {
 
       ${linhasMissoes}
 
-      <!-- 08. Documentação Cadastrada & Arquivo Digital Provincial -->
+      <!-- 09. Documentação Cadastrada & Arquivo Digital Provincial -->
       <div style="margin-bottom: 14px;">
         <p style="font-family: monospace; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: bold; color: #113240; border-bottom: 1px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 4px;">
-          08. Documentação Cadastrada & Arquivo Digital Provincial
+          09. Documentação Cadastrada & Arquivo Digital Provincial
         </p>
         <table style="width: 100%; border-collapse: collapse; margin-top: 3px;">
           <thead>
@@ -1287,7 +1341,7 @@ export const gotenbergService = {
         </table>
       </div>
 
-      <!-- 09. Chancelaria Provincial, Assinaturas Canônicas & Fé Pública Notarial -->
+      <!-- 10. Chancelaria Provincial, Assinaturas Canônicas & Fé Pública Notarial -->
       <div style="margin-top: 14px; page-break-inside: avoid;">
         <div style="display: flex; justify-content: space-around; text-align: center; font-size: 8.5pt; margin-bottom: 12px;">
           <div style="width: 42%; border-top: 1px solid #113240; padding-top: 4px;">

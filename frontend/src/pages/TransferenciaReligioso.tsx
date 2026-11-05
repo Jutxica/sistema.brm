@@ -248,7 +248,9 @@ export const TransferenciaReligioso: React.FC = () => {
 
     const comNome = formatarComunidadeReligiosa(novaComunidade?.nome) || formatarComunidadeReligiosa(religiosoSelecionado?.comunidade_atual_nome) || 'Província BRM';
     const obrNome = nomeNovaObraCalculada || comNome;
-    const finalObraId = usarObraManual ? null : novaObraId || null;
+    const finalObraId = usarObraManual ? null : (novaObraId || null);
+    const dbComunidadeId = effectiveNovaComunidadeId || null;
+    const dbTipoVinculo = tipoVinculo === 'formacao' ? 'funcao' : tipoVinculo;
 
     setSalvando(true);
 
@@ -258,11 +260,11 @@ export const TransferenciaReligioso: React.FC = () => {
       try {
         const { data: rpcId, error: rpcErr } = await supabase.rpc('registrar_transferencia_canonica', {
           p_religioso_id: selectedReligiosoId,
-          p_comunidade_id: effectiveNovaComunidadeId || null,
+          p_comunidade_id: dbComunidadeId,
           p_comunidade_nome: comNome,
           p_obra_id: finalObraId,
           p_obra_nome: obrNome,
-          p_tipo_vinculo: tipoVinculo,
+          p_tipo_vinculo: dbTipoVinculo,
           p_funcao: funcaoSelecionada,
           p_vigencia_inicio: dataInicio,
           p_numero_decreto: numeroDecreto.trim() || null,
@@ -285,23 +287,31 @@ export const TransferenciaReligioso: React.FC = () => {
 
         // Encerramento das designações anteriores
         if (encerrarAnteriores) {
-          await supabase
-            .from('religiosos_designacoes')
-            .update({ vigencia_fim: dataInicio })
-            .eq('religioso_id', selectedReligiosoId)
-            .or(`vigencia_fim.is.null,vigencia_fim.gt.${dataInicio}`);
+          try {
+            await supabase
+              .from('religiosos_designacoes')
+              .update({ vigencia_fim: dataInicio })
+              .eq('religioso_id', selectedReligiosoId)
+              .or(`vigencia_fim.is.null,vigencia_fim.gt.${dataInicio}`);
+          } catch (e) {
+            console.warn('Aviso ao encerrar designações anteriores:', e);
+          }
 
-          await supabase
-            .from('religiosos_historico_comunidades')
-            .update({ periodo_fim: dataInicio })
-            .eq('religioso_id', selectedReligiosoId)
-            .or('periodo_fim.is.null,periodo_fim.eq.Atual');
+          try {
+            await supabase
+              .from('religiosos_historico_comunidades')
+              .update({ periodo_fim: dataInicio })
+              .eq('religioso_id', selectedReligiosoId)
+              .or('periodo_fim.is.null,periodo_fim.eq.Atual');
+          } catch (e) {
+            console.warn('Aviso ao atualizar histórico de comunidades:', e);
+          }
         }
 
         // Inserir nova designação com tolerância resiliente multi-estágio contra qualquer check constraint
         const desigBase: Record<string, any> = {
           religioso_id: selectedReligiosoId,
-          tipo_vinculo: tipoVinculo,
+          tipo_vinculo: dbTipoVinculo,
           funcao: funcaoSelecionada,
           vigencia_inicio: dataInicio,
           ano_referencia: anoVigencia,
@@ -313,19 +323,21 @@ export const TransferenciaReligioso: React.FC = () => {
         let desigSalva = false;
 
         // Estágio 1: tenta ambos comunidade_id e obra_id
-        if (effectiveNovaComunidadeId && finalObraId) {
+        if (dbComunidadeId && finalObraId) {
           const { error: err1 } = await supabase
             .from('religiosos_designacoes')
-            .insert({ ...desigBase, comunidade_id: effectiveNovaComunidadeId, obra_id: finalObraId });
+            .insert({ ...desigBase, comunidade_id: dbComunidadeId, obra_id: finalObraId });
           if (!err1) desigSalva = true;
+          else console.warn('Tentativa 1 com comunidade e obra retornou restrição:', err1.message);
         }
 
-        // Estágio 2: se falhou ou não tinha obra_id, tenta com comunidade_id apenas
-        if (!desigSalva && effectiveNovaComunidadeId) {
+        // Estágio 2: se falhou ou não tinha obra_id, tenta com comunidade_id apenas (respeitando restrição legada XOR)
+        if (!desigSalva && dbComunidadeId) {
           const { error: err2 } = await supabase
             .from('religiosos_designacoes')
-            .insert({ ...desigBase, comunidade_id: effectiveNovaComunidadeId, obra_id: null });
+            .insert({ ...desigBase, comunidade_id: dbComunidadeId, obra_id: null });
           if (!err2) desigSalva = true;
+          else console.warn('Tentativa 2 com comunidade retornou restrição:', err2.message);
         }
 
         // Estágio 3: se ainda não salvou, tenta com obra_id apenas
@@ -334,11 +346,12 @@ export const TransferenciaReligioso: React.FC = () => {
             .from('religiosos_designacoes')
             .insert({ ...desigBase, comunidade_id: null, obra_id: finalObraId });
           if (!err3) desigSalva = true;
+          else console.warn('Tentativa 3 com obra retornou restrição:', err3.message);
         }
 
         // Estágio 4: se ambos eram nulos, tenta com uma comunidade padrão
         if (!desigSalva) {
-          const fallbackComId = effectiveNovaComunidadeId || religiosoSelecionado?.comunidade_atual_id || comunidades[0]?.id;
+          const fallbackComId = dbComunidadeId || religiosoSelecionado?.comunidade_atual_id || comunidades[0]?.id;
           if (fallbackComId) {
             const { error: err4 } = await supabase
               .from('religiosos_designacoes')

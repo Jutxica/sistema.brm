@@ -23,7 +23,9 @@ export interface ReligiosoFichaGov {
   grau: string;
   cpf?: string | null;
   data_nascimento?: string | null;
+  comunidade_atual_id?: string | null;
   comunidade_atual_nome?: string | null;
+  obra_atual_id?: string | null;
   obra_atual_nome?: string | null;
   email_institucional?: string | null;
   email_pessoal?: string | null;

@@ -321,33 +321,52 @@ export const GotenbergConfigCard: React.FC = () => {
               { categoria: 'Atestado de Votos Perpétuos', nomeArquivo: 'votos_perpetuos_corupa.pdf', data: '15/01/2026', status: 'Arquivo Canônico' },
               { categoria: 'Certidão de Ordenação Presbiteral', nomeArquivo: 'ordenacao_presbiteral_joinville.pdf', data: '15/01/2026', status: 'Livro de Ordens' }
             ],
+            etapasFormacaoInicial: [
+              {
+                etapa: 'Propedêutico',
+                periodo: '2017',
+                instituicao: 'Seminário São José',
+                cidade: 'Rio Negrinho / SC',
+                formador: 'P. Zaqueu Suczeck, SCJ'
+              },
+              {
+                etapa: 'Discipulado',
+                periodo: '2018 - 2020',
+                instituicao: 'Convento Sagrado Coração de Jesus',
+                cidade: 'Brusque / SC',
+                formador: 'P. Marilton Nuss, SCJ'
+              },
+              {
+                etapa: 'Postulantado',
+                periodo: '2021',
+                instituicao: 'Postulantado Coração de Jesus',
+                cidade: 'Barretos / SP',
+                formador: 'P. Nelber Rodrigues, SCJ'
+              },
+              {
+                etapa: 'Noviciado',
+                periodo: '2022 - 2023',
+                instituicao: 'Noviciado Nossa Senhora de Fátima',
+                cidade: 'Jaraguá do Sul / SC',
+                formador: 'P. Rubens Rieg, SCJ'
+              },
+              {
+                etapa: 'Configuração',
+                periodo: '2024 - Atual',
+                instituicao: 'Convento SCJ (Conventinho)',
+                cidade: 'Taubaté / SP',
+                formador: 'P. Formador de Teologia, SCJ'
+              }
+            ],
             historicoTrabalhos: [
               {
-                periodo: '2004 - 2005',
-                comunidade: 'Seminário São José',
-                obra: 'Seminário Menor São José',
-                faseGrau: 'Propedêutico',
-                funcao: 'Seminarista Menor • Formação Inicial',
-                local: 'Rio Negrinho / SC',
-                observacoes: 'Início da caminhada e discernimento vocacional.'
-              },
-              {
-                periodo: '2005 - 2006',
-                comunidade: 'Noviciado Nossa Senhora de Fátima',
-                obra: 'Casa de Formação do Noviciado',
-                faseGrau: 'Noviciado',
-                funcao: 'Noviço Dehoniano',
+                periodo: '2010 - 2011',
+                comunidade: 'Paróquia São Sebastião',
+                obra: 'Pastoral Vocacional e Juventude',
+                faseGrau: 'Tirocínio',
+                funcao: 'Tirocinante / Estágio Pastoral',
                 local: 'Jaraguá do Sul / SC',
-                observacoes: 'Ano canônico de noviciado sob a Regra de Vida SCJ.'
-              },
-              {
-                periodo: '2006 - 2008',
-                comunidade: 'Convento Sagrado Coração de Jesus',
-                obra: 'Faculdade Dehoniana (Estudos de Filosofia)',
-                faseGrau: 'Frater',
-                funcao: 'Religioso Estudante de Filosofia',
-                local: 'Taubaté / SP',
-                observacoes: 'Votos temporários e dedicação acadêmica.'
+                observacoes: 'Ano de Tirocínio pastoral e comunitário.'
               },
               {
                 periodo: '2012 - 2015',

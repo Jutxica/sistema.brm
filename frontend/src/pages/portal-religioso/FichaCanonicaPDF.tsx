@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Share2, 
   Check, 
@@ -229,23 +229,47 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         ordenacaoAno?: number;
       }> = [];
 
-      // A. Inclui etapas de formação religiosa
+      // A. Separa etapas de Formação Inicial (cards) vs Trajetória de Trabalhos (a partir do Tirocínio)
+      const etapasIniciaisParaPdf: Array<{
+        etapa: string;
+        periodo?: string;
+        instituicao?: string;
+        cidade?: string;
+        local?: string;
+        formador?: string;
+        observacoes?: string;
+      }> = [];
+
       (data.formacaoReligiosa || []).forEach((f: any) => {
         const pIni = f.data_ingresso ? extrairAno(f.data_ingresso) : '';
         const pFim = f.data_conclusao ? extrairAno(f.data_conclusao) : '';
         const periodoStr = pIni && pFim ? (pIni === pFim ? pIni : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Concluído` : 'Período Formativo');
         const anoNum = pIni && !Number.isNaN(Number(pIni)) ? Number(pIni) : 2000;
+        const etapaNome = f.etapa || 'Formação Inicial';
+        const isTirocinio = etapaNome.toLowerCase().includes('tirocín') || etapaNome.toLowerCase().includes('tirocin');
 
-        trabalhos.push({
-          periodo: periodoStr,
-          comunidade: f.instituicao || f.local || 'Casa de Formação Dehoniana',
-          obra: f.instituicao || 'Seminário / Casa Formativa',
-          faseGrau: f.etapa || 'Formação Inicial',
-          funcao: f.etapa ? `${f.etapa} • Religioso Estudante` : 'Estudante SCJ',
-          local: [f.cidade, f.local].filter(Boolean).join(' • ') || 'Província BRM',
-          observacoes: [f.formador ? `Formador: ${f.formador}` : null, f.observacoes].filter(Boolean).join(' • ') || undefined,
-          ordenacaoAno: anoNum
-        });
+        if (isTirocinio) {
+          trabalhos.push({
+            periodo: periodoStr,
+            comunidade: f.instituicao || f.local || 'Comunidade do Tirocínio',
+            obra: f.instituicao || 'Tirocínio Pastoral',
+            faseGrau: 'Tirocínio',
+            funcao: 'Tirocinante / Atuação Pastoral',
+            local: [f.cidade, f.local].filter(Boolean).join(' • ') || 'Província BRM',
+            observacoes: [f.formador ? `Formador: ${f.formador}` : null, f.observacoes].filter(Boolean).join(' • ') || undefined,
+            ordenacaoAno: anoNum
+          });
+        } else {
+          etapasIniciaisParaPdf.push({
+            etapa: etapaNome,
+            periodo: periodoStr,
+            instituicao: f.instituicao || f.local || 'Casa de Formação SCJ',
+            cidade: f.cidade || f.local || undefined,
+            local: f.local || undefined,
+            formador: f.formador || undefined,
+            observacoes: f.observacoes || undefined
+          });
+        }
       });
 
       // B. Inclui histórico de comunidades
@@ -389,6 +413,7 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         localPresbiterato: data.local_ordenacao || presbiterato?.local || undefined,
         bispoOrdenante: data.bispo_ordenante || undefined,
 
+        etapasFormacaoInicial: etapasIniciaisParaPdf,
         historicoTrabalhos: trabalhos,
         missoesServicos: (data.missoesServicos || []).map((m: any) => ({ tipo: m.tipo, instituicao: m.instituicao, funcao: m.funcao, periodo: m.periodo, local: m.local })),
         formacoesAcademicas: (data.formacoes || []).map((f: any) => ({ curso: f.curso || f.categoria || '', instituicao: f.instituicao || '', anoOuPeriodo: f.ano || f.periodo })),
@@ -486,6 +511,20 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
 
   const anoIngresso = extrairAno(data?.data_ingresso);
   const batismo = data?.batismo || data?.sacramentosList?.find((s: any) => (s.tipo || '').toLowerCase().includes('batis')) || null;
+
+  const { etapasFormacaoInicial, etapasTirocinio } = useMemo(() => {
+    const iniciais: any[] = [];
+    const tirocinio: any[] = [];
+    (data?.formacaoReligiosa || []).forEach((f: any) => {
+      const etapaNome = f.etapa || '';
+      if (etapaNome.toLowerCase().includes('tirocín') || etapaNome.toLowerCase().includes('tirocin')) {
+        tirocinio.push(f);
+      } else {
+        iniciais.push(f);
+      }
+    });
+    return { etapasFormacaoInicial: iniciais, etapasTirocinio: tirocinio };
+  }, [data?.formacaoReligiosa]);
 
   return (
     <div className="w-full">
@@ -706,13 +745,44 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
           </div>
         </div>
 
-        {/* Bloco 04: Trajetória de Comunidades e Trabalhos */}
+        {/* Bloco 04: Formação Inicial (Trajetória Formativa Vocacional em Cartões) */}
+        {etapasFormacaoInicial.length > 0 && (
+          <div className="mb-4">
+            <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
+              04. Formação Inicial (Trajetória Formativa Vocacional)
+            </p>
+            <div className={`grid grid-cols-${Math.min(etapasFormacaoInicial.length, 5)} gap-2 text-center pt-1`}>
+              {etapasFormacaoInicial.map((f: any, idx: number) => {
+                const pIni = f.data_ingresso ? extrairAno(f.data_ingresso) : '';
+                const pFim = f.data_conclusao ? extrairAno(f.data_conclusao) : '';
+                const periodoStr = pIni && pFim ? (pIni === pFim ? pIni : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Concluído` : 'Formativo');
+                return (
+                  <div key={`form-portal-card-${idx}`} className="border border-slate-200 p-2 bg-white flex flex-col justify-between">
+                    <div>
+                      <span className="inline-block px-1 py-0.5 font-mono text-[6pt] font-bold uppercase bg-sky-50 text-sky-800 border border-sky-200 rounded mb-0.5">
+                        {f.etapa || 'Etapa'}
+                      </span>
+                      <p className="text-[8pt] font-bold text-slate-900 mt-0.5">{periodoStr}</p>
+                      <p className="text-[7pt] font-semibold text-slate-800 line-clamp-1">{f.instituicao || f.local || 'Casa Formativa'}</p>
+                    </div>
+                    <div className="mt-1 border-t border-slate-100 pt-0.5 text-[6.5pt] text-slate-500">
+                      <p className="truncate">{f.cidade || '—'}</p>
+                      {f.formador && <p className="italic text-slate-600 truncate">Formador: {f.formador}</p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Bloco 05: Trajetória de Comunidades e Trabalhos */}
         <div className="mb-4">
           <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
-            04. Trajetória de Comunidades e Trabalhos (Onde Trabalhou • Comunidades, Obras, Etapas & Funções)
+            05. Trajetória de Comunidades e Trabalhos (Obras, Comunidades e Ofícios a partir do Tirocínio)
           </p>
           <div className="space-y-1 text-[8pt]">
-            {(data?.formacaoReligiosa && data.formacaoReligiosa.length > 0) || (data?.historicoComunidades && data.historicoComunidades.length > 0) || (data?.designacoes && data.designacoes.length > 0) ? (
+            {(etapasTirocinio.length > 0) || (data?.historicoComunidades && data.historicoComunidades.length > 0) || (data?.designacoes && data.designacoes.length > 0) ? (
               <table className="w-full border-collapse text-[7.5pt]">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-500 font-mono text-[6.8pt] uppercase text-left">
@@ -725,21 +795,21 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {(data.formacaoReligiosa || []).map((f: any, idx: number) => {
+                  {etapasTirocinio.map((f: any, idx: number) => {
                     const pIni = f.data_ingresso ? extrairAno(f.data_ingresso) : '';
                     const pFim = f.data_conclusao ? extrairAno(f.data_conclusao) : '';
                     const periodoStr = pIni && pFim ? (pIni === pFim ? pIni : `${pIni} - ${pFim}`) : (pIni ? `${pIni} - Concluído` : 'Formativo');
                     return (
-                      <tr key={`form-${idx}`} className="py-1">
+                      <tr key={`tiroc-portal-${idx}`} className="py-1">
                         <td className="font-mono text-slate-500 py-1">{periodoStr}</td>
-                        <td className="font-semibold text-slate-900 py-1">{f.instituicao || f.local || 'Casa Formativa'}</td>
-                        <td className="text-slate-700 py-1">{f.instituicao || 'Seminário / Formação'}</td>
+                        <td className="font-semibold text-slate-900 py-1">{f.instituicao || f.local || 'Comunidade do Tirocínio'}</td>
+                        <td className="text-slate-700 py-1">{f.instituicao || 'Tirocínio Pastoral'}</td>
                         <td className="py-1">
                           <span className="font-mono text-[6.5pt] bg-sky-50 text-sky-800 border border-sky-200 px-1 py-0.2 rounded">
-                            {f.etapa || 'Formação Inicial'}
+                            Tirocínio
                           </span>
                         </td>
-                        <td className="text-[#226380] font-medium py-1">{f.etapa ? `${f.etapa} • Estudante` : 'Estudante SCJ'}</td>
+                        <td className="text-[#226380] font-medium py-1">Tirocinante / Pastoral</td>
                         <td className="text-slate-600 py-1">{[f.cidade, f.formador ? `Formador: ${f.formador}` : null].filter(Boolean).join(' • ') || 'Província BRM'}</td>
                       </tr>
                     );
@@ -785,18 +855,17 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
                 </tbody>
               </table>
             ) : (
-              <p className="text-slate-500 italic py-1">
-                Comunidade Atual: <strong>{formatarComunidadeReligiosa(data?.comunidade_atual_nome) || 'Sede Provincial BRM'}</strong>
-                {data?.obra_atual_nome ? <> · Obra/Residência: <strong>{data.obra_atual_nome}</strong></> : null}
+              <p className="text-slate-500 italic py-2 text-center text-[7pt]">
+                Religioso em etapa formativa inicial. As designações de comunidades e trabalhos têm início a partir do Tirocínio.
               </p>
             )}
           </div>
         </div>
 
-        {/* Bloco 5: Formação Acadêmica & Graus Obtidos */}
+        {/* Bloco 06: Formação Acadêmica & Graus Obtidos */}
         <div className="mb-4">
           <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
-            05. Formação Acadêmica & Graus Obtidos
+            06. Formação Acadêmica & Graus Obtidos
           </p>
           <div className="space-y-1 text-[8pt]">
             {data?.formacoes && data.formacoes.length > 0 ? (
@@ -817,10 +886,10 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
           </div>
         </div>
 
-        {/* Bloco 06: Documentação Cadastrada & Arquivo Digital */}
+        {/* Bloco 07: Documentação Cadastrada & Arquivo Digital */}
         <div className="mb-6">
           <p className="text-[7.5pt] font-mono uppercase tracking-[0.14em] font-bold text-slate-700 border-b border-slate-200 pb-1 mb-2">
-            06. Documentação Cadastrada & Arquivo Digital Provincial
+            07. Documentação Cadastrada & Arquivo Digital Provincial
           </p>
           <div className="space-y-1 text-[7.5pt]">
             {data?.documentosCadastrados && data.documentosCadastrados.length > 0 ? (
