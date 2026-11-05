@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileUp, Info, Loader2, Plus, Trash2, Printer, Camera, Star, Check, Upload, Sparkles, Wrench, Eye, RefreshCw, FileText } from 'lucide-react';
+import { Quote, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileUp, Info, Loader2, Plus, Trash2, Printer, Camera, Star, Check, Upload, Sparkles, Wrench, Eye, RefreshCw, FileText } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { getPortalRedirectUrl } from '../lib/portalUrls';
 import { confirmAction, showToast } from '../hooks/useFeedback';
@@ -9,6 +9,7 @@ import { formatCep, lookupCep } from '../lib/cep';
 import { validateCpf } from '../lib/cpf';
 import { parseAddressString } from '../utils/addressParser';
 import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../lib/religiosoNome';
+import type { LemaReligioso, FaseLema } from '../types/religioso';
 
 interface FotoReligiosoItem {
   id: string;
@@ -457,6 +458,68 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   const [publicConfig, setPublicConfig] = useState(defaultPublicConfig);
   const [designacoesElenco, setDesignacoesElenco] = useState<DesignacaoPortal[]>([]);
   const [erroDesignacoesElenco, setErroDesignacoesElenco] = useState<string | null>(null);
+  const [lemas, setLemas] = useState<LemaReligioso[]>([]);
+
+  const getFasesPermitidasPorGrau = (grauStr?: string | null): FaseLema[] => {
+    const g = (grauStr || '').toLowerCase();
+    if (g.includes('frater')) {
+      return ['Primeira Profissão'];
+    }
+    if (g.includes('irmã') || g.includes('irma') || g.includes('diác') || g.includes('diac')) {
+      return ['Primeira Profissão', 'Votos Perpétuos'];
+    }
+    if (g.includes('padre') || g.includes('presb')) {
+      return ['Primeira Profissão', 'Votos Perpétuos', 'Ordenação Presbiteral'];
+    }
+    if (g.includes('bispo') || g.includes('dom')) {
+      return ['Primeira Profissão', 'Votos Perpétuos', 'Ordenação Presbiteral', 'Ordenação Episcopal'];
+    }
+    return ['Primeira Profissão', 'Votos Perpétuos', 'Ordenação Presbiteral'];
+  };
+
+  const getMaxLemasPorGrau = (grauStr?: string | null): number => {
+    return getFasesPermitidasPorGrau(grauStr).length;
+  };
+
+  const handleAdicionarLema = () => {
+    const permitidas = getFasesPermitidasPorGrau(base.grau);
+    const max = permitidas.length;
+    if (lemas.length >= max) return;
+
+    const fasesJaUsadas = new Set(lemas.map(l => l.fase));
+    const proximaFase = permitidas.find(f => !fasesJaUsadas.has(f)) || permitidas[0];
+
+    const novo: LemaReligioso = {
+      id: String(Date.now()),
+      fase: proximaFase,
+      texto: '',
+      referencia: '',
+      destacado: lemas.length === 0,
+    };
+    setLemas(prev => [...prev, novo]);
+  };
+
+  const handleUpdateLema = (id: string, updates: Partial<LemaReligioso>) => {
+    setLemas(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
+  };
+
+  const handleRemoverLema = (id: string) => {
+    setLemas(prev => {
+      const filtered = prev.filter(item => item.id !== id);
+      if (filtered.length > 0 && !filtered.some(item => item.destacado)) {
+        filtered[0].destacado = true;
+      }
+      return filtered;
+    });
+  };
+
+  const handleSetDestaqueLema = (id: string) => {
+    setLemas(prev => prev.map(item => ({
+      ...item,
+      destacado: item.id === id,
+    })));
+  };
+
   const [familiares, setFamiliares] = useState<Familiar[]>([emptyFamiliar('Pai'), emptyFamiliar('Mãe')]);
   const [contatosFamiliares, setContatosFamiliares] = useState<ContatoFamiliar[]>([]);
   const [sacramentos, setSacramentos] = useState<Sacrament[]>([emptySacrament('Batismo'), emptySacrament('Primeira Eucaristia'), emptySacrament('Crisma')]);
@@ -522,6 +585,17 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         return;
       }
       if (religiosoData) {
+        if (Array.isArray(religiosoData.lemas) && religiosoData.lemas.length > 0) {
+          setLemas(religiosoData.lemas);
+        } else if (religiosoData.lema_destacado) {
+          setLemas([{
+            id: '1',
+            fase: (religiosoData.lema_destacado_fase || 'Primeira Profissão') as FaseLema,
+            texto: String(religiosoData.lema_destacado).replace(/^[“"']|[”"']$/g, '').trim(),
+            referencia: '',
+            destacado: true,
+          }]);
+        }
         setBase(previous => {
           const loadedBase = Object.fromEntries(Object.entries(religiosoData).filter(([key]) => key in previous).map(([key, value]) => [key, value == null ? '' : String(value)]));
           const autoNomeReligioso = atribuirNomeReligioso(loadedBase.grau, loadedBase.nome_civil);
@@ -914,6 +988,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       grau: 'Padre', nome_civil: '', nome_religioso: '', nome_elenco: '', situacao_elenco: 'Ativo', data_nascimento: '', local_nascimento: '', municipio_nascimento: '', estado_nascimento: '', pais_nascimento: 'Brasil', nacionalidade: 'Brasileira', cpf: '', rg: '', rg_orgao_expedidor: '', rg_data_emissao: '', titulo_eleitor: '', pis: '', cnh: '', cnh_categoria: '', passaporte: '', obra_atual_id: '', comunidade_atual_nome: '', cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', email_institucional: '', email_pessoal: '', telefone_celular: '', whatsapp: '', redes_sociais: '', status: 'Ativo', status_cadastro: 'Aprovado',
       contato_nome: '', contato_parentesco: '', contato_1: '', contato_2: '', paroquia_origem: '', cidade_origem: '', diocese_origem: '', grupo_movimento_pastoral: '', promotor_vocacional: '', plano_saude: '', numero_plano_saude: '', local_plano_saude: '', sus: '', tipo_sanguineo: '', fator_rh: '', alergias: '', medicamentos_continuos: '', medico_responsavel: '', contato_emergencia: '', informacoes_clinicas: '', cirurgias: '', proteses: '', observacoes_saude: '', consentimento_dados: '', consentimento_em: '',
     });
+    setLemas([]);
     setFamiliares([emptyFamiliar('Pai'), emptyFamiliar('Mãe')]);
     setContatosFamiliares([]);
     setSacramentos([emptySacrament('Batismo'), emptySacrament('Primeira Eucaristia'), emptySacrament('Crisma')]);
@@ -1338,6 +1413,18 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         email_institucional: base.email_institucional || null,
         email_pessoal: base.email_pessoal || null, telefone_celular: base.telefone_celular || null,
         whatsapp: base.whatsapp || null,
+        lemas: lemas.filter(l => l.texto.trim()),
+        lema_destacado: (() => {
+          const validos = lemas.filter(l => l.texto.trim());
+          const dest = validos.find(l => l.destacado) || validos[0];
+          if (!dest) return null;
+          return dest.referencia?.trim() ? `“${dest.texto.trim()}” (${dest.referencia.trim()})` : `“${dest.texto.trim()}”`;
+        })(),
+        lema_destacado_fase: (() => {
+          const validos = lemas.filter(l => l.texto.trim());
+          const dest = validos.find(l => l.destacado) || validos[0];
+          return dest?.fase || null;
+        })(),
         ...(!memberMode ? {
           ...(isEditing ? {} : { origem_cadastro: adminMode ? 'admin' : 'publico' }),
           ...(isEditing ? (base.status_cadastro ? { status_cadastro: base.status_cadastro } : {}) : { status_cadastro: adminMode ? 'Aprovado' : 'Em revisão' }),
@@ -2248,6 +2335,169 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               }}
               otherFields={{ estado_nascimento: 'estado_nascimento_outro' }}
             />
+
+            {/* Bloco Canônico de Lemas Vocacionais e Ministeriais */}
+            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161b22]">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-white/5 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#226380]/10 text-[#226380] dark:bg-[#68a9c7]/15 dark:text-[#68a9c7]">
+                    <Quote className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>Lema Vocacional e Ministerial</span>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-mono text-slate-600 dark:bg-white/10 dark:text-slate-300">
+                        {base.grau || 'Grau Canônico'}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Cadastre os lemas bíblicos/espirituais adotados em suas etapas de consagração e ordens sacras.
+                    </p>
+                  </div>
+                </div>
+
+                {lemas.length < getMaxLemasPorGrau(base.grau) && (
+                  <button
+                    type="button"
+                    onClick={handleAdicionarLema}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#226380] text-white hover:bg-[#1b4f66] transition shadow-xs"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Adicionar lema ({lemas.length}/{getMaxLemasPorGrau(base.grau)})</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Informação sobre limites do Grau */}
+              <div className="mt-3 rounded-lg bg-sky-50/70 p-3 text-xs text-sky-900 dark:bg-sky-950/20 dark:text-sky-200 border border-sky-100 dark:border-sky-900/40 flex items-start gap-2">
+                <Info className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400 mt-0.5" />
+                <div className="text-[11.5px] leading-relaxed">
+                  {(base.grau || '').toLowerCase().includes('frater') ? (
+                    <span>Para <strong>Frater</strong>, está habilitado o lema de <strong>Primeira Profissão Religiosa</strong>. Quando houver votos perpétuos ou ordenações futuras, as novas fases serão liberadas.</span>
+                  ) : (
+                    <span>Para o grau <strong>{base.grau || 'Religioso'}</strong>, você pode registrar até <strong>{getMaxLemasPorGrau(base.grau)} lemas</strong> (mostrando em qual fase cada um foi adotado) e escolher qual deles destacar oficialmente abaixo do seu nome na Ficha e documentos da Província.</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Lista de lemas */}
+              {lemas.length === 0 ? (
+                <div className="mt-4 rounded-xl border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500 dark:border-slate-700">
+                  <p className="font-medium text-slate-700 dark:text-slate-300">Nenhum lema cadastrado ainda.</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Clique no botão abaixo para adicionar seu lema de consagração ou ordenação.</p>
+                  <button
+                    type="button"
+                    onClick={handleAdicionarLema}
+                    className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-[#226380] text-white hover:bg-[#1b4f66] transition"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Inserir Lema
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {lemas.map((lema, index) => {
+                    const permitidas = getFasesPermitidasPorGrau(base.grau);
+                    return (
+                      <div
+                        key={lema.id || index}
+                        className={`rounded-xl border p-4 transition ${
+                          lema.destacado
+                            ? 'border-[#226380] bg-[#226380]/5 dark:border-[#68a9c7]/60 dark:bg-[#68a9c7]/10'
+                            : 'border-slate-200 bg-slate-50/50 dark:border-white/10 dark:bg-white/[0.02]'
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-2 border-b border-slate-200/60 dark:border-white/5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[10px] font-bold text-slate-400 uppercase">
+                              #{index + 1}
+                            </span>
+                            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                              Lema de {lema.fase}
+                            </span>
+                            {lema.destacado && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                                <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                                Lema Principal (Exibido abaixo do nome)
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleSetDestaqueLema(lema.id)}
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded transition ${
+                                lema.destacado
+                                  ? 'bg-[#226380] text-white cursor-default'
+                                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 dark:bg-[#161b22] dark:text-slate-300 dark:border-white/10'
+                              }`}
+                            >
+                              <Star className={`h-3 w-3 ${lema.destacado ? 'fill-white text-white' : 'text-slate-400'}`} />
+                              <span>{lema.destacado ? 'Principal Ativo' : 'Definir como Principal'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleRemoverLema(lema.id)}
+                              title="Remover lema"
+                              className="text-slate-400 hover:text-red-600 transition p-1"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs">
+                          {/* Seletor de Fase */}
+                          <div className="sm:col-span-4">
+                            <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
+                              Etapa / Fase Canônica *
+                            </label>
+                            <select
+                              value={lema.fase}
+                              onChange={e => handleUpdateLema(lema.id, { fase: e.target.value as FaseLema })}
+                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:border-[#226380] focus:ring-1 focus:ring-[#226380] dark:border-white/10 dark:bg-[#0d1117] dark:text-white"
+                            >
+                              {permitidas.map(faseOpt => (
+                                <option key={faseOpt} value={faseOpt}>{faseOpt}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Texto do Lema */}
+                          <div className="sm:col-span-5">
+                            <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
+                              Texto do Lema *
+                            </label>
+                            <input
+                              type="text"
+                              value={lema.texto}
+                              onChange={e => handleUpdateLema(lema.id, { texto: e.target.value })}
+                              placeholder="Ex.: Para que todos sejam um..."
+                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:border-[#226380] focus:ring-1 focus:ring-[#226380] dark:border-white/10 dark:bg-[#0d1117] dark:text-white"
+                            />
+                          </div>
+
+                          {/* Referência Bíblica */}
+                          <div className="sm:col-span-3">
+                            <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
+                              Referência Bíblica (opcional)
+                            </label>
+                            <input
+                              type="text"
+                              value={lema.referencia || ''}
+                              onChange={e => handleUpdateLema(lema.id, { referencia: e.target.value })}
+                              placeholder="Ex.: Jo 17, 21"
+                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:border-[#226380] focus:ring-1 focus:ring-[#226380] dark:border-white/10 dark:bg-[#0d1117] dark:text-white"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
             {adminMode && (
               <div className="mt-6 pt-6 border-t border-[#e5e5ea] dark:border-white/10 grid gap-4 md:grid-cols-2">
                 <Fields fields={['status_cadastro', 'status']} base={base} update={updateBase} selects={{ status_cadastro: ['Em revisão', 'Aprovado', 'Arquivado'], status: ['Ativo', 'Em missão externa', 'Em estudos', 'Emérito (Casa São João)', 'Emérito', 'Falecido', 'Exclaustrado'] }} />

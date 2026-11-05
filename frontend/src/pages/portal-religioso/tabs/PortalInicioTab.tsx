@@ -83,6 +83,16 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
             <h2 className="font-cinzel mt-2 text-[20px] font-bold leading-tight tracking-wide text-white">
               Vivat Cor Iesu, {displayName}
             </h2>
+            {religiosoData?.lema_destacado && (
+              <p className="mt-1 font-serif italic text-white/95 text-xs">
+                {religiosoData.lema_destacado}
+                {religiosoData.lema_destacado_fase && (
+                  <span className="not-italic text-[9.5px] text-white/70 font-sans uppercase tracking-wider ml-1.5 font-normal">
+                    ({religiosoData.lema_destacado_fase})
+                  </span>
+                )}
+              </p>
+            )}
             <p className="mt-1 text-xs text-white/75 leading-relaxed">
               Espaço digital de comunhão, serviços e acompanhamento canônico da Província BRM.
             </p>
@@ -250,6 +260,16 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
               <h2 className="font-cinzel text-xl sm:text-[26px] font-bold tracking-wide text-[#113240] dark:text-[#f5f5f7]">
                 Vivat Cor Iesu, {displayName}
               </h2>
+              {religiosoData?.lema_destacado && (
+                <p className="mt-1 font-serif italic text-[#226380] dark:text-[#68a9c7] text-xs sm:text-sm font-medium">
+                  {religiosoData.lema_destacado}
+                  {religiosoData.lema_destacado_fase && (
+                    <span className="not-italic text-[10px] text-slate-500 dark:text-slate-400 font-sans uppercase tracking-wider ml-2">
+                      ({religiosoData.lema_destacado_fase})
+                    </span>
+                  )}
+                </p>
+              )}
               <p className="text-xs sm:text-sm text-[#707070] dark:text-[#86868b] font-normal mt-1 leading-relaxed">
                 Bem-vindo ao espaço digital de comunhão, serviços e acompanhamento canônico da Província BRM.
               </p>

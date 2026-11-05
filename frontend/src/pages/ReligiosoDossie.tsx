@@ -820,6 +820,16 @@ export const ReligiosoDossie: React.FC = () => {
               <h2 className="text-[16pt] font-serif font-bold text-slate-900 mt-0.5">
                 {atribuirNomeReligioso(religioso?.grau, religioso?.nome_civil) || religioso?.nome_religioso || religioso?.nome_civil}
               </h2>
+              {religioso?.lema_destacado && (
+                <p className="text-[9pt] font-serif italic text-[#226380] dark:text-[#68a9c7] mt-0.5 font-medium">
+                  {religioso.lema_destacado}
+                  {religioso.lema_destacado_fase && (
+                    <span className="not-italic text-[7.5pt] font-sans font-semibold text-slate-500 ml-1.5 uppercase tracking-wide">
+                      ({religioso.lema_destacado_fase})
+                    </span>
+                  )}
+                </p>
+              )}
               <p className="text-[8.5pt] font-mono text-slate-700 mt-0.5">
                 Nome civil: <span className="font-semibold">{religioso?.nome_civil}</span>
               </p>
@@ -925,6 +935,38 @@ export const ReligiosoDossie: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Bloco de Lemas Vocacionais e Ministeriais */}
+        {((Array.isArray(religioso?.lemas) && religioso.lemas.length > 0) || religioso?.lema_destacado) && (
+          <div className="mb-3 border border-[#226380]/20 bg-[#226380]/5 p-2.5 rounded-sm">
+            <p className="text-[7pt] font-mono uppercase tracking-[0.14em] font-bold text-[#226380] border-b border-[#226380]/20 pb-0.5 mb-1.5 flex items-center justify-between">
+              <span>Lemas Vocacionais e Ministeriais</span>
+              <span className="text-[6.5pt] font-normal normal-case text-slate-500">Província BRM</span>
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+              {Array.isArray(religioso?.lemas) && religioso.lemas.length > 0 ? (
+                religioso.lemas.map((lema: any, idx: number) => (
+                  <div key={lema.id || idx} className={`p-1.5 rounded border text-[7.5pt] ${lema.destacado ? 'border-[#226380] bg-white shadow-xs font-semibold' : 'border-slate-200 bg-white/70'}`}>
+                    <div className="flex items-center justify-between text-[6pt] font-mono uppercase text-slate-500 mb-0.5">
+                      <span>{lema.fase}</span>
+                      {lema.destacado && <span className="text-[#226380] font-bold">★ Principal</span>}
+                    </div>
+                    <p className="italic text-slate-800 font-serif">“{lema.texto}”</p>
+                    {lema.referencia && <p className="text-[6.5pt] font-sans text-slate-500 mt-0.5 font-normal">Ref: {lema.referencia}</p>}
+                  </div>
+                ))
+              ) : (
+                <div className="p-1.5 rounded border border-[#226380] bg-white text-[7.5pt]">
+                  <div className="flex items-center justify-between text-[6pt] font-mono uppercase text-slate-500 mb-0.5">
+                    <span>{religioso?.lema_destacado_fase || 'Lema de Consagração'}</span>
+                    <span className="text-[#226380] font-bold">★ Principal</span>
+                  </div>
+                  <p className="italic text-slate-800 font-serif">{religioso?.lema_destacado}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Bloco 2: Saúde, Emergência & Contatos */}
         <div className="mb-3">

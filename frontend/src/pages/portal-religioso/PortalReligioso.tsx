@@ -170,6 +170,9 @@ export const PortalReligioso: React.FC = () => {
         email_institucional: profile.email_institucional,
         whatsapp: profile.whatsapp,
         telefone_celular: profile.telefone_celular,
+        lemas: profile.lemas,
+        lema_destacado: profile.lema_destacado,
+        lema_destacado_fase: profile.lema_destacado_fase,
       } : {};
       const data = officialData || profile ? { ...(officialData || {}), ...profileData } : null;
       if (data) {

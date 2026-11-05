@@ -13,6 +13,20 @@ export type SituacaoElenco =
   | 'em_formacao'
   | string;
 
+export type FaseLema =
+  | 'Primeira Profissão'
+  | 'Votos Perpétuos'
+  | 'Ordenação Presbiteral'
+  | 'Ordenação Episcopal';
+
+export interface LemaReligioso {
+  id: string;
+  fase: FaseLema;
+  texto: string;
+  referencia?: string; // ex: "Jo 17, 21" ou "Sl 22"
+  destacado: boolean;
+}
+
 export interface Religioso {
   id: string;
   nome_civil: string | null;
@@ -27,6 +41,9 @@ export interface Religioso {
   comunidade_atual_nome?: string | null;
   obra_atual_id?: string | null;
   obra_atual_nome?: string | null;
+  lemas?: LemaReligioso[];
+  lema_destacado?: string | null;
+  lema_destacado_fase?: string | null;
 }
 
 export interface RawReligioso {
@@ -84,6 +101,9 @@ export interface ReligiosoPortalData {
   cargo_funcao?: string | null;
   foto_path?: string | null;
   foto_url?: string | null;
+  lemas?: LemaReligioso[];
+  lema_destacado?: string | null;
+  lema_destacado_fase?: string | null;
 }
 
 export interface ReligiosoDossieData {
@@ -106,6 +126,9 @@ export interface ReligiosoDossieData {
   comunidade_atual_nome?: string | null;
   obra_atual_id?: string | null;
   obra_atual_nome?: string | null;
+  lemas?: LemaReligioso[];
+  lema_destacado?: string | null;
+  lema_destacado_fase?: string | null;
   familiares_pai?: string | null;
   familiares_mae?: string | null;
   pai_nome?: string | null;

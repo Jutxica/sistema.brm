@@ -276,6 +276,8 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
         filiacaoPai: pai || undefined,
         filiacaoMae: mae || undefined,
         fotoUrl: fotoBase64 || data.foto_url || undefined,
+        lemaPrincipal: data.lema_destacado || undefined,
+        lemaPrincipalFase: data.lema_destacado_fase || undefined,
         comunidadeAtualNome: formatarComunidadeReligiosa(data.comunidade_atual_nome) || undefined,
         oficioAtual: data.designacoes?.[0]?.funcao || undefined,
         telefoneCelular: data.telefone_celular || undefined,
@@ -459,6 +461,16 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
               <h2 className="text-[17pt] font-serif font-bold text-slate-900 mt-0.5">
                 {atribuirNomeReligioso(data?.grau, data?.nome_civil) || data?.nome_religioso || data?.nome_civil}
               </h2>
+              {data?.lema_destacado && (
+                <p className="text-[9pt] font-serif italic text-[#226380] mt-0.5 font-medium">
+                  {data.lema_destacado}
+                  {data.lema_destacado_fase && (
+                    <span className="not-italic text-[7pt] font-sans font-semibold text-slate-500 ml-1.5 uppercase tracking-wide">
+                      ({data.lema_destacado_fase})
+                    </span>
+                  )}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-1.5 border border-slate-900 px-2.5 py-0.5 text-[8pt] font-mono font-semibold uppercase">

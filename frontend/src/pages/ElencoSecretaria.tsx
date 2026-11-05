@@ -772,16 +772,31 @@ export const ElencoSecretaria: React.FC = () => {
                           {atualizadas.map(item => {
                             const obra = item.obra_id ? mapaObras.get(item.obra_id) : null;
                             const comunidade = item.comunidade_id ? mapaComunidades.get(item.comunidade_id) : (obra?.comunidade_id ? mapaComunidades.get(obra.comunidade_id) : null);
-                            const lugar = (comunidade?.nome && obra?.nome && comunidade.nome !== obra.nome) ? `${formatarComunidadeReligiosa(comunidade.nome)} • ${obra.nome}` : (formatarComunidadeReligiosa(comunidade?.nome) || obra?.nome || 'Destino indisponível');
-                            const local = comunidade
+                            const comNome = formatarComunidadeReligiosa(comunidade?.nome || religioso.comunidade_atual_nome) || 'Comunidade Provincial';
+                            const obrNome = (obra?.nome && obra.nome !== comNome) ? obra.nome : (religioso.obra_atual_nome && religioso.obra_atual_nome !== comNome ? religioso.obra_atual_nome : null);
+                            
+                            // Extrair apenas cidade/estado real
+                            const rawLocal = comunidade
                               ? [comunidade.cidade, comunidade.estado].filter(Boolean).join('/')
-                              : [obra?.localidade, obra?.cidade, obra?.uf || obra?.estado].filter(Boolean).join(' · ');
+                              : [obra?.cidade || (obra?.localidade && !obra.localidade.toLowerCase().includes('territorial') ? obra.localidade : null), obra?.uf || obra?.estado].filter(Boolean).join('/');
+                            const localLimpo = (rawLocal && !rawLocal.toLowerCase().includes('territorial')) ? rawLocal : null;
+
                             return (
-                              <span key={item.id} className="inline-flex max-w-full flex-col rounded-lg border border-slate-200 px-2.5 py-1.5 dark:border-slate-700">
-                                <span className="truncate text-xs font-medium text-slate-800 dark:text-slate-200">{lugar} · {item.funcao}</span>
-                                <span className="mt-0.5 flex items-center gap-1 text-[10px] text-slate-500">
-                                  <MapPin className="h-3 w-3" /> {local || 'Localidade pendente'} · {tiposVinculo.find(type => type.value === item.tipo_vinculo)?.label || item.tipo_vinculo}
+                              <span key={item.id} className="inline-flex max-w-full flex-col rounded-lg border border-slate-200 px-2.5 py-1.5 dark:border-slate-700 bg-slate-50/50 dark:bg-white/[0.02]">
+                                <span className="truncate text-xs font-medium text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                  <Building2 className="h-3.5 w-3.5 text-[#226380] shrink-0" />
+                                  <span>{comNome} · {item.funcao}</span>
                                 </span>
+                                {obrNome && (
+                                  <span className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-[#226380] dark:text-[#A3C3C7]">
+                                    <Church className="h-3 w-3 shrink-0" /> {obrNome}
+                                  </span>
+                                )}
+                                {localLimpo && (
+                                  <span className="mt-0.5 flex items-center gap-1 text-[10px] text-slate-500">
+                                    <MapPin className="h-3 w-3 shrink-0" /> {localLimpo} · {tiposVinculo.find(type => type.value === item.tipo_vinculo)?.label || item.tipo_vinculo}
+                                  </span>
+                                )}
                               </span>
                             );
                           })}

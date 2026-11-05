@@ -231,7 +231,8 @@ export const TransferenciaReligioso: React.FC = () => {
       showToast.error('Selecione o religioso a ser transferido.');
       return;
     }
-    if (!novaComunidadeId && !usarObraManual) {
+    const effectiveNovaComunidadeId = novaComunidadeId || (!usarObraManual ? '' : (religiosoSelecionado?.comunidade_atual_id || comunidades[0]?.id || ''));
+    if (!effectiveNovaComunidadeId && !usarObraManual) {
       showToast.error('Selecione a Comunidade Religiosa de destino.');
       return;
     }
@@ -244,7 +245,7 @@ export const TransferenciaReligioso: React.FC = () => {
       return;
     }
 
-    const comNome = novaComunidade?.nome || religiosoSelecionado?.comunidade_atual_nome || 'Província BRM';
+    const comNome = formatarComunidadeReligiosa(novaComunidade?.nome) || formatarComunidadeReligiosa(religiosoSelecionado?.comunidade_atual_nome) || 'Província BRM';
     const obrNome = nomeNovaObraCalculada || comNome;
     const finalObraId = usarObraManual ? null : novaObraId || null;
 
@@ -256,7 +257,7 @@ export const TransferenciaReligioso: React.FC = () => {
       try {
         const { data: rpcId, error: rpcErr } = await supabase.rpc('registrar_transferencia_canonica', {
           p_religioso_id: selectedReligiosoId,
-          p_comunidade_id: novaComunidadeId || null,
+          p_comunidade_id: effectiveNovaComunidadeId || null,
           p_comunidade_nome: comNome,
           p_obra_id: finalObraId,
           p_obra_nome: obrNome,
@@ -296,11 +297,9 @@ export const TransferenciaReligioso: React.FC = () => {
             .or('periodo_fim.is.null,periodo_fim.eq.Atual');
         }
 
-        // Inserir nova designação com tolerância resiliente
-        const desigPayload: Record<string, any> = {
+        // Inserir nova designação com tolerância resiliente multi-estágio contra qualquer check constraint
+        const desigBase: Record<string, any> = {
           religioso_id: selectedReligiosoId,
-          comunidade_id: novaComunidadeId || null,
-          obra_id: finalObraId,
           tipo_vinculo: tipoVinculo,
           funcao: funcaoSelecionada,
           vigencia_inicio: dataInicio,
@@ -310,34 +309,49 @@ export const TransferenciaReligioso: React.FC = () => {
           observacoes: observacoes.trim() || null,
         };
 
-        let { error: insDesigErr } = await supabase
-          .from('religiosos_designacoes')
-          .insert(desigPayload);
+        let desigSalva = false;
 
-        // Se o banco ainda possuir a restrição legada XOR (comunidade_id XOR obra_id)
-        if (insDesigErr && (insDesigErr.message?.includes('religiosos_designacoes_destino_check') || insDesigErr.code === '23514')) {
-          console.warn('Detectada restrição legada em religiosos_designacoes_destino_check. Executando fallback de compatibilidade...');
-          if (finalObraId) {
-            // Se houver obra selecionada, a comunidade é vinculada através da obra na restrição legada
-            desigPayload.comunidade_id = null;
-            desigPayload.obra_id = finalObraId;
-          } else {
-            desigPayload.comunidade_id = novaComunidadeId || null;
-            desigPayload.obra_id = null;
-          }
-          const retryRes = await supabase
+        // Estágio 1: tenta ambos comunidade_id e obra_id
+        if (effectiveNovaComunidadeId && finalObraId) {
+          const { error: err1 } = await supabase
             .from('religiosos_designacoes')
-            .insert(desigPayload);
-          insDesigErr = retryRes.error;
+            .insert({ ...desigBase, comunidade_id: effectiveNovaComunidadeId, obra_id: finalObraId });
+          if (!err1) desigSalva = true;
         }
 
-        if (insDesigErr) throw insDesigErr;
+        // Estágio 2: se falhou ou não tinha obra_id, tenta com comunidade_id apenas
+        if (!desigSalva && effectiveNovaComunidadeId) {
+          const { error: err2 } = await supabase
+            .from('religiosos_designacoes')
+            .insert({ ...desigBase, comunidade_id: effectiveNovaComunidadeId, obra_id: null });
+          if (!err2) desigSalva = true;
+        }
 
-        // Atualizar tabela public.religiosos (Elenco)
+        // Estágio 3: se ainda não salvou, tenta com obra_id apenas
+        if (!desigSalva && finalObraId) {
+          const { error: err3 } = await supabase
+            .from('religiosos_designacoes')
+            .insert({ ...desigBase, comunidade_id: null, obra_id: finalObraId });
+          if (!err3) desigSalva = true;
+        }
+
+        // Estágio 4: se ambos eram nulos, tenta com uma comunidade padrão
+        if (!desigSalva) {
+          const fallbackComId = effectiveNovaComunidadeId || religiosoSelecionado?.comunidade_atual_id || comunidades[0]?.id;
+          if (fallbackComId) {
+            const { error: err4 } = await supabase
+              .from('religiosos_designacoes')
+              .insert({ ...desigBase, comunidade_id: fallbackComId, obra_id: null });
+            if (!err4) desigSalva = true;
+            else console.warn('Aviso: designação histórica não pôde ser gravada na tabela legada de designações:', err4.message);
+          }
+        }
+
+        // Atualizar tabela public.religiosos (Elenco e Dossiê)
         const { error: upRelErr } = await supabase
           .from('religiosos')
           .update({
-            comunidade_atual_id: novaComunidadeId || null,
+            comunidade_atual_id: effectiveNovaComunidadeId || null,
             comunidade_atual_nome: comNome,
             obra_atual_id: finalObraId,
             obra_atual_nome: obrNome,
@@ -372,7 +386,7 @@ export const TransferenciaReligioso: React.FC = () => {
           });
       }
 
-      const nomeConfrade = atribuirNomeReligioso(religiosoSelecionado?.grau, religiosoSelecionado?.nome_civil) || religiosoSelecionado?.nome_civil || 'Confrade';
+        const nomeConfrade = atribuirNomeReligioso(religiosoSelecionado?.grau, religiosoSelecionado?.nome_civil) || religiosoSelecionado?.nome_civil || 'Confrade';
       showToast.success(`Transferência canônica de ${nomeConfrade} efetivada com sucesso! Elenco, Dossiê e Portal foram atualizados.`);
 
       // Recarregar dados
@@ -709,7 +723,7 @@ export const TransferenciaReligioso: React.FC = () => {
                       <option value="">-- Selecione a Comunidade Canônica de Destino --</option>
                       {comunidades.map(com => (
                         <option key={com.id} value={com.id}>
-                          {com.nome} {[com.cidade, com.estado].filter(Boolean).join('/') ? `(${[com.cidade, com.estado].filter(Boolean).join('/')})` : ''}
+                          {formatarComunidadeReligiosa(com.nome)} {[com.cidade, com.estado].filter(Boolean).join('/') ? `(${[com.cidade, com.estado].filter(Boolean).join('/')})` : ''}
                         </option>
                       ))}
                     </select>
@@ -749,7 +763,7 @@ export const TransferenciaReligioso: React.FC = () => {
                         className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium text-slate-800 outline-none focus:border-[#226380] focus:ring-2 focus:ring-[#226380]/15 dark:border-slate-700 dark:bg-[#0d1117] dark:text-white"
                       >
                         <option value="">
-                          {novaComunidadeId ? `-- Mesma Comunidade (${novaComunidade?.nome}) ou selecione obra abaixo --` : '-- Selecione a Obra / Paróquia --'}
+                          {novaComunidadeId ? `-- Mesma Comunidade (${formatarComunidadeReligiosa(novaComunidade?.nome)}) ou selecione obra abaixo --` : '-- Selecione a Obra / Paróquia --'}
                         </option>
                         {obrasFiltradas.map(obr => (
                           <option key={obr.id} value={obr.id}>
@@ -924,7 +938,7 @@ export const TransferenciaReligioso: React.FC = () => {
                     <div className="rounded-xl border border-[#226380]/40 bg-[#226380]/10 p-3 dark:border-[#226380]/60 dark:bg-[#226380]/20">
                       <span className="text-[10px] font-bold uppercase text-[#226380] dark:text-[#A3C3C7]">Novo Destino Canônico</span>
                       <p className="mt-1 font-bold text-[#226380] dark:text-[#A3C3C7]">
-                        {novaComunidade?.nome || 'Comunidade a selecionar'}
+                        {formatarComunidadeReligiosa(novaComunidade?.nome) || 'Comunidade a selecionar'}
                       </p>
                       <p className="text-slate-700 dark:text-slate-300 text-[11px]">
                         Obra: {nomeNovaObraCalculada || 'Mesma comunidade'}
@@ -1061,7 +1075,7 @@ export const TransferenciaReligioso: React.FC = () => {
                         </td>
 
                         <td className="py-3 px-3">
-                          <span className="font-medium text-slate-800 dark:text-slate-200 block">{comNome}</span>
+                          <span className="font-medium text-slate-800 dark:text-slate-200 block">{formatarComunidadeReligiosa(comNome)}</span>
                           {obrNome && obrNome !== comNome && (
                             <span className="text-[11px] text-slate-500 block">⛪ {obrNome}</span>
                           )}

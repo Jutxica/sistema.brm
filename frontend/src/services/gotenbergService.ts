@@ -70,6 +70,8 @@ export interface DadosFichaReligioso {
   filiacaoPai?: string;
   filiacaoMae?: string;
   fotoUrl?: string | null;
+  lemaPrincipal?: string;
+  lemaPrincipalFase?: string;
 
   // Contatos e Residência
   comunidadeAtualNome?: string;
@@ -941,6 +943,11 @@ export const gotenbergService = {
             <h2 style="font-size: 17pt; font-weight: bold; margin: 2px 0; color: #113240; letter-spacing: -0.01em;">
               ${nomeExibido}
             </h2>
+            ${dados.lemaPrincipal ? `
+              <div style="font-size: 9.5pt; font-style: italic; color: #226380; margin: 2px 0 3px 0; font-family: 'Cinzel', serif;">
+                ${dados.lemaPrincipal} ${dados.lemaPrincipalFase ? `<span style="font-size: 7.5pt; font-style: normal; font-family: sans-serif; text-transform: uppercase; color: #64748b; margin-left: 6px;">(${dados.lemaPrincipalFase})</span>` : ''}
+              </div>
+            ` : ''}
             <div style="font-size: 9pt; color: #475569;">
               Nome Civil: <strong>${dados.nomeCivil}</strong>
             </div>

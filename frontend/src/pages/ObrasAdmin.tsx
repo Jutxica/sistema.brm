@@ -32,6 +32,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import { formatarComunidadeReligiosa } from '../lib/religiosoNome';
 
 export interface ComunidadeRef {
   id: string;
@@ -946,7 +947,7 @@ export const ObrasAdmin: React.FC = () => {
                         {item.comunidade ? (
                           <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 pt-0.5">
                             <Building className="w-3 h-3 text-slate-400 shrink-0" />
-                            <span className="font-medium text-slate-800 dark:text-slate-200">{item.comunidade.nome}</span>
+                            <span className="font-medium text-slate-800 dark:text-slate-200">{formatarComunidadeReligiosa(item.comunidade.nome)}</span>
                             {item.comunidade.regiao && (
                               <>
                                 <span className="text-slate-300 dark:text-slate-600">•</span>

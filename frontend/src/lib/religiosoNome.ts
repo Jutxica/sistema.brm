@@ -94,35 +94,33 @@ export function formatarComunidadeReligiosa(
   comunidadeOuTerritorio?: string | null,
   obraOuCasa?: string | null
 ): string {
-  if (obraOuCasa && obraOuCasa.trim()) {
-    return obraOuCasa.trim();
+  let target = (comunidadeOuTerritorio || '').trim();
+  if (obraOuCasa && obraOuCasa.trim() && !target) {
+    target = obraOuCasa.trim();
   }
-
-  if (!comunidadeOuTerritorio || !comunidadeOuTerritorio.trim()) {
+  if (!target) {
     return '';
   }
 
-  let nome = comunidadeOuTerritorio.trim();
-
   // Caso específico de Rondônia
-  if (/^territorial\s+(?:de\s+)?rond[ôo]nia/i.test(nome)) {
+  if (/^territorial\s+(?:de\s+)?rond[ôo]nia/i.test(target)) {
     return 'Comunidade Dehoniana de Rondônia';
   }
 
   // Caso específico de Rio Grande do Sul
-  if (/^territorial\s+s[ãa]o\s+miguel/i.test(nome)) {
+  if (/^territorial\s+s[ãa]o\s+miguel/i.test(target)) {
     return 'Comunidade Dehoniana do Rio Grande do Sul';
   }
 
   // Casos territoriais gerais: converte "Territorial X" em "Comunidade X"
-  if (/^territorial\s+/i.test(nome)) {
-    return nome.replace(/^territorial\s+/i, 'Comunidade ');
+  if (/^territorial\s*[-–:]*\s*/i.test(target)) {
+    return target.replace(/^territorial\s*[-–:]*\s*/i, 'Comunidade ');
   }
 
   // Casos "Local X": converte para "Comunidade X"
-  if (/^local\s+/i.test(nome)) {
-    return nome.replace(/^local\s+/i, 'Comunidade ');
+  if (/^local\s*[-–:]*\s*/i.test(target)) {
+    return target.replace(/^local\s*[-–:]*\s*/i, 'Comunidade ');
   }
 
-  return nome;
+  return target;
 }

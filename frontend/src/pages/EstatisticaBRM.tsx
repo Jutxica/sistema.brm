@@ -2,10 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { 
   BarChart3, Users, Award, HeartPulse, Building, Calendar, 
   Printer, RefreshCw, BookOpen, UserCheck, ShieldAlert,
-  GraduationCap, ChevronRight, Activity, MapPin, Church
+  GraduationCap, ChevronRight, Activity, MapPin, Church, Building2
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAnimatedNumber } from '../hooks/useMotion';
+import { formatarComunidadeReligiosa } from '../lib/religiosoNome';
 
 const AnimatedStat: React.FC<{ value: number }> = ({ value }) => {
   const animated = useAnimatedNumber(value);
@@ -285,7 +286,7 @@ export const EstatisticaBRM: React.FC = () => {
   const comunidadesCount = useMemo(() => {
     const counts: Record<string, number> = {};
     enrichedList.forEach(r => {
-      const com = (r.comunidade_atual_nome || 'Sem Comunidade Alocada').trim();
+      const com = (formatarComunidadeReligiosa(r.comunidade_atual_nome) || 'Sem Comunidade Alocada').trim();
       counts[com] = (counts[com] || 0) + 1;
     });
     return Object.entries(counts).sort((a, b) => b[1] - a[1]);
@@ -624,7 +625,7 @@ export const EstatisticaBRM: React.FC = () => {
                 return (
                   <div key={comunidade} className="py-3 flex items-center justify-between text-xs transition-colors hover:bg-slate-50/50 dark:hover:bg-white/[0.01]">
                     <div className="flex items-center gap-2.5 min-w-0 pr-4">
-                      <MapPin className="w-3.5 h-3.5 text-[#226380] shrink-0" />
+                      <Building2 className="w-3.5 h-3.5 text-[#226380] shrink-0" />
                       <span className="truncate font-medium text-slate-800 dark:text-slate-200">
                         {comunidade}
                       </span>
