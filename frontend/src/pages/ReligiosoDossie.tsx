@@ -1794,7 +1794,7 @@ export const ReligiosoDossie: React.FC = () => {
 
               {/* Informação sobre atualização e transferência */}
               <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/20 p-3 border border-emerald-200 dark:border-emerald-900/40 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-start gap-2">
-                <Sparkles className="h-4 w-4 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
+                <Globe className="h-4 w-4 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
                 <span>
                   Ao confirmar, o site oficial atualizará imediatamente o perfil biográfico individual e o card com foto e cargo na equipe da comunidade selecionada.
                 </span>

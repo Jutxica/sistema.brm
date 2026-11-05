@@ -56,9 +56,7 @@ const Card: React.FC<{
     className="group flex min-h-44 flex-col justify-between rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[#226380]/50 hover:shadow-md dark:border-slate-800 dark:bg-slate-900/60"
   >
     <div className="flex items-start justify-between gap-4">
-      <span className="rounded-md bg-slate-100 p-2.5 text-[#17485b] dark:bg-slate-800 dark:text-sky-200">
-        <Icon className="h-5 w-5" />
-      </span>
+      <span className="text-[#226380] dark:text-[#A3C3C7]"><Icon className="h-5 w-5" /></span>
       {count !== undefined && (
         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-200">
           {count}
@@ -316,7 +314,7 @@ export const SecretariaDashboard: React.FC = () => {
                       <p className="truncate text-sm font-medium text-slate-900 dark:text-white">{documento.titulo}</p>
                       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{documento.categoria} · {formatDate(documento.data_documento)}</p>
                     </div>
-                    <FileText className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                    
                   </li>
                 ))}
               </ul>
@@ -332,7 +330,7 @@ export const SecretariaDashboard: React.FC = () => {
               <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                 {eventos.map(evento => (
                   <li key={evento.id} className="flex items-start gap-3 px-5 py-3.5">
-                    <span className="mt-0.5 rounded-md bg-slate-100 p-2 text-[#17485b] dark:bg-slate-800 dark:text-sky-200"><CalendarDays className="h-4 w-4" /></span>
+                    
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-slate-900 dark:text-white">{evento.titulo}</p>
                       <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500 dark:text-slate-400">

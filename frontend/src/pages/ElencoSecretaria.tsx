@@ -583,9 +583,9 @@ export const ElencoSecretaria: React.FC = () => {
       </header>
 
       <section className="grid gap-3 sm:grid-cols-3">
-        <ResumoCard label="Religiosos ativos" valor={situacoes.ativos} icon={<Users className="h-4 w-4" />} />
-        <ResumoCard label="Ausentes" valor={situacoes.ausentes} icon={<CircleAlert className="h-4 w-4" />} />
-        <ResumoCard label="Designações vigentes" valor={situacoes.designacoes} icon={<Building2 className="h-4 w-4" />} />
+        <ResumoCard label="Religiosos ativos" valor={situacoes.ativos} />
+        <ResumoCard label="Ausentes" valor={situacoes.ausentes} />
+        <ResumoCard label="Designações vigentes" valor={situacoes.designacoes} />
       </section>
 
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#161b22]">
@@ -752,7 +752,7 @@ export const ElencoSecretaria: React.FC = () => {
                   <tr key={religioso.id} className="align-top hover:bg-slate-50/70 dark:hover:bg-white/[0.02]">
                     <td className="px-4 py-4">
                       <div className="flex items-start gap-3">
-                        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-300"><UserRound className="h-4 w-4" /></span>
+                        
                         <div>
                           <p className="font-semibold text-slate-900 dark:text-white">{nomeExibido(religioso)}</p>
                           <p className="mt-0.5 text-xs text-slate-500">
@@ -984,9 +984,7 @@ export const ElencoSecretaria: React.FC = () => {
             {/* Header */}
             <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4 dark:border-slate-800">
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600 dark:bg-sky-950/50 dark:text-sky-300">
-                  <Globe className="h-5 w-5" />
-                </span>
+                
                 <div>
                   <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
                     Integração Pública • Site Provincial
@@ -1244,10 +1242,10 @@ const Campo: React.FC<{ label: string; children: React.ReactNode }> = ({ label, 
   </label>
 );
 
-const ResumoCard: React.FC<{ label: string; valor: number; icon: React.ReactNode }> = ({ label, valor, icon }) => (
-  <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#161b22]">
-    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#113240]/[0.07] text-[#113240] dark:bg-[#226380]/20 dark:text-[#a3c3c7]">{icon}</span>
-    <div><p className="text-2xl font-semibold leading-none text-slate-900 dark:text-white">{valor}</p><p className="mt-1.5 text-xs text-slate-500">{label}</p></div>
+const ResumoCard: React.FC<{ label: string; valor: number }> = ({ label, valor }) => (
+  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#161b22]">
+    <p className="text-[11px] font-cinzel font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">{label}</p>
+    <p className="mt-2 text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 dark:text-white tabular-nums">{valor}</p>
   </div>
 );
 

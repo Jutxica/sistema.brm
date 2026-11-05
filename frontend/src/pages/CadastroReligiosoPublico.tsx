@@ -2116,9 +2116,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
             <div className="mb-8 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161b22]">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-white/5 pb-4">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#226380]/10 text-[#226380] dark:bg-[#68a9c7]/15 dark:text-[#68a9c7]">
-                    <Camera className="h-5 w-5" />
-                  </span>
+                  
                   <div>
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                       Fotografias Oficiais do Religioso
@@ -2340,9 +2338,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
             <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161b22]">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-white/5 pb-4">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#226380]/10 text-[#226380] dark:bg-[#68a9c7]/15 dark:text-[#68a9c7]">
-                    <Quote className="h-5 w-5" />
-                  </span>
+                  
                   <div>
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                       <span>Lema Vocacional e Ministerial</span>

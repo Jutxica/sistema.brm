@@ -447,9 +447,6 @@ CREATE POLICY governo_provincial_all ON public.governo_provincial FOR ALL USING 
       <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between dark:border-slate-800">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="flex h-6 w-6 items-center justify-center rounded bg-[#113240] text-amber-300 dark:bg-sky-950">
-              <Landmark className="h-3.5 w-3.5" />
-            </span>
             <p className="text-[11px] font-cinzel font-semibold uppercase tracking-[0.16em] text-[#226380] dark:text-[#A3C3C7]">
               Secretaria Provincial • Cúria BRM
             </p>
@@ -595,9 +592,6 @@ CREATE POLICY governo_provincial_all ON public.governo_provincial FOR ALL USING 
           <div className="rounded-xl border border-sky-200/80 bg-gradient-to-r from-sky-50 via-white to-sky-50/50 p-4 sm:p-5 shadow-sm dark:border-sky-900/40 dark:bg-gradient-to-r dark:from-sky-950/20 dark:via-[#161b22] dark:to-sky-950/10">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#113240] text-amber-300 shadow dark:bg-sky-900">
-                  <Crown className="h-6 w-6" />
-                </div>
                 <div>
                   <h3 className="font-cinzel text-base font-bold text-slate-900 dark:text-white">
                     Composição Oficial do Triênio {trienioSelecionado}

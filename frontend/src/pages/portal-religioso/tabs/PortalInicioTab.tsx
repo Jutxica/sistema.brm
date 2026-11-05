@@ -128,9 +128,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
                 Próximo compromisso
               </h3>
             </div>
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7]">
-              <Calendar className="h-5 w-5" aria-hidden="true" />
-            </span>
+            
           </div>
           {proximoEvento ? (
             <>
@@ -212,9 +210,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
                   onClick={() => navigateToSection(item.id)}
                   className="flex min-h-32 flex-col items-start justify-between rounded-xl border border-[#d6d6d6]/60 bg-white p-4 text-left transition-colors hover:border-[#226380]/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#226380] dark:border-white/10 dark:bg-[#161617]"
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7]">
-                    <Icon className="h-5 w-5" aria-hidden="true" />
-                  </span>
+                  
                   <span>
                     <span className="block text-sm font-semibold text-[#1d1d1f] dark:text-white">{item.label}</span>
                     <span className="mt-0.5 block text-[11px] text-[#707070] dark:text-[#a1a1a6]">{item.detail}</span>
@@ -315,9 +311,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
             className="rounded-xl sm:rounded-xl bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#226380]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
           >
             <div>
-              <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#226380] mb-3 group-hover:scale-105 transition-transform">
-                <User className="w-5 h-5" />
-              </div>
+              
               <span className="text-[10px] font-semibold tracking-wider text-[#707070] dark:text-[#86868b] block mb-1">
                 01 / CADASTRO PESSOAL
               </span>
@@ -340,9 +334,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
             className="w-full text-left rounded-xl bg-white dark:bg-[#161617] p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#226380]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
           >
             <div>
-              <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#226380] mb-3 group-hover:scale-105 transition-transform">
-                <FileText className="w-5 h-5" />
-              </div>
+              
               <span className="text-[10px] font-semibold tracking-wider text-[#707070] dark:text-[#86868b] block mb-1">
                 02 / CANÔNICO
               </span>
@@ -363,9 +355,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
             className="rounded-xl sm:rounded-xl bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#226380]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
           >
             <div>
-              <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#226380] mb-3 group-hover:scale-105 transition-transform">
-                <FileText className="w-5 h-5" />
-              </div>
+              
               <span className="text-[10px] font-semibold tracking-wider text-[#707070] dark:text-[#86868b] block mb-1">
                 03 / DOCUMENTOS
               </span>
@@ -386,9 +376,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
             className="rounded-xl sm:rounded-xl bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#226380]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
           >
             <div>
-              <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#226380] mb-3 group-hover:scale-105 transition-transform">
-                <Printer className="w-5 h-5" />
-              </div>
+              
               <span className="text-[10px] font-semibold tracking-wider text-[#707070] dark:text-[#86868b] block mb-1">
                 04 / IMPRESSÃO
               </span>
@@ -409,9 +397,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
             className="rounded-xl sm:rounded-xl bg-white dark:bg-[#161617] p-4 sm:p-5 border border-[#d6d6d6]/60 dark:border-white/10 hover:border-[#226380]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)] cursor-pointer group flex flex-col justify-between motion-lift motion-press motion-stagger-item"
           >
             <div>
-              <div className="w-10 h-10 rounded-[14px] bg-[#f5f5f7] dark:bg-[#262628] flex items-center justify-center text-[#226380] mb-3 group-hover:scale-105 transition-transform">
-                <BookOpen className="w-5 h-5" />
-              </div>
+              
               <span className="text-[9px] sm:text-[10px] font-semibold tracking-wider text-[#707070] dark:text-[#86868b] block mb-1">
                 05 / DIRETÓRIO
               </span>
@@ -448,8 +434,14 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
               </div>
               <div className="flex justify-between py-3">
                 <span className="text-[#707070] dark:text-[#86868b]">Comunidade Atual</span>
-                <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{religiosoData?.comunidade_atual_nome || 'A definir'}</span>
+                <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{formatarComunidadeReligiosa(religiosoData?.comunidade_atual_nome) || 'A definir'}</span>
               </div>
+              {religiosoData?.obra_atual_nome && (
+                <div className="flex justify-between py-3">
+                  <span className="text-[#707070] dark:text-[#86868b]">Obra / Paróquia</span>
+                  <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{religiosoData.obra_atual_nome}</span>
+                </div>
+              )}
               <div className="flex justify-between py-3">
                 <span className="text-[#707070] dark:text-[#86868b]">E-mail Institucional</span>
                 <span className="font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">{religiosoData?.email_institucional || userEmail}</span>

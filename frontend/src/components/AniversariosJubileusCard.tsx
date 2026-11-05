@@ -439,15 +439,12 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 p-4 sm:px-6 dark:border-slate-800">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-300">
-              <Cake className="h-4 w-4" />
-            </span>
+            
             <div>
               <h2 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                 Jubileus & Aniversários do Mês
                 {jubileusDestaque.length > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900 dark:bg-amber-900/40 dark:text-amber-200">
-                    <Sparkles className="h-3 w-3" />
                     {jubileusDestaque.length} Jubileu{jubileusDestaque.length > 1 ? 's' : ''}
                   </span>
                 )}
@@ -515,7 +512,6 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
       {jubileusDestaque.length > 0 && (
         <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-b border-amber-200/60 dark:border-amber-800/40 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-amber-900 dark:text-amber-200 uppercase tracking-wide">
-            <Sparkles className="h-3.5 w-3.5 text-amber-600" />
             Jubilares em Destaque neste Mês:
           </div>
           <div className="flex flex-wrap gap-2">

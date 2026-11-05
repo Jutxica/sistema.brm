@@ -385,44 +385,36 @@ export const Inicio: React.FC = () => {
 const MetricCard: React.FC<{ 
   label: string; 
   value: number; 
-  icon: React.ElementType; 
-  tone: 'blue' | 'amber' | 'rose' | 'emerald' | 'indigo'; 
+  icon?: React.ElementType; 
+  tone?: 'blue' | 'amber' | 'rose' | 'emerald' | 'indigo'; 
   href: string;
   highlight?: boolean;
   index?: number;
-}> = ({ label, value, icon: Icon, tone, href, highlight, index = 0 }) => {
+}> = ({ label, value, href, highlight, index = 0 }) => {
   const animatedValue = useAnimatedNumber(value);
-  const toneStyles = {
-    blue: 'bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300',
-    amber: 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300',
-    rose: 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300',
-    emerald: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300',
-    indigo: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300',
-  };
   return (
     <Link 
       to={href} 
       style={staggerStyle(index)}
-      className={`group flex min-h-36 flex-col justify-between rounded-xl border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:bg-[#161b22] sm:p-5 motion-stagger-item
+      className={`group flex min-h-32 flex-col justify-between rounded-xl border bg-white p-4.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:bg-[#161b22] sm:p-5 motion-stagger-item
         ${highlight 
           ? 'border-amber-300 ring-1 ring-amber-100 dark:border-amber-800 dark:ring-amber-950'
           : 'border-slate-200/90 hover:border-slate-300 dark:border-white/10 dark:hover:border-white/20'}`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <span className="text-xs font-medium leading-snug text-slate-600 dark:text-slate-400">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-cinzel font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
           {label}
         </span>
-        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${toneStyles[tone]}`}>
-          <Icon className="h-4 w-4" />
-        </span>
         {highlight && (
-          <span className="sr-only">Requer atenção</span>
+          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-200">
+            Atenção
+          </span>
         )}
       </div>
-      <p className="mt-4 text-3xl font-semibold tracking-tight text-[#17333d] dark:text-white tabular-nums">
+      <p className="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight text-[#113240] dark:text-white tabular-nums">
         {animatedValue}
       </p>
-      <div className="mt-3 flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800/80 pt-2 text-xs text-slate-500 dark:text-slate-400">
         <span>{highlight ? 'Aguardando ação' : 'Ver detalhes'}</span>
         <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
       </div>
