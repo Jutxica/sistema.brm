@@ -3,7 +3,8 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { 
   Home, ClipboardList, Settings, Users, LogOut, ChevronLeft, ChevronRight, 
   Building, UserRound, ChevronDown, Plus, Church, Landmark, Layers, BarChart3,
-  FileText, Calendar, Car, ShieldCheck, Wrench, History, Archive, Send, LayoutDashboard, X, FolderOpen, ArrowRightLeft
+  FileText, Calendar, Car, ShieldCheck, Wrench, History, Archive, Send, LayoutDashboard, X, FolderOpen, ArrowRightLeft,
+  Megaphone
 } from 'lucide-react';
 import { useAuth as useAuthHook, hasModuleAccess } from '../contexts/AuthContext';
 
@@ -199,6 +200,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
               {canAccessConfiguracoes && <SidebarSubLink to="/hospedagens-configuracoes" label="Configurações" icon={Settings} collapsed={collapsed} />}
             </SidebarGroup>
           )}
+
+          {/* 7. Comunicação & Mídia */}
+          <li>
+            <NavLink
+              to="/comunicacao"
+              title={collapsed ? 'Comunicação & Mídia' : undefined}
+              className={({ isActive }) =>
+                `brm-sidebar-link flex min-h-10 items-center gap-3 rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors group ${
+                  isActive 
+                    ? 'border-[#226380]/10 bg-[#226380] text-white shadow-sm dark:border-[#A3C3C7]/15 dark:bg-[#226380] dark:text-white'
+                    : 'border-transparent text-[#52636a] hover:bg-slate-100 hover:text-[#17333d] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white'}`
+              }
+            >
+              <Megaphone className="w-4 h-4 shrink-0 transition-transform group-hover:scale-105" />
+              {!collapsed && <span className="truncate">Comunicação & Mídia</span>}
+            </NavLink>
+          </li>
 
           {/* 5. Usuários */}
           {canAccessUsuarios && (

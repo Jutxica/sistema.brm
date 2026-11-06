@@ -43,6 +43,7 @@ const ArquivoSecretaria = lazy(() => import('./pages/ArquivoSecretaria'));
 const SecretariaDashboard = lazy(() => import('./pages/SecretariaDashboard'));
 const ReligiosoDossie = lazy(() => import('./pages/ReligiosoDossie'));
 const RedefinirSenha = lazy(() => import('./pages/RedefinirSenha'));
+const ComunicacaoAdmin = lazy(() => import('./pages/ComunicacaoAdmin'));
 
 // Apple Loading Spinner Fallback
 const AppleLoadingFallback: React.FC = () => (
@@ -232,6 +233,7 @@ export const App: React.FC = () => {
                 <Route path="/formularios/:id" element={<FormularioPublicoInscricao />} />
                 <Route path="/validar" element={<ValidarDocumento />} />
                 <Route path="/validar/:codigo" element={<ValidarDocumento />} />
+                <Route path="/comunicacao" element={<ComunicacaoAdmin />} />
 
                 {/* Private Administrative Workspace */}
                 <Route
