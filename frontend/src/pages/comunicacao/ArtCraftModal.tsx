@@ -26,8 +26,8 @@ export const ArtCraftModal: React.FC<ArtCraftModalProps> = ({
 
   const appTitle = tipo === 'photocraft' ? 'PhotoCraft · Editor de Imagens e PSD' : 'VectorCraft · Editor de Vetores e Ilustrações';
   const iframeUrl = tipo === 'photocraft' 
-    ? 'https://getartcraft.com/apps' 
-    : 'https://getartcraft.com/apps';
+    ? '/photocraft/index.html' 
+    : 'https://getartcraft.com/apps/vectorcraft';
 
   const handleSalvar = () => {
     setSalvando(true);
@@ -72,14 +72,14 @@ export const ArtCraftModal: React.FC<ArtCraftModalProps> = ({
 
           <div className="flex items-center gap-2">
             <a
-              href="https://getartcraft.com/apps"
+              href={tipo === 'photocraft' ? 'https://github.com/storytold/photocraft' : 'https://getartcraft.com/apps/vectorcraft'}
               target="_blank"
               rel="noopener noreferrer"
               className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#86868b] hover:text-white rounded-lg border border-white/10 hover:bg-white/5 transition-colors"
-              title="Abrir GetArtCraft em nova aba"
+              title={tipo === 'photocraft' ? 'Abrir repositório PhotoCraft no GitHub' : 'Abrir VectorCraft'}
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              <span>getartcraft.com</span>
+              <span>{tipo === 'photocraft' ? 'PhotoCraft (GitHub)' : 'VectorCraft'}</span>
             </a>
 
             <button
