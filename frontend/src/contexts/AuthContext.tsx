@@ -50,11 +50,11 @@ const getCachedUser = (): User | null => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Inicialização síncrona a partir do cache local para entrada instantânea (0ms / direto)
-  const initialCachedUser = getCachedUser();
-  const [user, setUser] = useState<User | null>(initialCachedUser);
-  const [loading, setLoading] = useState<boolean>(() => !initialCachedUser);
-  const currentUserIdRef = useRef<string | null>(initialCachedUser?.id || null);
+  const [user, setUser] = useState<User | null>(null);
+  // Inicia em loading=true para garantir que o cliente Supabase esteja sincronizado com a sessão
+  // antes de qualquer componente disparar queries com RLS no banco de dados.
+  const [loading, setLoading] = useState<boolean>(true);
+  const currentUserIdRef = useRef<string | null>(null);
 
   const saveUser = (newUser: User | null) => {
     setUser(newUser);
@@ -154,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           religiosoNome,
           religiosoGrau,
           religiosoStatusCadastro,
-          isReligioso: true,
+          isReligioso,
           isAdmin: false,
           precisaTrocarSenha,
         });
@@ -237,12 +237,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let isMounted = true;
 
-    // Escutar mudanças de autenticação
+    // Inicialização da sessão com sincronização do cliente Supabase
+    const initAuth = async () => {
+      try {
+        // 1. Aguarda a leitura da sessão local pelo Supabase (leva ~2ms).
+        // Isso anexa o token Bearer ao cliente HTTP do Supabase, garantindo que
+        // nenhuma query com RLS (ex: religiosos, estatísticas) seja enviada como anônima.
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!isMounted) return;
+
+        if (session?.user) {
+          const sessionUserId = session.user.id;
+          const sessionUserEmail = session.user.email || '';
+          const sessionUserMeta = session.user.user_metadata;
+
+          currentUserIdRef.current = sessionUserId;
+
+          // 2. Se temos cache válido deste usuário, libera a tela de imediato (~2ms)
+          const cached = getCachedUser();
+          if (cached && cached.id === sessionUserId) {
+            setUser(cached);
+            setLoading(false);
+
+            // Revalidação em segundo plano sem travar a interface
+            void fetchUserProfile(sessionUserId, sessionUserEmail, sessionUserMeta);
+            return;
+          }
+
+          // 3. Caso não haja cache (primeiro acesso), busca o perfil e libera
+          await fetchUserProfile(sessionUserId, sessionUserEmail, sessionUserMeta);
+          if (isMounted) {
+            setLoading(false);
+          }
+        } else {
+          // Sem sessão ativa no Supabase
+          saveUser(null);
+          if (isMounted) {
+            setLoading(false);
+          }
+        }
+      } catch (err) {
+        console.error('Falha na inicialização da autenticação:', err);
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void initAuth();
+
+    // Escutar mudanças de autenticação posteriores (login, logout, refresh de token)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
 
       // 1. Caso de renovação periódica de token ou retorno do foco na aba (visibilitychange):
-      // NUNCA ative loading e não recarregue perfil desnecessariamente, preservando formulários e telas ativas.
+      // NUNCA ativa loading e não desmonta telas nem formulários
       if (event === 'TOKEN_REFRESHED') {
         return;
       }
@@ -268,31 +317,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // 4. Caso seja a carga inicial da sessão ou uma troca legítima de usuário:
+      currentUserIdRef.current = sessionUserId;
       await fetchUserProfile(sessionUserId, sessionUserEmail, sessionUserMetadata);
       if (isMounted) {
         setLoading(false);
-      }
-    });
-
-    // Fallback de inicialização de sessão caso o listener demore a disparar
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!isMounted) return;
-      if (!session?.user) {
-        // Se a sessão expirou no Supabase, limpa o cache
-        if (isMounted) {
-          saveUser(null);
-          setLoading(false);
-        }
-      } else if (!currentUserIdRef.current || currentUserIdRef.current !== session.user.id) {
-        await fetchUserProfile(session.user.id, session.user.email || '', session.user.user_metadata);
-        if (isMounted) {
-          setLoading(false);
-        }
-      } else {
-        // Sessão confirmada e usuário já ativo via cache instantâneo
-        if (isMounted) {
-          setLoading(false);
-        }
       }
     });
 
