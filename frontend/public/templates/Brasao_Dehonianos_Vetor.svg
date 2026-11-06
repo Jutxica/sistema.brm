@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
+  <defs>
+    <style>
+      .bg-escudo { fill: #113240; }
+      .borda-escudo { stroke: #d4af37; stroke-width: 12; fill: none; }
+      .cruz { fill: #ffffff; }
+      .coracao { fill: #9b1b1b; }
+      .texto { font-family: 'Cinzel', serif; font-size: 28px; fill: #d4af37; text-anchor: middle; font-weight: bold; }
+    </style>
+  </defs>
+  <!-- Escudo Heráldico Dehoniano BRM -->
+  <path d="M 120 80 Q 300 60 480 80 L 480 320 C 480 440 300 520 300 520 C 300 520 120 440 120 320 Z" class="bg-escudo" />
+  <path d="M 120 80 Q 300 60 480 80 L 480 320 C 480 440 300 520 300 520 C 300 520 120 440 120 320 Z" class="borda-escudo" />
+  
+  <!-- Cruz Central -->
+  <rect x="280" y="140" width="40" height="240" rx="4" class="cruz" />
+  <rect x="180" y="200" width="240" height="40" rx="4" class="cruz" />
+
+  <!-- Sagrado Coração -->
+  <path d="M300 230 C 285 195, 245 205, 245 245 C 245 280, 300 325, 300 325 C 300 325, 355 280, 355 245 C 355 205, 315 195, 300 230 Z" class="coracao" />
+
+  <!-- Inscrição Institucional SCJ BRM -->
+  <text x="300" y="470" class="texto">PROVÍNCIA BRM · SCJ</text>
+</svg>

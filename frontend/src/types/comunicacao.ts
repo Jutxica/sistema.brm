@@ -145,13 +145,15 @@ export interface ComunicacaoEmailEquipe {
 
 export interface ComunicacaoBrandAsset {
   id: string;
-  tipo: 'cor' | 'tipografia' | 'logo' | 'template' | 'textura';
+  tipo: 'cor' | 'tipografia' | 'logo' | 'template' | 'textura' | 'psd' | 'vetor' | 'foto';
   nome: string;
   valor: string;
   categoria?: string | null;
   descricao?: string | null;
   arquivo_url?: string | null;
   psd_ou_vetor_url?: string | null;
+  extensao?: string | null;
+  tamanho?: string | null;
   created_at: string;
 }
 

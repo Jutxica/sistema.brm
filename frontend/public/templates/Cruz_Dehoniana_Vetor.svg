@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+  <defs>
+    <style>
+      .cor-dehoniana { fill: #226380; }
+      .cor-destaque { fill: #9b1b1b; }
+      .cor-dourado { fill: #d4af37; }
+    </style>
+  </defs>
+  <!-- Cruz Dehoniana Estilizada Oficial BRM -->
+  <rect x="220" y="30" width="60" height="440" rx="6" class="cor-dehoniana" />
+  <rect x="80" y="140" width="340" height="60" rx="6" class="cor-dehoniana" />
+  <!-- Sagrado Coração Central -->
+  <path d="M250 200 C 230 160, 180 170, 180 220 C 180 260, 250 310, 250 310 C 250 310, 320 260, 320 220 C 320 170, 270 160, 250 200 Z" class="cor-destaque" />
+  <!-- Chamas / Raio Litúrgico Superior -->
+  <circle cx="250" cy="180" r="14" class="cor-dourado" />
+</svg>

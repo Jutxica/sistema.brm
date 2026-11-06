@@ -335,16 +335,115 @@ export async function getEmailsEquipe(): Promise<ComunicacaoEmailEquipe[]> {
 // ==========================================
 // 8. Brand Assets (Estúdio de Arte)
 // ==========================================
-export async function getBrandAssets(): Promise<ComunicacaoBrandAsset[]> {
-  const { data, error } = await supabase
-    .from('comunicacao_brand_assets')
-    .select('*')
-    .order('created_at', { ascending: true });
+const BRAND_ASSETS_STORAGE_KEY = 'brm_comunicacao_brand_assets';
 
-  if (error || !data || data.length === 0) {
-    return MOCK_BRAND_ASSETS;
+export async function getBrandAssets(): Promise<ComunicacaoBrandAsset[]> {
+  try {
+    const { data, error } = await supabase
+      .from('comunicacao_brand_assets')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (!error && data && data.length > 0) {
+      return data as ComunicacaoBrandAsset[];
+    }
+  } catch {
+    // Modo offline
   }
-  return data as ComunicacaoBrandAsset[];
+
+  // Tentar carregar do localStorage para persistência em ambiente local
+  if (typeof window !== 'undefined') {
+    try {
+      const salvo = localStorage.getItem(BRAND_ASSETS_STORAGE_KEY);
+      if (salvo) {
+        const parsed = JSON.parse(salvo);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+      localStorage.setItem(BRAND_ASSETS_STORAGE_KEY, JSON.stringify(MOCK_BRAND_ASSETS));
+    } catch {
+      // Ignorar erro de localStorage
+    }
+  }
+
+  return MOCK_BRAND_ASSETS;
+}
+
+export async function createBrandAsset(asset: Partial<ComunicacaoBrandAsset>): Promise<ComunicacaoBrandAsset | null> {
+  const novo: ComunicacaoBrandAsset = {
+    id: `ba-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    tipo: asset.tipo || 'logo',
+    nome: asset.nome || 'Novo Arquivo',
+    valor: asset.valor || '',
+    categoria: asset.categoria || 'Geral',
+    descricao: asset.descricao || '',
+    arquivo_url: asset.arquivo_url || asset.valor,
+    psd_ou_vetor_url: asset.psd_ou_vetor_url,
+    extensao: asset.extensao || 'png',
+    tamanho: asset.tamanho || '1.2 MB',
+    created_at: new Date().toISOString()
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from('comunicacao_brand_assets')
+      .insert([asset])
+      .select()
+      .single();
+
+    if (!error && data) {
+      const res = data as ComunicacaoBrandAsset;
+      if (typeof window !== 'undefined') {
+        const atual = await getBrandAssets();
+        localStorage.setItem(BRAND_ASSETS_STORAGE_KEY, JSON.stringify([res, ...atual.filter(a => a.id !== res.id)]));
+      }
+      return res;
+    }
+  } catch {
+    // offline
+  }
+
+  // Salvar no localStorage local
+  if (typeof window !== 'undefined') {
+    try {
+      const atual = await getBrandAssets();
+      const atualizado = [novo, ...atual];
+      localStorage.setItem(BRAND_ASSETS_STORAGE_KEY, JSON.stringify(atualizado));
+    } catch {
+      // Ignorar erro de localStorage
+    }
+  }
+
+  return novo;
+}
+
+export async function deleteBrandAsset(id: string): Promise<boolean> {
+  try {
+    await supabase
+      .from('comunicacao_brand_assets')
+      .delete()
+      .eq('id', id);
+  } catch {
+    // offline
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      const salvo = localStorage.getItem(BRAND_ASSETS_STORAGE_KEY);
+      if (salvo) {
+        const parsed = JSON.parse(salvo);
+        if (Array.isArray(parsed)) {
+          const filtrado = parsed.filter(a => a.id !== id);
+          localStorage.setItem(BRAND_ASSETS_STORAGE_KEY, JSON.stringify(filtrado));
+        }
+      }
+    } catch {
+      // Ignorar erro de localStorage
+    }
+  }
+
+  return true;
 }
 
 // ==========================================
@@ -736,13 +835,14 @@ const MOCK_EMAILS: ComunicacaoEmailEquipe[] = [
 ];
 
 const MOCK_BRAND_ASSETS: ComunicacaoBrandAsset[] = [
+  // Cores
   {
     id: 'ba-1',
     tipo: 'cor',
     nome: 'Azul Primário BRM',
     valor: '#226380',
     categoria: 'Paleta Oficial',
-    descricao: 'Cor principal da Província BRM para títulos e elementos de destaque',
+    descricao: 'Cor principal da Província BRM para títulos e destaques',
     created_at: new Date().toISOString()
   },
   {
@@ -773,22 +873,188 @@ const MOCK_BRAND_ASSETS: ComunicacaoBrandAsset[] = [
     created_at: new Date().toISOString()
   },
   {
+    id: 'ba-c5',
+    tipo: 'cor',
+    nome: 'Verde Esperança Pastoral',
+    valor: '#047857',
+    categoria: 'Liturgia',
+    descricao: 'Tempo Comum e ações sociais da Província',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'ba-c6',
+    tipo: 'cor',
+    nome: 'Roxo Litúrgico Penitencial',
+    valor: '#581c87',
+    categoria: 'Liturgia',
+    descricao: 'Tempo de Quaresma, Advento e sufrágios da congregação',
+    created_at: new Date().toISOString()
+  },
+
+  // Logotipos
+  {
     id: 'ba-5',
     tipo: 'logo',
-    nome: 'Brasão Província BRM (Vetor Oficial)',
-    valor: '/logo-brm.png',
+    nome: 'Brasão Oficial Padres Dehonianos (SCJ)',
+    valor: '/brasao-dehonianos.png',
+    arquivo_url: '/brasao-dehonianos.png',
     categoria: 'Logotipos',
-    descricao: 'Formato vetorial e PNG em alta transparência',
-    psd_ou_vetor_url: 'https://getartcraft.com/sample.svg',
+    extensao: 'png',
+    tamanho: '141 KB',
+    descricao: 'Insígnia oficial colorida da Congregação dos Padres do Sagrado Coração de Jesus',
     created_at: new Date().toISOString()
   },
   {
     id: 'ba-6',
+    tipo: 'logo',
+    nome: 'Logotipo Timbrado Província BRM',
+    valor: '/logo-timbrado-brm.png',
+    arquivo_url: '/logo-timbrado-brm.png',
+    categoria: 'Logotipos',
+    extensao: 'png',
+    tamanho: '568 KB',
+    descricao: 'Versão oficial completa com brasão, inscrição e fundo timbrado em alta definição',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'ba-6b',
+    tipo: 'logo',
+    nome: 'Logotipo Oficial BRM (Branco / Fundo Transparente)',
+    valor: '/logo-branco.png',
+    arquivo_url: '/logo-branco.png',
+    categoria: 'Logotipos',
+    extensao: 'png',
+    tamanho: '35 KB',
+    descricao: 'Versão horizontal com brasão e tipografia institucional em transparência para artes escuras',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'ba-6c',
+    tipo: 'logo',
+    nome: 'Cruz Dehoniana Oficial',
+    valor: '/cruz-dehoniana.png',
+    arquivo_url: '/cruz-dehoniana.png',
+    categoria: 'Logotipos',
+    extensao: 'png',
+    tamanho: '1.2 KB',
+    descricao: 'Símbolo da cruz dehoniana com o Sagrado Coração para assinaturas de posts',
+    created_at: new Date().toISOString()
+  },
+
+  // Arquivos PSD (Photoshop / PhotoCraft)
+  {
+    id: 'ba-psd-1',
+    tipo: 'psd',
+    nome: 'Template_Feed_Instagram_1080x1080.psd',
+    valor: '/templates/Template_Feed_Instagram_1080x1080.psd',
+    arquivo_url: '/templates/Template_Feed_Instagram_1080x1080.psd',
+    psd_ou_vetor_url: '/photocraft/index.html',
+    categoria: 'Projetos PSD',
+    extensao: 'psd',
+    tamanho: '18.4 MB',
+    descricao: 'Template padrão de post quadrado para o feed com grid de margens e logo fixo',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'ba-psd-2',
+    tipo: 'psd',
+    nome: 'Template_Story_Reels_1080x1920.psd',
+    valor: '/templates/Template_Story_Reels_1080x1920.psd',
+    arquivo_url: '/templates/Template_Story_Reels_1080x1920.psd',
+    psd_ou_vetor_url: '/photocraft/index.html',
+    categoria: 'Projetos PSD',
+    extensao: 'psd',
+    tamanho: '24.1 MB',
+    descricao: 'Layout vertical para aniversariantes, avisos rápidos e capas de Reels',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'ba-psd-3',
+    tipo: 'psd',
+    nome: 'Arte_Jubileu_Sacerdotal_Editavel.psd',
+    valor: '/templates/Arte_Jubileu_Sacerdotal_Editavel.psd',
+    arquivo_url: '/templates/Arte_Jubileu_Sacerdotal_Editavel.psd',
+    psd_ou_vetor_url: '/photocraft/index.html',
+    categoria: 'Projetos PSD',
+    extensao: 'psd',
+    tamanho: '32.6 MB',
+    descricao: 'Template para celebrações de ordenação e jubileus de padres e irmãos',
+    created_at: new Date().toISOString()
+  },
+
+  // Vetores (VectorCraft / SVG)
+  {
+    id: 'ba-vet-1',
+    tipo: 'vetor',
+    nome: 'Brasao_Dehonianos_Vetor.svg',
+    valor: '/templates/Brasao_Dehonianos_Vetor.svg',
+    arquivo_url: '/templates/Brasao_Dehonianos_Vetor.svg',
+    categoria: 'Vetores',
+    extensao: 'svg',
+    tamanho: '320 KB',
+    descricao: 'Vetor escalável das insígnias e cruzes da congregação',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'ba-vet-2',
+    tipo: 'vetor',
+    nome: 'Cruz_Dehoniana_Vetor.svg',
+    valor: '/templates/Cruz_Dehoniana_Vetor.svg',
+    arquivo_url: '/templates/Cruz_Dehoniana_Vetor.svg',
+    categoria: 'Vetores',
+    extensao: 'svg',
+    tamanho: '180 KB',
+    descricao: 'Cruz dehoniana com o Sagrado Coração vazado para fundos litúrgicos',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'ba-vet-3',
+    tipo: 'vetor',
+    nome: 'Icone_Vetor_Provincia_BRM.svg',
+    valor: '/favicon.svg',
+    arquivo_url: '/favicon.svg',
+    categoria: 'Vetores',
+    extensao: 'svg',
+    tamanho: '54 KB',
+    descricao: 'Vetor de alta definição com aplicação do brasão e tipografia circular',
+    created_at: new Date().toISOString()
+  },
+
+  // Tipografias / Fontes
+  {
+    id: 'ba-7',
     tipo: 'tipografia',
-    nome: 'Cinzel Decorative & SF Pro',
-    valor: 'Cinzel, sans-serif',
+    nome: 'Instrument Serif',
+    valor: 'Instrument Serif, serif',
+    arquivo_url: 'https://fonts.google.com/specimen/Instrument+Serif',
     categoria: 'Tipografia',
-    descricao: 'Fontes oficiais para títulos solenes e leitura calma',
+    extensao: 'ttf',
+    tamanho: '450 KB',
+    descricao: 'Tipografia solene com serifa para títulos editoriais, encíclicas e citações de Pe. Dehon',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'ba-8',
+    tipo: 'tipografia',
+    nome: 'Inter Display & Text',
+    valor: 'Inter, sans-serif',
+    arquivo_url: 'https://fonts.google.com/specimen/Inter',
+    categoria: 'Tipografia',
+    extensao: 'ttf',
+    tamanho: '820 KB',
+    descricao: 'Fonte padrão sem serifa da Província BRM para leitura clara em carrosséis e posts',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'ba-9',
+    tipo: 'tipografia',
+    nome: 'Cinzel Decorative',
+    valor: 'Cinzel, serif',
+    arquivo_url: 'https://fonts.google.com/specimen/Cinzel',
+    categoria: 'Tipografia',
+    extensao: 'otf',
+    tamanho: '510 KB',
+    descricao: 'Usada exclusivamente em brasões episcopais, solenes e datas capitulares',
     created_at: new Date().toISOString()
   }
 ];

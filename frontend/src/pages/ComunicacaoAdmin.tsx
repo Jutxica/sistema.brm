@@ -194,6 +194,22 @@ export const ComunicacaoAdmin: React.FC = () => {
     }
   };
 
+  const handleAdicionarBrandAsset = async (novo: Partial<ComunicacaoBrandAsset>) => {
+    const criado = await servico.createBrandAsset(novo);
+    if (criado) {
+      setBrandAssets(prev => [criado, ...prev]);
+    }
+    return criado;
+  };
+
+  const handleExcluirBrandAsset = async (id: string) => {
+    const ok = await servico.deleteBrandAsset(id);
+    if (ok) {
+      setBrandAssets(prev => prev.filter(a => a.id !== id));
+    }
+    return ok;
+  };
+
   // Contadores para Badges no Menu
   const countAprovacao = posts.filter(p => p.status === 'aprovacao').length;
   const countPautas = pautas.filter(p => p.status === 'ideia').length;
@@ -436,8 +452,10 @@ export const ComunicacaoAdmin: React.FC = () => {
           {activeTab === 'estudio_arte' && (
             <EstudioArteView
               assets={brandAssets}
-              onAbrirPhotoCraft={() => setModalArtCraft({ aberto: true, tipo: 'photocraft' })}
-              onAbrirVectorCraft={() => setModalArtCraft({ aberto: true, tipo: 'vectorcraft' })}
+              onAbrirPhotoCraft={(url, nome) => setModalArtCraft({ aberto: true, tipo: 'photocraft', arquivoUrl: url, arquivoNome: nome })}
+              onAbrirVectorCraft={(url, nome) => setModalArtCraft({ aberto: true, tipo: 'vectorcraft', arquivoUrl: url, arquivoNome: nome })}
+              onAdicionarAsset={handleAdicionarBrandAsset}
+              onExcluirAsset={handleExcluirBrandAsset}
             />
           )}
 
