@@ -2465,43 +2465,35 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
             />
 
             {/* Bloco Canônico de Lemas Vocacionais e Ministeriais */}
-            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161b22]">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-white/5 pb-4">
+            <div className="mt-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] p-5 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span>Lema Vocacional e Ministerial</span>
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-mono text-slate-600 dark:bg-white/10 dark:text-slate-300">
+                    <span>Lemas Vocacionais e Ministeriais</span>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-mono text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                       {base.grau || 'Grau Canônico'}
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Cadastre os lemas bíblicos/espirituais adotados em suas etapas de consagração e ordens sacras.
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Lemas bíblicos ou espirituais de consagração e ordenação. O lema principal figurará impresso sob o nome nos documentos oficiais.
                   </p>
                 </div>
 
                 <button
                   type="button"
                   onClick={handleAdicionarLema}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#226380] text-white hover:bg-[#1b4f66] transition shadow-xs cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#226380] text-white hover:bg-[#1b4f66] transition shadow-2xs cursor-pointer self-start sm:self-auto"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  <span>Adicionar mais um lema</span>
+                  <span>Adicionar lema</span>
                 </button>
-              </div>
-
-              {/* Informação explicativa para o candidato */}
-              <div className="mt-3 rounded-lg bg-sky-50/70 p-3 text-xs text-sky-900 dark:bg-sky-950/20 dark:text-sky-200 border border-sky-100 dark:border-sky-900/40 flex items-start gap-2">
-                <Info className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400 mt-0.5" />
-                <div className="text-[11.5px] leading-relaxed">
-                  Você pode cadastrar um ou mais lemas adotados ao longo de sua caminhada vocacional (Primeira Profissão, Votos Perpétuos, Ordenações ou Jubileus). Se quiser colocar mais de um lema, basta clicar no botão <strong>+ Adicionar mais um lema</strong>. Escolha qual deles destacar oficialmente para figurar abaixo do seu nome nos documentos.
-                </div>
               </div>
 
               {/* Lista de lemas */}
               {lemas.length === 0 ? (
-                <div className="mt-4 rounded-xl border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500 dark:border-slate-700">
+                <div className="mt-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-6 text-center text-xs text-slate-500">
                   <p className="font-medium text-slate-700 dark:text-slate-300">Nenhum lema cadastrado.</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Se desejar informar seu lema de consagração ou ordenação, clique no botão abaixo.</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Informe seu lema de primeira profissão, perpétuos ou ordenação.</p>
                   <button
                     type="button"
                     onClick={handleAdicionarLema}
@@ -2515,63 +2507,61 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                   {lemas.map((lema, index) => (
                     <div
                       key={lema.id || index}
-                      className={`rounded-xl border p-4 transition ${
+                      className={`rounded-xl border p-4 transition-all ${
                         lema.destacado
-                          ? 'border-[#226380] bg-[#226380]/5 dark:border-[#68a9c7]/60 dark:bg-[#68a9c7]/10'
-                          : 'border-slate-200 bg-slate-50/50 dark:border-white/10 dark:bg-white/[0.02]'
+                          ? 'border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-[#12151e] border-l-4 border-l-[#226380] dark:border-l-[#A3C3C7]'
+                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22]'
                       }`}
                     >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-2 border-b border-slate-200/60 dark:border-white/5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-[10px] font-bold text-slate-400 uppercase">
+                      <div className="flex items-center justify-between gap-2 mb-3 pb-2.5 border-b border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-[10px] font-bold text-slate-400">
                             #{index + 1}
                           </span>
-                          <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                            Lema: {lema.fase}
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-cinzel">
+                            {lema.fase}
                           </span>
                           {lema.destacado && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
-                              <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
-                              Lema Principal (Abaixo do nome)
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider font-bold bg-[#226380]/10 text-[#226380] dark:bg-[#A3C3C7]/15 dark:text-[#A3C3C7] border border-[#226380]/20 dark:border-[#A3C3C7]/30">
+                              Lema Principal
                             </span>
                           )}
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleSetDestaqueLema(lema.id)}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded transition cursor-pointer ${
-                              lema.destacado
-                                ? 'bg-[#226380] text-white cursor-default'
-                                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 dark:bg-[#161b22] dark:text-slate-300 dark:border-white/10'
-                            }`}
-                          >
-                            <Star className={`h-3 w-3 ${lema.destacado ? 'fill-white text-white' : 'text-slate-400'}`} />
-                            <span>{lema.destacado ? 'Principal Ativo' : 'Definir como Principal'}</span>
-                          </button>
+                          {!lema.destacado && (
+                            <button
+                              type="button"
+                              onClick={() => handleSetDestaqueLema(lema.id)}
+                              className="text-[11px] font-medium text-slate-500 hover:text-[#226380] dark:text-slate-400 dark:hover:text-[#A3C3C7] transition cursor-pointer px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                            >
+                              Definir como principal
+                            </button>
+                          )}
 
-                          <button
-                            type="button"
-                            onClick={() => handleRemoverLema(lema.id)}
-                            title="Remover este lema"
-                            className="text-slate-400 hover:text-red-600 transition p-1 cursor-pointer"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          {lemas.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoverLema(lema.id)}
+                              title="Remover lema"
+                              className="text-slate-400 hover:text-rose-600 transition p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs items-start">
                         {/* Seletor de Fase */}
                         <div className="sm:col-span-4">
-                          <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
-                            Etapa / Fase Canônica *
+                          <label className="block text-[11px] font-medium text-[#707070] dark:text-[#86868b] mb-1">
+                            Fase Canônica *
                           </label>
                           <select
                             value={lema.fase}
                             onChange={e => handleUpdateLema(lema.id, { fase: e.target.value as FaseLema })}
-                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:border-[#226380] focus:ring-1 focus:ring-[#226380] dark:border-white/10 dark:bg-[#0d1117] dark:text-white"
+                            className={inputClass}
                           >
                             {FASES_LEMAS_DISPONIVEIS.map(faseOpt => (
                               <option key={faseOpt} value={faseOpt}>{faseOpt}</option>
@@ -2581,7 +2571,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
 
                         {/* Texto do Lema */}
                         <div className="sm:col-span-5">
-                          <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
+                          <label className="block text-[11px] font-medium text-[#707070] dark:text-[#86868b] mb-1">
                             Texto do Lema *
                           </label>
                           <input
@@ -2589,13 +2579,13 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                             value={lema.texto}
                             onChange={e => handleUpdateLema(lema.id, { texto: e.target.value })}
                             placeholder="Ex.: Para que todos sejam um..."
-                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:border-[#226380] focus:ring-1 focus:ring-[#226380] dark:border-white/10 dark:bg-[#0d1117] dark:text-white"
+                            className={inputClass}
                           />
                         </div>
 
                         {/* Referência Bíblica */}
                         <div className="sm:col-span-3">
-                          <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
+                          <label className="block text-[11px] font-medium text-[#707070] dark:text-[#86868b] mb-1">
                             Referência Bíblica (opcional)
                           </label>
                           <input
@@ -2603,29 +2593,20 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                             value={lema.referencia || ''}
                             onChange={e => handleUpdateLema(lema.id, { referencia: e.target.value })}
                             placeholder="Ex.: Jo 17, 21"
-                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:border-[#226380] focus:ring-1 focus:ring-[#226380] dark:border-white/10 dark:bg-[#0d1117] dark:text-white"
+                            className={inputClass}
                           />
                         </div>
                       </div>
                     </div>
                   ))}
 
-                  {/* Botão inferior para adicionar mais um lema */}
-                  <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <button
-                      type="button"
-                      onClick={handleAdicionarLema}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg border border-[#226380]/40 bg-[#226380]/5 text-[#226380] hover:bg-[#226380]/10 dark:border-[#68a9c7]/40 dark:bg-[#68a9c7]/10 dark:text-[#68a9c7] transition cursor-pointer self-start"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      <span>Adicionar mais um lema</span>
-                    </button>
-                    {lemas.length > 1 && (
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        {lemas.length} lemas adicionados. O marcado como Principal figurará na sua Ficha e Portal.
-                      </p>
-                    )}
-                  </div>
+                  {/* Rodapé discreto */}
+                  {lemas.length > 1 && (
+                    <div className="pt-1 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                      <span>{lemas.length} lemas registrados</span>
+                      <span>O lema principal figurará na Ficha Canônica e no Portal</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
