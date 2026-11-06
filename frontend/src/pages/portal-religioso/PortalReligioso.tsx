@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
@@ -31,6 +32,10 @@ import { PortalPrimeiroAcessoSenha } from './PortalPrimeiroAcessoSenha';
 import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../../lib/religiosoNome';
 
 export type PortalSection = 'inicio' | 'perfil' | 'inscricao' | 'ficha-pdf' | 'calendario' | 'documentos' | 'anuario' | 'hospedagem';
+
+export const VALID_PORTAL_SECTIONS: readonly PortalSection[] = [
+  'inicio', 'perfil', 'inscricao', 'ficha-pdf', 'calendario', 'documentos', 'anuario', 'hospedagem'
+] as const;
 
 
 const getRegistrationErrorMessage = (error: unknown) => {
@@ -73,7 +78,39 @@ export const PortalReligioso: React.FC = () => {
   };
 
   // Active View inside Member Area: 'inicio' | 'perfil' | 'inscricao' | 'ficha-pdf' | 'calendario' | 'documentos' | 'anuario' | 'hospedagem'
-  const [activeSection, setActiveSection] = useState<PortalSection>('inicio');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlSection = searchParams.get('aba');
+  const [activeSection, setActiveSectionState] = useState<PortalSection>(() => {
+    if (urlSection && (VALID_PORTAL_SECTIONS as readonly string[]).includes(urlSection)) {
+      return urlSection as PortalSection;
+    }
+    return 'inicio';
+  });
+
+  const initialDraftCheckedRef = useRef(false);
+
+  const setActiveSection = React.useCallback((section: PortalSection) => {
+    setActiveSectionState(section);
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (section === 'inicio') {
+        next.delete('aba');
+      } else {
+        next.set('aba', section);
+      }
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  // Sincroniza se o usuário navegar pelo histórico (voltar/avançar do navegador)
+  useEffect(() => {
+    const currentAba = searchParams.get('aba');
+    if (currentAba && (VALID_PORTAL_SECTIONS as readonly string[]).includes(currentAba)) {
+      setActiveSectionState(currentAba as PortalSection);
+    } else if (!currentAba) {
+      setActiveSectionState('inicio');
+    }
+  }, [searchParams]);
 
   // Casas e Obras da Província BRM para Hospedagem
   const [casasAcolhida, setCasasAcolhida] = useState<CasaAcolhida[]>([]);
@@ -225,8 +262,15 @@ export const PortalReligioso: React.FC = () => {
             console.error('Não foi possível verificar o rascunho da ficha do Portal do Confrade:', draftError);
             setRegistrationError('Não foi possível verificar se há um rascunho da ficha. Você ainda pode abrir o Cadastro BRM pelo menu.');
           } else if (savedDraft) {
-            setActiveSection('inscricao');
+            // Apenas abre a ficha na carga inicial se o usuário não tiver selecionado outra aba explicitamente
+            if (!initialDraftCheckedRef.current) {
+              const currentAba = new URLSearchParams(window.location.search).get('aba');
+              if (!currentAba || currentAba === 'inicio') {
+                setActiveSection('inscricao');
+              }
+            }
           }
+          initialDraftCheckedRef.current = true;
         }
       } else {
         setReligiosoData(null);
@@ -528,7 +572,8 @@ export const PortalReligioso: React.FC = () => {
 
 
 
-  if (user && authLoadingProfile && !isE2E) {
+  // Se ainda estiver aguardando checagem inicial de autorização (sem usuário logado em memória):
+  if (!user && authLoadingProfile && !isE2E) {
     return (
       <div className="religious-portal flex min-h-screen items-center justify-center">
         <div className="flex items-center gap-3 text-sm text-[#707070] dark:text-[#a1a1a6]">

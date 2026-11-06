@@ -58,9 +58,9 @@ const AppleLoadingFallback: React.FC = () => (
 
 // Route guards
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   
-  if (loading) {
+  if (loading && !user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#f5f5f7] dark:bg-[#0d1117]">
         <div className="flex flex-col items-center gap-3">
@@ -97,7 +97,7 @@ const getDefaultPath = (user: ReturnType<typeof useAuth>['user']): string => {
 const ModuleRoute: React.FC<{ children: React.ReactNode; accessKey: string }> = ({ children, accessKey }) => {
   const { user, loading, isAuthenticated } = useAuth();
 
-  if (loading) {
+  if (loading && !user) {
     return <AppleLoadingFallback />;
   }
 
@@ -115,7 +115,7 @@ const ModuleRoute: React.FC<{ children: React.ReactNode; accessKey: string }> = 
 const SecretariaReligiososRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading, isAuthenticated } = useAuth();
 
-  if (loading) return <AppleLoadingFallback />;
+  if (loading && !user) return <AppleLoadingFallback />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (!hasModuleAccess(user, 'secretaria') && !hasModuleAccess(user, 'religiosos')) {
     return <Navigate to={getDefaultPath(user)} replace />;
@@ -126,7 +126,7 @@ const SecretariaReligiososRoute: React.FC<{ children: React.ReactNode }> = ({ ch
 const ArquivoSecretariaRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading, isAuthenticated } = useAuth();
 
-  if (loading) return <AppleLoadingFallback />;
+  if (loading && !user) return <AppleLoadingFallback />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (!user?.acessos.some(access => access === 'arquivo_secretaria' || access === 'arquivo_substituto')) {
     return <Navigate to={getDefaultPath(user)} replace />;
@@ -140,7 +140,7 @@ const SecretariaDashboardRoute: React.FC = () => {
     user?.acessos.some(access => access === 'arquivo_secretaria' || access === 'arquivo_substituto'),
   );
 
-  if (loading) return <AppleLoadingFallback />;
+  if (loading && !user) return <AppleLoadingFallback />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (!hasModuleAccess(user, 'secretaria') && !canAccessArchive) {
     return <Navigate to={getDefaultPath(user)} replace />;
@@ -166,7 +166,7 @@ const DefaultRedirect: React.FC = () => {
     return <Navigate to="/" replace />;
   }
 
-  if (loading) return null;
+  if (loading && !user) return null;
   
   return <Navigate to={isAuthenticated ? getDefaultPath(user) : "/login"} replace />;
 };

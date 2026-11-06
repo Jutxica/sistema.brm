@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { atribuirNomeReligioso } from '../lib/religiosoNome';
 
@@ -35,6 +35,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const currentUserIdRef = useRef<string | null>(null);
 
   const fetchUserProfile = async (userId: string, email: string) => {
     try {
@@ -156,6 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const previewRole = localStorage.getItem('brm_e2e_role');
       
       if (previewRole === 'patrimonio') {
+        currentUserIdRef.current = 'e2e-patrimonio';
         setUser({
           id: 'e2e-patrimonio',
           nome: 'Usuário de Patrimônio',
@@ -166,6 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAdmin: false,
         });
       } else if (previewRole === 'religioso') {
+        currentUserIdRef.current = 'e2e-religioso';
         setUser({
           id: 'e2e-religioso',
           nome: 'Pe. Carlos Eduardo, SCJ',
@@ -180,6 +183,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAdmin: false,
         });
       } else {
+        currentUserIdRef.current = 'e2e-admin';
         setUser({
           id: 'e2e-admin',
           nome: 'Administrador Dehoniano',
@@ -198,37 +202,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    // Verificar sessão ativa inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        fetchUserProfile(session.user.id, session.user.email || '').then(() => {
+    let isMounted = true;
+
+    // Escutar mudanças de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+
+      // 1. Caso de renovação periódica de token ou retorno do foco na aba (visibilitychange):
+      // NUNCA ative loading e não recarregue perfil desnecessariamente, preservando formulários e telas ativas.
+      if (event === 'TOKEN_REFRESHED') {
+        return;
+      }
+
+      // 2. Caso de saída de sessão (Logout)
+      if (event === 'SIGNED_OUT' || !session?.user) {
+        currentUserIdRef.current = null;
+        if (isMounted) {
+          setUser(null);
           setLoading(false);
-        });
-      } else {
-        setUser(null);
+        }
+        return;
+      }
+
+      const sessionUserId = session.user.id;
+      const sessionUserEmail = session.user.email || '';
+
+      // 3. Caso o usuário autenticado seja exatamente o mesmo já ativo na aplicação:
+      // Revalida em segundo plano SEM acionar estado de loading global e SEM desmontar páginas ou formulários.
+      if (currentUserIdRef.current === sessionUserId) {
+        await fetchUserProfile(sessionUserId, sessionUserEmail);
+        return;
+      }
+
+      // 4. Caso seja a carga inicial da sessão ou uma troca legítima de usuário:
+      currentUserIdRef.current = sessionUserId;
+      await fetchUserProfile(sessionUserId, sessionUserEmail);
+      if (isMounted) {
         setLoading(false);
       }
     });
 
-    // Escutar mudanças de autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setLoading(true);
-        fetchUserProfile(session.user.id, session.user.email || '').then(() => {
+    // Fallback de inicialização de sessão caso o listener demore a disparar
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!isMounted) return;
+      if (!session?.user) {
+        if (!currentUserIdRef.current && isMounted) {
+          setUser(null);
           setLoading(false);
-        });
-      } else {
-        setUser(null);
-        setLoading(false);
+        }
+      } else if (!currentUserIdRef.current) {
+        currentUserIdRef.current = session.user.id;
+        await fetchUserProfile(session.user.id, session.user.email || '');
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     });
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
   const logout = async () => {
+    currentUserIdRef.current = null;
     await supabase.auth.signOut();
     setUser(null);
   };
