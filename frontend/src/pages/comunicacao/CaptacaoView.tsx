@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Video, Calendar as CalendarIcon, Clock, MapPin, CheckSquare, 
   Square, Plus, CheckCircle2, User, Play, X, ExternalLink,
   MessageSquare, Hash, AtSign, Send, ChevronDown, ChevronUp,
   Tag, Filter, FileText, PenTool, Bold, Italic, Heading1, Heading2,
-  List, ListOrdered, Quote, Link2, Sparkles, BookOpen
+  List, ListOrdered, Quote, Link2, Sparkles, BookOpen,
+  ArrowLeft, Copy, Check
 } from 'lucide-react';
 import type { 
   ComunicacaoCaptacao, 
@@ -55,9 +56,11 @@ export const CaptacaoView: React.FC<CaptacaoViewProps> = ({
   const [filtroTag, setFiltroTag] = useState<string | null>(null);
   const [filtroSituacao, setFiltroSituacao] = useState<'todas' | 'agendada' | 'gravada'>('todas');
   
-  // Modais Distintos Solicitados pelo Usuário
+  // Estados de Controle de Interface
   const [modalAgendarAberta, setModalAgendarAberta] = useState(false);
-  const [modalRoteiroAberta, setModalRoteiroAberta] = useState(false);
+  const [modoRoteiroAberto, setModoRoteiroAberto] = useState(false);
+  const [salvoFeedback, setSalvoFeedback] = useState(false);
+  const [copiadoFeedback, setCopiadoFeedback] = useState(false);
   const [teleprompterRoteiro, setTeleprompterRoteiro] = useState<string | null>(null);
 
   // Estados do Modal: 1. Agendar Captação
@@ -118,24 +121,24 @@ export const CaptacaoView: React.FC<CaptacaoViewProps> = ({
     setAgendaData('');
   };
 
-  // Abrir Modal de Roteiro para uma Captação Específica
+  // Abrir Editor de Roteiro em Página Inteira para uma Captação Específica
   const handleAbrirRoteiroParaCaptacao = (cap: ComunicacaoCaptacao) => {
     setRoteiroCaptacaoId(cap.id);
     setRoteiroTitulo(cap.titulo);
     setRoteiroReligiosoNome(cap.entrevistado_nome);
     setRoteiroTexto(cap.roteiro || '');
     setRoteiroComentarios(cap.comentarios || []);
-    setModalRoteiroAberta(true);
+    setModoRoteiroAberto(true);
   };
 
-  // Abrir Modal de Novo Roteiro em Branco
+  // Abrir Editor de Novo Roteiro em Página Inteira (Em Branco)
   const handleAbrirNovoRoteiro = () => {
     setRoteiroCaptacaoId('avulso');
     setRoteiroTitulo('');
     setRoteiroReligiosoNome('');
     setRoteiroTexto('');
     setRoteiroComentarios([]);
-    setModalRoteiroAberta(true);
+    setModoRoteiroAberto(true);
   };
 
   // Ferramentas de Formatação do Bloco de Notas
@@ -171,9 +174,8 @@ export const CaptacaoView: React.FC<CaptacaoViewProps> = ({
     return { tags, mencoes };
   };
 
-  // Salvar Roteiro
-  const handleSalvarRoteiro = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Salvar Roteiro com opção de permanecer ou voltar à lista
+  const handleSalvarRoteiro = (fecharAposSalvar: boolean = false) => {
     if (!roteiroTitulo.trim()) return;
 
     const { tags, mencoes } = extrairTagsEMencoes(roteiroTexto);
@@ -199,8 +201,25 @@ export const CaptacaoView: React.FC<CaptacaoViewProps> = ({
       });
     }
 
-    setModalRoteiroAberta(false);
+    setSalvoFeedback(true);
+    setTimeout(() => setSalvoFeedback(false), 2500);
+
+    if (fecharAposSalvar) {
+      setModoRoteiroAberto(false);
+    }
   };
+
+  // Métricas do Roteiro (Palavras e Duração Estimada de Gravação)
+  const contagemPalavras = useMemo(() => {
+    const limpo = roteiroTexto.trim();
+    if (!limpo) return 0;
+    return limpo.split(/\s+/).length;
+  }, [roteiroTexto]);
+
+  const tempoEstimadoMinutos = useMemo(() => {
+    if (contagemPalavras === 0) return '0.0';
+    return (contagemPalavras / 130).toFixed(1);
+  }, [contagemPalavras]);
 
   // Adicionar Comentário da Equipe ao Roteiro
   const handleAdicionarComentarioRoteiro = () => {
@@ -276,6 +295,458 @@ export const CaptacaoView: React.FC<CaptacaoViewProps> = ({
       return tok;
     });
   };
+
+  // =========================================================================
+  // VIEW FULL PAGE: Editor de Roteiro em Página Inteira (Sem Modal)
+  // =========================================================================
+  if (modoRoteiroAberto) {
+    const { tags: tagsDetectadas, mencoes: mencoesDetectadas } = extrairTagsEMencoes(roteiroTexto);
+
+    return (
+      <div className="space-y-6 animate-in fade-in duration-200">
+        {/* Barra Superior de Ações do Roteiro em Página Inteira */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#dce4e2] dark:border-[#354246]">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setModoRoteiroAberto(false)}
+              className="flex items-center gap-2 text-xs font-semibold text-[#226380] dark:text-[#A3C3C7] hover:underline"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Voltar para captações & roteiros</span>
+            </button>
+            <span className="text-[#dce4e2] dark:text-[#354246]">|</span>
+            <span className="text-xs text-[#66777b] dark:text-[#a0aeaf] flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-[#226380]" />
+              <span>Editor de roteiro em página inteira</span>
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            {salvoFeedback && (
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Salvo com sucesso!</span>
+              </span>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(roteiroTexto);
+                setCopiadoFeedback(true);
+                setTimeout(() => setCopiadoFeedback(false), 2000);
+              }}
+              className="px-3.5 py-2 rounded-xl bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] hover:bg-slate-50 text-[#113240] dark:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            >
+              {copiadoFeedback ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Copiado!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5 text-[#52636a]" />
+                  <span>Copiar texto</span>
+                </>
+              )}
+            </button>
+
+            {roteiroTexto.trim() && (
+              <button
+                type="button"
+                onClick={() => setTeleprompterRoteiro(roteiroTexto)}
+                className="px-3.5 py-2 rounded-xl bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] hover:bg-slate-50 text-[#113240] dark:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                title="Abrir em tela preta para leitura durante gravação"
+              >
+                <Play className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Modo Teleprompter</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => handleSalvarRoteiro(false)}
+              className="px-4 py-2 rounded-xl bg-white dark:bg-[#1c2427] border border-[#226380] text-[#226380] hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>Salvar rascunho</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleSalvarRoteiro(true)}
+              className="px-4 py-2 rounded-xl bg-[#226380] hover:bg-[#1a4f66] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Salvar e concluir</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Layout de Página Inteira em 2 Colunas: Editor Amplo + Painel Lateral de Equipe */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* COLUNA ESQUERDA (8 COLUNAS): Área de Escrita Ampla e Confortável */}
+          <div className="lg:col-span-8 space-y-4">
+            <div className="bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-2xl p-6 sm:p-8 space-y-6">
+              {/* Vínculo & Confrade */}
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pb-4 border-b border-[#dce4e2] dark:border-[#354246]">
+                <div className="sm:col-span-7">
+                  <label className="block text-xs font-semibold text-[#66777b] dark:text-[#a0aeaf] mb-1">
+                    Vínculo com captação agendada
+                  </label>
+                  <select
+                    value={roteiroCaptacaoId}
+                    onChange={e => {
+                      const id = e.target.value;
+                      setRoteiroCaptacaoId(id);
+                      if (id !== 'avulso') {
+                        const cap = captacoes.find(c => c.id === id);
+                        if (cap) {
+                          if (!roteiroTitulo) setRoteiroTitulo(cap.titulo);
+                          setRoteiroReligiosoNome(cap.entrevistado_nome);
+                          if (cap.roteiro && !roteiroTexto) setRoteiroTexto(cap.roteiro);
+                          if (cap.comentarios) setRoteiroComentarios(cap.comentarios);
+                        }
+                      }
+                    }}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] text-[#113240] dark:text-white"
+                  >
+                    <option value="avulso">Roteiro independente / Projeto avulso</option>
+                    {captacoes.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.entrevistado_nome} — {c.titulo} ({new Date(c.data_gravacao).toLocaleDateString('pt-BR')})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sm:col-span-5">
+                  <label className="block text-xs font-semibold text-[#66777b] dark:text-[#a0aeaf] mb-1">
+                    Confrade / Entrevistado
+                  </label>
+                  <input
+                    type="text"
+                    value={roteiroReligiosoNome}
+                    onChange={e => setRoteiroReligiosoNome(e.target.value)}
+                    placeholder="Ex: Pe. Anderson Carlos S Viana, scj"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] text-[#113240] dark:text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Título Principal do Roteiro */}
+              <div>
+                <input
+                  type="text"
+                  value={roteiroTitulo}
+                  onChange={e => setRoteiroTitulo(e.target.value)}
+                  placeholder="Título do roteiro ou pauta de gravação..."
+                  className="w-full text-xl sm:text-2xl font-bold text-[#113240] dark:text-white placeholder-[#86868b] border-none bg-transparent focus:outline-none focus:ring-0 p-0"
+                />
+              </div>
+
+              {/* Barra de Ferramentas de Formatação */}
+              <div className="p-2 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] flex flex-wrap items-center gap-1.5 text-xs select-none">
+                <button
+                  type="button"
+                  onClick={() => aplicarFormatacao('# ')}
+                  className="px-2.5 py-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 font-bold flex items-center gap-1 text-[#113240] dark:text-white"
+                  title="Título Principal (H1)"
+                >
+                  <Heading1 className="w-3.5 h-3.5" />
+                  <span>H1</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => aplicarFormatacao('## ')}
+                  className="px-2.5 py-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 font-bold flex items-center gap-1 text-[#113240] dark:text-white"
+                  title="Subtítulo (H2)"
+                >
+                  <Heading2 className="w-3.5 h-3.5" />
+                  <span>H2</span>
+                </button>
+
+                <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
+
+                <button
+                  type="button"
+                  onClick={() => aplicarFormatacao('**', '**')}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-[#113240] dark:text-white"
+                  title="Negrito"
+                >
+                  <Bold className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => aplicarFormatacao('*', '*')}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 italic text-[#113240] dark:text-white"
+                  title="Itálico"
+                >
+                  <Italic className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => aplicarFormatacao('• ')}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-[#113240] dark:text-white"
+                  title="Lista com marcadores"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => aplicarFormatacao('1. ')}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-[#113240] dark:text-white"
+                  title="Lista numerada"
+                >
+                  <ListOrdered className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => aplicarFormatacao('> ')}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-[#113240] dark:text-white"
+                  title="Citação / Ponto de fala"
+                >
+                  <Quote className="w-4 h-4" />
+                </button>
+
+                {/* Atalhos Rápidos de Menções @ */}
+                <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
+                <span className="text-[#86868b] text-xs font-semibold flex items-center gap-0.5">
+                  <AtSign className="w-3.5 h-3.5 text-[#226380]" />
+                </span>
+                {roteiroReligiosoNome && (
+                  <button
+                    type="button"
+                    onClick={() => inserirToken(`@${roteiroReligiosoNome.split(' ')[0]}`)}
+                    className="px-2 py-0.5 rounded-md bg-[#226380]/10 text-[#226380] hover:bg-[#226380]/20 font-semibold"
+                  >
+                    @{roteiroReligiosoNome.split(' ')[0]}
+                  </button>
+                )}
+                {equipe.slice(0, 3).map(m => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => inserirToken(`@${m.nome.split(' ')[0]}`)}
+                    className="px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-[#113240] dark:text-white hover:bg-slate-300 font-semibold"
+                  >
+                    @{m.nome.split(' ')[0]}
+                  </button>
+                ))}
+
+                {/* Atalhos Rápidos de Tags # */}
+                <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
+                <span className="text-[#86868b] text-xs font-semibold flex items-center gap-0.5">
+                  <Hash className="w-3.5 h-3.5 text-[#226380]" />
+                </span>
+                {TAGS_SUGERIDAS.slice(0, 4).map(tag => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => inserirToken(`#${tag}`)}
+                    className="px-2 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/40 text-[#226380] dark:text-sky-300 hover:bg-sky-100 font-semibold"
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+
+              {/* Área Ampla do Bloco de Notas */}
+              <div>
+                <textarea
+                  id="textarea-roteiro"
+                  rows={22}
+                  value={roteiroTexto}
+                  onChange={e => setRoteiroTexto(e.target.value)}
+                  placeholder="Escreva os tópicos, introdução, perguntas e ordem dos assuntos...
+
+# Abertura
+• Acolhida e apresentação com @Pe. João
+• Contextualização da data festiva #vocacional
+
+## Bloco 1: História Vocacional
+> Como surgiu a vocação ao sacerdócio no Sagrado Coração?
+• Primeiros passos e entrada no seminário de Corupá
+
+## Bloco 2: Mensagem para a Província BRM
+• Benção e palavra final às famílias e juventudes #dehoniano"
+                  className="w-full p-4 sm:p-5 text-sm sm:text-base font-normal rounded-2xl border border-[#dce4e2] dark:border-[#354246] bg-white dark:bg-[#141a1c] text-[#113240] dark:text-white leading-relaxed focus:outline-none focus:ring-1 focus:ring-[#226380] min-h-[500px]"
+                />
+              </div>
+
+              {/* Barra de Contagem & Duração Estimada */}
+              <div className="flex flex-wrap items-center justify-between text-xs text-[#86868b] pt-2 border-t border-[#dce4e2] dark:border-[#354246]">
+                <div className="flex items-center gap-4">
+                  <span><strong>{contagemPalavras}</strong> palavras</span>
+                  <span>·</span>
+                  <span>Tempo de gravação estimado: <strong>~{tempoEstimadoMinutos} min</strong></span>
+                </div>
+                <span>Dica: Use <strong>@</strong> para mencionar confrades e <strong>#</strong> para categorias temáticas.</span>
+              </div>
+            </div>
+          </div>
+
+          {/* COLUNA DIREITA (4 COLUNAS): Painel Colaborativo da Equipe & Bastidores */}
+          <div className="lg:col-span-4 space-y-4">
+            {/* Box de Comentários da Equipe */}
+            <div className="bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-2xl p-5 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-[#dce4e2] dark:border-[#354246]">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-[#226380]" />
+                  <h3 className="text-xs font-bold text-[#113240] dark:text-white">
+                    Comentários da equipe ({roteiroComentarios.length})
+                  </h3>
+                </div>
+                <span className="text-xs text-[#86868b]">Bastidores</span>
+              </div>
+
+              <div className="space-y-2.5 max-h-[380px] overflow-y-auto">
+                {roteiroComentarios.length === 0 ? (
+                  <div className="p-4 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] text-center text-xs text-[#86868b]">
+                    Nenhum comentário registrado ainda. Use o campo abaixo para alinhar pontos com a equipe.
+                  </div>
+                ) : (
+                  roteiroComentarios.map(com => (
+                    <div
+                      key={com.id}
+                      className="p-3 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-1 text-xs"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-[#113240] dark:text-white">
+                          {com.autor_nome}
+                        </span>
+                        <span className="text-xs text-[#86868b]">
+                          {new Date(com.created_at).toLocaleDateString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="text-[#52636a] dark:text-[#a0aeaf] leading-relaxed">
+                        {com.mensagem}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Envio de Comentário */}
+              <div className="space-y-2 pt-2 border-t border-[#dce4e2] dark:border-[#354246]">
+                <textarea
+                  rows={2}
+                  value={novoComentarioNoRoteiro}
+                  onChange={e => setNovoComentarioNoRoteiro(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleAdicionarComentarioRoteiro();
+                    }
+                  }}
+                  placeholder="Escreva uma nota para a equipe (Enter para enviar)..."
+                  className="w-full p-2.5 text-xs rounded-xl border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] text-[#113240] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#226380]"
+                />
+                <button
+                  type="button"
+                  onClick={handleAdicionarComentarioRoteiro}
+                  className="w-full py-2 rounded-xl bg-[#226380] hover:bg-[#1a4f66] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Enviar comentário</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Box de Tags e Menções Detectadas */}
+            <div className="bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-2xl p-5 space-y-3">
+              <h3 className="text-xs font-bold text-[#113240] dark:text-white flex items-center gap-2">
+                <Tag className="w-4 h-4 text-[#226380]" />
+                <span>Elementos detectados no roteiro</span>
+              </h3>
+
+              <div className="space-y-2 text-xs">
+                <div>
+                  <span className="text-[#86868b] block mb-1">Tags temáticas (#):</span>
+                  {tagsDetectadas.length === 0 ? (
+                    <span className="text-[#86868b] italic">Nenhuma hashtag inserida ainda.</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {tagsDetectadas.map(t => (
+                        <span key={t} className="px-2 py-0.5 rounded bg-sky-50 dark:bg-sky-950/40 text-[#226380] dark:text-sky-300 font-semibold">
+                          #{t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <span className="text-[#86868b] block mb-1">Confrades / Equipe (@):</span>
+                  {mencoesDetectadas.length === 0 ? (
+                    <span className="text-[#86868b] italic">Nenhuma menção inserida ainda.</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {mencoesDetectadas.map(m => (
+                        <span key={m} className="px-2 py-0.5 rounded bg-[#226380]/10 text-[#226380] font-semibold">
+                          @{m}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Checklist Rápido de Gravação */}
+            <div className="bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-2xl p-5 space-y-2.5 text-xs text-[#52636a] dark:text-[#a0aeaf]">
+              <span className="font-bold text-[#113240] dark:text-white block flex items-center gap-1.5">
+                <CheckSquare className="w-4 h-4 text-[#226380]" />
+                <span>Checklist de gravação</span>
+              </span>
+              <ul className="space-y-1.5 list-disc list-inside">
+                <li>Bateria de câmera e lapela 100% cheias.</li>
+                <li>Ambiente silencioso (desligar ar condicionado se fizer eco).</li>
+                <li>Fazer perguntas de coração e incentivar o confrade a falar com calma.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Modal Teleprompter em Tela Cheia no Modo Edição de Roteiro */}
+        {teleprompterRoteiro && (
+          <div className="fixed inset-0 z-50 bg-black text-white p-8 flex flex-col justify-between animate-in fade-in select-none">
+            <div className="flex items-center justify-between pb-4 border-b border-white/20">
+              <div className="flex items-center gap-3">
+                <span className="w-3 h-3 rounded-full bg-red-500" />
+                <span className="text-sm font-bold text-white/90">
+                  Modo Teleprompter · Província BRM
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTeleprompterRoteiro(null)}
+                className="px-4 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-semibold"
+              >
+                Fechar (ESC)
+              </button>
+            </div>
+
+            <div className="flex-1 flex items-center justify-center p-8 max-w-4xl mx-auto overflow-y-auto">
+              <p className="text-2xl sm:text-4xl font-semibold leading-relaxed text-center text-white/95 whitespace-pre-line tracking-wide">
+                {teleprompterRoteiro}
+              </p>
+            </div>
+
+            <div className="text-center text-xs text-white/50 pt-4 border-t border-white/20">
+              Dica: Role suavemente o texto na tela para guiar o religioso durante a gravação.
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -780,324 +1251,13 @@ export const CaptacaoView: React.FC<CaptacaoViewProps> = ({
         </div>
       )}
 
-      {/* MODAL 2: Escrever Roteiro (Bloco de Notas com Ferramentas & Comentários da Equipe) */}
-      {modalRoteiroAberta && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-6 animate-in fade-in">
-          <div className="bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-2xl max-w-4xl w-full flex flex-col max-h-[92vh] overflow-hidden">
-            {/* Header do Roteiro */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c]">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[#226380]/15 text-[#226380] flex items-center justify-center">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-[#113240] dark:text-white">
-                    Bloco de notas de roteiro
-                  </h2>
-                  <p className="text-xs text-[#86868b]">
-                    Estruture tópicos, perguntas, pontos de fala e receba comentários da equipe
-                  </p>
-                </div>
-              </div>
-
-              <button 
-                type="button"
-                onClick={() => setModalRoteiroAberta(false)} 
-                className="text-[#86868b] hover:text-white p-1 rounded"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Conteúdo do Bloco de Notas */}
-            <div className="p-6 overflow-y-auto space-y-4 flex-1">
-              {/* Vínculo: Captação Agendada ou Roteiro Avulso */}
-              <div className="p-3.5 rounded-xl bg-[#f0f4f3] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-2">
-                <span className="text-xs font-semibold text-[#113240] dark:text-white block">
-                  Vincular a uma captação agendada:
-                </span>
-                <select
-                  value={roteiroCaptacaoId}
-                  onChange={e => {
-                    const id = e.target.value;
-                    setRoteiroCaptacaoId(id);
-                    if (id !== 'avulso') {
-                      const cap = captacoes.find(c => c.id === id);
-                      if (cap) {
-                        setRoteiroTitulo(cap.titulo);
-                        setRoteiroReligiosoNome(cap.entrevistado_nome);
-                        if (cap.roteiro) setRoteiroTexto(cap.roteiro);
-                        if (cap.comentarios) setRoteiroComentarios(cap.comentarios);
-                      }
-                    }
-                  }}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-[#dce4e2] dark:border-[#354246] bg-white dark:bg-[#1c2427] text-[#113240] dark:text-white"
-                >
-                  <option value="avulso">Roteiro independente / Projeto avulso</option>
-                  {captacoes.map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.entrevistado_nome} — {c.titulo} ({new Date(c.data_gravacao).toLocaleDateString('pt-BR')})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Título & Entrevistado */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold mb-1 text-[#113240] dark:text-white">
-                    Título do roteiro *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={roteiroTitulo}
-                    onChange={e => setRoteiroTitulo(e.target.value)}
-                    placeholder="Ex: Entrevista sobre a Vocação e Missão Dehoniana"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#dce4e2] dark:border-[#354246] bg-white dark:bg-[#141a1c] text-[#113240] dark:text-white font-medium"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold mb-1 text-[#113240] dark:text-white">
-                    Confrade / Entrevistado
-                  </label>
-                  <input
-                    type="text"
-                    value={roteiroReligiosoNome}
-                    onChange={e => setRoteiroReligiosoNome(e.target.value)}
-                    placeholder="Ex: Pe. Anderson Carlos S Viana, scj"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#dce4e2] dark:border-[#354246] bg-white dark:bg-[#141a1c] text-[#113240] dark:text-white"
-                  />
-                </div>
-              </div>
-
-              {/* Barra de Ferramentas de Texto do Bloco de Notas */}
-              <div className="p-2 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] flex flex-wrap items-center gap-1.5 text-xs select-none">
-                <button
-                  type="button"
-                  onClick={() => aplicarFormatacao('# ')}
-                  className="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 font-bold flex items-center gap-1 text-[#113240] dark:text-white"
-                  title="Título Principal (H1)"
-                >
-                  <Heading1 className="w-3.5 h-3.5" />
-                  <span>H1</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => aplicarFormatacao('## ')}
-                  className="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 font-bold flex items-center gap-1 text-[#113240] dark:text-white"
-                  title="Subtítulo (H2)"
-                >
-                  <Heading2 className="w-3.5 h-3.5" />
-                  <span>H2</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => aplicarFormatacao('**', '**')}
-                  className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-[#113240] dark:text-white"
-                  title="Negrito"
-                >
-                  <Bold className="w-3.5 h-3.5" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => aplicarFormatacao('*', '*')}
-                  className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 italic text-[#113240] dark:text-white"
-                  title="Itálico"
-                >
-                  <Italic className="w-3.5 h-3.5" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => aplicarFormatacao('• ')}
-                  className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-[#113240] dark:text-white"
-                  title="Lista com marcadores"
-                >
-                  <List className="w-3.5 h-3.5" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => aplicarFormatacao('1. ')}
-                  className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-[#113240] dark:text-white"
-                  title="Lista numerada"
-                >
-                  <ListOrdered className="w-3.5 h-3.5" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => aplicarFormatacao('> ')}
-                  className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-[#113240] dark:text-white"
-                  title="Citação / Ponto de fala"
-                >
-                  <Quote className="w-3.5 h-3.5" />
-                </button>
-
-                {/* Atalhos Rápidos de Menções @ */}
-                <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
-                <span className="text-[#86868b] text-xs font-semibold flex items-center gap-0.5">
-                  <AtSign className="w-3 h-3 text-[#226380]" /> @
-                </span>
-                {roteiroReligiosoNome && (
-                  <button
-                    type="button"
-                    onClick={() => inserirToken(`@${roteiroReligiosoNome.split(' ')[0]}`)}
-                    className="px-2 py-0.5 rounded bg-[#226380]/10 text-[#226380] hover:bg-[#226380]/20 font-semibold"
-                  >
-                    @{roteiroReligiosoNome.split(' ')[0]}
-                  </button>
-                )}
-                {equipe.slice(0, 3).map(m => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => inserirToken(`@${m.nome.split(' ')[0]}`)}
-                    className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-[#113240] dark:text-white hover:bg-slate-300 font-semibold"
-                  >
-                    @{m.nome.split(' ')[0]}
-                  </button>
-                ))}
-
-                {/* Atalhos Rápidos de Tags # */}
-                <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
-                <span className="text-[#86868b] text-xs font-semibold flex items-center gap-0.5">
-                  <Hash className="w-3 h-3 text-[#226380]" /> #
-                </span>
-                {TAGS_SUGERIDAS.slice(0, 4).map(tag => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => inserirToken(`#${tag}`)}
-                    className="px-2 py-0.5 rounded bg-sky-50 dark:bg-sky-950/40 text-[#226380] dark:text-sky-300 hover:bg-sky-100 font-semibold"
-                  >
-                    #{tag}
-                  </button>
-                ))}
-              </div>
-
-              {/* Área do Bloco de Notas */}
-              <textarea
-                id="textarea-roteiro"
-                rows={10}
-                value={roteiroTexto}
-                onChange={e => setRoteiroTexto(e.target.value)}
-                placeholder="Escreva os pontos de fala, introdução, perguntas e ordem dos assuntos...
-
-# Abertura
-• Acolhida e apresentação com @Pe. João
-• Contextualização da data festiva #vocacional
-
-## Bloco 1: História Vocacional
-> Como surgiu a vocação ao sacerdócio no Sagrado Coração?
-• Primeiros passos e entrada no seminário de Corupá
-
-## Bloco 2: Mensagem para a Província BRM
-• Benção e palavra final às famílias e juventudes"
-                className="w-full p-4 text-xs sm:text-sm rounded-xl border border-[#dce4e2] dark:border-[#354246] bg-white dark:bg-[#141a1c] text-[#113240] dark:text-white leading-relaxed focus:outline-none focus:ring-1 focus:ring-[#226380]"
-              />
-
-              {/* Seção de Comentários da Equipe no Roteiro */}
-              <div className="p-4 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#113240] dark:text-white flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-[#226380]" />
-                    <span>Comentários & notas da equipe ({roteiroComentarios.length})</span>
-                  </span>
-                  <span className="text-xs text-[#86868b]">
-                    Observações de bastidores, perguntas sugeridas ou notas técnicas
-                  </span>
-                </div>
-
-                {roteiroComentarios.length === 0 ? (
-                  <p className="text-xs text-[#86868b] py-1">
-                    Nenhum comentário registrado para este roteiro. Deixe uma observação abaixo.
-                  </p>
-                ) : (
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {roteiroComentarios.map(com => (
-                      <div
-                        key={com.id}
-                        className="p-2.5 rounded-lg bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] text-xs space-y-1"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-[#113240] dark:text-white">
-                            {com.autor_nome}
-                          </span>
-                          <span className="text-xs text-[#86868b]">
-                            {new Date(com.created_at).toLocaleDateString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                        <p className="text-[#52636a] dark:text-[#a0aeaf] leading-relaxed">
-                          {com.mensagem}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Input para adicionar comentário */}
-                <div className="flex items-center gap-2 pt-1">
-                  <input
-                    type="text"
-                    value={novoComentarioNoRoteiro}
-                    onChange={e => setNovoComentarioNoRoteiro(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAdicionarComentarioRoteiro();
-                      }
-                    }}
-                    placeholder="Adicionar nota para a equipe (Enter para enviar)..."
-                    className="flex-1 px-3 py-2 text-xs rounded-lg border border-[#dce4e2] dark:border-[#354246] bg-white dark:bg-[#1c2427] text-[#113240] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#226380]"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAdicionarComentarioRoteiro}
-                    className="px-3.5 py-2 rounded-lg bg-[#226380] hover:bg-[#1a4f66] text-white text-xs font-semibold transition-colors flex items-center gap-1"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Comentar</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Rodapé do Modal */}
-            <div className="px-6 py-3.5 border-t border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setModalRoteiroAberta(false)}
-                className="px-4 py-2 text-xs font-semibold text-[#66777b] hover:text-[#113240] dark:text-[#a0aeaf]"
-              >
-                Fechar
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSalvarRoteiro}
-                className="px-5 py-2 rounded-xl bg-[#226380] hover:bg-[#1a4f66] text-white text-xs font-semibold transition-colors flex items-center gap-1.5"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Salvar roteiro</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Modal Teleprompter em Tela Cheia */}
       {teleprompterRoteiro && (
         <div className="fixed inset-0 z-50 bg-black text-white p-8 flex flex-col justify-between animate-in fade-in select-none">
           <div className="flex items-center justify-between pb-4 border-b border-white/20">
             <div className="flex items-center gap-3">
               <span className="w-3 h-3 rounded-full bg-red-500" />
-              <span className="text-sm font-bold tracking-widest uppercase text-white/80">
+              <span className="text-sm font-bold text-white/90">
                 Modo Teleprompter · Província BRM
               </span>
             </div>
