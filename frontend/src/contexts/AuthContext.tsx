@@ -32,43 +32,74 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const currentUserIdRef = useRef<string | null>(null);
+const AUTH_USER_CACHE_KEY = 'brm_auth_user_cache_v1';
 
-  const fetchUserProfile = async (userId: string, email: string) => {
+const getCachedUser = (): User | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(AUTH_USER_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && parsed.id && parsed.email && Array.isArray(parsed.acessos)) {
+      return parsed as User;
+    }
+  } catch (err) {
+    console.warn('Erro ao ler cache de autenticação:', err);
+  }
+  return null;
+};
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Inicialização síncrona a partir do cache local para entrada instantânea (0ms / direto)
+  const initialCachedUser = getCachedUser();
+  const [user, setUser] = useState<User | null>(initialCachedUser);
+  const [loading, setLoading] = useState<boolean>(() => !initialCachedUser);
+  const currentUserIdRef = useRef<string | null>(initialCachedUser?.id || null);
+
+  const saveUser = (newUser: User | null) => {
+    setUser(newUser);
+    currentUserIdRef.current = newUser?.id || null;
     try {
-      const { data: userData, error: userError } = await supabase
-        .from('usuarios')
-        .select('usu_nome, usu_email, usu_status, usu_acessos')
-        .eq('auth_user_id', userId)
-        .maybeSingle();
-      if (userError) throw userError;
+      if (newUser) {
+        localStorage.setItem(AUTH_USER_CACHE_KEY, JSON.stringify(newUser));
+      } else {
+        localStorage.removeItem(AUTH_USER_CACHE_KEY);
+      }
+    } catch (err) {
+      console.warn('Erro ao persistir cache de autenticação:', err);
+    }
+  };
+
+  const fetchUserProfile = async (userId: string, email: string, userMetadata?: Record<string, unknown>) => {
+    try {
+      // Executa as consultas de usuário e de religioso em paralelo para máxima velocidade
+      const [userRes, relRes] = await Promise.all([
+        supabase
+          .from('usuarios')
+          .select('usu_nome, usu_email, usu_status, usu_acessos')
+          .eq('auth_user_id', userId)
+          .maybeSingle(),
+        supabase
+          .from('religiosos')
+          .select('id, nome_civil, nome_religioso, grau, auth_user_id, status_cadastro')
+          .eq('auth_user_id', userId)
+          .maybeSingle(),
+      ]);
+
+      if (userRes.error) throw userRes.error;
+      const userData = userRes.data;
 
       let religiosoId: string | undefined;
       let religiosoNome: string | undefined;
       let religiosoGrau: string | undefined;
       let religiosoStatusCadastro: string | undefined;
       let isReligioso = false;
-      let precisaTrocarSenha = false;
-      try {
-        const { data: authUserResult } = await supabase.auth.getUser();
-        if (authUserResult?.user?.user_metadata?.precisa_trocar_senha) {
-          precisaTrocarSenha = true;
-        }
-      } catch (errAuth) {
-        console.error('Erro ao checar metadados do usuario:', errAuth);
-      }
+      const precisaTrocarSenha = Boolean(userMetadata?.precisa_trocar_senha);
 
-      const { data: relData, error: religiosoError } = await supabase
-        .from('religiosos')
-        .select('id, nome_civil, nome_religioso, grau, auth_user_id, status_cadastro')
-        .eq('auth_user_id', userId)
-        .maybeSingle();
-      if (religiosoError) {
-        console.error('Falha ao consultar vínculo religioso:', religiosoError.message);
-      } else if (relData) {
+      if (relRes.error) {
+        console.error('Falha ao consultar vínculo religioso:', relRes.error.message);
+      } else if (relRes.data) {
+        const relData = relRes.data;
         religiosoId = relData.id;
         religiosoNome = atribuirNomeReligioso(relData.grau, relData.nome_civil) || relData.nome_religioso || relData.nome_civil;
         religiosoGrau = relData.grau;
@@ -97,7 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const isAdmin = acessos.includes('admin');
 
-        setUser({
+        saveUser({
           id: userId,
           nome: userData.usu_nome || religiosoNome || email.split('@')[0],
           email: userData.usu_email || email,
@@ -113,7 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       } else if (isReligioso) {
         const aprovado = religiosoStatusCadastro === 'Aprovado';
-        setUser({
+        saveUser({
           id: userId,
           nome: religiosoNome || email.split('@')[0],
           email: email,
@@ -125,9 +156,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           religiosoStatusCadastro,
           isReligioso: true,
           isAdmin: false,
+          precisaTrocarSenha,
         });
       } else {
-        setUser({
+        saveUser({
+          id: userId,
+          nome: email.split('@')[0],
+          email,
+          status: 'Pendente',
+          acessos: [],
+          isReligioso: false,
+          isAdmin: false,
+          precisaTrocarSenha,
+        });
+      }
+    } catch (err) {
+      console.error("Falha ao obter perfil do usuario:", err);
+      // Se já temos o perfil em cache, preserva dados existentes em vez de zerar
+      if (!currentUserIdRef.current) {
+        saveUser({
           id: userId,
           nome: email.split('@')[0],
           email,
@@ -137,17 +184,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAdmin: false,
         });
       }
-    } catch (err) {
-      console.error("Falha ao obter perfil do usuario:", err);
-      setUser({
-        id: userId,
-        nome: email.split('@')[0],
-        email,
-        status: 'Pendente',
-        acessos: [],
-        isReligioso: false,
-        isAdmin: false,
-      });
     }
   };
 
@@ -157,8 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const previewRole = localStorage.getItem('brm_e2e_role');
       
       if (previewRole === 'patrimonio') {
-        currentUserIdRef.current = 'e2e-patrimonio';
-        setUser({
+        saveUser({
           id: 'e2e-patrimonio',
           nome: 'Usuário de Patrimônio',
           email: 'patrimonio@brm.org.br',
@@ -168,8 +203,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAdmin: false,
         });
       } else if (previewRole === 'religioso') {
-        currentUserIdRef.current = 'e2e-religioso';
-        setUser({
+        saveUser({
           id: 'e2e-religioso',
           nome: 'Pe. Carlos Eduardo, SCJ',
           email: 'pe.carlos@brm.org.br',
@@ -183,8 +217,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAdmin: false,
         });
       } else {
-        currentUserIdRef.current = 'e2e-admin';
-        setUser({
+        saveUser({
           id: 'e2e-admin',
           nome: 'Administrador Dehoniano',
           email: 'admin@brm.org.br',
@@ -216,9 +249,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // 2. Caso de saída de sessão (Logout)
       if (event === 'SIGNED_OUT' || !session?.user) {
-        currentUserIdRef.current = null;
         if (isMounted) {
-          setUser(null);
+          saveUser(null);
           setLoading(false);
         }
         return;
@@ -226,17 +258,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const sessionUserId = session.user.id;
       const sessionUserEmail = session.user.email || '';
+      const sessionUserMetadata = session.user.user_metadata;
 
       // 3. Caso o usuário autenticado seja exatamente o mesmo já ativo na aplicação:
       // Revalida em segundo plano SEM acionar estado de loading global e SEM desmontar páginas ou formulários.
       if (currentUserIdRef.current === sessionUserId) {
-        await fetchUserProfile(sessionUserId, sessionUserEmail);
+        await fetchUserProfile(sessionUserId, sessionUserEmail, sessionUserMetadata);
         return;
       }
 
       // 4. Caso seja a carga inicial da sessão ou uma troca legítima de usuário:
-      currentUserIdRef.current = sessionUserId;
-      await fetchUserProfile(sessionUserId, sessionUserEmail);
+      await fetchUserProfile(sessionUserId, sessionUserEmail, sessionUserMetadata);
       if (isMounted) {
         setLoading(false);
       }
@@ -246,13 +278,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!isMounted) return;
       if (!session?.user) {
-        if (!currentUserIdRef.current && isMounted) {
-          setUser(null);
+        // Se a sessão expirou no Supabase, limpa o cache
+        if (isMounted) {
+          saveUser(null);
           setLoading(false);
         }
-      } else if (!currentUserIdRef.current) {
-        currentUserIdRef.current = session.user.id;
-        await fetchUserProfile(session.user.id, session.user.email || '');
+      } else if (!currentUserIdRef.current || currentUserIdRef.current !== session.user.id) {
+        await fetchUserProfile(session.user.id, session.user.email || '', session.user.user_metadata);
+        if (isMounted) {
+          setLoading(false);
+        }
+      } else {
+        // Sessão confirmada e usuário já ativo via cache instantâneo
         if (isMounted) {
           setLoading(false);
         }
@@ -266,9 +303,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const logout = async () => {
-    currentUserIdRef.current = null;
+    saveUser(null);
     await supabase.auth.signOut();
-    setUser(null);
   };
 
   const refreshUserProfile = async (userId: string) => {
