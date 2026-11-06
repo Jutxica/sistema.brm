@@ -37,7 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const currentUserIdRef = useRef<string | null>(null);
 
-  const fetchUserProfile = async (userId: string, email: string, userMetadata?: Record<string, unknown>) => {
+  const fetchUserProfile = async (userId: string, email: string) => {
     try {
       const [userRes, relRes] = await Promise.all([
         supabase
@@ -62,7 +62,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let religiosoGrau: string | undefined;
       let religiosoStatusCadastro: string | undefined;
       let isReligioso = false;
-      const precisaTrocarSenha = Boolean(userMetadata?.precisa_trocar_senha);
 
       if (relRes.error) {
         console.error('Falha ao consultar vinculo religioso:', relRes.error.message);
@@ -106,7 +105,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           religiosoStatusCadastro,
           isReligioso,
           isAdmin,
-          precisaTrocarSenha,
         });
       } else if (isReligioso) {
         const aprovado = religiosoStatusCadastro === 'Aprovado';
@@ -122,7 +120,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           religiosoStatusCadastro,
           isReligioso: true,
           isAdmin: false,
-          precisaTrocarSenha,
         });
       } else {
         setUser({
@@ -133,7 +130,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           acessos: [],
           isReligioso: false,
           isAdmin: false,
-          precisaTrocarSenha,
         });
       }
     } catch (err) {
@@ -203,22 +199,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let isMounted = true;
 
-    // Timeout de segurança caso a resposta da sessão demore ou falhe na rede
+    // Timeout de segurança: em no máximo 3s libera o loading para nunca travar a tela
     const safetyTimer = setTimeout(() => {
       if (isMounted) {
-        setLoading(prev => {
-          if (prev) {
-            console.warn('Fallback de segurança: finalizando verificação de sessão após tempo limite.');
-            return false;
-          }
-          return prev;
-        });
+        setLoading(false);
       }
-    }, 2500);
+    }, 3000);
 
     // Escutar eventos de autenticação do Supabase.
-    // No Supabase v2, onAuthStateChange dispara 'INITIAL_SESSION' no início com a sessão carregada do storage local.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // O callback NÃO deve ser async para nunca reter a trava interna do GoTrueClient no Supabase.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return;
 
       // 1. Renovação periódica de token ou retorno do foco na aba (visibilitychange):
@@ -240,22 +230,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const sessionUserId = session.user.id;
       const sessionUserEmail = session.user.email || '';
-      const sessionUserMeta = session.user.user_metadata;
 
       // 3. Usuário já ativo (ex.: revalidação de aba em background):
       // Atualiza dados silenciosamente, sem ativar loading global.
       if (currentUserIdRef.current === sessionUserId) {
-        await fetchUserProfile(sessionUserId, sessionUserEmail, sessionUserMeta);
+        void fetchUserProfile(sessionUserId, sessionUserEmail);
         return;
       }
 
-      // 4. Carga inicial (INITIAL_SESSION) ou novo login (SIGNED_IN):
+      // 4. Carga inicial ou novo login:
       currentUserIdRef.current = sessionUserId;
-      await fetchUserProfile(sessionUserId, sessionUserEmail, sessionUserMeta);
-      if (isMounted) {
-        clearTimeout(safetyTimer);
-        setLoading(false);
-      }
+      void fetchUserProfile(sessionUserId, sessionUserEmail).then(() => {
+        if (isMounted) {
+          clearTimeout(safetyTimer);
+          setLoading(false);
+        }
+      });
     });
 
     return () => {
