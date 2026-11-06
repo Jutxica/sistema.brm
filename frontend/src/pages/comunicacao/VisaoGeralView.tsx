@@ -1,372 +1,427 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
-  Users, TrendingUp, Calendar as CalendarIcon, ArrowRight, Plus, 
-  Video, CheckCircle2, Clock, Eye, MessageCircle, Heart, Share2, Sparkles
+  Plus, Video, CheckCircle2, Clock, Calendar as CalendarIcon, 
+  ArrowRight, CheckSquare, Square, Gift, UploadCloud, 
+  Layers, AlertCircle, FileText, ChevronRight, UserCheck
 } from 'lucide-react';
-import type { ComunicacaoMetrica, ComunicacaoPost, ComunicacaoTarefa } from '../../types/comunicacao';
+import type { 
+  ComunicacaoPost, 
+  ComunicacaoTarefa, 
+  ComunicacaoCaptacao, 
+  AniversarianteProvincia,
+  ReligiosoConteudo 
+} from '../../types/comunicacao';
 
 interface VisaoGeralViewProps {
   usuarioNome: string;
-  metricas: ComunicacaoMetrica;
   posts: ComunicacaoPost[];
   tarefas: ComunicacaoTarefa[];
+  captacoes: ComunicacaoCaptacao[];
+  aniversariantes: AniversarianteProvincia[];
+  religiosos: ReligiosoConteudo[];
   onNavegarTab: (tabId: string) => void;
-  onAbrirNovoConteudo: (tipo?: 'pauta' | 'post') => void;
+  onAbrirNovoConteudo: (tipo?: 'pauta' | 'post', dataIso?: string) => void;
+  onAprovarPost: (postId: string) => void;
+  onPedirAjustes: (postId: string) => void;
+  onToggleTarefa: (tarefaId: string, concluida: boolean) => void;
+  onCriarHomenagemReligioso: (religioso: ReligiosoConteudo) => void;
 }
 
 export const VisaoGeralView: React.FC<VisaoGeralViewProps> = ({
   usuarioNome,
-  metricas,
   posts,
   tarefas,
+  captacoes,
+  aniversariantes,
+  religiosos,
   onNavegarTab,
-  onAbrirNovoConteudo
+  onAbrirNovoConteudo,
+  onAprovarPost,
+  onPedirAjustes,
+  onToggleTarefa,
+  onCriarHomenagemReligioso
 }) => {
-  const [periodoSeguidores, setPeriodoSeguidores] = useState<'7' | '14' | '30'>('7');
-  const [periodoAlcance, setPeriodoAlcance] = useState<'7' | '14' | '30'>('7');
-
   const postsEmAprovacao = posts.filter(p => p.status === 'aprovacao');
-  const postsEmProducao = posts.filter(p => p.status === 'em_producao');
-  const postsAprovados = posts.filter(p => p.status === 'aprovado');
-  const postsPublicados = posts.filter(p => p.status === 'postado');
+  const postsProgramados = posts.filter(p => p.status === 'programado' || p.status === 'aprovado');
+  const captacoesProximas = captacoes.filter(c => c.situacao === 'agendada');
   const tarefasPendentes = tarefas.filter(t => !t.concluida);
 
-  const statusText = postsEmAprovacao.length > 0 
-    ? `${postsEmAprovacao.length} ${postsEmAprovacao.length === 1 ? 'conteúdo esperando aprovação' : 'conteúdos esperando aprovação'}.` 
-    : 'Tudo em dia e nenhum conteúdo travado.';
+  const hoje = new Date();
+  const diaHoje = hoje.getDate();
+  const mesHoje = hoje.getMonth() + 1;
+
+  // Filtrar aniversariantes dos próximos 15 dias
+  const aniversariantesProximos = aniversariantes.filter(a => {
+    if (a.mes === mesHoje) {
+      return a.dia >= diaHoje && a.dia <= diaHoje + 15;
+    }
+    return false;
+  }).slice(0, 4);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Header com Saudação Pessoal */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6">
+      {/* Topo: Cockpit de Produtividade & Ações Rápidas */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-[#dce4e2] dark:border-[#354246]">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#113240] dark:text-white tracking-tight">
-            Boa tarde, {usuarioNome.split(' ')[0]}.
+          <h1 className="text-2xl font-bold text-[#113240] dark:text-white tracking-tight">
+            Central de Produtividade · {usuarioNome.split(' ')[0]}
           </h1>
-          <p className="text-sm text-[#66777b] dark:text-[#a0aeaf] mt-1">
-            {statusText}
+          <p className="text-xs text-[#52636a] dark:text-[#a0aeaf] mt-0.5">
+            Painel diário da equipe de comunicação da Província BRM. Ações práticas e prioridades do dia.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Barra de Alimentação Rápida */}
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => onAbrirNovoConteudo('post')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#226380] hover:bg-[#1a4f66] text-white text-xs font-semibold transition-colors"
+            type="button"
+            onClick={() => onAbrirNovoConteudo('pauta')}
+            className="px-3 py-1.5 rounded-lg bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] hover:bg-slate-50 text-[#113240] dark:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
           >
-            <Plus className="w-4 h-4" />
-            <span>Novo conteúdo</span>
+            <Plus className="w-3.5 h-3.5 text-[#226380]" />
+            <span>Nova pauta</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onAbrirNovoConteudo('post')}
+            className="px-3 py-1.5 rounded-lg bg-[#226380] hover:bg-[#1a4f66] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Novo post</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavegarTab('captacao')}
+            className="px-3 py-1.5 rounded-lg bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] hover:bg-slate-50 text-[#113240] dark:text-white text-xs font-medium flex items-center gap-1.5 transition-colors"
+          >
+            <Video className="w-3.5 h-3.5 text-amber-600" />
+            <span>Agendar gravação</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavegarTab('estudio_arte')}
+            className="px-3 py-1.5 rounded-lg bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] hover:bg-slate-50 text-[#113240] dark:text-white text-xs font-medium flex items-center gap-1.5 transition-colors"
+          >
+            <UploadCloud className="w-3.5 h-3.5 text-[#226380]" />
+            <span>Subir PSD / Mídia</span>
           </button>
         </div>
       </div>
 
-      {/* Grid Principal do Dashboard */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* 1. Card de Seguidores (4 cols) */}
-        <div className="lg:col-span-4 bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-2xl p-5 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-bold text-[#113240] dark:text-white">Seguidores</span>
-              <div className="flex bg-[#f4f6f5] dark:bg-white/5 rounded-lg p-0.5 text-xs font-medium">
-                {(['7', '14', '30'] as const).map(p => (
-                  <button
-                    key={p}
-                    onClick={() => setPeriodoSeguidores(p)}
-                    className={`px-2 py-0.5 rounded-md transition-colors ${
-                      periodoSeguidores === p 
-                        ? 'bg-white dark:bg-[#226380] text-[#113240] dark:text-white' 
-                        : 'text-[#66777b] dark:text-[#a0aeaf]'
-                    }`}
-                  >
-                    {p} dias
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-baseline gap-3 mb-1">
-              <span className="text-3xl font-extrabold text-[#113240] dark:text-white">
-                {metricas.seguidores_total.toLocaleString('pt-BR')}
-              </span>
-              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/40">
-                +{metricas.seguidores_novos} novos
-              </span>
-            </div>
-            <p className="text-xs text-[#66777b] dark:text-[#a0aeaf] mb-4">
-              Total hoje · {metricas.seguidores_deixaram} deixaram de seguir no período
-            </p>
+      {/* Bloco 1: Fila de Conteúdos Travados em Aprovação */}
+      <div className="bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-xl p-5 space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-[#dce4e2] dark:border-[#354246]">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-amber-600" />
+            <h2 className="text-xs font-semibold text-[#113240] dark:text-white">
+              Fila de aprovação urgente
+            </h2>
+            <span className="text-xs px-2 py-0.2 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-semibold border border-amber-300 dark:border-amber-800">
+              {postsEmAprovacao.length} aguardando liberação
+            </span>
           </div>
 
-          {/* Gráfico Simulado de Barras */}
-          <div className="pt-4 border-t border-[#dce4e2] dark:border-[#354246]">
-            <span className="text-xs font-medium text-[#66777b] dark:text-[#a0aeaf] block mb-2">
-              Novos seguidores por dia
-            </span>
-            <div className="flex items-end justify-between h-20 gap-1.5 px-1">
-              {[18, 24, 15, 32, 28, 45, 38].map((val, idx) => (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-1 group">
-                  <div 
-                    className="w-full bg-[#226380]/70 group-hover:bg-[#226380] rounded-t transition-colors"
-                    style={{ height: `${(val / 45) * 100}%` }}
-                    title={`${val} seguidores`}
-                  />
-                  <span className="text-xs text-[#86868b]">
-                    {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'][idx]}
+          <button
+            type="button"
+            onClick={() => onNavegarTab('aprovacao')}
+            className="text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold hover:underline flex items-center gap-1"
+          >
+            <span>Abrir tela de aprovação</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {postsEmAprovacao.length === 0 ? (
+          <div className="p-6 text-center text-xs text-[#52636a] dark:text-[#a0aeaf] bg-[#f8faf9] dark:bg-[#141a1c] border border-dashed border-[#dce4e2] dark:border-[#354246] rounded-lg">
+            Nenhum conteúdo travado. Todas as artes e legendas submetidas estão aprovadas.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {postsEmAprovacao.map(post => (
+              <div
+                key={post.id}
+                className="p-3.5 rounded-lg border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] flex flex-col justify-between gap-3"
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold px-2 py-0.2 rounded bg-[#113240] text-white">
+                      {post.formato}
+                    </span>
+                    <span className="text-xs text-[#52636a] dark:text-[#a0aeaf]">
+                      {post.area}
+                    </span>
+                  </div>
+
+                  <h3 className="text-xs font-semibold text-[#113240] dark:text-white line-clamp-2">
+                    {post.titulo}
+                  </h3>
+
+                  {post.legenda && (
+                    <p className="text-xs text-[#52636a] dark:text-[#a0aeaf] line-clamp-2">
+                      {post.legenda}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-[#dce4e2] dark:border-[#354246] flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onAprovarPost(post.id)}
+                    className="flex-1 py-1 px-2.5 rounded bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium flex items-center justify-center gap-1 transition-colors"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Aprovar</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onPedirAjustes(post.id)}
+                    className="py-1 px-2.5 rounded border border-[#dce4e2] dark:border-[#354246] bg-white dark:bg-[#1c2427] hover:bg-slate-100 text-[#52636a] dark:text-[#a0aeaf] text-xs font-medium transition-colors"
+                  >
+                    Pedir ajustes
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Grid Duplo: Próximas Publicações & Gravações Agendadas */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* Próximas Publicações (6 cols) */}
+        <div className="lg:col-span-6 bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-xl p-5 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#dce4e2] dark:border-[#354246]">
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="w-4 h-4 text-[#226380]" />
+              <h2 className="text-xs font-semibold text-[#113240] dark:text-white">
+                Próximas publicações programadas
+              </h2>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onNavegarTab('cronograma')}
+              className="text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold hover:underline flex items-center gap-1"
+            >
+              <span>Ver cronograma</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {postsProgramados.length === 0 ? (
+            <div className="p-6 text-center text-xs text-[#52636a] dark:text-[#a0aeaf] bg-[#f8faf9] dark:bg-[#141a1c] border border-dashed border-[#dce4e2] dark:border-[#354246] rounded-lg">
+              Nenhuma postagem programada para os próximos dias.
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {postsProgramados.slice(0, 4).map(post => (
+                <div
+                  key={post.id}
+                  className="p-3 rounded-lg border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] flex items-center justify-between gap-3"
+                >
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-semibold text-[#113240] dark:text-white truncate">
+                        {post.titulo}
+                      </span>
+                      <span className="text-xs px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-700 text-[#52636a] dark:text-[#a0aeaf]">
+                        {post.formato}
+                      </span>
+                    </div>
+                    <span className="text-xs text-[#52636a] dark:text-[#a0aeaf] block">
+                      Programado para: <strong>{post.data_cronograma ? new Date(post.data_cronograma).toLocaleDateString('pt-BR') : 'Esta semana'}</strong>
+                    </span>
+                  </div>
+
+                  <span className="text-xs px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-medium shrink-0">
+                    Pronto
                   </span>
                 </div>
               ))}
             </div>
-          </div>
+          )}
         </div>
 
-        {/* 2. Card de Alcance & Engajamento (5 cols) */}
-        <div className="lg:col-span-5 bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-2xl p-5 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-bold text-[#113240] dark:text-white">Alcance e Audiência</span>
-              <div className="flex bg-[#f4f6f5] dark:bg-white/5 rounded-lg p-0.5 text-xs font-medium">
-                {(['7', '14', '30'] as const).map(p => (
-                  <button
-                    key={p}
-                    onClick={() => setPeriodoAlcance(p)}
-                    className={`px-2 py-0.5 rounded-md transition-colors ${
-                      periodoAlcance === p 
-                        ? 'bg-white dark:bg-[#226380] text-[#113240] dark:text-white' 
-                        : 'text-[#66777b] dark:text-[#a0aeaf]'
-                    }`}
-                  >
-                    {p} dias
-                  </button>
-                ))}
-              </div>
+        {/* Gravações & Captações Agendadas (6 cols) */}
+        <div className="lg:col-span-6 bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-xl p-5 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#dce4e2] dark:border-[#354246]">
+            <div className="flex items-center gap-2">
+              <Video className="w-4 h-4 text-amber-600" />
+              <h2 className="text-xs font-semibold text-[#113240] dark:text-white">
+                Captações de vídeo da semana
+              </h2>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <div>
-                <span className="text-xs font-medium text-[#66777b] dark:text-[#a0aeaf]">Contas</span>
-                <p className="text-lg font-bold text-[#113240] dark:text-white mt-0.5">
-                  {(metricas.contas_alcancadas / 1000).toFixed(1)}k
-                </p>
-                <span className="text-xs text-emerald-600 font-medium">▲ +{metricas.alcance_variacao_pct}%</span>
-              </div>
-              <div>
-                <span className="text-xs font-medium text-[#66777b] dark:text-[#a0aeaf]">Engajamento</span>
-                <p className="text-lg font-bold text-[#113240] dark:text-white mt-0.5">
-                  {metricas.engajamento_pct}%
-                </p>
-                <span className="text-xs text-[#66777b]">▲ 1.4 p.p.</span>
-              </div>
-              <div>
-                <span className="text-xs font-medium text-[#66777b] dark:text-[#a0aeaf]">Interações</span>
-                <p className="text-lg font-bold text-[#113240] dark:text-white mt-0.5">
-                  {metricas.interacoes_total.toLocaleString('pt-BR')}
-                </p>
-                <span className="text-xs text-emerald-600 font-medium">▲ +28,5%</span>
-              </div>
-            </div>
-
-            <div className="mb-2">
-              <span className="text-xs font-medium text-[#113240] dark:text-white">
-                {(metricas.visualizacoes_total / 1000).toFixed(0)} mil visualizações totais
-              </span>
-            </div>
-          </div>
-
-          {/* Gráfico Simulado de Linha Suave */}
-          <div className="pt-3 border-t border-[#dce4e2] dark:border-[#354246]">
-            <div className="h-16 flex items-center justify-center relative">
-              <svg className="w-full h-full overflow-visible" viewBox="0 0 300 60" preserveAspectRatio="none">
-                <path
-                  d="M0,50 Q40,45 80,30 T160,20 T240,35 T300,10"
-                  fill="none"
-                  stroke="#226380"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
-                <circle cx="300" cy="10" r="4" fill="#226380" />
-              </svg>
-            </div>
-            <div className="flex items-center justify-between text-xs text-[#86868b] mt-1">
-              <span>Semana Anterior</span>
-              <button 
-                onClick={() => onNavegarTab('analise_instagram')}
-                className="text-[#226380] dark:text-[#A3C3C7] font-semibold hover:underline"
-              >
-                Ver métricas completas →
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* 3. Card Mini-Calendário & Pautas Rápidas (3 cols) */}
-        <div className="lg:col-span-3 bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-2xl p-5 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold text-[#113240] dark:text-white">
-                Novembro 2026
-              </span>
-              <button
-                onClick={() => onNavegarTab('cronograma')}
-                className="text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold hover:underline"
-              >
-                Ver mês →
-              </button>
-            </div>
-
-            {/* Mini Grid de Dias */}
-            <div className="grid grid-cols-7 gap-1 text-center text-xs mb-3">
-              {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(d => (
-                <span key={d} className="font-medium text-[#86868b]">{d}</span>
-              ))}
-              {Array.from({ length: 31 }, (_, i) => i + 1).slice(0, 21).map(day => {
-                const temPost = [3, 10, 14, 16, 24, 28].includes(day);
-                const isHoje = day === 6;
-                return (
-                  <div
-                    key={day}
-                    className={`h-6 rounded-md flex flex-col items-center justify-center font-medium ${
-                      isHoje 
-                        ? 'bg-[#226380] text-white font-bold' 
-                        : 'text-[#113240] dark:text-[#edf2f1] hover:bg-slate-100 dark:hover:bg-white/5'
-                    }`}
-                  >
-                    <span>{day}</span>
-                    {temPost && (
-                      <span className={`w-1 h-1 rounded-full ${isHoje ? 'bg-white' : 'bg-[#226380]'}`} />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="space-y-2 pt-2 border-t border-[#dce4e2] dark:border-[#354246]">
             <button
-              onClick={() => onAbrirNovoConteudo('pauta')}
-              className="w-full py-2 px-3 rounded-xl bg-[#e8f1f5] dark:bg-white/10 hover:bg-[#d8e8ee] dark:hover:bg-white/15 text-[#226380] dark:text-[#A3C3C7] text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Nova pauta</span>
-            </button>
-            <button
+              type="button"
               onClick={() => onNavegarTab('captacao')}
-              className="w-full py-2 px-3 rounded-xl border border-[#dce4e2] dark:border-[#354246] hover:bg-slate-50 dark:hover:bg-white/5 text-[#52636a] dark:text-[#edf2f1] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+              className="text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold hover:underline flex items-center gap-1"
             >
-              <Video className="w-3.5 h-3.5 text-amber-500" />
-              <span>Agendar Captação</span>
+              <span>Ver captações</span>
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
+
+          {captacoesProximas.length === 0 ? (
+            <div className="p-6 text-center text-xs text-[#52636a] dark:text-[#a0aeaf] bg-[#f8faf9] dark:bg-[#141a1c] border border-dashed border-[#dce4e2] dark:border-[#354246] rounded-lg">
+              Nenhuma gravação agendada. Clique em "Agendar gravação" para marcar.
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {captacoesProximas.slice(0, 3).map(cap => (
+                <div
+                  key={cap.id}
+                  className="p-3 rounded-lg border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] flex items-center justify-between gap-3"
+                >
+                  <div className="space-y-0.5 min-w-0">
+                    <span className="text-xs font-semibold text-[#113240] dark:text-white block truncate">
+                      {cap.titulo}
+                    </span>
+                    <span className="text-xs text-[#52636a] dark:text-[#a0aeaf] block">
+                      Entrevistado: <strong>{cap.entrevistado_nome}</strong> · {cap.local}
+                    </span>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span className="text-xs font-semibold text-[#113240] dark:text-white block">
+                      {new Date(cap.data_gravacao).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                    </span>
+                    <span className="text-xs text-[#52636a] dark:text-[#a0aeaf]">
+                      {cap.duracao}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Linha Inferior: Tarefas Pendentes & Fluxo do Mês */}
+      {/* Bloco 3: Tarefas Prioritárias & Radar de Confrades do Banco */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Bloco "Para Fazer" (6 cols) */}
-        <div className="lg:col-span-6 bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-4">
+        {/* Tarefas Prioritárias (6 cols) */}
+        <div className="lg:col-span-6 bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-xl p-5 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#dce4e2] dark:border-[#354246]">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-[#113240] dark:text-white">Para Fazer</span>
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                {tarefasPendentes.length} pendentes
+              <CheckSquare className="w-4 h-4 text-[#226380]" />
+              <h2 className="text-xs font-semibold text-[#113240] dark:text-white">
+                Tarefas prioritárias da equipe
+              </h2>
+              <span className="text-xs text-[#52636a] dark:text-[#a0aeaf]">
+                ({tarefasPendentes.length} pendentes)
               </span>
             </div>
+
             <button
+              type="button"
               onClick={() => onNavegarTab('tarefas')}
               className="text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold hover:underline flex items-center gap-1"
             >
               <span>Abrir tarefas</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
           <div className="space-y-2">
-            {tarefasPendentes.slice(0, 3).map(tarefa => (
+            {tarefasPendentes.slice(0, 4).map(tar => (
               <div
-                key={tarefa.id}
-                className="flex items-center justify-between p-3 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246]"
+                key={tar.id}
+                className="p-2.5 rounded-lg border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] flex items-center justify-between gap-3"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600" />
-                  <span className="text-xs font-medium text-[#113240] dark:text-[#edf2f1]">
-                    {tarefa.titulo}
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => onToggleTarefa(tar.id, true)}
+                    className="text-slate-400 hover:text-[#226380] shrink-0"
+                  >
+                    <Square className="w-4 h-4" />
+                  </button>
+                  <span className="text-xs font-medium text-[#113240] dark:text-white truncate">
+                    {tar.titulo}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  {tarefa.responsavel_nome && (
-                    <span className="text-xs px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-[#52636a] dark:text-[#a0aeaf] font-medium">
-                      {tarefa.responsavel_nome}
-                    </span>
-                  )}
-                  {tarefa.data_limite && (
-                    <span className="text-xs text-[#86868b]">
-                      até {new Date(tarefa.data_limite).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-                    </span>
-                  )}
-                </div>
+
+                {tar.responsavel_nome && (
+                  <span className="text-xs px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-[#52636a] dark:text-[#a0aeaf] shrink-0">
+                    {tar.responsavel_nome}
+                  </span>
+                )}
               </div>
             ))}
           </div>
         </div>
 
-        {/* Bloco "Fluxo do Mês & Produção" (6 cols) */}
-        <div className="lg:col-span-6 bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-bold text-[#113240] dark:text-white">Fluxo do Mês</span>
+        {/* Radar de Confrades Aniversariantes do Banco Real (6 cols) */}
+        <div className="lg:col-span-6 bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-xl p-5 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#dce4e2] dark:border-[#354246]">
+            <div className="flex items-center gap-2">
+              <Gift className="w-4 h-4 text-[#226380]" />
+              <h2 className="text-xs font-semibold text-[#113240] dark:text-white">
+                Radar de datas solenes da Província
+              </h2>
+            </div>
+
             <button
-              onClick={() => onNavegarTab('producao')}
+              type="button"
+              onClick={() => onNavegarTab('religiosos_conteudo')}
               className="text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold hover:underline flex items-center gap-1"
             >
-              <span>Abrir produção</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span>Ver todos os confrades</span>
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <div className="grid grid-cols-4 gap-3 text-center">
-            <div className="p-3 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246]">
-              <span className="text-2xl font-bold text-[#113240] dark:text-white">
-                {postsEmProducao.length}
-              </span>
-              <span className="block text-xs text-[#66777b] dark:text-[#a0aeaf] mt-1 font-medium">
-                Em Produção
-              </span>
+          {aniversariantesProximos.length === 0 ? (
+            <div className="p-6 text-center text-xs text-[#52636a] dark:text-[#a0aeaf] bg-[#f8faf9] dark:bg-[#141a1c] border border-dashed border-[#dce4e2] dark:border-[#354246] rounded-lg">
+              Nenhuma data solene nos próximos 15 dias.
             </div>
+          ) : (
+            <div className="space-y-2.5">
+              {aniversariantesProximos.map(aniv => {
+                const relCorrespondente = religiosos.find(r => r.id === aniv.religioso_id || r.nome_religioso === aniv.nome);
 
-            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400">
-              <span className="text-2xl font-bold">
-                {postsEmAprovacao.length}
-              </span>
-              <span className="block text-xs mt-1 font-semibold">
-                Em Aprovação
-              </span>
+                return (
+                  <div
+                    key={aniv.id}
+                    className="p-3 rounded-lg border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] flex items-center justify-between gap-3"
+                  >
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-semibold text-[#113240] dark:text-white truncate">
+                          {aniv.nome}
+                        </span>
+                        <span className="text-xs px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-semibold border border-amber-300 dark:border-amber-800">
+                          {aniv.tipo === 'ordenacao' ? `Jubileu ${aniv.anos} anos` : 'Aniversário'}
+                        </span>
+                      </div>
+                      <span className="text-xs text-[#52636a] dark:text-[#a0aeaf] block truncate">
+                        Dia {aniv.dia}/{aniv.mes} · {aniv.comunidade || 'Província BRM'}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (relCorrespondente) {
+                          onCriarHomenagemReligioso(relCorrespondente);
+                        } else {
+                          onAbrirNovoConteudo('post');
+                        }
+                      }}
+                      className="py-1 px-2.5 rounded bg-[#226380] hover:bg-[#1a4f66] text-white text-xs font-medium flex items-center gap-1 transition-colors shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Homenagem</span>
+                    </button>
+                  </div>
+                );
+              })}
             </div>
-
-            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400">
-              <span className="text-2xl font-bold">
-                {postsAprovados.length}
-              </span>
-              <span className="block text-xs mt-1 font-semibold">
-                Aprovados
-              </span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246]">
-              <span className="text-2xl font-bold text-[#113240] dark:text-white">
-                {postsPublicados.length}
-              </span>
-              <span className="block text-xs text-[#66777b] dark:text-[#a0aeaf] mt-1 font-medium">
-                Publicados
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-4 pt-3 border-t border-[#dce4e2] dark:border-[#354246] flex items-center justify-between text-xs text-[#66777b] dark:text-[#a0aeaf]">
-            <span>Mês no Feed: <strong>{postsPublicados.length + postsAprovados.length} programados</strong></span>
-            <button
-              onClick={() => onNavegarTab('previa_feed')}
-              className="text-[#226380] dark:text-[#A3C3C7] font-semibold hover:underline"
-            >
-              Ver prévia do feed →
-            </button>
-          </div>
+          )}
         </div>
       </div>
     </div>

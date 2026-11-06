@@ -47,10 +47,15 @@ export interface ComunicacaoPauta {
   prioridade: 'baixa' | 'media' | 'alta' | 'urgente';
   data_prevista?: string | null;
   canais: string[];
+  obra_id?: string | null;
+  obra_nome?: string | null;
+  religioso_id?: string | null;
+  religioso_nome?: string | null;
   responsavel_texto_id?: string | null;
   responsavel_texto_nome?: string | null;
   responsavel_arte_id?: string | null;
   responsavel_arte_nome?: string | null;
+  responsaveis_equipe?: string[];
   criado_por_nome?: string | null;
   origem_data_comemorativa?: string | null;
   created_at: string;
@@ -73,6 +78,11 @@ export interface ComunicacaoPost {
   data_cronograma?: string | null;
   horario_agendado?: string | null;
   melhor_horario_sugerido?: string | null;
+  obra_id?: string | null;
+  obra_nome?: string | null;
+  religioso_id?: string | null;
+  religioso_nome?: string | null;
+  responsaveis_equipe?: string[];
   aprovado_por_nome?: string | null;
   aprovado_em?: string | null;
   ordem_feed?: number | null;
@@ -114,6 +124,13 @@ export interface ChecklistEquipamento {
   checado: boolean;
 }
 
+export interface ComentarioCaptacao {
+  id: string;
+  autor_nome: string;
+  mensagem: string;
+  created_at: string;
+}
+
 export interface ComunicacaoCaptacao {
   id: string;
   titulo: string;
@@ -125,11 +142,68 @@ export interface ComunicacaoCaptacao {
   area: AreaPauta;
   situacao: 'agendada' | 'gravada' | 'cancelada';
   roteiro?: string | null;
+  tags?: string[];
+  mencoes?: string[];
+  comentarios?: ComentarioCaptacao[];
   checklist_equipamentos: ChecklistEquipamento[];
   conteudos_previstos: Array<{ formato: string; titulo: string }>;
   participantes: Array<{ nome: string; email: string }>;
   created_at: string;
   updated_at?: string;
+}
+
+export interface ReligiosoConteudo {
+  id: string;
+  nome_religioso: string;
+  nome_civil: string;
+  grau: string;
+  data_nascimento?: string | null;
+  ordenacao_data?: string | null;
+  profissao_perpetua_data?: string | null;
+  comunidade_atual_nome?: string | null;
+  obra_atual_nome?: string | null;
+  cargo_funcao?: string | null;
+  foto_path?: string | null;
+  foto_url?: string | null;
+  lema_destacado?: string | null;
+  lema_destacado_fase?: string | null;
+  email_institucional?: string | null;
+  telefone_celular?: string | null;
+  total_conteudos?: number;
+  ultimo_conteudo_em?: string | null;
+}
+
+export interface HistoricoConteudoItem {
+  id: string;
+  tipo: 'post' | 'pauta' | 'captacao';
+  titulo: string;
+  formato: string;
+  data: string;
+  status: string;
+  url?: string;
+}
+
+export interface ObraResumoComunicacao {
+  id: string;
+  nome: string;
+  tipo: string;
+  cidade?: string | null;
+  uf?: string | null;
+  comunidade_nome?: string | null;
+}
+
+export interface AniversarianteProvincia {
+  id: string;
+  religioso_id: string;
+  nome: string;
+  dia: number;
+  mes: number;
+  tipo: 'natalicio' | 'ordenacao' | 'votos';
+  anos?: number;
+  comunidade?: string;
+  obra?: string;
+  foto_url?: string;
+  data_completa?: string;
 }
 
 export interface ComunicacaoEmailEquipe {

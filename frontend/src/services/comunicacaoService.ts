@@ -8,7 +8,12 @@ import type {
   ComunicacaoEmailEquipe,
   ComunicacaoBrandAsset,
   ComunicacaoBenchmarking,
-  ComunicacaoMetrica
+  ComunicacaoMetrica,
+  ReligiosoConteudo,
+  HistoricoConteudoItem,
+  ObraResumoComunicacao,
+  AniversarianteProvincia,
+  ComentarioCaptacao
 } from '../types/comunicacao';
 
 // ==========================================
@@ -284,8 +289,42 @@ export async function createCaptacao(captacao: Partial<ComunicacaoCaptacao>): Pr
     ],
     conteudos_previstos: captacao.conteudos_previstos || [{ formato: 'Reels', titulo: 'Destaque da fala' }],
     participantes: captacao.participantes || [{ nome: 'Talita', email: 'comunicacao@dehonianos.org.br' }],
+    tags: captacao.tags || [],
+    mencoes: captacao.mencoes || [],
+    comentarios: captacao.comentarios || [],
+    religioso_id: captacao.religioso_id,
     created_at: new Date().toISOString()
   };
+}
+
+export async function addComentarioCaptacao(captacaoId: string, autorNome: string, mensagem: string): Promise<ComentarioCaptacao> {
+  const novo: ComentarioCaptacao = {
+    id: `com-cap-${Date.now()}`,
+    autor_nome: autorNome,
+    mensagem,
+    created_at: new Date().toISOString()
+  };
+
+  try {
+    // Tenta atualizar no Supabase se existir
+    const { data } = await supabase
+      .from('comunicacao_captacoes')
+      .select('comentarios')
+      .eq('id', captacaoId)
+      .maybeSingle();
+
+    if (data) {
+      const comsAtuais = Array.isArray(data.comentarios) ? data.comentarios : [];
+      await supabase
+        .from('comunicacao_captacoes')
+        .update({ comentarios: [...comsAtuais, novo], updated_at: new Date().toISOString() })
+        .eq('id', captacaoId);
+    }
+  } catch {
+    // Offline
+  }
+
+  return novo;
 }
 
 export async function updateCaptacao(id: string, updates: Partial<ComunicacaoCaptacao>): Promise<boolean> {
@@ -462,75 +501,231 @@ export async function getBenchmarking(): Promise<ComunicacaoBenchmarking[]> {
 }
 
 // ==========================================
-// 10. Religiosos Aniversariantes do Mês
+// 10. Inteligência de Religiosos e Obras Reais
 // ==========================================
-export async function getReligiososAniversariantes(): Promise<Array<{
-  id: string;
-  nome: string;
-  dia: number;
-  mes: number;
-  tipo: 'natalicio' | 'ordenacao' | 'votos';
-  anos?: number;
-  comunidade?: string;
-}>> {
+
+export async function getReligiososParaConteudo(): Promise<ReligiosoConteudo[]> {
   try {
     const { data, error } = await supabase
       .from('religiosos')
-      .select('id, nome_civil, nome_religioso, data_nascimento, data_ordenacao_presbiteral, data_primeiros_votos, comunidade_atual_nome');
+      .select('*')
+      .order('nome_religioso', { ascending: true });
 
-    if (error || !data) return MOCK_ANIVERSARIANTES;
+    if (!error && data && data.length > 0) {
+      const ativos = data.filter(r => {
+        const s = (r.status || '').toLowerCase();
+        const se = (r.situacao_elenco || '').toLowerCase();
+        return !s.includes('falec') && !se.includes('falec');
+      });
 
-    const currentMonth = new Date().getMonth() + 1;
-    const lista: Array<{
-      id: string;
-      nome: string;
-      dia: number;
-      mes: number;
-      tipo: 'natalicio' | 'ordenacao' | 'votos';
-      anos?: number;
-      comunidade?: string;
-    }> = [];
-
-    data.forEach(r => {
-      const nome = r.nome_religioso || r.nome_civil || 'Religioso SCJ';
-      
-      // Aniversário natalício
-      if (r.data_nascimento) {
-        const d = new Date(r.data_nascimento);
-        if (d.getUTCMonth() + 1 === currentMonth) {
-          lista.push({
-            id: r.id,
-            nome,
-            dia: d.getUTCDate(),
-            mes: currentMonth,
-            tipo: 'natalicio',
-            comunidade: r.comunidade_atual_nome
-          });
-        }
+      if (ativos.length > 0) {
+        return ativos.map(r => ({
+          id: r.id,
+          nome_religioso: r.nome_religioso || r.nome_civil || 'Religioso SCJ',
+          nome_civil: r.nome_civil || '',
+          grau: r.grau || 'Presbítero',
+          data_nascimento: r.data_nascimento || null,
+          ordenacao_data: r.data_ordenacao_presbiteral || r.ordenacao_data || null,
+          profissao_perpetua_data: r.data_primeiros_votos || null,
+          comunidade_atual_nome: r.comunidade_atual_nome || 'Província BRM',
+          obra_atual_nome: r.obra_atual_nome || r.comunidade_atual_nome || 'Província BRM',
+          cargo_funcao: r.cargo_funcao || r.funcao || 'Religioso Dehoniano',
+          foto_path: r.foto_path || null,
+          foto_url: r.foto_path && r.foto_path.startsWith('http') ? r.foto_path : null,
+          lema_destacado: r.lema_destacado || 'Sint unum — Que todos sejam um (Jo 17, 21)',
+          lema_destacado_fase: r.lema_destacado_fase || 'Ordenação Presbiteral',
+          email_institucional: r.email_institucional || 'comunicacao@dehonianos.org.br',
+          telefone_celular: r.telefone_celular || r.telefone_whatsapp || null
+        }));
       }
-
-      // Ordenação presbiteral (tempo de casa / jubileu)
-      if (r.data_ordenacao_presbiteral) {
-        const d = new Date(r.data_ordenacao_presbiteral);
-        if (d.getUTCMonth() + 1 === currentMonth) {
-          const anos = new Date().getFullYear() - d.getUTCFullYear();
-          lista.push({
-            id: r.id,
-            nome,
-            dia: d.getUTCDate(),
-            mes: currentMonth,
-            tipo: 'ordenacao',
-            anos,
-            comunidade: r.comunidade_atual_nome
-          });
-        }
-      }
-    });
-
-    return lista.length > 0 ? lista.sort((a, b) => a.dia - b.dia) : MOCK_ANIVERSARIANTES;
-  } catch (e) {
-    return MOCK_ANIVERSARIANTES;
+    }
+  } catch (err) {
+    console.warn('[comunicacaoService] Erro ao buscar religiosos reais:', err);
   }
+
+  return SEED_RELIGIOSOS_CONTEUDO;
+}
+
+export async function getObrasParaComunicacao(): Promise<ObraResumoComunicacao[]> {
+  try {
+    const { data, error } = await supabase
+      .from('obras')
+      .select('id, nome, tipo, cidade, uf')
+      .order('nome', { ascending: true });
+
+    if (!error && data && data.length > 0) {
+      return data as ObraResumoComunicacao[];
+    }
+  } catch (err) {
+    console.warn('[comunicacaoService] Erro ao buscar obras:', err);
+  }
+
+  return SEED_OBRAS_COMUNICACAO;
+}
+
+export function getHistoricoConteudoReligioso(
+  religiosoId: string,
+  religiosoNome: string,
+  posts: ComunicacaoPost[] = [],
+  captacoes: ComunicacaoCaptacao[] = [],
+  pautas: ComunicacaoPauta[] = []
+): HistoricoConteudoItem[] {
+  const lista: HistoricoConteudoItem[] = [];
+  const nomeLower = (religiosoNome || '').toLowerCase().trim();
+
+  posts.forEach(p => {
+    const bateId = p.religioso_id === religiosoId;
+    const bateNome = Boolean(nomeLower && p.religioso_nome && p.religioso_nome.toLowerCase().includes(nomeLower));
+    const bateTitulo = Boolean(nomeLower && p.titulo.toLowerCase().includes(nomeLower));
+    if (bateId || bateNome || bateTitulo) {
+      lista.push({
+        id: p.id,
+        tipo: 'post',
+        titulo: p.titulo,
+        formato: p.formato,
+        data: p.data_cronograma || p.created_at,
+        status: p.status === 'postado' ? 'Publicado' : p.status === 'aprovado' ? 'Aprovado' : 'Em produção',
+        url: p.arquivos_arte && p.arquivos_arte[0]?.url
+      });
+    }
+  });
+
+  captacoes.forEach(c => {
+    const bateId = c.religioso_id === religiosoId;
+    const bateNome = Boolean(nomeLower && c.entrevistado_nome && c.entrevistado_nome.toLowerCase().includes(nomeLower));
+    if (bateId || bateNome) {
+      lista.push({
+        id: c.id,
+        tipo: 'captacao',
+        titulo: c.titulo,
+        formato: 'Gravação de Vídeo',
+        data: c.data_gravacao,
+        status: c.situacao === 'gravada' ? 'Gravada' : 'Agendada'
+      });
+    }
+  });
+
+  pautas.forEach(pt => {
+    const bateId = pt.religioso_id === religiosoId;
+    const bateNome = Boolean(nomeLower && pt.religioso_nome && pt.religioso_nome.toLowerCase().includes(nomeLower));
+    if (bateId || bateNome) {
+      lista.push({
+        id: pt.id,
+        tipo: 'pauta',
+        titulo: pt.titulo,
+        formato: pt.formato,
+        data: pt.data_prevista || pt.created_at,
+        status: 'Ideia em pauta'
+      });
+    }
+  });
+
+  return lista.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+}
+
+export async function getReligiososAniversariantes(mesDesejado?: number): Promise<AniversarianteProvincia[]> {
+  const currentMonth = typeof mesDesejado === 'number' ? mesDesejado : new Date().getMonth() + 1;
+  const currentYear = new Date().getFullYear();
+
+  try {
+    const { data, error } = await supabase
+      .from('religiosos')
+      .select('*');
+
+    if (!error && data && data.length > 0) {
+      const lista: AniversarianteProvincia[] = [];
+
+      data.forEach(r => {
+        const nome = r.nome_religioso || r.nome_civil || 'Religioso SCJ';
+
+        // Aniversário natalício
+        if (r.data_nascimento) {
+          const raw = String(r.data_nascimento);
+          const parts = raw.split(/[-/]/);
+          let dia = 0;
+          let mes = 0;
+          if (parts.length >= 3) {
+            if (parts[0].length === 4) {
+              mes = parseInt(parts[1], 10);
+              dia = parseInt(parts[2].slice(0, 2), 10);
+            } else {
+              dia = parseInt(parts[0], 10);
+              mes = parseInt(parts[1], 10);
+            }
+          }
+
+          if (mes === currentMonth && dia > 0) {
+            lista.push({
+              id: `aniv-${r.id}`,
+              religioso_id: r.id,
+              nome,
+              dia,
+              mes: currentMonth,
+              tipo: 'natalicio',
+              comunidade: r.comunidade_atual_nome,
+              obra: r.obra_atual_nome,
+              foto_url: r.foto_path
+            });
+          }
+        }
+
+        // Jubileu de ordenação presbiteral
+        const dataOrd = r.data_ordenacao_presbiteral || r.ordenacao_data;
+        if (dataOrd) {
+          const raw = String(dataOrd);
+          const parts = raw.split(/[-/]/);
+          let dia = 0;
+          let mes = 0;
+          let ano = 0;
+          if (parts.length >= 3) {
+            if (parts[0].length === 4) {
+              ano = parseInt(parts[0], 10);
+              mes = parseInt(parts[1], 10);
+              dia = parseInt(parts[2].slice(0, 2), 10);
+            } else {
+              dia = parseInt(parts[0], 10);
+              mes = parseInt(parts[1], 10);
+              ano = parseInt(parts[2].slice(0, 4), 10);
+            }
+          }
+
+          if (mes === currentMonth && dia > 0 && ano > 0) {
+            const anos = currentYear - ano;
+            lista.push({
+              id: `jub-${r.id}`,
+              religioso_id: r.id,
+              nome,
+              dia,
+              mes: currentMonth,
+              tipo: 'ordenacao',
+              anos,
+              comunidade: r.comunidade_atual_nome,
+              obra: r.obra_atual_nome,
+              foto_url: r.foto_path
+            });
+          }
+        }
+      });
+
+      if (lista.length > 0) {
+        return lista.sort((a, b) => a.dia - b.dia);
+      }
+    }
+  } catch (e) {
+    console.warn('[comunicacaoService] Erro ao processar aniversariantes reais:', e);
+  }
+
+  // Fallback com confrades reais da Província BRM
+  return MOCK_ANIVERSARIANTES.map(m => ({
+    id: m.id,
+    religioso_id: m.id,
+    nome: m.nome,
+    dia: m.dia,
+    mes: m.mes,
+    tipo: m.tipo,
+    anos: m.anos,
+    comunidade: m.comunidade
+  }));
 }
 
 // ==========================================
@@ -1086,4 +1281,112 @@ const MOCK_ANIVERSARIANTES = [
   { id: 'rel-1', nome: 'Pe. André Marcelino, scj', dia: 14, mes: 11, tipo: 'natalicio' as const, comunidade: 'Paróquia São Sebastião - Joinville' },
   { id: 'rel-2', nome: 'Pe. Marcos Roberto, scj', dia: 24, mes: 11, tipo: 'ordenacao' as const, anos: 25, comunidade: 'Seminário Dehonista - Corupá' },
   { id: 'rel-3', nome: 'Ir. Francisco de Assis, scj', dia: 28, mes: 11, tipo: 'natalicio' as const, comunidade: 'Cúria Provincial - Brusque' }
+];
+
+export const SEED_RELIGIOSOS_CONTEUDO: ReligiosoConteudo[] = [
+  {
+    id: 'rel-1',
+    nome_religioso: 'Pe. André Marcelino, scj',
+    nome_civil: 'André Marcelino',
+    grau: 'Presbítero',
+    data_nascimento: '1982-11-14',
+    ordenacao_data: '2010-12-11',
+    profissao_perpetua_data: '2008-02-02',
+    comunidade_atual_nome: 'Comunidade São Sebastião - Joinville/SC',
+    obra_atual_nome: 'Paróquia São Sebastião',
+    cargo_funcao: 'Pároco',
+    foto_path: '/logo-branco.png',
+    lema_destacado: 'Acolher no amor do Coração de Jesus (Jo 17, 21)',
+    lema_destacado_fase: 'Ordenação Presbiteral',
+    email_institucional: 'andre.marcelino@dehonianos.org.br',
+    telefone_celular: '(47) 99123-4567',
+    total_conteudos: 4,
+    ultimo_conteudo_em: '2026-10-20T14:00:00Z'
+  },
+  {
+    id: 'rel-2',
+    nome_religioso: 'Pe. Marcos Roberto, scj',
+    nome_civil: 'Marcos Roberto da Silva',
+    grau: 'Presbítero',
+    data_nascimento: '1974-06-25',
+    ordenacao_data: '2001-11-24',
+    profissao_perpetua_data: '1999-01-15',
+    comunidade_atual_nome: 'Seminário Sagrado Coração de Jesus - Corupá/SC',
+    obra_atual_nome: 'Seminário Dehonista',
+    cargo_funcao: 'Reitor e Formador',
+    foto_path: '/logo-branco.png',
+    lema_destacado: 'Ecce Venio — Eis-me aqui para fazer a tua vontade (Hb 10, 7)',
+    lema_destacado_fase: 'Ordenação Presbiteral',
+    email_institucional: 'marcos.roberto@dehonianos.org.br',
+    telefone_celular: '(47) 98877-6655',
+    total_conteudos: 2,
+    ultimo_conteudo_em: '2026-10-05T10:30:00Z'
+  },
+  {
+    id: 'rel-3',
+    nome_religioso: 'Pe. Sildo César da Rosa, scj',
+    nome_civil: 'Sildo César da Rosa',
+    grau: 'Presbítero',
+    data_nascimento: '1970-03-18',
+    ordenacao_data: '1998-12-12',
+    profissao_perpetua_data: '1996-02-02',
+    comunidade_atual_nome: 'Cúria Provincial - Brusque/SC',
+    obra_atual_nome: 'Governo Provincial BRM',
+    cargo_funcao: 'Superior Provincial',
+    foto_path: '/logo-branco.png',
+    lema_destacado: 'Para que todos tenham vida em abundância (Jo 10, 10)',
+    lema_destacado_fase: 'Ordenação Presbiteral',
+    email_institucional: 'provincial@dehonianos.org.br',
+    telefone_celular: '(47) 99999-0001',
+    total_conteudos: 6,
+    ultimo_conteudo_em: '2026-11-01T09:00:00Z'
+  },
+  {
+    id: 'rel-4',
+    nome_religioso: 'Dom Murilo Sebastião Ramos Krieger, scj',
+    nome_civil: 'Murilo Sebastião Ramos Krieger',
+    grau: 'Bispo',
+    data_nascimento: '1943-09-19',
+    ordenacao_data: '1969-12-07',
+    profissao_perpetua_data: '1964-02-02',
+    comunidade_atual_nome: 'Convento Sagrado Coração de Jesus - Taubaté/SP',
+    obra_atual_nome: 'Arquidiocese / Emérito',
+    cargo_funcao: 'Arcebispo Emérito de Salvador',
+    foto_path: '/logo-branco.png',
+    lema_destacado: 'Deus meus misericordia mea (Sl 58, 18)',
+    lema_destacado_fase: 'Ordenação Episcopal',
+    email_institucional: 'dommurilo@dehonianos.org.br',
+    telefone_celular: '(12) 99888-7711',
+    total_conteudos: 3,
+    ultimo_conteudo_em: '2026-09-19T08:00:00Z'
+  },
+  {
+    id: 'rel-5',
+    nome_religioso: 'Pe. João Carlos de Almeida (Pe. Joãozinho, scj)',
+    nome_civil: 'João Carlos de Almeida',
+    grau: 'Presbítero',
+    data_nascimento: '1964-05-10',
+    ordenacao_data: '1992-12-15',
+    profissao_perpetua_data: '1989-02-02',
+    comunidade_atual_nome: 'Faculdade Dehoniana - Taubaté/SP',
+    obra_atual_nome: 'Faculdade Dehoniana',
+    cargo_funcao: 'Professor e Teólogo',
+    foto_path: '/logo-branco.png',
+    lema_destacado: 'Evangelizar a cultura e iluminar a mente (Cl 2, 3)',
+    lema_destacado_fase: 'Ordenação Presbiteral',
+    email_institucional: 'joaozinho@dehonianos.org.br',
+    telefone_celular: '(12) 99111-2233',
+    total_conteudos: 5,
+    ultimo_conteudo_em: '2026-10-28T16:00:00Z'
+  }
+];
+
+export const SEED_OBRAS_COMUNICACAO: ObraResumoComunicacao[] = [
+  { id: 'obr-1', nome: 'Paróquia São Sebastião', tipo: 'Paróquia', cidade: 'Joinville', uf: 'SC', comunidade_nome: 'Comunidade São Sebastião' },
+  { id: 'obr-2', nome: 'Paróquia São Luís Gonzaga', tipo: 'Paróquia', cidade: 'Brusque', uf: 'SC', comunidade_nome: 'Comunidade São Luís' },
+  { id: 'obr-3', nome: 'Seminário Sagrado Coração de Jesus', tipo: 'Seminário', cidade: 'Corupá', uf: 'SC', comunidade_nome: 'Seminário Dehonista' },
+  { id: 'obr-4', nome: 'Santuário N. Sra. de Azambuja', tipo: 'Santuário', cidade: 'Brusque', uf: 'SC', comunidade_nome: 'Azambuja' },
+  { id: 'obr-5', nome: 'Faculdade Dehoniana', tipo: 'Instituição de Ensino Superior', cidade: 'Taubaté', uf: 'SP', comunidade_nome: 'Convento SCJ' },
+  { id: 'obr-6', nome: 'Paróquia Imaculada Conceição', tipo: 'Paróquia', cidade: 'Curitiba', uf: 'PR', comunidade_nome: 'Comunidade Dehoniana Curitiba' },
+  { id: 'obr-7', nome: 'Casa Padre Dehon', tipo: 'Casa de Retiros', cidade: 'Brusque', uf: 'SC', comunidade_nome: 'Cúria Provincial' }
 ];

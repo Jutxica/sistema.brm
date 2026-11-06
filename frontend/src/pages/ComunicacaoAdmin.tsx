@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, CheckSquare, Calendar, FolderPlus, Kanban, 
   Palette, Video, Mail, Gift, CheckCircle2, Send, Grid3X3, 
-  BarChart2, Search, Plus, UserCheck, Layers, FileText
+  BarChart2, Search, Plus, UserCheck, Layers, FileText, Users,
+  Clock, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import * as servico from '../services/comunicacaoService';
@@ -14,7 +15,10 @@ import type {
   ComunicacaoEmailEquipe,
   ComunicacaoBrandAsset,
   ComunicacaoBenchmarking,
-  ComunicacaoMetrica
+  ComunicacaoMetrica,
+  ReligiosoConteudo,
+  ObraResumoComunicacao,
+  AniversarianteProvincia
 } from '../types/comunicacao';
 
 // Subvisões Modulares
@@ -32,10 +36,24 @@ import { PreviaFeedView } from './comunicacao/PreviaFeedView';
 import { InstagramAnalyticsView } from './comunicacao/InstagramAnalyticsView';
 import { BenchmarkingView } from './comunicacao/BenchmarkingView';
 import { EmailsEquipeView } from './comunicacao/EmailsEquipeView';
+import { ReligiososConteudoView } from './comunicacao/ReligiososConteudoView';
 
 // Modais
 import { ArtCraftModal } from './comunicacao/ArtCraftModal';
 import { NovoConteudoModal } from './comunicacao/NovoConteudoModal';
+
+interface ItemNavegacao {
+  id: string;
+  label: string;
+  icon: any;
+  badge?: number;
+  badgeColor?: string;
+}
+
+interface GrupoNavegacao {
+  titulo: string;
+  itens: ItemNavegacao[];
+}
 
 export const ComunicacaoAdmin: React.FC = () => {
   const { user } = useAuth();
@@ -44,7 +62,7 @@ export const ComunicacaoAdmin: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('visao_geral');
   const [buscaTexto, setBuscaTexto] = useState<string>('');
 
-  // Estados de Dados
+  // Estados de Dados Principais
   const [pautas, setPautas] = useState<ComunicacaoPauta[]>([]);
   const [posts, setPosts] = useState<ComunicacaoPost[]>([]);
   const [tarefas, setTarefas] = useState<ComunicacaoTarefa[]>([]);
@@ -53,7 +71,9 @@ export const ComunicacaoAdmin: React.FC = () => {
   const [emails, setEmails] = useState<ComunicacaoEmailEquipe[]>([]);
   const [brandAssets, setBrandAssets] = useState<ComunicacaoBrandAsset[]>([]);
   const [benchmarks, setBenchmarks] = useState<ComunicacaoBenchmarking[]>([]);
-  const [aniversariantes, setAniversariantes] = useState<any[]>([]);
+  const [aniversariantes, setAniversariantes] = useState<AniversarianteProvincia[]>([]);
+  const [religiosos, setReligiosos] = useState<ReligiosoConteudo[]>([]);
+  const [obras, setObras] = useState<ObraResumoComunicacao[]>([]);
   const [comentarios, setComentarios] = useState<Record<string, any[]>>({});
 
   // Estados de Modais
@@ -61,6 +81,7 @@ export const ComunicacaoAdmin: React.FC = () => {
     aberto: boolean;
     tipo: 'pauta' | 'post';
     dataInicial?: string;
+    religiosoInicial?: ReligiosoConteudo;
   }>({ aberto: false, tipo: 'post' });
 
   const [modalArtCraft, setModalArtCraft] = useState<{
@@ -82,7 +103,9 @@ export const ComunicacaoAdmin: React.FC = () => {
         emailsData,
         assetsData,
         benchData,
-        anivData
+        anivData,
+        religiososData,
+        obrasData
       ] = await Promise.all([
         servico.getPautas(),
         servico.getPosts(),
@@ -92,7 +115,9 @@ export const ComunicacaoAdmin: React.FC = () => {
         servico.getEmailsEquipe(),
         servico.getBrandAssets(),
         servico.getBenchmarking(),
-        servico.getReligiososAniversariantes()
+        servico.getReligiososAniversariantes(),
+        servico.getReligiososParaConteudo(),
+        servico.getObrasParaComunicacao()
       ]);
 
       setPautas(pautasData);
@@ -104,6 +129,8 @@ export const ComunicacaoAdmin: React.FC = () => {
       setBrandAssets(assetsData);
       setBenchmarks(benchData);
       setAniversariantes(anivData);
+      setReligiosos(religiososData);
+      setObras(obrasData);
 
       // Carregar comentários do primeiro post
       if (postsData.length > 0) {
@@ -115,7 +142,7 @@ export const ComunicacaoAdmin: React.FC = () => {
     carregarDados();
   }, []);
 
-  // Handlers
+  // Handlers de Pautas e Posts
   const handleCriarPauta = async (novaPauta: Partial<ComunicacaoPauta>) => {
     const criada = await servico.createPauta(novaPauta);
     if (criada) setPautas(prev => [criada, ...prev]);
@@ -144,7 +171,11 @@ export const ComunicacaoAdmin: React.FC = () => {
   };
 
   const handleAprovarPost = async (postId: string) => {
-    const ok = await servico.updatePost(postId, { status: 'aprovado', aprovado_por_nome: usuarioNome, aprovado_em: new Date().toISOString() });
+    const ok = await servico.updatePost(postId, { 
+      status: 'aprovado', 
+      aprovado_por_nome: usuarioNome, 
+      aprovado_em: new Date().toISOString() 
+    });
     if (ok) {
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, status: 'aprovado' } : p));
     }
@@ -157,7 +188,7 @@ export const ComunicacaoAdmin: React.FC = () => {
     }
   };
 
-  const handleAdicionarComentario = async (postId: string, mensagem: string, escopo: string, slideNum?: number) => {
+  const handleAdicionarComentarioPost = async (postId: string, mensagem: string, escopo: string, slideNum?: number) => {
     const criado = await servico.addComentario({
       post_id: postId,
       autor_nome: usuarioNome,
@@ -175,6 +206,29 @@ export const ComunicacaoAdmin: React.FC = () => {
     }
   };
 
+  // Handlers de Captação e Comentários de Gravação
+  const handleAdicionarComentarioCaptacao = async (captacaoId: string, texto: string) => {
+    const ok = await servico.addComentarioCaptacao(captacaoId, usuarioNome, texto);
+    if (ok) {
+      setCaptacoes(prev => prev.map(c => {
+        if (c.id === captacaoId) {
+          const novoCom = {
+            id: `com-${Date.now()}`,
+            autor_nome: usuarioNome,
+            mensagem: texto,
+            created_at: new Date().toISOString()
+          };
+          return {
+            ...c,
+            comentarios: [...(c.comentarios || []), novoCom]
+          };
+        }
+        return c;
+      }));
+    }
+  };
+
+  // Handlers de Tarefas
   const handleCriarTarefa = async (tarefa: Partial<ComunicacaoTarefa>) => {
     const criada = await servico.createTarefa(tarefa);
     if (criada) setTarefas(prev => [criada, ...prev]);
@@ -194,6 +248,7 @@ export const ComunicacaoAdmin: React.FC = () => {
     }
   };
 
+  // Handlers de Brand Assets
   const handleAdicionarBrandAsset = async (novo: Partial<ComunicacaoBrandAsset>) => {
     const criado = await servico.createBrandAsset(novo);
     if (criado) {
@@ -214,14 +269,68 @@ export const ComunicacaoAdmin: React.FC = () => {
   const countAprovacao = posts.filter(p => p.status === 'aprovacao').length;
   const countPautas = pautas.filter(p => p.status === 'ideia').length;
   const countCaptacao = captacoes.filter(c => c.situacao === 'agendada').length;
-  const countTarefasMinhas = tarefas.filter(t => !t.concluida && (t.responsavel_nome === 'Talita' || t.responsavel_nome === 'Kath')).length;
+  const countTarefasMinhas = tarefas.filter(t => {
+    if (t.concluida || t.tipo !== 'fazer') return false;
+    const resp = (t.responsavel_nome || '').toLowerCase();
+    const me = usuarioNome.toLowerCase().split(' ')[0];
+    return resp.includes(me) || resp === 'geral';
+  }).length;
+
+  // Organização dos Menus por Blocos Lógicos Operacionais
+  const gruposNavegacao: GrupoNavegacao[] = [
+    {
+      titulo: 'Painel Central',
+      itens: [
+        { id: 'visao_geral', label: 'Visão geral', icon: LayoutDashboard }
+      ]
+    },
+    {
+      titulo: 'Planejamento & Confrades',
+      itens: [
+        { id: 'banco_pautas', label: 'Banco de pautas', icon: FolderPlus, badge: countPautas },
+        { id: 'cronograma', label: 'Cronograma editorial', icon: Calendar },
+        { id: 'religiosos_conteudo', label: 'Religiosos da Província', icon: Users, badge: religiosos.length },
+        { id: 'aniversariantes', label: 'Aniversários & jubileus', icon: Gift }
+      ]
+    },
+    {
+      titulo: 'Criação & Mídia',
+      itens: [
+        { id: 'producao', label: 'Produção (Kanban)', icon: Kanban },
+        { id: 'estudio_arte', label: 'Estúdio de arte', icon: Palette },
+        { id: 'captacao', label: 'Captações de vídeo', icon: Video, badge: countCaptacao }
+      ]
+    },
+    {
+      titulo: 'Aprovação & Publicação',
+      itens: [
+        { id: 'aprovacao', label: 'Fila de aprovação', icon: CheckCircle2, badge: countAprovacao, badgeColor: 'bg-amber-600' },
+        { id: 'previa_feed', label: 'Prévia do feed', icon: Grid3X3 },
+        { id: 'programar', label: 'Programar posts', icon: Send }
+      ]
+    },
+    {
+      titulo: 'Equipe & Produtividade',
+      itens: [
+        { id: 'tarefas', label: 'Tarefas & responsáveis', icon: CheckSquare, badge: countTarefasMinhas },
+        { id: 'emails_equipe', label: 'Contatos da equipe', icon: Mail }
+      ]
+    },
+    {
+      titulo: 'Inteligência & Métricas',
+      itens: [
+        { id: 'analise_instagram', label: 'Métricas do Instagram', icon: BarChart2 },
+        { id: 'benchmarking', label: 'Benchmarking', icon: Search }
+      ]
+    }
+  ];
 
   return (
     <div className="flex min-h-screen bg-[#f4f6f5] dark:bg-[#141a1c]">
-      {/* Navegacao Lateral da Central de Conteudo */}
-      <aside className="w-60 bg-[#112338] text-white shrink-0 hidden md:flex flex-col justify-between select-none border-r border-[#1a3452]">
-        <div className="p-4 space-y-6">
-          {/* Logo / Titulo da Central */}
+      {/* Navegação Lateral da Central de Comunicação */}
+      <aside className="w-64 bg-[#112338] text-white shrink-0 hidden md:flex flex-col justify-between select-none border-r border-[#1a3452]">
+        <div className="p-4 space-y-5 overflow-y-auto max-h-[calc(100vh-70px)]">
+          {/* Logo / Título da Província */}
           <div className="flex items-center gap-3 px-2 py-1">
             <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center p-1.5">
               <img src="/logo-branco.png" alt="BRM" className="max-h-full object-contain" />
@@ -232,89 +341,47 @@ export const ComunicacaoAdmin: React.FC = () => {
             </div>
           </div>
 
-          {/* Bloco 1: Geral */}
-          <div className="space-y-1">
-            <span className="text-xs font-medium text-white/50 px-3 block mb-1">
-              Geral
-            </span>
+          {/* Menus Agrupados Logicamente */}
+          {gruposNavegacao.map((grupo, gIdx) => (
+            <div key={gIdx} className={`space-y-1 ${gIdx > 0 ? 'pt-2 border-t border-white/10' : ''}`}>
+              <span className="text-xs font-semibold text-white/50 px-3 block mb-1">
+                {grupo.titulo}
+              </span>
 
-            {[
-              { id: 'visao_geral', label: 'Visão geral', icon: LayoutDashboard },
-              { id: 'tarefas', label: 'Tarefas e anotações', icon: CheckSquare },
-              { id: 'checklist_kath', label: 'Checklist da Kath', icon: UserCheck, badge: countTarefasMinhas },
-              { id: 'cronograma', label: 'Cronograma', icon: Calendar },
-              { id: 'banco_pautas', label: 'Banco de pautas', icon: FolderPlus, badge: countPautas },
-              { id: 'producao', label: 'Produção', icon: Kanban },
-              { id: 'estudio_arte', label: 'Estúdio de arte', icon: Palette },
-              { id: 'captacao', label: 'Captação', icon: Video, badge: countCaptacao },
-              { id: 'emails_equipe', label: 'E-mails da equipe', icon: Mail },
-              { id: 'aniversariantes', label: 'Aniversariantes', icon: Gift },
-              { id: 'aprovacao', label: 'Aprovação', icon: CheckCircle2, badge: countAprovacao, badgeColor: 'bg-amber-600' },
-              { id: 'programar', label: 'Programar posts', icon: Send },
-              { id: 'previa_feed', label: 'Prévia do feed', icon: Grid3X3 },
-            ].map(item => {
-              const Icon = item.icon;
-              const ativo = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                    ativo
-                      ? 'bg-white/15 text-white font-semibold'
-                      : 'text-white/70 hover:bg-white/5 hover:text-white'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Icon className="w-4 h-4 opacity-80" />
-                    <span>{item.label}</span>
-                  </div>
+              {grupo.itens.map(item => {
+                const Icon = item.icon;
+                const ativo = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setActiveTab(item.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                      ativo
+                        ? 'bg-white/15 text-white font-semibold'
+                        : 'text-white/70 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 truncate">
+                      <Icon className="w-4 h-4 opacity-80 shrink-0" />
+                      <span className="truncate">{item.label}</span>
+                    </div>
 
-                  {Boolean(item.badge && item.badge > 0) && (
-                    <span className={`text-xs px-1.5 py-0.2 rounded text-white ${item.badgeColor || 'bg-white/20'}`}>
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Bloco 2: Analise */}
-          <div className="space-y-1 pt-2 border-t border-white/10">
-            <span className="text-xs font-medium text-white/50 px-3 block mb-1">
-              Análise
-            </span>
-
-            {[
-              { id: 'analise_instagram', label: 'Instagram', icon: BarChart2 },
-              { id: 'benchmarking', label: 'Benchmarking', icon: Search },
-            ].map(item => {
-              const Icon = item.icon;
-              const ativo = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                    ativo
-                      ? 'bg-white/15 text-white font-semibold'
-                      : 'text-white/70 hover:bg-white/5 hover:text-white'
-                  }`}
-                >
-                  <Icon className="w-4 h-4 opacity-80" />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
+                    {Boolean(item.badge && item.badge > 0) && (
+                      <span className={`text-xs px-1.5 py-0.2 rounded text-white shrink-0 ml-1 ${item.badgeColor || 'bg-white/20'}`}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </div>
 
-        {/* Rodape da Sidebar */}
+        {/* Rodapé da Sidebar */}
         <div className="p-4 border-t border-white/10 flex items-center gap-3">
-          <div className="w-7 h-7 rounded bg-amber-600 text-white flex items-center justify-center font-semibold text-xs">
+          <div className="w-7 h-7 rounded bg-[#226380] text-white flex items-center justify-center font-semibold text-xs shrink-0">
             {usuarioNome.charAt(0)}
           </div>
           <div className="truncate">
@@ -324,21 +391,21 @@ export const ComunicacaoAdmin: React.FC = () => {
         </div>
       </aside>
 
-      {/* Area Central Principal do Conteudo */}
+      {/* Área Central Principal do Conteúdo */}
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {/* Barra Superior */}
         <header className="h-14 border-b border-[#dce4e2] dark:border-[#354246] bg-white dark:bg-[#1c2427] px-6 flex items-center justify-between gap-4 sticky top-0 z-20">
           <div className="flex items-center gap-2 text-xs font-medium text-[#52636a] dark:text-[#a0aeaf]">
             <span>Central de Comunicação</span>
             <span>/</span>
-            <span className="text-[#113240] dark:text-white font-semibold">
-              {activeTab.replace('_', ' ')}
+            <span className="text-[#113240] dark:text-white font-semibold capitalize">
+              {activeTab.replace(/_/g, ' ')}
             </span>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Campo de Busca */}
-            <div className="relative hidden sm:block w-60">
+            {/* Campo de Busca Rápida */}
+            <div className="relative hidden sm:block w-64">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
               <input
                 type="text"
@@ -350,8 +417,9 @@ export const ComunicacaoAdmin: React.FC = () => {
             </div>
 
             <button
+              type="button"
               onClick={() => setModalNovoConteudo({ aberto: true, tipo: 'post' })}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#113240] hover:bg-[#1a4f66] text-white text-xs font-semibold transition-colors"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#226380] hover:bg-[#1a4f66] text-white text-xs font-semibold transition-colors"
             >
               <Plus className="w-4 h-4" />
               <span>Novo conteúdo</span>
@@ -361,14 +429,27 @@ export const ComunicacaoAdmin: React.FC = () => {
 
         {/* View Ativa */}
         <div className="p-6 sm:p-8 max-w-7xl w-full mx-auto">
-          {activeTab === 'visao_geral' && metricas && (
+          {activeTab === 'visao_geral' && (
             <VisaoGeralView
               usuarioNome={usuarioNome}
-              metricas={metricas}
               posts={posts}
               tarefas={tarefas}
+              captacoes={captacoes}
+              aniversariantes={aniversariantes}
+              religiosos={religiosos}
               onNavegarTab={tab => setActiveTab(tab)}
-              onAbrirNovoConteudo={tipo => setModalNovoConteudo({ aberto: true, tipo: tipo || 'post' })}
+              onAbrirNovoConteudo={(tipo, dataIso) => setModalNovoConteudo({ aberto: true, tipo: tipo || 'post', dataInicial: dataIso })}
+              onAprovarPost={handleAprovarPost}
+              onPedirAjustes={handlePedirAjustes}
+              onToggleTarefa={handleToggleTarefa}
+              onCriarHomenagemReligioso={rel => {
+                setModalNovoConteudo({
+                  aberto: true,
+                  tipo: 'post',
+                  dataInicial: new Date().toISOString().split('T')[0],
+                  religiosoInicial: rel
+                });
+              }}
             />
           )}
 
@@ -393,6 +474,26 @@ export const ComunicacaoAdmin: React.FC = () => {
             />
           )}
 
+          {activeTab === 'religiosos_conteudo' && (
+            <ReligiososConteudoView
+              religiosos={religiosos}
+              posts={posts}
+              captacoes={captacoes}
+              pautas={pautas}
+              onCriarPostComReligioso={rel => {
+                setModalNovoConteudo({
+                  aberto: true,
+                  tipo: 'post',
+                  dataInicial: new Date().toISOString().split('T')[0],
+                  religiosoInicial: rel
+                });
+              }}
+              onAgendarCaptacaoComReligioso={() => {
+                setActiveTab('captacao');
+              }}
+            />
+          )}
+
           {activeTab === 'producao' && (
             <ProducaoKanbanView
               posts={posts}
@@ -410,7 +511,7 @@ export const ComunicacaoAdmin: React.FC = () => {
               comentarios={comentarios}
               onAprovar={handleAprovarPost}
               onPedirAjustes={handlePedirAjustes}
-              onAdicionarComentario={handleAdicionarComentario}
+              onAdicionarComentario={handleAdicionarComentarioPost}
               onAbrirPhotoCraft={(url, nome) => setModalArtCraft({
                 aberto: true,
                 tipo: 'photocraft',
@@ -433,16 +534,8 @@ export const ComunicacaoAdmin: React.FC = () => {
           {activeTab === 'tarefas' && (
             <TarefasView
               tarefas={tarefas}
-              onCriarTarefa={handleCriarTarefa}
-              onToggleTarefa={handleToggleTarefa}
-              onDeletarTarefa={handleDeletarTarefa}
-            />
-          )}
-
-          {activeTab === 'checklist_kath' && (
-            <TarefasView
-              tarefas={tarefas}
-              filtroResponsavel="Kath"
+              equipe={emails}
+              usuarioNome={usuarioNome}
               onCriarTarefa={handleCriarTarefa}
               onToggleTarefa={handleToggleTarefa}
               onDeletarTarefa={handleDeletarTarefa}
@@ -462,6 +555,10 @@ export const ComunicacaoAdmin: React.FC = () => {
           {activeTab === 'captacao' && (
             <CaptacaoView
               captacoes={captacoes}
+              religiosos={religiosos}
+              obras={obras}
+              equipe={emails}
+              usuarioNome={usuarioNome}
               onCriarCaptacao={async c => {
                 const criada = await servico.createCaptacao(c);
                 if (criada) setCaptacoes(prev => [...prev, criada]);
@@ -479,13 +576,14 @@ export const ComunicacaoAdmin: React.FC = () => {
                 await servico.updateCaptacao(capId, { situacao: 'gravada' });
                 setCaptacoes(prev => prev.map(c => c.id === capId ? { ...c, situacao: 'gravada' } : c));
               }}
+              onAdicionarComentario={handleAdicionarComentarioCaptacao}
             />
           )}
 
           {activeTab === 'aniversariantes' && (
             <AniversariantesView
               aniversariantes={aniversariantes}
-              onCriarStory={(nome, motivo) => {
+              onCriarStory={() => {
                 setModalNovoConteudo({
                   aberto: true,
                   tipo: 'post',
@@ -523,7 +621,13 @@ export const ComunicacaoAdmin: React.FC = () => {
             <BenchmarkingView
               benchmarks={benchmarks}
               onAdicionarBenchmark={async b => {
-                setBenchmarks(prev => [{ id: `bm-${Date.now()}`, perfil_nome: b.perfil_nome || '', canal: 'Instagram', created_at: new Date().toISOString(), ...b }, ...prev]);
+                setBenchmarks(prev => [{ 
+                  id: `bm-${Date.now()}`, 
+                  perfil_nome: b.perfil_nome || '', 
+                  canal: 'Instagram', 
+                  created_at: new Date().toISOString(), 
+                  ...b 
+                }, ...prev]);
               }}
             />
           )}
@@ -544,12 +648,16 @@ export const ComunicacaoAdmin: React.FC = () => {
         onSalvar={() => {}}
       />
 
-      {/* Modal Novo Conteúdo / Pauta */}
+      {/* Modal Novo Conteúdo / Pauta com Conexão ao Banco */}
       <NovoConteudoModal
         isOpen={modalNovoConteudo.aberto}
         onClose={() => setModalNovoConteudo(prev => ({ ...prev, aberto: false }))}
         tipoInicial={modalNovoConteudo.tipo}
         dataInicial={modalNovoConteudo.dataInicial}
+        religiosoInicial={modalNovoConteudo.religiosoInicial}
+        religiosos={religiosos}
+        obras={obras}
+        equipe={emails}
         onPautaCriada={handleCriarPauta}
         onPostCriado={handleCriarPost}
       />
