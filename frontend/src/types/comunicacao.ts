@@ -136,6 +136,7 @@ export interface ComunicacaoCaptacao {
   titulo: string;
   entrevistado_nome: string;
   religioso_id?: string | null;
+  roteiro_id?: string | null;
   data_gravacao: string;
   duracao: string;
   local: string;
@@ -152,16 +153,33 @@ export interface ComunicacaoCaptacao {
   updated_at?: string;
 }
 
+export interface ComunicacaoRoteiro {
+  id: string;
+  titulo: string;
+  captacao_id?: string | null;
+  religioso_id?: string | null;
+  religioso_nome?: string | null;
+  conteudo: string;
+  tags: string[];
+  mencoes: string[];
+  comentarios: ComentarioCaptacao[];
+  created_at: string;
+  updated_at?: string;
+}
+
 export interface ReligiosoConteudo {
   id: string;
   nome_religioso: string;
   nome_civil: string;
   grau: string;
   data_nascimento?: string | null;
+  naturalidade_cidade?: string | null;
+  naturalidade_uf?: string | null;
   ordenacao_data?: string | null;
   profissao_perpetua_data?: string | null;
   comunidade_atual_nome?: string | null;
   obra_atual_nome?: string | null;
+  diocese_atual?: string | null;
   cargo_funcao?: string | null;
   foto_path?: string | null;
   foto_url?: string | null;
@@ -169,6 +187,8 @@ export interface ReligiosoConteudo {
   lema_destacado_fase?: string | null;
   email_institucional?: string | null;
   telefone_celular?: string | null;
+  telefone_whatsapp?: string | null;
+  biografia?: string | null;
   total_conteudos?: number;
   ultimo_conteudo_em?: string | null;
 }
@@ -181,6 +201,7 @@ export interface HistoricoConteudoItem {
   data: string;
   status: string;
   url?: string;
+  imagem_url?: string;
 }
 
 export interface ObraResumoComunicacao {

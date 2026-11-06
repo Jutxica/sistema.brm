@@ -44,7 +44,7 @@ export const NovoConteudoModal: React.FC<NovoConteudoModalProps> = ({
   const [hashtags, setHashtags] = useState('#DehonianosBRM #VidaConsagrada');
   const [dataCronograma, setDataCronograma] = useState(dataInicial || new Date().toISOString().split('T')[0]);
   const [horario, setHorario] = useState('15:00');
-  const [responsavelNome, setResponsavelNome] = useState(equipe[0]?.nome || 'Talita');
+  const [responsavelNome, setResponsavelNome] = useState(equipe[0]?.nome || 'Comunicação BRM');
   const [obraId, setObraId] = useState<string>('');
   const [religiosoId, setReligiosoId] = useState<string>(religiosoInicial?.id || '');
 
@@ -283,8 +283,8 @@ export const NovoConteudoModal: React.FC<NovoConteudoModalProps> = ({
                   ))
                 ) : (
                   <>
-                    <option value="Talita">Talita (Coordenação)</option>
-                    <option value="Kath">Kath (Design & Vídeo)</option>
+                    <option value="Comunicação BRM">Comunicação BRM (Coordenação)</option>
+                    <option value="Equipe de Criação">Equipe de Criação (Design & Mídia)</option>
                   </>
                 )}
               </select>

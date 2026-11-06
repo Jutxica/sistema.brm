@@ -57,7 +57,7 @@ interface GrupoNavegacao {
 
 export const ComunicacaoAdmin: React.FC = () => {
   const { user } = useAuth();
-  const usuarioNome = user?.nome || 'Talita';
+  const usuarioNome = user?.nome || 'Comunicação BRM';
 
   const [activeTab, setActiveTab] = useState<string>('visao_geral');
   const [buscaTexto, setBuscaTexto] = useState<string>('');
@@ -577,6 +577,10 @@ export const ComunicacaoAdmin: React.FC = () => {
                 setCaptacoes(prev => prev.map(c => c.id === capId ? { ...c, situacao: 'gravada' } : c));
               }}
               onAdicionarComentario={handleAdicionarComentarioCaptacao}
+              onAtualizarRoteiro={async (capId, roteiro, tags, mencoes) => {
+                await servico.updateCaptacao(capId, { roteiro, tags, mencoes });
+                setCaptacoes(prev => prev.map(c => c.id === capId ? { ...c, roteiro, tags, mencoes } : c));
+              }}
             />
           )}
 

@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { 
   Users, Search, Calendar, Video, Plus, Copy, Check, 
   ExternalLink, Clock, Sparkles, BookOpen, MapPin, X, 
-  Image as ImageIcon, Share2, Award, ChevronRight
+  Image as ImageIcon, Share2, Award, ChevronRight, ArrowLeft,
+  Mail, Phone, Church, Heart, FileText, CheckCircle2
 } from 'lucide-react';
 import type { 
   ReligiosoConteudo, 
@@ -36,29 +37,30 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
   const [copiadoId, setCopiadoId] = useState<string | null>(null);
 
   const copiarLemaEBio = (rel: ReligiosoConteudo) => {
-    const texto = `${rel.nome_religioso} · ${rel.cargo_funcao || 'Religioso Dehoniano'} na ${rel.obra_atual_nome || rel.comunidade_atual_nome || 'Província BRM'}.\nLema: "${rel.lema_destacado || 'Sint unum'}"`;
+    const texto = `${rel.nome_religioso} · ${rel.cargo_funcao || 'Religioso Dehoniano'} na ${rel.obra_atual_nome || rel.comunidade_atual_nome || 'Província BRM'}.\nLema: "${rel.lema_destacado || 'Ecce Venio'}"\nBio: ${rel.biografia || ''}`;
     navigator.clipboard.writeText(texto);
     setCopiadoId(rel.id);
     setTimeout(() => setCopiadoId(null), 2000);
   };
 
-  const calcularIdadeOuAnos = (dataIso?: string | null): number | null => {
+  const calcularAnos = (dataIso?: string | null): number | null => {
     if (!dataIso) return null;
     const ano = parseInt(String(dataIso).slice(0, 4), 10);
     if (isNaN(ano)) return null;
     return new Date().getFullYear() - ano;
   };
 
-  const formatarData = (dataIso?: string | null): string => {
+  const formatarDataCompleta = (dataIso?: string | null): string => {
     if (!dataIso) return '—';
     try {
       const d = new Date(dataIso.includes('T') ? dataIso : `${dataIso}T12:00:00Z`);
-      return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+      return d.toLocaleDateString('pt-BR');
     } catch {
       return dataIso;
     }
   };
 
+  // Filtragem da Lista
   const listaFiltrada = useMemo(() => {
     return religiosos.filter(r => {
       const termo = busca.toLowerCase().trim();
@@ -78,8 +80,8 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
     });
   }, [religiosos, busca, filtroGrau]);
 
-  // Histórico do religioso aberto na gaveta
-  const historicoSelecionado = useMemo(() => {
+  // Histórico de Conteúdo do Religioso Selecionado
+  const historicoDoSelecionado = useMemo(() => {
     if (!religiosoSelecionado) return [];
     return getHistoricoConteudoReligioso(
       religiosoSelecionado.id,
@@ -90,343 +92,382 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
     );
   }, [religiosoSelecionado, posts, captacoes, pautas]);
 
+  // =========================================================================
+  // VIEW 1: Página Completa do Religioso (Estilo Perfil Institucional - Imagem 5)
+  // =========================================================================
+  if (religiosoSelecionado) {
+    const rel = religiosoSelecionado;
+    const anosIdade = calcularAnos(rel.data_nascimento);
+    const anosOrdenacao = calcularAnos(rel.ordenacao_data);
+    const anosProfissao = calcularAnos(rel.profissao_perpetua_data);
+
+    return (
+      <div className="space-y-6 animate-in fade-in duration-200">
+        {/* Barra Superior de Navegação & Ações da Comunicação */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#dce4e2] dark:border-[#354246]">
+          <button
+            type="button"
+            onClick={() => setReligiosoSelecionado(null)}
+            className="flex items-center gap-2 text-xs font-semibold text-[#226380] dark:text-[#A3C3C7] hover:underline"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Voltar para lista de religiosos</span>
+          </button>
+
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => copiarLemaEBio(rel)}
+              className="px-3.5 py-2 rounded-xl bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] hover:bg-slate-50 text-[#113240] dark:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            >
+              {copiadoId === rel.id ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Bio copiada!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5 text-[#52636a]" />
+                  <span>Copiar lema & bio</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onAgendarCaptacaoComReligioso(rel)}
+              className="px-3.5 py-2 rounded-xl bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] hover:bg-slate-50 text-[#113240] dark:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            >
+              <Video className="w-3.5 h-3.5 text-amber-600" />
+              <span>Agendar gravação</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onCriarPostComReligioso(rel)}
+              className="px-4 py-2 rounded-xl bg-[#226380] hover:bg-[#1a4f66] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Criar post / homenagem</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Layout de 2 Colunas (Exatamente como na Imagem 5) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-3xl p-6 sm:p-8">
+          {/* COLUNA ESQUERDA: Foto Oficial + Conteúdos Produzidos */}
+          <div className="lg:col-span-5 space-y-6">
+            {/* Foto Oficial em Alta Resolução com Bordas Arredondadas Nobres */}
+            <div className="w-full aspect-[4/5] rounded-2xl overflow-hidden bg-slate-100 dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] relative flex items-center justify-center">
+              {rel.foto_url || (rel.foto_path && rel.foto_path.startsWith('http')) ? (
+                <img
+                  src={rel.foto_url || rel.foto_path || ''}
+                  alt={rel.nome_religioso}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="p-8 text-center space-y-3">
+                  <div className="w-20 h-20 mx-auto rounded-full bg-[#113240]/10 dark:bg-white/10 flex items-center justify-center text-3xl font-bold text-[#113240] dark:text-white">
+                    {rel.nome_religioso.charAt(0)}
+                  </div>
+                  <span className="text-xs font-semibold text-[#66777b] dark:text-[#a0aeaf] block">
+                    Foto oficial da Província BRM
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* SEÇÃO: Conteúdos Produzidos com este Confrade (Substitui Notícias Relacionadas) */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between pb-2 border-b border-[#dce4e2] dark:border-[#354246]">
+                <h3 className="text-xs font-bold text-[#113240] dark:text-white tracking-wide">
+                  Conteúdos produzidos ({historicoDoSelecionado.length})
+                </h3>
+                <span className="text-xs text-[#86868b]">Linha do tempo</span>
+              </div>
+
+              {historicoDoSelecionado.length === 0 ? (
+                <div className="p-6 text-center text-xs text-[#86868b] bg-[#f8faf9] dark:bg-[#141a1c] border border-dashed border-[#dce4e2] dark:border-[#354246] rounded-xl space-y-2">
+                  <p>Nenhum conteúdo produzido ainda com este confrade.</p>
+                  <button
+                    type="button"
+                    onClick={() => onCriarPostComReligioso(rel)}
+                    className="px-3 py-1.5 rounded-lg bg-[#226380] text-white text-xs font-semibold hover:bg-[#1a4f66] transition-colors"
+                  >
+                    + Criar primeiro post
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {historicoDoSelecionado.map(item => (
+                    <div
+                      key={item.id}
+                      className="p-3 rounded-xl border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] space-y-1.5 hover:border-[#226380] transition-colors"
+                    >
+                      <div className="w-full h-20 rounded-lg bg-slate-200 dark:bg-slate-800 flex items-center justify-center overflow-hidden relative">
+                        {(item.imagem_url || item.url) ? (
+                          <img src={item.imagem_url || item.url} alt={item.titulo} className="w-full h-full object-cover" />
+                        ) : (
+                          <ImageIcon className="w-6 h-6 text-slate-400" />
+                        )}
+                        <span className="absolute top-1 right-1 text-xs px-1.5 py-0.5 rounded bg-black/60 text-white font-medium">
+                          {item.formato}
+                        </span>
+                      </div>
+
+                      <h4 className="text-xs font-bold text-[#113240] dark:text-white line-clamp-2" title={item.titulo}>
+                        {item.titulo}
+                      </h4>
+
+                      <span className="text-xs text-[#86868b] block">
+                        {new Date(item.data).toLocaleDateString('pt-BR')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* COLUNA DIREITA: Dados Canônicos, Lema, Biografia & Contatos */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Título & Lema Sacerdotal */}
+            <div className="space-y-1.5 pb-4 border-b border-[#dce4e2] dark:border-[#354246]">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#113240] dark:text-white tracking-tight">
+                {rel.nome_religioso.toUpperCase()}
+              </h2>
+
+              <p className="text-xs sm:text-sm font-semibold italic text-[#226380] dark:text-[#A3C3C7] leading-relaxed">
+                "{rel.lema_destacado || 'Ecce Venio — Eis que venho para fazer a tua vontade'}"
+              </p>
+            </div>
+
+            {/* Blocos de Informações Canônicas e Pastorais */}
+            <div className="space-y-4 text-xs">
+              {/* Aniversário de Vida */}
+              <div className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-1">
+                <span className="font-bold text-[#113240] dark:text-white block">
+                  Aniversário de vida / Natalício
+                </span>
+                <p className="text-[#52636a] dark:text-[#a0aeaf]">
+                  Data: <strong>{formatarDataCompleta(rel.data_nascimento)}</strong>
+                  {anosIdade ? ` (${anosIdade} anos)` : ''}
+                </p>
+                <p className="text-[#52636a] dark:text-[#a0aeaf]">
+                  Local: <strong>{rel.naturalidade_cidade || 'Santa Catarina'} / {rel.naturalidade_uf || 'SC'}</strong>
+                </p>
+              </div>
+
+              {/* Ordenação Presbiteral */}
+              <div className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-1">
+                <span className="font-bold text-[#113240] dark:text-white block">
+                  Ordenação presbiteral / Jubileu
+                </span>
+                <p className="text-[#52636a] dark:text-[#a0aeaf]">
+                  Data: <strong>{formatarDataCompleta(rel.ordenacao_data)}</strong>
+                  {anosOrdenacao ? ` (${anosOrdenacao} anos de sacerdócio)` : ''}
+                </p>
+              </div>
+
+              {/* Primeira Profissão Religiosa */}
+              <div className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-1">
+                <span className="font-bold text-[#113240] dark:text-white block">
+                  Primeira profissão religiosa (votos perpétuos)
+                </span>
+                <p className="text-[#52636a] dark:text-[#a0aeaf]">
+                  Data: <strong>{formatarDataCompleta(rel.profissao_perpetua_data)}</strong>
+                  {anosProfissao ? ` (${anosProfissao} anos de consagração dehoniana)` : ''}
+                </p>
+              </div>
+
+              {/* Funções Atuais na Província BRM */}
+              <div className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-1">
+                <span className="font-bold text-[#113240] dark:text-white block">
+                  Funções atuais na Província
+                </span>
+                <p className="text-[#52636a] dark:text-[#a0aeaf]">
+                  Comunidade / Obra: <strong>{rel.obra_atual_nome || rel.comunidade_atual_nome}</strong>
+                </p>
+                <p className="text-[#52636a] dark:text-[#a0aeaf]">
+                  Ofício canônico: <strong>{rel.cargo_funcao || 'Religioso Dehoniano'}</strong>
+                </p>
+              </div>
+
+              {/* Contatos para a Comunicação */}
+              <div className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-1.5">
+                <span className="font-bold text-[#113240] dark:text-white block">
+                  Contatos diretos para agendamento
+                </span>
+                <div className="flex flex-wrap items-center gap-4 text-[#52636a] dark:text-[#a0aeaf] pt-0.5">
+                  <span className="flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-[#226380]" />
+                    <span>{rel.email_institucional || 'comunicacao@dehonianosbrm.org.br'}</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{rel.telefone_whatsapp || rel.telefone_celular || '(47) 99123-8899'}</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Biografia & Histórico Pastoral */}
+              <div className="p-4 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-2">
+                <span className="font-bold text-[#113240] dark:text-white block">
+                  Biografia & histórico
+                </span>
+                <p className="text-[#52636a] dark:text-[#a0aeaf] leading-relaxed text-xs">
+                  {rel.biografia || `${rel.nome_religioso} é sacerdote dehoniano com sólida dedicação pastoral e administrativa na Província Brasil Meridional (BRM), exercendo funções de animação litúrgica, formação e presença evangélica.`}
+                </p>
+              </div>
+            </div>
+
+            {/* Rodapé da Página */}
+            <div className="pt-4 border-t border-[#dce4e2] dark:border-[#354246] flex flex-col sm:flex-row sm:items-center justify-between text-xs text-[#86868b] gap-2">
+              <button
+                type="button"
+                onClick={() => setReligiosoSelecionado(null)}
+                className="text-[#226380] dark:text-[#A3C3C7] font-semibold hover:underline flex items-center gap-1"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Voltar para lista de religiosos</span>
+              </button>
+              <span>Província dos Padres Dehonianos · BRM</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // VIEW 2: Diretório de Religiosos (Grid de Confrades da Província)
+  // =========================================================================
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-200">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#113240] dark:text-white tracking-tight">
-            Religiosos da Província
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#113240] dark:text-white tracking-tight">
+            Religiosos da Província.
           </h1>
-          <p className="text-xs text-[#52636a] dark:text-[#a0aeaf] mt-1">
-            Diretório oficial de confrades para criação de conteúdos, matérias, homenagens e captações de vídeo.
+          <p className="text-sm text-[#66777b] dark:text-[#a0aeaf] mt-1">
+            Perfis biográficos, lemas de ordenação, contatos e histórico de conteúdos produzidos com cada confrade da BRM.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-[#52636a] dark:text-[#a0aeaf]">
-            Total cadastrado: <strong>{religiosos.length} confrades</strong>
+          <span className="text-xs px-3 py-1.5 rounded-xl bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] font-semibold text-[#113240] dark:text-white">
+            {religiosos.length} religiosos cadastrados
           </span>
         </div>
       </div>
 
-      {/* Barra de Filtros e Busca */}
-      <div className="bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-xl p-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => setFiltroGrau('todos')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              filtroGrau === 'todos'
-                ? 'bg-[#113240] text-white'
-                : 'text-[#52636a] dark:text-[#a0aeaf] hover:bg-slate-100 dark:hover:bg-[#253034]'
-            }`}
-          >
-            Todos os graus ({religiosos.length})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setFiltroGrau('padre')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              filtroGrau === 'padre'
-                ? 'bg-[#113240] text-white'
-                : 'text-[#52636a] dark:text-[#a0aeaf] hover:bg-slate-100 dark:hover:bg-[#253034]'
-            }`}
-          >
-            Padres / Presbíteros
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setFiltroGrau('bispo')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              filtroGrau === 'bispo'
-                ? 'bg-[#113240] text-white'
-                : 'text-[#52636a] dark:text-[#a0aeaf] hover:bg-slate-100 dark:hover:bg-[#253034]'
-            }`}
-          >
-            Bispos
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setFiltroGrau('irmao')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              filtroGrau === 'irmao'
-                ? 'bg-[#113240] text-white'
-                : 'text-[#52636a] dark:text-[#a0aeaf] hover:bg-slate-100 dark:hover:bg-[#253034]'
-            }`}
-          >
-            Fráteres & Irmãos
-          </button>
-        </div>
-
-        <div className="relative min-w-[240px]">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+      {/* Barra de Filtros & Busca */}
+      <div className="p-4 rounded-2xl bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <div className="relative w-full sm:w-80">
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
           <input
             type="text"
             value={busca}
             onChange={e => setBusca(e.target.value)}
-            placeholder="Buscar por nome, paróquia ou cargo..."
-            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] text-[#113240] dark:text-white focus:outline-none focus:border-[#226380]"
+            placeholder="Buscar por nome, paróquia, lema..."
+            className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] text-[#113240] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#226380]"
           />
+        </div>
+
+        {/* Abas de Filtro por Grau */}
+        <div className="flex items-center gap-1.5 p-1 bg-[#f0f4f3] dark:bg-[#141a1c] rounded-xl border border-[#dce4e2] dark:border-[#354246] w-full sm:w-auto overflow-x-auto">
+          {[
+            { id: 'todos', label: 'Todos' },
+            { id: 'padre', label: 'Padres' },
+            { id: 'bispo', label: 'Bispos' },
+            { id: 'irmao', label: 'Irmãos / Fratres' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setFiltroGrau(tab.id)}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors shrink-0 ${
+                filtroGrau === tab.id
+                  ? 'bg-[#113240] text-white'
+                  : 'text-[#66777b] dark:text-[#a0aeaf] hover:text-[#113240]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Grid de Cartões de Religiosos */}
-      {listaFiltrada.length === 0 ? (
-        <div className="p-12 text-center text-xs text-[#52636a] dark:text-[#a0aeaf] bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-xl">
-          Nenhum religioso encontrado com os filtros selecionados.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {listaFiltrada.map(rel => {
-            const anosOrdenacao = calcularIdadeOuAnos(rel.ordenacao_data);
-            const idade = calcularIdadeOuAnos(rel.data_nascimento);
-
+      {/* Grid de Cards de Confrades */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {listaFiltrada.length === 0 ? (
+          <div className="col-span-full bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-2xl p-12 text-center text-xs text-[#86868b]">
+            Nenhum confrade encontrado com os termos de busca informados.
+          </div>
+        ) : (
+          listaFiltrada.map(rel => {
             return (
               <div
                 key={rel.id}
-                className="bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-xl p-4 flex flex-col justify-between gap-3.5 hover:border-[#226380] transition-colors group"
+                className="bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-2xl p-5 flex flex-col justify-between space-y-4 hover:border-[#226380] transition-colors group cursor-pointer"
+                onClick={() => setReligiosoSelecionado(rel)}
               >
-                {/* Topo do Cartão: Foto e Identificação */}
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-full bg-[#f4f6f5] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] overflow-hidden flex items-center justify-center shrink-0">
-                      {rel.foto_url ? (
-                        <img src={rel.foto_url} alt={rel.nome_religioso} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center font-bold text-xs text-[#226380] dark:text-[#A3C3C7]">
-                          {rel.nome_religioso.slice(0, 2)}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-xs px-2 py-0.2 rounded bg-[#113240] text-white font-medium">
-                          {rel.grau}
-                        </span>
-                        {anosOrdenacao && [10, 25, 40, 50, 60].includes(anosOrdenacao) && (
-                          <span className="text-xs px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-semibold border border-amber-300 dark:border-amber-800">
-                            Jubileu {anosOrdenacao} anos
-                          </span>
-                        )}
-                      </div>
-
-                      <h3 className="text-sm font-semibold text-[#113240] dark:text-white truncate mt-1">
-                        {rel.nome_religioso}
-                      </h3>
-                      <p className="text-xs text-[#52636a] dark:text-[#a0aeaf] truncate">
-                        {rel.cargo_funcao || 'Presbítero Dehoniano'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Informações de Localização e Datas */}
-                  <div className="text-xs text-[#52636a] dark:text-[#a0aeaf] space-y-1 pt-2 border-t border-[#dce4e2] dark:border-[#354246]">
-                    <div className="flex items-center gap-1.5 truncate">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate">{rel.obra_atual_nome || rel.comunidade_atual_nome}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs pt-1">
-                      <span>Aniversário: <strong>{formatarData(rel.data_nascimento)}</strong> {idade ? `(${idade} anos)` : ''}</span>
-                      {anosOrdenacao ? (
-                        <span>Ordenação: <strong>{anosOrdenacao} anos</strong></span>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  {/* Lema Sacerdotal em Destaque */}
-                  {rel.lema_destacado && (
-                    <div className="p-2.5 rounded-lg bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] text-xs">
-                      <span className="text-[#52636a] dark:text-[#a0aeaf] block text-[11px]">
-                        Lema sacerdotal:
-                      </span>
-                      <p className="text-[#113240] dark:text-white italic line-clamp-2 mt-0.5">
-                        "{rel.lema_destacado}"
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Ações Rápidas no Rodapé */}
-                <div className="pt-2.5 border-t border-[#dce4e2] dark:border-[#354246] flex items-center justify-between gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setReligiosoSelecionado(rel)}
-                    className="flex-1 py-1.5 px-2 rounded bg-white dark:bg-[#253034] hover:bg-slate-100 dark:hover:bg-[#354246] border border-[#dce4e2] dark:border-[#354246] text-[#113240] dark:text-white text-xs font-medium flex items-center justify-center gap-1 transition-colors"
-                    title="Ver histórico de conteúdos produzidos com este religioso"
-                  >
-                    <Clock className="w-3.5 h-3.5 text-[#226380]" />
-                    <span>Histórico</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => onCriarPostComReligioso(rel)}
-                    className="py-1.5 px-2.5 rounded bg-[#226380] hover:bg-[#1a4f66] text-white text-xs font-medium flex items-center gap-1 transition-colors"
-                    title="Criar novo post com os dados deste religioso"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Post</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => onAgendarCaptacaoComReligioso(rel)}
-                    className="py-1.5 px-2.5 rounded bg-white dark:bg-[#253034] hover:bg-slate-100 dark:hover:bg-[#354246] border border-[#dce4e2] dark:border-[#354246] text-[#113240] dark:text-white text-xs font-medium flex items-center gap-1 transition-colors"
-                    title="Agendar gravação de vídeo com este religioso"
-                  >
-                    <Video className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Gravar</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => copiarLemaEBio(rel)}
-                    className="p-1.5 rounded border border-[#dce4e2] dark:border-[#354246] hover:bg-slate-100 dark:hover:bg-[#354246] text-[#52636a] dark:text-[#a0aeaf] transition-colors"
-                    title="Copiar biografia e lema para a legenda"
-                  >
-                    {copiadoId === rel.id ? (
-                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                {/* Topo do Card: Foto 4x4 + Grau + Nome */}
+                <div className="flex items-start gap-3.5">
+                  <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] overflow-hidden shrink-0 flex items-center justify-center">
+                    {rel.foto_url || (rel.foto_path && rel.foto_path.startsWith('http')) ? (
+                      <img src={rel.foto_url || rel.foto_path || ''} alt={rel.nome_religioso} className="w-full h-full object-cover" />
                     ) : (
-                      <Copy className="w-3.5 h-3.5" />
+                      <div className="w-full h-full flex items-center justify-center font-bold text-lg text-[#113240] dark:text-white bg-[#113240]/10">
+                        {rel.nome_religioso.charAt(0)}
+                      </div>
                     )}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Gaveta Lateral de Histórico & Linha do Tempo de Conteúdos */}
-      {religiosoSelecionado && (
-        <div className="fixed inset-0 z-50 flex items-center justify-end bg-black/60 p-0 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#1c2427] border-l border-[#dce4e2] dark:border-[#354246] h-full w-full max-w-lg p-6 flex flex-col justify-between overflow-y-auto shadow-none">
-            <div className="space-y-5">
-              {/* Topo da Gaveta */}
-              <div className="flex items-start justify-between pb-4 border-b border-[#dce4e2] dark:border-[#354246]">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-[#f4f6f5] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] flex items-center justify-center font-bold text-xs text-[#226380]">
-                    {religiosoSelecionado.nome_religioso.slice(0, 2)}
                   </div>
-                  <div>
-                    <h2 className="text-sm font-bold text-[#113240] dark:text-white">
-                      {religiosoSelecionado.nome_religioso}
+
+                  <div className="min-w-0 flex-1 space-y-0.5">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[#52636a] dark:text-[#a0aeaf] font-semibold border border-[#dce4e2] dark:border-[#354246]">
+                      {rel.grau}
+                    </span>
+                    <h2 className="text-sm font-bold text-[#113240] dark:text-white truncate pt-0.5">
+                      {rel.nome_religioso}
                     </h2>
-                    <p className="text-xs text-[#52636a] dark:text-[#a0aeaf]">
-                      {religiosoSelecionado.cargo_funcao} · {religiosoSelecionado.obra_atual_nome}
+                    <p className="text-xs text-[#52636a] dark:text-[#a0aeaf] truncate">
+                      {rel.cargo_funcao || 'Religioso Dehoniano'}
                     </p>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setReligiosoSelecionado(null)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Informações Resumidas */}
-              <div className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-[#52636a] dark:text-[#a0aeaf]">Nome Civil:</span>
-                  <span className="font-medium text-[#113240] dark:text-white">{religiosoSelecionado.nome_civil || '—'}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[#52636a] dark:text-[#a0aeaf]">E-mail Institucional:</span>
-                  <span className="font-medium text-[#113240] dark:text-white">{religiosoSelecionado.email_institucional || '—'}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[#52636a] dark:text-[#a0aeaf]">Lema:</span>
-                  <span className="font-medium text-[#113240] dark:text-white truncate max-w-[260px]">"{religiosoSelecionado.lema_destacado}"</span>
-                </div>
-              </div>
-
-              {/* Linha do Tempo de Conteúdos Criados */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-[#226380]" />
-                    <h3 className="text-xs font-semibold text-[#113240] dark:text-white">
-                      Linha do Tempo de Conteúdos Produzidos
-                    </h3>
+                {/* Comunidade / Obra & Lema */}
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center gap-1.5 text-[#52636a] dark:text-[#a0aeaf] truncate">
+                    <Church className="w-3.5 h-3.5 text-[#226380] shrink-0" />
+                    <span className="truncate">{rel.obra_atual_nome || rel.comunidade_atual_nome}</span>
                   </div>
-                  <span className="text-xs text-[#52636a] dark:text-[#a0aeaf]">
-                    {historicoSelecionado.length} registros
+
+                  {rel.lema_destacado && (
+                    <p className="text-xs italic text-[#66777b] dark:text-[#a0aeaf] line-clamp-2 bg-[#f8faf9] dark:bg-[#141a1c] p-2 rounded-lg border border-[#dce4e2] dark:border-[#354246]">
+                      "{rel.lema_destacado}"
+                    </p>
+                  )}
+                </div>
+
+                {/* Rodapé do Card: Botão para Abrir Perfil Completo */}
+                <div className="pt-3 border-t border-[#dce4e2] dark:border-[#354246] flex items-center justify-between">
+                  <span className="text-xs font-semibold text-[#226380] dark:text-[#A3C3C7] group-hover:underline flex items-center gap-1">
+                    <span>Ver perfil & conteúdos</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
+
+                  <span className="text-xs text-[#86868b]">
+                    {rel.total_conteudos || 0} mídias
                   </span>
                 </div>
-
-                {historicoSelecionado.length === 0 ? (
-                  <div className="p-8 text-center text-xs text-[#52636a] dark:text-[#a0aeaf] border border-dashed border-[#dce4e2] dark:border-[#354246] rounded-xl">
-                    Nenhum conteúdo vinculado a este religioso ainda. Use os botões abaixo para criar o primeiro post ou agendar gravação.
-                  </div>
-                ) : (
-                  <div className="space-y-2.5 relative before:absolute before:inset-0 before:left-3.5 before:w-0.5 before:bg-[#dce4e2] dark:before:bg-[#354246] pl-7">
-                    {historicoSelecionado.map(item => (
-                      <div
-                        key={item.id}
-                        className="p-3 rounded-lg bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] relative space-y-1"
-                      >
-                        <span className="absolute -left-5 top-3.5 w-2 h-2 rounded-full bg-[#226380]" />
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold px-2 py-0.2 rounded bg-white dark:bg-[#253034] text-[#113240] dark:text-white border border-[#dce4e2] dark:border-[#354246]">
-                            {item.formato}
-                          </span>
-                          <span className="text-xs text-[#52636a] dark:text-[#a0aeaf]">
-                            {new Date(item.data).toLocaleDateString('pt-BR')}
-                          </span>
-                        </div>
-                        <h4 className="text-xs font-medium text-[#113240] dark:text-white">
-                          {item.titulo}
-                        </h4>
-                        <div className="flex items-center justify-between text-xs pt-1">
-                          <span className="text-emerald-700 dark:text-emerald-400 font-medium">
-                            {item.status}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
-            </div>
-
-            {/* Ações da Gaveta */}
-            <div className="pt-4 border-t border-[#dce4e2] dark:border-[#354246] flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  onCriarPostComReligioso(religiosoSelecionado);
-                  setReligiosoSelecionado(null);
-                }}
-                className="flex-1 py-2 px-3 rounded-lg bg-[#226380] hover:bg-[#1a4f66] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Criar novo post</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  onAgendarCaptacaoComReligioso(religiosoSelecionado);
-                  setReligiosoSelecionado(null);
-                }}
-                className="flex-1 py-2 px-3 rounded-lg bg-white dark:bg-[#253034] border border-[#dce4e2] dark:border-[#354246] hover:bg-slate-100 text-[#113240] dark:text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
-              >
-                <Video className="w-3.5 h-3.5 text-amber-600" />
-                <span>Agendar vídeo</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            );
+          })
+        )}
+      </div>
     </div>
   );
 };

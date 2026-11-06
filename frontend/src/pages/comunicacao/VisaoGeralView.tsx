@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   Plus, Video, CheckCircle2, Clock, Calendar as CalendarIcon, 
   ArrowRight, CheckSquare, Square, Gift, UploadCloud, 
-  Layers, AlertCircle, FileText, ChevronRight, UserCheck
+  Layers, AlertCircle, FileText, ChevronRight, Sparkles, Send, Kanban
 } from 'lucide-react';
 import type { 
   ComunicacaoPost, 
@@ -49,6 +49,8 @@ export const VisaoGeralView: React.FC<VisaoGeralViewProps> = ({
   const hoje = new Date();
   const diaHoje = hoje.getDate();
   const mesHoje = hoje.getMonth() + 1;
+  const hora = hoje.getHours();
+  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
 
   // Filtrar aniversariantes dos próximos 15 dias
   const aniversariantesProximos = aniversariantes.filter(a => {
@@ -58,68 +60,145 @@ export const VisaoGeralView: React.FC<VisaoGeralViewProps> = ({
     return false;
   }).slice(0, 4);
 
+  const statusText = postsEmAprovacao.length > 0 
+    ? `${postsEmAprovacao.length} ${postsEmAprovacao.length === 1 ? 'conteúdo aguardando aprovação na fila' : 'conteúdos aguardando aprovação na fila'}.` 
+    : 'Tudo em dia e nenhum conteúdo travado na aprovação.';
+
   return (
-    <div className="space-y-6">
-      {/* Topo: Cockpit de Produtividade & Ações Rápidas */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-[#dce4e2] dark:border-[#354246]">
-        <div>
-          <h1 className="text-2xl font-bold text-[#113240] dark:text-white tracking-tight">
-            Central de Produtividade · {usuarioNome.split(' ')[0]}
-          </h1>
-          <p className="text-xs text-[#52636a] dark:text-[#a0aeaf] mt-0.5">
-            Painel diário da equipe de comunicação da Província BRM. Ações práticas e prioridades do dia.
-          </p>
+    <div className="space-y-6 animate-in fade-in duration-200">
+      {/* Card Nobre de Saudação com Cockpit & Ações Rápidas em Ordem Lógica */}
+      <div className="bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-2xl p-6 sm:p-7 space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+              <span className="text-xs font-semibold text-[#52636a] dark:text-[#a0aeaf]">
+                Central de Comunicação · Província BRM
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#113240] dark:text-white tracking-tight">
+              {saudacao}, Comunicação BRM.
+            </h1>
+            <p className="text-xs sm:text-sm text-[#66777b] dark:text-[#a0aeaf]">
+              {statusText}
+            </p>
+          </div>
+
+          {/* Botões de Ação Rápida Estruturados em Ordem Lógica de Produção */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* 1. Criar Post (Ação Primária) */}
+            <button
+              type="button"
+              onClick={() => onAbrirNovoConteudo('post')}
+              className="px-4 py-2.5 rounded-xl bg-[#226380] hover:bg-[#1a4f66] text-white text-xs font-semibold flex items-center gap-2 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Novo post</span>
+            </button>
+
+            {/* 2. Nova Pauta (Planejamento) */}
+            <button
+              type="button"
+              onClick={() => onAbrirNovoConteudo('pauta')}
+              className="px-4 py-2.5 rounded-xl bg-white dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] hover:bg-slate-50 text-[#113240] dark:text-white text-xs font-semibold flex items-center gap-2 transition-colors"
+            >
+              <Plus className="w-4 h-4 text-[#226380]" />
+              <span>Nova pauta</span>
+            </button>
+
+            {/* 3. Agendar Gravação (Captação) */}
+            <button
+              type="button"
+              onClick={() => onNavegarTab('captacao')}
+              className="px-4 py-2.5 rounded-xl bg-white dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] hover:bg-slate-50 text-[#113240] dark:text-white text-xs font-semibold flex items-center gap-2 transition-colors"
+            >
+              <Video className="w-4 h-4 text-amber-600" />
+              <span>Agendar gravação</span>
+            </button>
+
+            {/* 4. Subir PSD / Mídia (Assets) */}
+            <button
+              type="button"
+              onClick={() => onNavegarTab('estudio_arte')}
+              className="px-4 py-2.5 rounded-xl bg-white dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] hover:bg-slate-50 text-[#113240] dark:text-white text-xs font-semibold flex items-center gap-2 transition-colors"
+            >
+              <UploadCloud className="w-4 h-4 text-[#226380]" />
+              <span>Subir PSD / mídia</span>
+            </button>
+          </div>
         </div>
 
-        {/* Barra de Alimentação Rápida */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onAbrirNovoConteudo('pauta')}
-            className="px-3 py-1.5 rounded-lg bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] hover:bg-slate-50 text-[#113240] dark:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+        {/* 4 Indicadores Rápidos do Cockpit Operacional */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-[#dce4e2] dark:border-[#354246]">
+          <div 
+            onClick={() => onNavegarTab('aprovacao')}
+            className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] cursor-pointer hover:border-[#226380] transition-colors"
           >
-            <Plus className="w-3.5 h-3.5 text-[#226380]" />
-            <span>Nova pauta</span>
-          </button>
+            <div className="flex items-center justify-between text-xs text-[#52636a] dark:text-[#a0aeaf]">
+              <span>Em aprovação</span>
+              <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" />
+            </div>
+            <span className="block text-2xl font-bold text-[#113240] dark:text-white mt-1">
+              {postsEmAprovacao.length}
+            </span>
+            <span className="block text-xs text-[#86868b] mt-0.5">
+              {postsEmAprovacao.length === 0 ? 'Fila limpa' : 'Aguardando validação'}
+            </span>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => onAbrirNovoConteudo('post')}
-            className="px-3 py-1.5 rounded-lg bg-[#226380] hover:bg-[#1a4f66] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+          <div 
+            onClick={() => onNavegarTab('programar')}
+            className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] cursor-pointer hover:border-[#226380] transition-colors"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Novo post</span>
-          </button>
+            <div className="flex items-center justify-between text-xs text-[#52636a] dark:text-[#a0aeaf]">
+              <span>Programados</span>
+              <Send className="w-3.5 h-3.5 text-[#226380]" />
+            </div>
+            <span className="block text-2xl font-bold text-[#113240] dark:text-white mt-1">
+              {postsProgramados.length}
+            </span>
+            <span className="block text-xs text-[#86868b] mt-0.5">Prontos para postagem</span>
+          </div>
 
-          <button
-            type="button"
+          <div 
             onClick={() => onNavegarTab('captacao')}
-            className="px-3 py-1.5 rounded-lg bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] hover:bg-slate-50 text-[#113240] dark:text-white text-xs font-medium flex items-center gap-1.5 transition-colors"
+            className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] cursor-pointer hover:border-[#226380] transition-colors"
           >
-            <Video className="w-3.5 h-3.5 text-amber-600" />
-            <span>Agendar gravação</span>
-          </button>
+            <div className="flex items-center justify-between text-xs text-[#52636a] dark:text-[#a0aeaf]">
+              <span>Gravações</span>
+              <Video className="w-3.5 h-3.5 text-emerald-600" />
+            </div>
+            <span className="block text-2xl font-bold text-[#113240] dark:text-white mt-1">
+              {captacoesProximas.length}
+            </span>
+            <span className="block text-xs text-[#86868b] mt-0.5">Captações agendadas</span>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => onNavegarTab('estudio_arte')}
-            className="px-3 py-1.5 rounded-lg bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] hover:bg-slate-50 text-[#113240] dark:text-white text-xs font-medium flex items-center gap-1.5 transition-colors"
+          <div 
+            onClick={() => onNavegarTab('tarefas')}
+            className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] cursor-pointer hover:border-[#226380] transition-colors"
           >
-            <UploadCloud className="w-3.5 h-3.5 text-[#226380]" />
-            <span>Subir PSD / Mídia</span>
-          </button>
+            <div className="flex items-center justify-between text-xs text-[#52636a] dark:text-[#a0aeaf]">
+              <span>Tarefas da equipe</span>
+              <CheckSquare className="w-3.5 h-3.5 text-[#226380]" />
+            </div>
+            <span className="block text-2xl font-bold text-[#113240] dark:text-white mt-1">
+              {tarefasPendentes.length}
+            </span>
+            <span className="block text-xs text-[#86868b] mt-0.5">Pendentes no checklist</span>
+          </div>
         </div>
       </div>
 
-      {/* Bloco 1: Fila de Conteúdos Travados em Aprovação */}
-      <div className="bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-xl p-5 space-y-4">
+      {/* Bloco 1: Fila de Conteúdos em Aprovação */}
+      <div className="bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-2xl p-6 space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-[#dce4e2] dark:border-[#354246]">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-amber-600" />
             <h2 className="text-xs font-semibold text-[#113240] dark:text-white">
               Fila de aprovação urgente
             </h2>
-            <span className="text-xs px-2 py-0.2 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-semibold border border-amber-300 dark:border-amber-800">
+            <span className="text-xs px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-semibold border border-amber-300 dark:border-amber-800">
               {postsEmAprovacao.length} aguardando liberação
             </span>
           </div>
@@ -135,23 +214,23 @@ export const VisaoGeralView: React.FC<VisaoGeralViewProps> = ({
         </div>
 
         {postsEmAprovacao.length === 0 ? (
-          <div className="p-6 text-center text-xs text-[#52636a] dark:text-[#a0aeaf] bg-[#f8faf9] dark:bg-[#141a1c] border border-dashed border-[#dce4e2] dark:border-[#354246] rounded-lg">
+          <div className="p-6 text-center text-xs text-[#52636a] dark:text-[#a0aeaf] bg-[#f8faf9] dark:bg-[#141a1c] border border-dashed border-[#dce4e2] dark:border-[#354246] rounded-xl">
             Nenhum conteúdo travado. Todas as artes e legendas submetidas estão aprovadas.
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {postsEmAprovacao.map(post => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {postsEmAprovacao.slice(0, 3).map(post => (
               <div
                 key={post.id}
-                className="p-3.5 rounded-lg border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] flex flex-col justify-between gap-3"
+                className="p-4 rounded-xl border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] flex flex-col justify-between gap-3"
               >
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold px-2 py-0.2 rounded bg-[#113240] text-white">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-[#113240] dark:text-white font-medium">
                       {post.formato}
                     </span>
                     <span className="text-xs text-[#52636a] dark:text-[#a0aeaf]">
-                      {post.area}
+                      {post.horario_agendado || '15:00'}
                     </span>
                   </div>
 
@@ -166,22 +245,22 @@ export const VisaoGeralView: React.FC<VisaoGeralViewProps> = ({
                   )}
                 </div>
 
-                <div className="pt-2 border-t border-[#dce4e2] dark:border-[#354246] flex items-center gap-2">
+                <div className="pt-2 border-t border-[#dce4e2] dark:border-[#354246] flex items-center justify-between gap-2">
                   <button
                     type="button"
-                    onClick={() => onAprovarPost(post.id)}
-                    className="flex-1 py-1 px-2.5 rounded bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium flex items-center justify-center gap-1 transition-colors"
+                    onClick={() => onPedirAjustes(post.id)}
+                    className="flex-1 py-1.5 px-2.5 rounded bg-white dark:bg-[#253034] hover:bg-slate-100 text-[#52636a] dark:text-[#a0aeaf] text-xs font-medium border border-[#dce4e2] dark:border-[#354246] transition-colors"
                   >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Aprovar</span>
+                    Ajustes
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => onPedirAjustes(post.id)}
-                    className="py-1 px-2.5 rounded border border-[#dce4e2] dark:border-[#354246] bg-white dark:bg-[#1c2427] hover:bg-slate-100 text-[#52636a] dark:text-[#a0aeaf] text-xs font-medium transition-colors"
+                    onClick={() => onAprovarPost(post.id)}
+                    className="flex-1 py-1.5 px-2.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-1 transition-colors"
                   >
-                    Pedir ajustes
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Aprovar</span>
                   </button>
                 </div>
               </div>
@@ -190,130 +269,16 @@ export const VisaoGeralView: React.FC<VisaoGeralViewProps> = ({
         )}
       </div>
 
-      {/* Grid Duplo: Próximas Publicações & Gravações Agendadas */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Próximas Publicações (6 cols) */}
-        <div className="lg:col-span-6 bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-xl p-5 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-[#dce4e2] dark:border-[#354246]">
-            <div className="flex items-center gap-2">
-              <CalendarIcon className="w-4 h-4 text-[#226380]" />
-              <h2 className="text-xs font-semibold text-[#113240] dark:text-white">
-                Próximas publicações programadas
-              </h2>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => onNavegarTab('cronograma')}
-              className="text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold hover:underline flex items-center gap-1"
-            >
-              <span>Ver cronograma</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {postsProgramados.length === 0 ? (
-            <div className="p-6 text-center text-xs text-[#52636a] dark:text-[#a0aeaf] bg-[#f8faf9] dark:bg-[#141a1c] border border-dashed border-[#dce4e2] dark:border-[#354246] rounded-lg">
-              Nenhuma postagem programada para os próximos dias.
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              {postsProgramados.slice(0, 4).map(post => (
-                <div
-                  key={post.id}
-                  className="p-3 rounded-lg border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] flex items-center justify-between gap-3"
-                >
-                  <div className="space-y-0.5 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-semibold text-[#113240] dark:text-white truncate">
-                        {post.titulo}
-                      </span>
-                      <span className="text-xs px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-700 text-[#52636a] dark:text-[#a0aeaf]">
-                        {post.formato}
-                      </span>
-                    </div>
-                    <span className="text-xs text-[#52636a] dark:text-[#a0aeaf] block">
-                      Programado para: <strong>{post.data_cronograma ? new Date(post.data_cronograma).toLocaleDateString('pt-BR') : 'Esta semana'}</strong>
-                    </span>
-                  </div>
-
-                  <span className="text-xs px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-medium shrink-0">
-                    Pronto
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Gravações & Captações Agendadas (6 cols) */}
-        <div className="lg:col-span-6 bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-xl p-5 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-[#dce4e2] dark:border-[#354246]">
-            <div className="flex items-center gap-2">
-              <Video className="w-4 h-4 text-amber-600" />
-              <h2 className="text-xs font-semibold text-[#113240] dark:text-white">
-                Captações de vídeo da semana
-              </h2>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => onNavegarTab('captacao')}
-              className="text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold hover:underline flex items-center gap-1"
-            >
-              <span>Ver captações</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {captacoesProximas.length === 0 ? (
-            <div className="p-6 text-center text-xs text-[#52636a] dark:text-[#a0aeaf] bg-[#f8faf9] dark:bg-[#141a1c] border border-dashed border-[#dce4e2] dark:border-[#354246] rounded-lg">
-              Nenhuma gravação agendada. Clique em "Agendar gravação" para marcar.
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              {captacoesProximas.slice(0, 3).map(cap => (
-                <div
-                  key={cap.id}
-                  className="p-3 rounded-lg border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] flex items-center justify-between gap-3"
-                >
-                  <div className="space-y-0.5 min-w-0">
-                    <span className="text-xs font-semibold text-[#113240] dark:text-white block truncate">
-                      {cap.titulo}
-                    </span>
-                    <span className="text-xs text-[#52636a] dark:text-[#a0aeaf] block">
-                      Entrevistado: <strong>{cap.entrevistado_nome}</strong> · {cap.local}
-                    </span>
-                  </div>
-
-                  <div className="text-right shrink-0">
-                    <span className="text-xs font-semibold text-[#113240] dark:text-white block">
-                      {new Date(cap.data_gravacao).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-                    </span>
-                    <span className="text-xs text-[#52636a] dark:text-[#a0aeaf]">
-                      {cap.duracao}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Bloco 3: Tarefas Prioritárias & Radar de Confrades do Banco */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Tarefas Prioritárias (6 cols) */}
-        <div className="lg:col-span-6 bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-xl p-5 space-y-4">
+      {/* Grid de 2 Colunas: Tarefas Prioritárias & Radar da Província */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Coluna 1: Minhas Prioridades do Dia */}
+        <div className="bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-[#dce4e2] dark:border-[#354246]">
             <div className="flex items-center gap-2">
               <CheckSquare className="w-4 h-4 text-[#226380]" />
               <h2 className="text-xs font-semibold text-[#113240] dark:text-white">
-                Tarefas prioritárias da equipe
+                Prioridades da equipe de comunicação
               </h2>
-              <span className="text-xs text-[#52636a] dark:text-[#a0aeaf]">
-                ({tarefasPendentes.length} pendentes)
-              </span>
             </div>
 
             <button
@@ -321,63 +286,71 @@ export const VisaoGeralView: React.FC<VisaoGeralViewProps> = ({
               onClick={() => onNavegarTab('tarefas')}
               className="text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold hover:underline flex items-center gap-1"
             >
-              <span>Abrir tarefas</span>
+              <span>Ver todas ({tarefasPendentes.length})</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
           <div className="space-y-2">
-            {tarefasPendentes.slice(0, 4).map(tar => (
-              <div
-                key={tar.id}
-                className="p-2.5 rounded-lg border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] flex items-center justify-between gap-3"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <button
-                    type="button"
-                    onClick={() => onToggleTarefa(tar.id, true)}
-                    className="text-slate-400 hover:text-[#226380] shrink-0"
-                  >
-                    <Square className="w-4 h-4" />
-                  </button>
-                  <span className="text-xs font-medium text-[#113240] dark:text-white truncate">
-                    {tar.titulo}
-                  </span>
-                </div>
+            {tarefasPendentes.length === 0 ? (
+              <p className="text-xs text-[#52636a] dark:text-[#a0aeaf] text-center py-4">
+                Nenhuma tarefa pendente para hoje. Tudo concluído!
+              </p>
+            ) : (
+              tarefasPendentes.slice(0, 5).map(tarefa => (
+                <div
+                  key={tarefa.id}
+                  className="p-3 rounded-xl border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] flex items-center justify-between gap-3 hover:border-[#226380] transition-colors"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => onToggleTarefa(tarefa.id, true)}
+                      className="text-slate-400 hover:text-emerald-500 transition-colors shrink-0"
+                    >
+                      <Square className="w-4 h-4" />
+                    </button>
+                    <span className="text-xs text-[#113240] dark:text-white truncate">
+                      {tarefa.titulo}
+                    </span>
+                  </div>
 
-                {tar.responsavel_nome && (
-                  <span className="text-xs px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-[#52636a] dark:text-[#a0aeaf] shrink-0">
-                    {tar.responsavel_nome}
-                  </span>
-                )}
-              </div>
-            ))}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {tarefa.responsavel_nome && (
+                      <span className="text-xs px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-[#52636a] dark:text-[#a0aeaf]">
+                        {tarefa.responsavel_nome}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
-        {/* Radar de Confrades Aniversariantes do Banco Real (6 cols) */}
-        <div className="lg:col-span-6 bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-xl p-5 space-y-4">
+        {/* Coluna 2: Radar da Província (Aniversários e Jubileus) */}
+        <div className="bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-[#dce4e2] dark:border-[#354246]">
             <div className="flex items-center gap-2">
-              <Gift className="w-4 h-4 text-[#226380]" />
+              <Gift className="w-4 h-4 text-rose-600" />
               <h2 className="text-xs font-semibold text-[#113240] dark:text-white">
-                Radar de datas solenes da Província
+                Radar da Província · Próximos 15 dias
               </h2>
             </div>
 
             <button
               type="button"
-              onClick={() => onNavegarTab('religiosos_conteudo')}
+              onClick={() => onNavegarTab('aniversariantes')}
               className="text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold hover:underline flex items-center gap-1"
             >
-              <span>Ver todos os confrades</span>
+              <span>Ver calendário completo</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
           {aniversariantesProximos.length === 0 ? (
-            <div className="p-6 text-center text-xs text-[#52636a] dark:text-[#a0aeaf] bg-[#f8faf9] dark:bg-[#141a1c] border border-dashed border-[#dce4e2] dark:border-[#354246] rounded-lg">
-              Nenhuma data solene nos próximos 15 dias.
+            <div className="p-6 text-center text-xs text-[#52636a] dark:text-[#a0aeaf] bg-[#f8faf9] dark:bg-[#141a1c] border border-dashed border-[#dce4e2] dark:border-[#354246] rounded-xl">
+              Nenhuma data solene ou jubileu nos próximos 15 dias.
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -387,15 +360,15 @@ export const VisaoGeralView: React.FC<VisaoGeralViewProps> = ({
                 return (
                   <div
                     key={aniv.id}
-                    className="p-3 rounded-lg border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] flex items-center justify-between gap-3"
+                    className="p-3 rounded-xl border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] flex items-center justify-between gap-3"
                   >
                     <div className="space-y-0.5 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-semibold text-[#113240] dark:text-white truncate">
                           {aniv.nome}
                         </span>
-                        <span className="text-xs px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-semibold border border-amber-300 dark:border-amber-800">
-                          {aniv.tipo === 'ordenacao' ? `Jubileu ${aniv.anos} anos` : 'Aniversário'}
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-semibold border border-rose-200 dark:border-rose-900/40">
+                          {aniv.tipo === 'ordenacao' ? `Jubileu ${aniv.anos} anos` : 'Natalício'}
                         </span>
                       </div>
                       <span className="text-xs text-[#52636a] dark:text-[#a0aeaf] block truncate">
@@ -412,7 +385,7 @@ export const VisaoGeralView: React.FC<VisaoGeralViewProps> = ({
                           onAbrirNovoConteudo('post');
                         }
                       }}
-                      className="py-1 px-2.5 rounded bg-[#226380] hover:bg-[#1a4f66] text-white text-xs font-medium flex items-center gap-1 transition-colors shrink-0"
+                      className="py-1 px-2.5 rounded-lg bg-[#226380] hover:bg-[#1a4f66] text-white text-xs font-medium flex items-center gap-1 transition-colors shrink-0"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Homenagem</span>

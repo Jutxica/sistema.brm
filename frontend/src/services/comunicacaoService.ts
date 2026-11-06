@@ -53,7 +53,7 @@ export async function createPauta(pauta: Partial<ComunicacaoPauta>): Promise<Com
     status: pauta.status || 'ideia',
     prioridade: pauta.prioridade || 'media',
     canais: pauta.canais || ['Instagram'],
-    criado_por_nome: pauta.criado_por_nome || 'Talita',
+    criado_por_nome: pauta.criado_por_nome || 'Comunicação BRM',
     data_prevista: pauta.data_prevista || null,
     created_at: new Date().toISOString()
   };
@@ -171,7 +171,7 @@ export async function addComentario(comentario: Partial<ComunicacaoComentario>):
   return {
     id: `com-${Date.now()}`,
     post_id: comentario.post_id || 'post-1',
-    autor_nome: comentario.autor_nome || 'Talita',
+    autor_nome: comentario.autor_nome || 'Comunicação BRM',
     mensagem: comentario.mensagem || '',
     escopo: comentario.escopo || 'geral',
     slide_numero: comentario.slide_numero,
@@ -288,7 +288,7 @@ export async function createCaptacao(captacao: Partial<ComunicacaoCaptacao>): Pr
       { item: 'Cartão SD com espaço livre', checado: false }
     ],
     conteudos_previstos: captacao.conteudos_previstos || [{ formato: 'Reels', titulo: 'Destaque da fala' }],
-    participantes: captacao.participantes || [{ nome: 'Talita', email: 'comunicacao@dehonianos.org.br' }],
+    participantes: captacao.participantes || [{ nome: 'Comunicação BRM', email: 'comunicacao@dehonianosbrm.org.br' }],
     tags: captacao.tags || [],
     mencoes: captacao.mencoes || [],
     comentarios: captacao.comentarios || [],
@@ -525,17 +525,22 @@ export async function getReligiososParaConteudo(): Promise<ReligiosoConteudo[]> 
           nome_civil: r.nome_civil || '',
           grau: r.grau || 'Presbítero',
           data_nascimento: r.data_nascimento || null,
+          naturalidade_cidade: r.naturalidade_cidade || r.cidade_natal || null,
+          naturalidade_uf: r.naturalidade_uf || r.uf_natal || null,
           ordenacao_data: r.data_ordenacao_presbiteral || r.ordenacao_data || null,
-          profissao_perpetua_data: r.data_primeiros_votos || null,
+          profissao_perpetua_data: r.data_primeira_profissao || r.data_primeiros_votos || null,
           comunidade_atual_nome: r.comunidade_atual_nome || 'Província BRM',
           obra_atual_nome: r.obra_atual_nome || r.comunidade_atual_nome || 'Província BRM',
+          diocese_atual: r.diocese || r.diocese_atual || null,
           cargo_funcao: r.cargo_funcao || r.funcao || 'Religioso Dehoniano',
           foto_path: r.foto_path || null,
           foto_url: r.foto_path && r.foto_path.startsWith('http') ? r.foto_path : null,
-          lema_destacado: r.lema_destacado || 'Sint unum — Que todos sejam um (Jo 17, 21)',
+          lema_destacado: r.lema_destacado || r.lema_ordenacao_presbiteral || 'Ecce Venio — Eis que venho para fazer a tua vontade',
           lema_destacado_fase: r.lema_destacado_fase || 'Ordenação Presbiteral',
-          email_institucional: r.email_institucional || 'comunicacao@dehonianos.org.br',
-          telefone_celular: r.telefone_celular || r.telefone_whatsapp || null
+          email_institucional: r.email_institucional || 'comunicacao@dehonianosbrm.org.br',
+          telefone_celular: r.telefone_celular || r.telefone_whatsapp || null,
+          telefone_whatsapp: r.telefone_whatsapp || r.telefone_celular || null,
+          biografia: r.biografia || r.historico || r.observacoes || `${r.nome_religioso || r.nome_civil} é religioso da Província Brasil Meridional dos Padres Dehonianos (SCJ).`
         }));
       }
     }
@@ -548,16 +553,39 @@ export async function getReligiososParaConteudo(): Promise<ReligiosoConteudo[]> 
 
 export async function getObrasParaComunicacao(): Promise<ObraResumoComunicacao[]> {
   try {
-    const { data, error } = await supabase
-      .from('obras')
-      .select('id, nome, tipo, cidade, uf')
+    // Busca na tabela canônica do sistema: religiosos_obras_referencia
+    const { data: obrasRef, error } = await supabase
+      .from('religiosos_obras_referencia')
+      .select('id, nome, tipo, cidade, estado')
       .order('nome', { ascending: true });
 
-    if (!error && data && data.length > 0) {
-      return data as ObraResumoComunicacao[];
+    if (!error && obrasRef && obrasRef.length > 0) {
+      return obrasRef.map(o => ({
+        id: o.id,
+        nome: o.nome,
+        tipo: o.tipo || 'Obra',
+        cidade: o.cidade || '',
+        uf: o.estado || ''
+      }));
+    }
+
+    // Fallback para comunidades
+    const { data: coms } = await supabase
+      .from('comunidades')
+      .select('id, nome, regiao')
+      .order('nome', { ascending: true });
+
+    if (coms && coms.length > 0) {
+      return coms.map(c => ({
+        id: c.id,
+        nome: c.nome,
+        tipo: 'Comunidade Religiosa',
+        cidade: c.regiao || '',
+        uf: 'SC'
+      }));
     }
   } catch (err) {
-    console.warn('[comunicacaoService] Erro ao buscar obras:', err);
+    console.warn('[comunicacaoService] Erro ao buscar obras do banco:', err);
   }
 
   return SEED_OBRAS_COMUNICACAO;
@@ -578,6 +606,7 @@ export function getHistoricoConteudoReligioso(
     const bateNome = Boolean(nomeLower && p.religioso_nome && p.religioso_nome.toLowerCase().includes(nomeLower));
     const bateTitulo = Boolean(nomeLower && p.titulo.toLowerCase().includes(nomeLower));
     if (bateId || bateNome || bateTitulo) {
+      const imgUrl = p.arquivos_arte && p.arquivos_arte[0]?.url;
       lista.push({
         id: p.id,
         tipo: 'post',
@@ -585,7 +614,8 @@ export function getHistoricoConteudoReligioso(
         formato: p.formato,
         data: p.data_cronograma || p.created_at,
         status: p.status === 'postado' ? 'Publicado' : p.status === 'aprovado' ? 'Aprovado' : 'Em produção',
-        url: p.arquivos_arte && p.arquivos_arte[0]?.url
+        url: imgUrl,
+        imagem_url: imgUrl
       });
     }
   });
@@ -741,7 +771,7 @@ const MOCK_PAUTAS: ComunicacaoPauta[] = [
     status: 'ideia',
     prioridade: 'alta',
     canais: ['Instagram', 'Facebook'],
-    criado_por_nome: 'Talita',
+    criado_por_nome: 'Comunicação BRM',
     created_at: new Date().toISOString()
   },
   {
@@ -752,7 +782,7 @@ const MOCK_PAUTAS: ComunicacaoPauta[] = [
     status: 'ideia',
     prioridade: 'alta',
     canais: ['Instagram', 'YouTube'],
-    criado_por_nome: 'Kath',
+    criado_por_nome: 'Comunicação BRM',
     created_at: new Date().toISOString()
   },
   {
@@ -763,7 +793,7 @@ const MOCK_PAUTAS: ComunicacaoPauta[] = [
     status: 'ideia',
     prioridade: 'media',
     canais: ['Instagram', 'Site'],
-    criado_por_nome: 'Talita',
+    criado_por_nome: 'Comunicação BRM',
     created_at: new Date().toISOString()
   },
   {
@@ -774,7 +804,7 @@ const MOCK_PAUTAS: ComunicacaoPauta[] = [
     status: 'ideia',
     prioridade: 'media',
     canais: ['Instagram', 'Site'],
-    criado_por_nome: 'Talita',
+    criado_por_nome: 'Comunicação BRM',
     created_at: new Date().toISOString()
   }
 ];
@@ -904,7 +934,7 @@ const MOCK_TAREFAS: ComunicacaoTarefa[] = [
     titulo: 'Revisar legendas e conferir datas históricas com o arquivo da Cúria',
     concluida: true,
     tipo: 'fazer',
-    responsavel_nome: 'Talita',
+    responsavel_nome: 'Comunicação BRM',
     data_limite: '2026-11-04',
     created_at: new Date().toISOString()
   },
@@ -913,7 +943,7 @@ const MOCK_TAREFAS: ComunicacaoTarefa[] = [
     titulo: 'Fazer ensaio fotográfico dos novos postulantes em Corupá',
     concluida: false,
     tipo: 'ideia',
-    responsavel_nome: 'Kath',
+    responsavel_nome: 'Comunicação BRM',
     created_at: new Date().toISOString()
   }
 ];
@@ -942,8 +972,7 @@ const MOCK_CAPTACOES: ComunicacaoCaptacao[] = [
       { formato: 'Vídeo Longo', titulo: 'Mensagem Vocacional Completa' }
     ],
     participantes: [
-      { nome: 'Talita Conta', email: 'comunicacao@dehonianosbrm.org.br' },
-      { nome: 'Kath', email: 'kath@dehonianosbrm.org.br' }
+      { nome: 'Comunicação BRM', email: 'comunicacao@dehonianosbrm.org.br' }
     ],
     created_at: new Date().toISOString()
   }
@@ -999,9 +1028,9 @@ const MOCK_EMAILS: ComunicacaoEmailEquipe[] = [
   },
   {
     id: 'em-2',
-    nome: 'Talita (Gestão & Redes)',
-    email: 'talita@dehonianosbrm.org.br',
-    cargo: 'Coordenadora de Marketing & Redes',
+    nome: 'Comunicação BRM',
+    email: 'comunicacao@dehonianosbrm.org.br',
+    cargo: 'Coordenação e Planejamento',
     telefone: '(47) 98888-5678',
     papel: 'operador',
     ativo: true,
@@ -1009,9 +1038,9 @@ const MOCK_EMAILS: ComunicacaoEmailEquipe[] = [
   },
   {
     id: 'em-3',
-    nome: 'Kath (Produção & Conteúdo)',
-    email: 'kath@dehonianosbrm.org.br',
-    cargo: 'Assistente de Comunicação',
+    nome: 'Equipe de Criação & Audiovisual',
+    email: 'criacao@dehonianosbrm.org.br',
+    cargo: 'Produção Audiovisual & Roteiros',
     telefone: '(47) 97777-9012',
     papel: 'operador',
     ativo: true,
@@ -1284,6 +1313,30 @@ const MOCK_ANIVERSARIANTES = [
 ];
 
 export const SEED_RELIGIOSOS_CONTEUDO: ReligiosoConteudo[] = [
+  {
+    id: 'rel-anderson-viana',
+    nome_religioso: 'Pe. Anderson Carlos S Viana, scj',
+    nome_civil: 'Anderson Carlos S Viana',
+    grau: 'Presbítero',
+    data_nascimento: '1978-01-05',
+    naturalidade_cidade: 'Criciúma',
+    naturalidade_uf: 'SC',
+    ordenacao_data: '2005-12-15',
+    profissao_perpetua_data: '1998-02-02',
+    comunidade_atual_nome: 'Cúria Provincial BRM - Brusque/SC',
+    obra_atual_nome: 'Secretaria da Província BRM',
+    diocese_atual: 'Arquidiocese de Florianópolis',
+    cargo_funcao: 'Secretário Provincial & Ecônomo',
+    foto_path: '/logo-branco.png',
+    lema_destacado: 'ECCE VENIO — EIS QUE VENHO PARA FAZER A TUA VONTADE',
+    lema_destacado_fase: 'Ordenação Presbiteral',
+    email_institucional: 'secretaria@dehonianosbrm.org.br',
+    telefone_celular: '(47) 99123-8899',
+    telefone_whatsapp: '(47) 99123-8899',
+    biografia: 'Pe. Anderson Carlos S. Viana, SCJ é sacerdote dehoniano com sólida dedicação pastoral e administrativa na Província Brasil Meridional (BRM), com atuação em Santa Catarina e Paraná, exercendo funções de secretaria provincial e animação litúrgica.',
+    total_conteudos: 4,
+    ultimo_conteudo_em: '2026-11-02T15:00:00Z'
+  },
   {
     id: 'rel-1',
     nome_religioso: 'Pe. André Marcelino, scj',

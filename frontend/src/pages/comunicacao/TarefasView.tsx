@@ -18,7 +18,7 @@ interface TarefasViewProps {
 export const TarefasView: React.FC<TarefasViewProps> = ({
   tarefas,
   equipe = [],
-  usuarioNome = 'Talita',
+  usuarioNome = 'Comunicação BRM',
   filtroResponsavel,
   onCriarTarefa,
   onToggleTarefa,
@@ -36,7 +36,7 @@ export const TarefasView: React.FC<TarefasViewProps> = ({
   const membrosNomes = Array.from(
     new Set([
       'Geral',
-      ...(equipe.length > 0 ? equipe.map(e => e.nome) : ['Talita', 'Kath', 'Pe. Coordenador'])
+      ...(equipe.length > 0 ? equipe.map(e => e.nome) : ['Comunicação BRM', 'Equipe de Criação', 'Secretaria'])
     ])
   );
 
