@@ -286,30 +286,12 @@ export const ComunicacaoAdmin: React.FC = () => {
     return resp.includes(me) || resp === 'geral';
   }).length;
 
-  const tabsList = [
-    { id: 'visao_geral', label: 'Visão Geral', icon: LayoutDashboard },
-    { id: 'banco_pautas', label: 'Banco de Pautas', icon: FolderPlus, count: countPautas },
-    { id: 'producao', label: 'Produção (Kanban)', icon: Kanban, count: posts.length },
-    { id: 'aprovacao', label: 'Aprovação de Posts', icon: CheckCircle2, badge: countAprovacao },
-    { id: 'cronograma', label: 'Cronograma Mensal', icon: Calendar },
-    { id: 'captacao', label: 'Captação & Roteiros', icon: Video, badge: countCaptacao },
-    { id: 'religiosos_conteudo', label: 'Religiosos da Província', icon: Users, count: religiosos.length },
-    { id: 'estudio_arte', label: 'Estúdio de Arte & Brand', icon: Palette },
-    { id: 'tarefas', label: 'Tarefas da Equipe', icon: CheckSquare, badge: countTarefasMinhas },
-    { id: 'aniversariantes', label: 'Aniversários & Jubileus', icon: Gift, count: aniversariantes.length },
-    { id: 'programar', label: 'Programar Posts', icon: Send },
-    { id: 'previa_feed', label: 'Prévia do Feed', icon: Grid3X3 },
-    { id: 'analise_instagram', label: 'Métricas do Instagram', icon: BarChart2 },
-    { id: 'emails_equipe', label: 'Contatos da Equipe', icon: Mail },
-    { id: 'benchmarking', label: 'Benchmarking', icon: Search }
-  ];
-
   return (
     <div className="space-y-6 animate-fade-in font-sans pb-12">
       {/* Cabeçalho Institucional do Módulo (Padrão Sistema BRM) */}
-      <header className="space-y-3">
-        {/* Card Institucional exibido exclusivamente na Visão Geral */}
-        {activeTab === 'visao_geral' && (
+      {/* Cabeçalho Institucional do Módulo (exibido exclusivamente na Visão Geral) */}
+      {activeTab === 'visao_geral' && (
+        <header className="space-y-3">
           <div className="rounded-[10px] bg-white dark:bg-[#161b22] p-5 md:p-6 border border-slate-200/90 dark:border-slate-800 border-t-2 border-t-[#226380] shadow-xs">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -351,43 +333,8 @@ export const ComunicacaoAdmin: React.FC = () => {
             </div>
           </div>
         </div>
-        )}
-
-        {/* Barra de Abas / Pílulas Horizontais Modernas (Utxica Anti-slop / Sistema BRM) */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 border-b border-slate-200 dark:border-slate-800 pb-3">
-          {tabsList.map(tab => {
-            const isActive = activeTab === tab.id;
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => handleMudarTab(tab.id)}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all shrink-0 cursor-pointer ${
-                  isActive
-                    ? 'bg-[#113240] text-white dark:bg-white dark:text-[#113240] font-semibold shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{tab.label}</span>
-                {tab.count !== undefined && (
-                  <span className={`text-[10px] tabular-nums px-1.5 py-0.2 rounded-full font-bold ${
-                    isActive ? 'bg-white/20 dark:bg-black/15 text-white dark:text-[#113240]' : 'bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                  }`}>
-                    {tab.count}
-                  </span>
-                )}
-                {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className="text-[10px] tabular-nums px-1.5 py-0.2 rounded-full bg-amber-600 text-white font-bold">
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Conteúdo da Aba Ativa */}
       <div>
