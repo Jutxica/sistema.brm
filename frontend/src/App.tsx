@@ -80,6 +80,7 @@ const getDefaultPath = (user: ReturnType<typeof useAuth>['user']): string => {
 
   const destinations = [
     ['inicio', '/inicio'],
+    ['comunicacao', '/comunicacao'],
     ['patrimonio', '/patrimonio'],
     ['arquivo_secretaria', '/secretaria'],
     ['arquivo_substituto', '/secretaria'],
@@ -233,7 +234,14 @@ export const App: React.FC = () => {
                 <Route path="/formularios/:id" element={<FormularioPublicoInscricao />} />
                 <Route path="/validar" element={<ValidarDocumento />} />
                 <Route path="/validar/:codigo" element={<ValidarDocumento />} />
-                <Route path="/comunicacao" element={<ComunicacaoAdmin />} />
+                <Route
+                  path="/comunicacao"
+                  element={
+                    <ModuleRoute accessKey="comunicacao">
+                      <ComunicacaoAdmin />
+                    </ModuleRoute>
+                  }
+                />
 
                 {/* Private Administrative Workspace */}
                 <Route

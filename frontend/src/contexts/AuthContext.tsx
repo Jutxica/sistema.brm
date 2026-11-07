@@ -184,7 +184,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           nome: 'Administrador Dehoniano',
           email: 'admin@brm.org.br',
           status: 'Ativo',
-          acessos: ['admin', 'inicio', 'religiosos', 'hospedagens', 'configuracoes', 'usuarios', 'obras', 'patrimonio', 'religioso', 'portal'],
+          acessos: ['admin', 'inicio', 'comunicacao', 'religiosos', 'hospedagens', 'configuracoes', 'usuarios', 'obras', 'patrimonio', 'religioso', 'portal'],
           religiosoId: 'e2e-religioso-admin',
           religiosoNome: 'Pe. Secretário Provincial',
           religiosoGrau: 'Padre',

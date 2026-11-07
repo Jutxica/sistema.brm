@@ -236,6 +236,7 @@ export const Usuarios: React.FC = () => {
 
   const availablePermissions = [
     { key: 'inicio', name: 'Painel Inicial', desc: 'Resumo geral, métricas de ocupação e atalhos rápidos' },
+    { key: 'comunicacao', name: 'Módulo Comunicação & Mídia', desc: 'Central de comunicação: pautas, aprovação de posts, cronograma, captações, roteiros e banco de mídias' },
     { key: 'religiosos', name: 'Módulo Religiosos', desc: 'Fichas canônicas, histórico vocacional e dados sacramentais' },
     { key: 'obras', name: 'Comunidades & Obras', desc: 'Gestão de paróquias, casas religiosas e presenças da Província' },
     { key: 'patrimonio', name: 'Módulo Patrimônio', desc: 'Gestão de imóveis, veículos, inventário, contratos e manutenção patrimonial' },
@@ -247,6 +248,11 @@ export const Usuarios: React.FC = () => {
     { key: 'usuarios', name: 'Gestão de Usuários', desc: 'Controle de contas administrativas e permissões de acesso' },
     { key: 'admin', name: 'Super Administrador', desc: 'Acesso irrestrito a todas as funções e auditorias do sistema' },
   ];
+
+  const getPermissionLabel = (key: string): string => {
+    const found = availablePermissions.find(p => p.key === key);
+    return found ? found.name : key;
+  };
 
   if (loading) {
     return (
@@ -275,7 +281,7 @@ export const Usuarios: React.FC = () => {
         {!editingUser && (
           <button
             onClick={handleNewClick}
-            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-cinzel uppercase tracking-wider font-semibold bg-[#113240] text-white hover:bg-[#226380] transition-colors cursor-pointer rounded-[6px] shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-cinzel font-semibold bg-[#113240] text-white hover:bg-[#226380] transition-colors cursor-pointer rounded-[6px]"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Adicionar Usuário</span>
@@ -319,7 +325,7 @@ export const Usuarios: React.FC = () => {
             <div className="space-y-5">
               <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
                 <User className="w-4 h-4 text-[#226380]" />
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#113240] dark:text-slate-300">
+                <h3 className="text-xs font-bold tracking-tight text-[#113240] dark:text-slate-300">
                   Dados de Identificação
                 </h3>
               </div>
@@ -381,7 +387,7 @@ export const Usuarios: React.FC = () => {
             <div className="space-y-5">
               <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
                 <Shield className="w-4 h-4 text-[#226380]" />
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#113240] dark:text-slate-300">
+                <h3 className="text-xs font-bold tracking-tight text-[#113240] dark:text-slate-300">
                   Matriz de Acessos
                 </h3>
               </div>
@@ -465,8 +471,14 @@ export const Usuarios: React.FC = () => {
                         <td className="p-4">
                           <div className="flex flex-wrap gap-1.5">
                             {parsedAcessos.map(a => (
-                              <span key={a} className="px-2 py-0.5 rounded-[4px] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-300 font-medium">
-                                {a}
+                              <span key={a} className={`px-2 py-0.5 rounded-[4px] border text-[10px] font-medium ${
+                                a === 'admin' 
+                                  ? 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300'
+                                  : a === 'comunicacao'
+                                    ? 'border-[#226380]/30 bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7]'
+                                    : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                              }`}>
+                                {getPermissionLabel(a)}
                               </span>
                             ))}
                             {parsedAcessos.length === 0 && <span className="text-[11px] text-slate-400">Nenhum Acesso</span>}

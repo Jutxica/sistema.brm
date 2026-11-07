@@ -46,6 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
   const canAccessConfiguracoes = hasModuleAccess(user, 'configuracoes');
   const canAccessUsuarios = hasModuleAccess(user, 'usuarios');
   const canAccessElenco = hasModuleAccess(user, 'secretaria');
+  const canAccessComunicacao = hasModuleAccess(user, 'comunicacao');
   const canAccessArquivoSecretaria = Boolean(user?.acessos.some(access => access === 'arquivo_secretaria' || access === 'arquivo_substituto'));
 
   React.useEffect(() => {
@@ -202,6 +203,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
           )}
 
           {/* 7. Comunicação & Mídia */}
+          {canAccessComunicacao && (
           <li>
             <NavLink
               to="/comunicacao"
@@ -218,7 +220,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
             </NavLink>
           </li>
 
-          {/* 5. Usuários */}
+          )}
+
+          {/* 8. Usuários */}
           {canAccessUsuarios && (
             <li>
               <NavLink

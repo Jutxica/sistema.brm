@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   LayoutDashboard, CheckSquare, Calendar, FolderPlus, Kanban, 
   Palette, Video, Mail, Gift, CheckCircle2, Send, Grid3X3, 
   BarChart2, Search, Plus, UserCheck, Layers, FileText, Users,
-  Clock, Sparkles
+  Clock, Sparkles, ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import * as servico from '../services/comunicacaoService';
@@ -380,13 +381,24 @@ export const ComunicacaoAdmin: React.FC = () => {
         </div>
 
         {/* Rodapé da Sidebar */}
-        <div className="p-4 border-t border-white/10 flex items-center gap-3">
-          <div className="w-7 h-7 rounded bg-[#226380] text-white flex items-center justify-center font-semibold text-xs shrink-0">
-            {usuarioNome.charAt(0)}
-          </div>
-          <div className="truncate">
-            <span className="text-xs font-semibold block text-white truncate">{usuarioNome}</span>
-            <span className="text-xs text-white/60 block">Comunicação BRM</span>
+        <div className="p-4 border-t border-white/10 space-y-3">
+          <Link
+            to="/inicio"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-white/70 hover:bg-white/10 hover:text-white transition-colors border border-white/10"
+            title="Retornar ao Painel Principal do Sistema BRM"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Voltar ao Sistema BRM</span>
+          </Link>
+
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 rounded bg-[#226380] text-white flex items-center justify-center font-semibold text-xs shrink-0">
+              {usuarioNome.charAt(0)}
+            </div>
+            <div className="truncate">
+              <span className="text-xs font-semibold block text-white truncate">{usuarioNome}</span>
+              <span className="text-xs text-white/60 block">Comunicação BRM</span>
+            </div>
           </div>
         </div>
       </aside>
@@ -395,7 +407,16 @@ export const ComunicacaoAdmin: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {/* Barra Superior */}
         <header className="h-14 border-b border-[#dce4e2] dark:border-[#354246] bg-white dark:bg-[#1c2427] px-6 flex items-center justify-between gap-4 sticky top-0 z-20">
-          <div className="flex items-center gap-2 text-xs font-medium text-[#52636a] dark:text-[#a0aeaf]">
+          <div className="flex items-center gap-2.5 text-xs font-medium text-[#52636a] dark:text-[#a0aeaf]">
+            <Link
+              to="/inicio"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#dce4e2] dark:border-[#354246] text-[#52636a] dark:text-[#a0aeaf] hover:text-[#113240] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-[#141a1c] transition-colors"
+              title="Voltar ao Sistema BRM"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Sistema BRM</span>
+            </Link>
+            <span>/</span>
             <span>Central de Comunicação</span>
             <span>/</span>
             <span className="text-[#113240] dark:text-white font-semibold capitalize">
