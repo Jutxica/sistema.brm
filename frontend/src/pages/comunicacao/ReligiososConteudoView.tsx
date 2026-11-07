@@ -3,7 +3,7 @@ import {
   Users, Search, Calendar, Video, Plus, Copy, Check, 
   ExternalLink, Clock, Sparkles, BookOpen, MapPin, X, 
   Image as ImageIcon, Share2, Award, ChevronRight, ArrowLeft,
-  Mail, Phone, Church, Heart, FileText, CheckCircle2
+  Mail, Phone, Church, Heart, FileText, CheckCircle2, AtSign, Globe, MessageCircle
 } from 'lucide-react';
 import type { 
   ReligiosoConteudo, 
@@ -35,9 +35,17 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
   const [filtroGrau, setFiltroGrau] = useState<string>('todos');
   const [religiosoSelecionado, setReligiosoSelecionado] = useState<ReligiosoConteudo | null>(null);
   const [copiadoId, setCopiadoId] = useState<string | null>(null);
+  const [copiadoSocial, setCopiadoSocial] = useState<string | null>(null);
+
+  const copiarTexto = (texto: string, label: string) => {
+    navigator.clipboard.writeText(texto);
+    setCopiadoSocial(label);
+    setTimeout(() => setCopiadoSocial(null), 2000);
+  };
 
   const copiarLemaEBio = (rel: ReligiosoConteudo) => {
-    const texto = `${rel.nome_religioso} · ${rel.cargo_funcao || 'Religioso Dehoniano'} na ${rel.obra_atual_nome || rel.comunidade_atual_nome || 'Província BRM'}.\nLema: "${rel.lema_destacado || 'Ecce Venio'}"\nBio: ${rel.biografia || ''}`;
+    const redes = rel.instagram ? `\nInstagram: ${rel.instagram}` : rel.redes_sociais ? `\nRedes: ${rel.redes_sociais}` : '';
+    const texto = `${rel.nome_religioso} · ${rel.cargo_funcao || 'Religioso Dehoniano'} na ${rel.obra_atual_nome || rel.comunidade_atual_nome || 'Província BRM'}.\nLema: "${rel.lema_destacado || 'Ecce Venio'}"${redes}\nBio: ${rel.biografia || ''}`;
     navigator.clipboard.writeText(texto);
     setCopiadoId(rel.id);
     setTimeout(() => setCopiadoId(null), 2000);
@@ -254,30 +262,99 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
                   {anosIdade ? ` (${anosIdade} anos)` : ''}
                 </p>
                 <p className="text-[#52636a] dark:text-[#a0aeaf]">
-                  Local: <strong>{rel.naturalidade_cidade || 'Santa Catarina'} / {rel.naturalidade_uf || 'SC'}</strong>
+                  Naturalidade: <strong>{rel.naturalidade_cidade || 'Não informada'}{rel.naturalidade_uf ? ` / ${rel.naturalidade_uf}` : ''}</strong>
+                  {rel.pais_nascimento && rel.pais_nascimento !== 'Brasil' ? ` (${rel.pais_nascimento})` : ''}
                 </p>
               </div>
 
-              {/* Ordenação Presbiteral */}
-              <div className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-1">
+              {/* Origem Vocacional (se houver) */}
+              {(rel.paroquia_origem || rel.diocese_origem) && (
+                <div className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-1">
+                  <span className="font-bold text-[#113240] dark:text-white block flex items-center gap-1.5">
+                    <Church className="w-3.5 h-3.5 text-[#226380]" />
+                    <span>Origem vocacional</span>
+                  </span>
+                  {rel.paroquia_origem && (
+                    <p className="text-[#52636a] dark:text-[#a0aeaf]">
+                      Paróquia de origem: <strong>{rel.paroquia_origem}</strong>
+                    </p>
+                  )}
+                  {rel.diocese_origem && (
+                    <p className="text-[#52636a] dark:text-[#a0aeaf]">
+                      Diocese de origem: <strong>{rel.diocese_origem}</strong>
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Votos Religiosos & Consagração Dehoniana */}
+              <div className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-1.5">
                 <span className="font-bold text-[#113240] dark:text-white block">
-                  Ordenação presbiteral / Jubileu
+                  Consagração religiosa (votos)
                 </span>
-                <p className="text-[#52636a] dark:text-[#a0aeaf]">
-                  Data: <strong>{formatarDataCompleta(rel.ordenacao_data)}</strong>
-                  {anosOrdenacao ? ` (${anosOrdenacao} anos de sacerdócio)` : ''}
-                </p>
+                <div className="space-y-1 text-[#52636a] dark:text-[#a0aeaf]">
+                  <p>
+                    Primeira profissão religiosa: <strong>{formatarDataCompleta(rel.primeira_profissao_data || (rel.grau === 'Frater' ? rel.profissao_perpetua_data : null))}</strong>
+                  </p>
+                  <p>
+                    Profissão perpétua (votos perpétuos): <strong>{formatarDataCompleta(rel.profissao_perpetua_data)}</strong>
+                    {anosProfissao ? ` (${anosProfissao} anos de vida consagrada)` : ''}
+                  </p>
+                  {rel.profissao_local && (
+                    <p className="text-[#86868b]">
+                      Local: {rel.profissao_local}
+                    </p>
+                  )}
+                </div>
               </div>
 
-              {/* Primeira Profissão Religiosa */}
-              <div className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-1">
+              {/* Ordenação Diaconal ou Presbiteral */}
+              <div className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-1.5">
                 <span className="font-bold text-[#113240] dark:text-white block">
-                  Primeira profissão religiosa (votos perpétuos)
+                  {rel.grau === 'Diácono'
+                    ? 'Ordenação diaconal / Ministério'
+                    : rel.grau === 'Bispo'
+                      ? 'Ordenação episcopal & presbiteral'
+                      : rel.grau === 'Frater' || rel.grau === 'Irmão'
+                        ? 'Ministérios & formação canônica'
+                        : 'Ordenação presbiteral / Jubileu'}
                 </span>
-                <p className="text-[#52636a] dark:text-[#a0aeaf]">
-                  Data: <strong>{formatarDataCompleta(rel.profissao_perpetua_data)}</strong>
-                  {anosProfissao ? ` (${anosProfissao} anos de consagração dehoniana)` : ''}
-                </p>
+                
+                <div className="space-y-1 text-[#52636a] dark:text-[#a0aeaf]">
+                  {rel.ordenacao_presbiteral_data && (
+                    <p>
+                      Presbiterado: <strong>{formatarDataCompleta(rel.ordenacao_presbiteral_data)}</strong>
+                      {calcularAnos(rel.ordenacao_presbiteral_data) ? ` (${calcularAnos(rel.ordenacao_presbiteral_data)} anos de sacerdócio)` : ''}
+                    </p>
+                  )}
+                  {rel.ordenacao_diaconal_data && (
+                    <p>
+                      Diaconato: <strong>{formatarDataCompleta(rel.ordenacao_diaconal_data)}</strong>
+                      {calcularAnos(rel.ordenacao_diaconal_data) ? ` (${calcularAnos(rel.ordenacao_diaconal_data)} anos de ministério)` : ''}
+                    </p>
+                  )}
+                  {!rel.ordenacao_presbiteral_data && !rel.ordenacao_diaconal_data && rel.ordenacao_data && (
+                    <p>
+                      Data de ordenação: <strong>{formatarDataCompleta(rel.ordenacao_data)}</strong>
+                      {anosOrdenacao ? ` (${anosOrdenacao} anos)` : ''}
+                    </p>
+                  )}
+                  {!rel.ordenacao_presbiteral_data && !rel.ordenacao_diaconal_data && !rel.ordenacao_data && (
+                    <p className="text-[#86868b] italic">
+                      {rel.grau === 'Frater' ? 'Religioso em etapa de formação teológica / votos' : 'Data canônica em atualização pela Secretaria Provincial'}
+                    </p>
+                  )}
+                  {rel.ordenacao_local && (
+                    <p className="text-[#86868b]">
+                      Local: {rel.ordenacao_local}
+                    </p>
+                  )}
+                  {rel.ordenacao_bispo && (
+                    <p className="text-[#86868b]">
+                      Bispo ordenante: {rel.ordenacao_bispo}
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Funções Atuais na Província BRM */}
@@ -286,11 +363,73 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
                   Funções atuais na Província
                 </span>
                 <p className="text-[#52636a] dark:text-[#a0aeaf]">
-                  Comunidade / Obra: <strong>{rel.obra_atual_nome || rel.comunidade_atual_nome}</strong>
+                  Comunidade / Obra: <strong>{rel.obra_atual_nome || rel.comunidade_atual_nome || 'Província BRM'}</strong>
                 </p>
                 <p className="text-[#52636a] dark:text-[#a0aeaf]">
                   Ofício canônico: <strong>{rel.cargo_funcao || 'Religioso Dehoniano'}</strong>
                 </p>
+              </div>
+
+              {/* Redes Sociais & Presença Digital (Essencial para a Comunicação) */}
+              <div className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-[#113240] dark:text-white flex items-center gap-1.5">
+                    <Share2 className="w-3.5 h-3.5 text-[#226380]" />
+                    <span>Redes sociais & marcação em publicações</span>
+                  </span>
+                  <span className="text-[#86868b]">Comunicação digital</span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {rel.instagram ? (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-pink-50 dark:bg-pink-950/30 border border-pink-200 dark:border-pink-900/40 text-pink-700 dark:text-pink-300">
+                      <AtSign className="w-3.5 h-3.5" />
+                      <span className="font-semibold">{rel.instagram}</span>
+                      <button
+                        type="button"
+                        onClick={() => copiarTexto(rel.instagram || '', 'insta')}
+                        className="ml-1 text-xs hover:underline text-pink-800 dark:text-pink-200 inline-flex items-center gap-0.5"
+                        title="Copiar arroba para post do Instagram"
+                      >
+                        {copiadoSocial === 'insta' ? <Check className="w-3 h-3 text-emerald-600 inline" /> : 'Copiar'}
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {rel.facebook ? (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900/40 text-sky-700 dark:text-sky-300">
+                      <Globe className="w-3.5 h-3.5" />
+                      <span className="font-semibold">{rel.facebook}</span>
+                      <button
+                        type="button"
+                        onClick={() => copiarTexto(rel.facebook || '', 'fb')}
+                        className="ml-1 text-xs hover:underline text-sky-800 dark:text-sky-200 inline-flex items-center gap-0.5"
+                      >
+                        {copiadoSocial === 'fb' ? <Check className="w-3 h-3 text-emerald-600 inline" /> : 'Copiar'}
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {rel.redes_sociais && !rel.instagram && !rel.facebook ? (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[#113240] dark:text-white font-medium">
+                      <Share2 className="w-3.5 h-3.5 text-[#226380]" />
+                      <span>{rel.redes_sociais}</span>
+                      <button
+                        type="button"
+                        onClick={() => copiarTexto(rel.redes_sociais || '', 'redes')}
+                        className="ml-1 text-xs text-[#226380] hover:underline inline-flex items-center gap-0.5"
+                      >
+                        {copiadoSocial === 'redes' ? <Check className="w-3 h-3 text-emerald-600 inline" /> : 'Copiar'}
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {!rel.instagram && !rel.facebook && !rel.redes_sociais && (
+                    <span className="text-[#86868b] italic">
+                      Nenhuma rede social informada no cadastro público deste confrade.
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Contatos para a Comunicação */}
@@ -301,12 +440,29 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
                 <div className="flex flex-wrap items-center gap-4 text-[#52636a] dark:text-[#a0aeaf] pt-0.5">
                   <span className="flex items-center gap-1.5">
                     <Mail className="w-3.5 h-3.5 text-[#226380]" />
-                    <span>{rel.email_institucional || 'comunicacao@dehonianosbrm.org.br'}</span>
+                    <a href={`mailto:${rel.email_institucional || ''}`} className="hover:underline">
+                      {rel.email_institucional || 'comunicacao@dehonianosbrm.org.br'}
+                    </a>
                   </span>
-                  <span className="flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>{rel.telefone_whatsapp || rel.telefone_celular || '(47) 99123-8899'}</span>
-                  </span>
+                  {rel.telefone_whatsapp && (
+                    <span className="flex items-center gap-1.5">
+                      <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                      <a
+                        href={`https://wa.me/55${rel.telefone_whatsapp.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline text-emerald-700 dark:text-emerald-400 font-semibold"
+                      >
+                        WhatsApp: {rel.telefone_whatsapp}
+                      </a>
+                    </span>
+                  )}
+                  {rel.telefone_celular && rel.telefone_celular !== rel.telefone_whatsapp && (
+                    <span className="flex items-center gap-1.5">
+                      <Phone className="w-3.5 h-3.5 text-slate-500" />
+                      <span>{rel.telefone_celular}</span>
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -316,7 +472,7 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
                   Biografia & histórico
                 </span>
                 <p className="text-[#52636a] dark:text-[#a0aeaf] leading-relaxed text-xs">
-                  {rel.biografia || `${rel.nome_religioso} é sacerdote dehoniano com sólida dedicação pastoral e administrativa na Província Brasil Meridional (BRM), exercendo funções de animação litúrgica, formação e presença evangélica.`}
+                  {rel.biografia || `${rel.nome_religioso} é religioso consagrado da Província Brasil Meridional dos Padres Dehonianos (SCJ), exercendo funções pastorais, formativas e litúrgicas na congregação.`}
                 </p>
               </div>
             </div>

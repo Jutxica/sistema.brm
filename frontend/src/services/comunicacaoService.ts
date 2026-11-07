@@ -504,48 +504,215 @@ export async function getBenchmarking(): Promise<ComunicacaoBenchmarking[]> {
 // 10. Inteligência de Religiosos e Obras Reais
 // ==========================================
 
+export function extrairRedesSociais(redesTexto?: string | null): { instagram?: string; facebook?: string; youtube?: string } {
+  if (!redesTexto) return {};
+  const limpo = redesTexto.trim();
+  let instagram: string | undefined;
+  let facebook: string | undefined;
+  let youtube: string | undefined;
+
+  // Instagram match: @usuario ou link instagram.com/usuario
+  const instaMatch = limpo.match(/instagram\.com\/([a-zA-Z0-9_\.]+)|@([a-zA-Z0-9_\.]+)/i);
+  if (instaMatch) {
+    instagram = `@${(instaMatch[1] || instaMatch[2]).replace('@', '')}`;
+  } else if (!limpo.includes(' ') && !limpo.includes('/') && limpo.length > 2) {
+    instagram = limpo.startsWith('@') ? limpo : `@${limpo}`;
+  }
+
+  // Facebook match
+  const fbMatch = limpo.match(/facebook\.com\/([a-zA-Z0-9_\.]+)/i);
+  if (fbMatch) {
+    facebook = fbMatch[1];
+  }
+
+  // YouTube match
+  const ytMatch = limpo.match(/youtube\.com\/(@?[a-zA-Z0-9_\.\-]+)/i);
+  if (ytMatch) {
+    youtube = ytMatch[1];
+  }
+
+  return { instagram, facebook, youtube };
+}
+
 export async function getReligiososParaConteudo(): Promise<ReligiosoConteudo[]> {
   try {
-    const { data, error } = await supabase
+    const { data: relsData, error: relsError } = await supabase
       .from('religiosos')
       .select('*')
       .order('nome_religioso', { ascending: true });
 
-    if (!error && data && data.length > 0) {
-      const ativos = data.filter(r => {
+    if (!relsError && relsData && relsData.length > 0) {
+      const ativos = relsData.filter(r => {
         const s = (r.status || '').toLowerCase();
         const se = (r.situacao_elenco || '').toLowerCase();
         return !s.includes('falec') && !se.includes('falec');
       });
 
       if (ativos.length > 0) {
-        return ativos.map(r => ({
-          id: r.id,
-          nome_religioso: r.nome_religioso || r.nome_civil || 'Religioso SCJ',
-          nome_civil: r.nome_civil || '',
-          grau: r.grau || 'Presbítero',
-          data_nascimento: r.data_nascimento || null,
-          naturalidade_cidade: r.naturalidade_cidade || r.cidade_natal || null,
-          naturalidade_uf: r.naturalidade_uf || r.uf_natal || null,
-          ordenacao_data: r.data_ordenacao_presbiteral || r.ordenacao_data || null,
-          profissao_perpetua_data: r.data_primeira_profissao || r.data_primeiros_votos || null,
-          comunidade_atual_nome: r.comunidade_atual_nome || 'Província BRM',
-          obra_atual_nome: r.obra_atual_nome || r.comunidade_atual_nome || 'Província BRM',
-          diocese_atual: r.diocese || r.diocese_atual || null,
-          cargo_funcao: r.cargo_funcao || r.funcao || 'Religioso Dehoniano',
-          foto_path: r.foto_path || null,
-          foto_url: r.foto_path && r.foto_path.startsWith('http') ? r.foto_path : null,
-          lema_destacado: r.lema_destacado || r.lema_ordenacao_presbiteral || 'Ecce Venio — Eis que venho para fazer a tua vontade',
-          lema_destacado_fase: r.lema_destacado_fase || 'Ordenação Presbiteral',
-          email_institucional: r.email_institucional || 'comunicacao@dehonianosbrm.org.br',
-          telefone_celular: r.telefone_celular || r.telefone_whatsapp || null,
-          telefone_whatsapp: r.telefone_whatsapp || r.telefone_celular || null,
-          biografia: r.biografia || r.historico || r.observacoes || `${r.nome_religioso || r.nome_civil} é religioso da Província Brasil Meridional dos Padres Dehonianos (SCJ).`
-        }));
+        // Busca em paralelo todas as tabelas canônicas e de secretaria preenchidas no cadastro público
+        const [
+          contatosRes,
+          votosRes,
+          ordensRes,
+          ordensFallbackRes,
+          origemRes,
+          desigRes,
+          docsRes
+        ] = await Promise.allSettled([
+          supabase.from('religiosos_enderecos_contatos').select('*'),
+          supabase.from('religiosos_profissoes_votos').select('*').order('data', { ascending: true }),
+          supabase.from('religiosos_ministerios_ordens').select('*').order('data', { ascending: true }),
+          supabase.from('religiosos_ordens').select('*').order('data', { ascending: true }),
+          supabase.from('religiosos_origem_vocacional').select('*'),
+          supabase.from('religiosos_designacoes').select('*, comunidades(nome), religiosos_obras_referencia(nome)').order('vigencia_inicio', { ascending: false }),
+          supabase.from('religiosos_documentos').select('religioso_id, categoria, nome_arquivo, caminho_storage').eq('status', 'Ativo')
+        ]);
+
+        const contatosData = contatosRes.status === 'fulfilled' && contatosRes.value?.data ? contatosRes.value.data : [];
+        const votosData = votosRes.status === 'fulfilled' && votosRes.value?.data ? votosRes.value.data : [];
+        const ordensData = ordensRes.status === 'fulfilled' && ordensRes.value?.data ? ordensRes.value.data : [];
+        const ordensFallbackData = ordensFallbackRes.status === 'fulfilled' && ordensFallbackRes.value?.data ? ordensFallbackRes.value.data : [];
+        const origemData = origemRes.status === 'fulfilled' && origemRes.value?.data ? origemRes.value.data : [];
+        const desigData = desigRes.status === 'fulfilled' && desigRes.value?.data ? desigRes.value.data : [];
+        const docsData = docsRes.status === 'fulfilled' && docsRes.value?.data ? docsRes.value.data : [];
+
+        const allOrdens = [...ordensData, ...ordensFallbackData];
+
+        return ativos.map(r => {
+          const contato = contatosData.find(c => c.religioso_id === r.id);
+          const votos = votosData.filter(v => v.religioso_id === r.id);
+          const ordens = allOrdens.filter(o => o.religioso_id === r.id);
+          const origem = origemData.find(o => o.religioso_id === r.id);
+          const desig = desigData.find(d => d.religioso_id === r.id);
+          const docs = docsData.filter(d => d.religioso_id === r.id);
+
+          // Votos e Profissões Religiosas
+          const primVoto = votos.find(v => {
+            const t = (v.tipo_voto || v.tipo || '').toLowerCase();
+            return t.includes('primeir') || t.includes('tempor');
+          });
+          const perpVoto = votos.find(v => {
+            const t = (v.tipo_voto || v.tipo || '').toLowerCase();
+            return t.includes('perp');
+          });
+
+          // Ministérios e Ordens Sacras
+          const ordDiac = ordens.find(o => {
+            const t = (o.tipo_ministerio_ordem || o.ministerio || o.tipo || '').toLowerCase();
+            return t.includes('diac');
+          });
+          const ordPresb = ordens.find(o => {
+            const t = (o.tipo_ministerio_ordem || o.ministerio || o.tipo || '').toLowerCase();
+            return t.includes('presb') || t.includes('sacerd');
+          });
+          const ordEpisc = ordens.find(o => {
+            const t = (o.tipo_ministerio_ordem || o.ministerio || o.tipo || '').toLowerCase();
+            return t.includes('episc') || t.includes('bispo');
+          });
+
+          // Determina data e lema
+          const ordenacaoData = ordPresb?.data || ordDiac?.data || ordEpisc?.data || r.data_ordenacao_presbiteral || r.ordenacao_data || null;
+          const primeiraProfissaoData = primVoto?.data || r.data_primeira_profissao || r.data_primeiros_votos || null;
+          const votosPerpetuosData = perpVoto?.data || r.data_profissao_perpetua || r.profissao_perpetua_data || null;
+
+          const lemaDestacado = ordPresb?.lema || ordDiac?.lema || perpVoto?.lema || primVoto?.lema || origem?.lema || origem?.lema_vida || r.lema_destacado || r.lema_ordenacao_presbiteral || 'Ecce Venio — Eis que venho para fazer a tua vontade';
+
+          // Naturalidade
+          const naturalidadeCidade = r.naturalidade_cidade || r.cidade_natal || contato?.cidade || null;
+          const naturalidadeUf = r.naturalidade_uf || r.uf_natal || contato?.estado || null;
+          const paisNascimento = r.pais_nascimento || contato?.pais || 'Brasil';
+
+          // Contatos e Redes Sociais
+          const redesTexto = contato?.redes_sociais || (r as any).redes_sociais || null;
+          const { instagram, facebook, youtube } = extrairRedesSociais(redesTexto);
+
+          const email = contato?.email || r.email_institucional || r.email_pessoal || 'comunicacao@dehonianosbrm.org.br';
+          const celular = contato?.celular || contato?.telefone || r.telefone_celular || null;
+          const whatsapp = contato?.whatsapp || contato?.celular || r.telefone_whatsapp || r.telefone_celular || null;
+
+          // Comunidade e Ofício atual
+          const comObj = desig?.comunidades;
+          const comNome = Array.isArray(comObj) ? (comObj[0] as any)?.nome : (comObj as any)?.nome;
+          const obrObj = desig?.religiosos_obras_referencia;
+          const obrNome = Array.isArray(obrObj) ? (obrObj[0] as any)?.nome : (obrObj as any)?.nome;
+
+          const comunidadeAtual = comNome || obrNome || r.comunidade_atual_nome || 'Província BRM';
+          const obraAtual = obrNome || comNome || r.obra_atual_nome || 'Província BRM';
+          const cargoFuncao = desig?.funcao || r.cargo_funcao || r.cargo || r.funcao || r.oficio_atual || (r.grau === 'Diácono' ? 'Diácono Dehoniano' : r.grau === 'Frater' ? 'Frater Dehoniano' : 'Religioso Dehoniano');
+
+          // Foto oficial
+          let fotoUrl: string | null = null;
+          const rawFoto = r.foto_path || (r as any).foto_url;
+          if (rawFoto && typeof rawFoto === 'string' && rawFoto.trim()) {
+            if (rawFoto.startsWith('http://') || rawFoto.startsWith('https://') || rawFoto.startsWith('data:image/')) {
+              fotoUrl = rawFoto;
+            } else {
+              const { data: pPerfil } = supabase.storage.from('religiosos-perfil').getPublicUrl(rawFoto);
+              if (pPerfil?.publicUrl && !pPerfil.publicUrl.endsWith('/')) {
+                fotoUrl = pPerfil.publicUrl;
+              } else {
+                const { data: pDoc } = supabase.storage.from('religiosos-documentos').getPublicUrl(rawFoto);
+                fotoUrl = pDoc?.publicUrl || null;
+              }
+            }
+          }
+
+          if (!fotoUrl) {
+            const docFoto = docs.find(d => {
+              const cat = (d.categoria || '').toLowerCase();
+              const nome = (d.nome_arquivo || '').toLowerCase();
+              return cat.includes('perfil') || cat.includes('foto') || cat.includes('4x4') || /\.(jpe?g|png|webp)$/i.test(nome);
+            });
+            if (docFoto?.caminho_storage) {
+              const { data: pDoc } = supabase.storage.from('religiosos-documentos').getPublicUrl(docFoto.caminho_storage);
+              if (pDoc?.publicUrl) fotoUrl = pDoc.publicUrl;
+            }
+          }
+
+          const biografia = r.biografia || r.historico || r.observacoes || `${r.nome_religioso || r.nome_civil} é religioso consagrado da Província Brasil Meridional dos Padres Dehonianos (SCJ), atuando na evangelização, espiritualidade e obras pastorais da congregação.`;
+
+          return {
+            id: r.id,
+            nome_religioso: r.nome_religioso || r.nome_civil || 'Religioso SCJ',
+            nome_civil: r.nome_civil || '',
+            grau: r.grau || 'Presbítero',
+            data_nascimento: r.data_nascimento || null,
+            naturalidade_cidade: naturalidadeCidade,
+            naturalidade_uf: naturalidadeUf,
+            pais_nascimento: paisNascimento,
+            primeira_profissao_data: primeiraProfissaoData,
+            profissao_perpetua_data: votosPerpetuosData,
+            ordenacao_diaconal_data: ordDiac?.data || null,
+            ordenacao_presbiteral_data: ordPresb?.data || null,
+            ordenacao_episcopal_data: ordEpisc?.data || null,
+            ordenacao_data: ordenacaoData,
+            ordenacao_local: ordPresb?.local || ordDiac?.local || null,
+            ordenacao_bispo: ordPresb?.bispo_ordenante || ordDiac?.bispo_ordenante || null,
+            profissao_local: perpVoto?.local || primVoto?.local || null,
+            paroquia_origem: origem?.paroquia_origem || null,
+            diocese_origem: origem?.diocese_origem || null,
+            comunidade_atual_nome: comunidadeAtual,
+            obra_atual_nome: obraAtual,
+            diocese_atual: r.diocese || r.diocese_atual || null,
+            cargo_funcao: cargoFuncao,
+            foto_path: r.foto_path || null,
+            foto_url: fotoUrl,
+            lema_destacado: lemaDestacado,
+            lema_destacado_fase: ordPresb ? 'Ordenação Presbiteral' : ordDiac ? 'Ordenação Diaconal' : perpVoto ? 'Profissão Perpétua' : 'Vida Religiosa',
+            email_institucional: email,
+            telefone_celular: celular,
+            telefone_whatsapp: whatsapp,
+            redes_sociais: redesTexto,
+            instagram: instagram,
+            facebook: facebook,
+            youtube: youtube,
+            biografia: biografia
+          };
+        });
       }
     }
   } catch (err) {
-    console.warn('[comunicacaoService] Erro ao buscar religiosos reais:', err);
+    console.warn('[comunicacaoService] Erro ao buscar dados completos dos religiosos:', err);
   }
 
   return SEED_RELIGIOSOS_CONTEUDO;
@@ -1336,6 +1503,41 @@ export const SEED_RELIGIOSOS_CONTEUDO: ReligiosoConteudo[] = [
     biografia: 'Pe. Anderson Carlos S. Viana, SCJ é sacerdote dehoniano com sólida dedicação pastoral e administrativa na Província Brasil Meridional (BRM), com atuação em Santa Catarina e Paraná, exercendo funções de secretaria provincial e animação litúrgica.',
     total_conteudos: 4,
     ultimo_conteudo_em: '2026-11-02T15:00:00Z'
+  },
+  {
+    id: 'rel-tiago-waier',
+    nome_religioso: 'Diác. Tiago Junior Waier, scj',
+    nome_civil: 'Tiago Junior Waier',
+    grau: 'Diácono',
+    data_nascimento: '1995-11-09',
+    naturalidade_cidade: 'Massaranduba',
+    naturalidade_uf: 'SC',
+    pais_nascimento: 'Brasil',
+    primeira_profissao_data: '2018-02-02',
+    profissao_perpetua_data: '2024-02-02',
+    ordenacao_diaconal_data: '2025-12-08',
+    ordenacao_data: '2025-12-08',
+    ordenacao_local: 'Convento SCJ - Taubaté/SP',
+    ordenacao_bispo: 'Dom Murilo Ramos Krieger, scj',
+    profissao_local: 'Seminário Sagrado Coração de Jesus - Corupá/SC',
+    paroquia_origem: 'Paróquia Sagrado Coração de Jesus',
+    diocese_origem: 'Diocese de Joinville',
+    comunidade_atual_nome: 'Conventinho SCJ - Taubaté/SP',
+    obra_atual_nome: 'Faculdade Dehoniana / Formação Teológica',
+    diocese_atual: 'Diocese de Taubaté',
+    cargo_funcao: 'Diácono Dehoniano',
+    foto_path: '/logo-branco.png',
+    lema_destacado: 'Ecce Venio — Eis que venho para fazer a tua vontade (Hb 10, 7)',
+    lema_destacado_fase: 'Ordenação Diaconal',
+    email_institucional: 'tiagowaier7@gmail.com',
+    telefone_celular: '(47) 99123-8899',
+    telefone_whatsapp: '(47) 99123-8899',
+    redes_sociais: '@tiagowaier',
+    instagram: '@tiagowaier',
+    facebook: 'tiagowaier.scj',
+    biografia: 'Diác. Tiago Junior Waier, SCJ é religioso dehoniano da Província Brasil Meridional (BRM), natural de Massaranduba/SC. Atualmente reside no Conventinho SCJ dedicando-se aos ministérios diaconais, formação pastoral e estudos teológicos.',
+    total_conteudos: 2,
+    ultimo_conteudo_em: '2026-11-04T11:00:00Z'
   },
   {
     id: 'rel-1',

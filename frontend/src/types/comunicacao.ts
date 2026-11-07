@@ -175,19 +175,52 @@ export interface ReligiosoConteudo {
   data_nascimento?: string | null;
   naturalidade_cidade?: string | null;
   naturalidade_uf?: string | null;
-  ordenacao_data?: string | null;
+  pais_nascimento?: string | null;
+
+  // Datas Canônicas
+  primeira_profissao_data?: string | null;
   profissao_perpetua_data?: string | null;
+  ordenacao_diaconal_data?: string | null;
+  ordenacao_presbiteral_data?: string | null;
+  ordenacao_episcopal_data?: string | null;
+  ordenacao_data?: string | null;
+
+  // Locais e Celebrantes
+  ordenacao_local?: string | null;
+  ordenacao_bispo?: string | null;
+  profissao_local?: string | null;
+
+  // Lema e Espiritualidade
+  lema_destacado?: string | null;
+  lema_destacado_fase?: string | null;
+
+  // Origem Vocacional
+  paroquia_origem?: string | null;
+  diocese_origem?: string | null;
+
+  // Comunidade, Obra e Cargo
   comunidade_atual_nome?: string | null;
   obra_atual_nome?: string | null;
   diocese_atual?: string | null;
   cargo_funcao?: string | null;
+
+  // Foto
   foto_path?: string | null;
   foto_url?: string | null;
-  lema_destacado?: string | null;
-  lema_destacado_fase?: string | null;
+
+  // Contatos
   email_institucional?: string | null;
+  email_pessoal?: string | null;
   telefone_celular?: string | null;
   telefone_whatsapp?: string | null;
+
+  // Redes Sociais & Presença Digital
+  redes_sociais?: string | null;
+  instagram?: string | null;
+  facebook?: string | null;
+  youtube?: string | null;
+
+  // Biografia
   biografia?: string | null;
   total_conteudos?: number;
   ultimo_conteudo_em?: string | null;
