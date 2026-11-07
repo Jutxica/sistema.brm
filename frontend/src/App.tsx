@@ -234,14 +234,6 @@ export const App: React.FC = () => {
                 <Route path="/formularios/:id" element={<FormularioPublicoInscricao />} />
                 <Route path="/validar" element={<ValidarDocumento />} />
                 <Route path="/validar/:codigo" element={<ValidarDocumento />} />
-                <Route
-                  path="/comunicacao"
-                  element={
-                    <ModuleRoute accessKey="comunicacao">
-                      <ComunicacaoAdmin />
-                    </ModuleRoute>
-                  }
-                />
 
                 {/* Private Administrative Workspace */}
                 <Route
@@ -310,6 +302,14 @@ export const App: React.FC = () => {
                   />
                   <Route path="hospedagens-inscricoes" element={<ModuleRoute accessKey="hospedagens"><HospedagensInscricoes /></ModuleRoute>} />
                   <Route path="hospedagens-configuracoes" element={<ModuleRoute accessKey="configuracoes"><HospedagensConfiguracoes /></ModuleRoute>} />
+                  <Route
+                    path="comunicacao"
+                    element={
+                      <ModuleRoute accessKey="comunicacao">
+                        <ComunicacaoAdmin />
+                      </ModuleRoute>
+                    }
+                  />
                   <Route
                     path="usuarios"
                     element={

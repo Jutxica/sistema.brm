@@ -623,20 +623,21 @@ export const CaptacaoView: React.FC<CaptacaoViewProps> = ({
                 <button
                   type="button"
                   onClick={() => handleSalvarRoteiro(false)}
-                  className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-[#1c2427] border border-[#226380] text-[#226380] hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                  title="Salvar e visualizar o roteiro formatado"
+                  className="px-4 py-1.5 rounded-xl bg-[#226380] hover:bg-[#1a4f66] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
+                  title="Salvar alterações e alternar para visualização formatada sem edição"
                 >
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Salvar rascunho</span>
+                  <Check className="w-4 h-4" />
+                  <span>Salvar e visualizar</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => handleSalvarRoteiro(true)}
-                  className="px-4 py-1.5 rounded-xl bg-[#226380] hover:bg-[#1a4f66] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                  className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-[#1c2427] border border-[#dce4e2] dark:border-[#354246] hover:bg-slate-50 text-[#113240] dark:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                  title="Salvar e voltar para a lista de captações"
                 >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Salvar e concluir</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>Salvar e sair</span>
                 </button>
               </>
             )}
@@ -1236,10 +1237,10 @@ export const CaptacaoView: React.FC<CaptacaoViewProps> = ({
                 </div>
 
                 {/* Área Ampla do Bloco de Notas */}
-                <div>
+                <div className="space-y-4">
                   <textarea
                     id="textarea-roteiro"
-                    rows={22}
+                    rows={18}
                     value={roteiroTexto}
                     onChange={e => setRoteiroTexto(e.target.value)}
                     placeholder="Escreva os tópicos, introdução, perguntas e ordem dos assuntos...
@@ -1254,8 +1255,32 @@ export const CaptacaoView: React.FC<CaptacaoViewProps> = ({
 
 ## Bloco 2: Mensagem para a Província BRM
 • Benção e palavra final às famílias e juventudes #dehoniano"
-                    className="w-full p-4 sm:p-5 text-sm sm:text-base font-normal rounded-2xl border border-[#dce4e2] dark:border-[#354246] bg-white dark:bg-[#141a1c] text-[#113240] dark:text-white leading-relaxed focus:outline-none focus:ring-1 focus:ring-[#226380] min-h-[500px]"
+                    className="w-full p-4 sm:p-5 text-sm sm:text-base font-normal rounded-2xl border border-[#dce4e2] dark:border-[#354246] bg-white dark:bg-[#141a1c] text-[#113240] dark:text-white leading-relaxed focus:outline-none focus:ring-1 focus:ring-[#226380] min-h-[380px]"
                   />
+
+                  {/* Prévia Formatada Ao Vivo durante a Edição */}
+                  <div className="p-4 sm:p-5 rounded-2xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-3">
+                    <div className="flex items-center justify-between pb-2 border-b border-[#dce4e2] dark:border-[#354246]">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-[#226380]" />
+                        <span className="text-xs font-bold text-[#113240] dark:text-white">
+                          Prévia formatada em tempo real (como ficará ao salvar)
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleSalvarRoteiro(false)}
+                        className="text-xs text-[#226380] dark:text-[#A3C3C7] font-semibold hover:underline flex items-center gap-1"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Visualizar sem editar</span>
+                      </button>
+                    </div>
+
+                    <div className="min-h-[100px] max-h-[320px] overflow-y-auto pr-2">
+                      <RoteiroRenderizado texto={roteiroTexto} onTagClick={t => setFiltroTag(t)} />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Barra de Contagem & Duração Estimada */}

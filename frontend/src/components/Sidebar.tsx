@@ -4,7 +4,7 @@ import {
   Home, ClipboardList, Settings, Users, LogOut, ChevronLeft, ChevronRight, 
   Building, UserRound, ChevronDown, Plus, Church, Landmark, Layers, BarChart3,
   FileText, Calendar, Car, ShieldCheck, Wrench, History, Archive, Send, LayoutDashboard, X, FolderOpen, ArrowRightLeft,
-  Megaphone
+  Megaphone, FolderPlus, Kanban, CheckCircle2, Video, Palette, CheckSquare, Gift, Grid3X3, BarChart2, Mail, Search
 } from 'lucide-react';
 import { useAuth as useAuthHook, hasModuleAccess } from '../contexts/AuthContext';
 
@@ -36,6 +36,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
   const [obrasOpen, toggleObrasOpen] = useRouteExpanded(location.pathname.startsWith('/obras'));
   const [patrimonioOpen, togglePatrimonioOpen] = useRouteExpanded(location.pathname.startsWith('/patrimonio'));
   const [hospedariaOpen, toggleHospedariaOpen] = useRouteExpanded(location.pathname.startsWith('/hospedagens'));
+  const comunicacaoRouteActive = location.pathname.startsWith('/comunicacao');
+  const [comunicacaoOpen, toggleComunicacaoOpen] = useRouteExpanded(comunicacaoRouteActive);
 
   const canAccessInicio = hasModuleAccess(user, 'inicio');
   const canAccessReligiosos = hasModuleAccess(user, 'religiosos');
@@ -204,22 +206,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
 
           {/* 7. Comunicação & Mídia */}
           {canAccessComunicacao && (
-          <li>
-            <NavLink
-              to="/comunicacao"
-              title={collapsed ? 'Comunicação & Mídia' : undefined}
-              className={({ isActive }) =>
-                `brm-sidebar-link flex min-h-10 items-center gap-3 rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors group ${
-                  isActive 
-                    ? 'border-[#226380]/10 bg-[#226380] text-white shadow-sm dark:border-[#A3C3C7]/15 dark:bg-[#226380] dark:text-white'
-                    : 'border-transparent text-[#52636a] hover:bg-slate-100 hover:text-[#17333d] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white'}`
-              }
+            <SidebarGroup
+              label="Comunicação & Mídia"
+              icon={Megaphone}
+              open={comunicacaoOpen}
+              onToggle={toggleComunicacaoOpen}
+              collapsed={collapsed}
             >
-              <Megaphone className="w-4 h-4 shrink-0 transition-transform group-hover:scale-105" />
-              {!collapsed && <span className="truncate">Comunicação & Mídia</span>}
-            </NavLink>
-          </li>
-
+              <SidebarSubLink to="/comunicacao" label="Visão Geral & Ações" icon={Layers} collapsed={collapsed} />
+              <SidebarSubLink to="/comunicacao?tab=banco_pautas" label="Banco de Pautas" icon={FolderPlus} collapsed={collapsed} />
+              <SidebarSubLink to="/comunicacao?tab=producao" label="Produção & Kanban" icon={Kanban} collapsed={collapsed} />
+              <SidebarSubLink to="/comunicacao?tab=aprovacao" label="Aprovação de Posts" icon={CheckCircle2} collapsed={collapsed} />
+              <SidebarSubLink to="/comunicacao?tab=cronograma" label="Cronograma Mensal" icon={Calendar} collapsed={collapsed} />
+              <SidebarSubLink to="/comunicacao?tab=captacao" label="Captação & Roteiros" icon={Video} collapsed={collapsed} />
+              <SidebarSubLink to="/comunicacao?tab=religiosos_conteudo" label="Religiosos da Província" icon={Users} collapsed={collapsed} />
+              <SidebarSubLink to="/comunicacao?tab=estudio_arte" label="Estúdio de Arte & Brand" icon={Palette} collapsed={collapsed} />
+              <SidebarSubLink to="/comunicacao?tab=tarefas" label="Tarefas da Equipe" icon={CheckSquare} collapsed={collapsed} />
+              <SidebarSubLink to="/comunicacao?tab=aniversariantes" label="Aniversários & Jubileus" icon={Gift} collapsed={collapsed} />
+              <SidebarSubLink to="/comunicacao?tab=programar" label="Programar Posts" icon={Send} collapsed={collapsed} />
+              <SidebarSubLink to="/comunicacao?tab=previa_feed" label="Prévia do Feed" icon={Grid3X3} collapsed={collapsed} />
+              <SidebarSubLink to="/comunicacao?tab=analise_instagram" label="Métricas do Instagram" icon={BarChart2} collapsed={collapsed} />
+              <SidebarSubLink to="/comunicacao?tab=emails_equipe" label="Contatos da Equipe" icon={Mail} collapsed={collapsed} />
+              <SidebarSubLink to="/comunicacao?tab=benchmarking" label="Benchmarking" icon={Search} collapsed={collapsed} />
+            </SidebarGroup>
           )}
 
           {/* 8. Usuários */}

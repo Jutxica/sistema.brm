@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { 
   LayoutDashboard, CheckSquare, Calendar, FolderPlus, Kanban, 
   Palette, Video, Mail, Gift, CheckCircle2, Send, Grid3X3, 
@@ -60,7 +60,16 @@ export const ComunicacaoAdmin: React.FC = () => {
   const { user } = useAuth();
   const usuarioNome = user?.nome || 'Comunicação BRM';
 
-  const [activeTab, setActiveTab] = useState<string>('visao_geral');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'visao_geral';
+
+  const handleMudarTab = (tab: string) => {
+    if (tab === 'visao_geral') {
+      setSearchParams({});
+    } else {
+      setSearchParams({ tab });
+    }
+  };
   const [buscaTexto, setBuscaTexto] = useState<string>('');
 
   // Estados de Dados Principais
@@ -277,390 +286,318 @@ export const ComunicacaoAdmin: React.FC = () => {
     return resp.includes(me) || resp === 'geral';
   }).length;
 
-  // Organização dos Menus por Blocos Lógicos Operacionais
-  const gruposNavegacao: GrupoNavegacao[] = [
-    {
-      titulo: 'Painel Central',
-      itens: [
-        { id: 'visao_geral', label: 'Visão geral', icon: LayoutDashboard }
-      ]
-    },
-    {
-      titulo: 'Planejamento & Confrades',
-      itens: [
-        { id: 'banco_pautas', label: 'Banco de pautas', icon: FolderPlus, badge: countPautas },
-        { id: 'cronograma', label: 'Cronograma editorial', icon: Calendar },
-        { id: 'religiosos_conteudo', label: 'Religiosos da Província', icon: Users, badge: religiosos.length },
-        { id: 'aniversariantes', label: 'Aniversários & jubileus', icon: Gift }
-      ]
-    },
-    {
-      titulo: 'Criação & Mídia',
-      itens: [
-        { id: 'producao', label: 'Produção (Kanban)', icon: Kanban },
-        { id: 'estudio_arte', label: 'Estúdio de arte', icon: Palette },
-        { id: 'captacao', label: 'Captações de vídeo', icon: Video, badge: countCaptacao }
-      ]
-    },
-    {
-      titulo: 'Aprovação & Publicação',
-      itens: [
-        { id: 'aprovacao', label: 'Fila de aprovação', icon: CheckCircle2, badge: countAprovacao, badgeColor: 'bg-amber-600' },
-        { id: 'previa_feed', label: 'Prévia do feed', icon: Grid3X3 },
-        { id: 'programar', label: 'Programar posts', icon: Send }
-      ]
-    },
-    {
-      titulo: 'Equipe & Produtividade',
-      itens: [
-        { id: 'tarefas', label: 'Tarefas & responsáveis', icon: CheckSquare, badge: countTarefasMinhas },
-        { id: 'emails_equipe', label: 'Contatos da equipe', icon: Mail }
-      ]
-    },
-    {
-      titulo: 'Inteligência & Métricas',
-      itens: [
-        { id: 'analise_instagram', label: 'Métricas do Instagram', icon: BarChart2 },
-        { id: 'benchmarking', label: 'Benchmarking', icon: Search }
-      ]
-    }
+  const tabsList = [
+    { id: 'visao_geral', label: 'Visão Geral', icon: LayoutDashboard },
+    { id: 'banco_pautas', label: 'Banco de Pautas', icon: FolderPlus, count: countPautas },
+    { id: 'producao', label: 'Produção (Kanban)', icon: Kanban, count: posts.length },
+    { id: 'aprovacao', label: 'Aprovação de Posts', icon: CheckCircle2, badge: countAprovacao },
+    { id: 'cronograma', label: 'Cronograma Mensal', icon: Calendar },
+    { id: 'captacao', label: 'Captação & Roteiros', icon: Video, badge: countCaptacao },
+    { id: 'religiosos_conteudo', label: 'Religiosos da Província', icon: Users, count: religiosos.length },
+    { id: 'estudio_arte', label: 'Estúdio de Arte & Brand', icon: Palette },
+    { id: 'tarefas', label: 'Tarefas da Equipe', icon: CheckSquare, badge: countTarefasMinhas },
+    { id: 'aniversariantes', label: 'Aniversários & Jubileus', icon: Gift, count: aniversariantes.length },
+    { id: 'programar', label: 'Programar Posts', icon: Send },
+    { id: 'previa_feed', label: 'Prévia do Feed', icon: Grid3X3 },
+    { id: 'analise_instagram', label: 'Métricas do Instagram', icon: BarChart2 },
+    { id: 'emails_equipe', label: 'Contatos da Equipe', icon: Mail },
+    { id: 'benchmarking', label: 'Benchmarking', icon: Search }
   ];
 
   return (
-    <div className="flex min-h-screen bg-[#f4f6f5] dark:bg-[#141a1c]">
-      {/* Navegação Lateral da Central de Comunicação */}
-      <aside className="w-64 bg-[#112338] text-white shrink-0 hidden md:flex flex-col justify-between select-none border-r border-[#1a3452]">
-        <div className="p-4 space-y-5 overflow-y-auto max-h-[calc(100vh-70px)]">
-          {/* Logo / Título da Província */}
-          <div className="flex items-center gap-3 px-2 py-1">
-            <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center p-1.5">
-              <img src="/logo-branco.png" alt="BRM" className="max-h-full object-contain" />
+    <div className="space-y-6 animate-fade-in font-sans pb-12">
+      {/* Cabeçalho Institucional do Módulo (Padrão Sistema BRM) */}
+      <header className="space-y-3">
+        <div className="rounded-[10px] bg-white dark:bg-[#161b22] p-5 md:p-6 border border-slate-200/90 dark:border-slate-800 border-t-2 border-t-[#226380] shadow-xs">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center shrink-0">
+                <img src="/logo-sistema.png" alt="Brasão SCJ BRM" className="h-11 w-auto object-contain dark:hidden" />
+                <img src="/logo-branco.png" alt="Brasão SCJ BRM" className="h-11 w-auto object-contain hidden dark:block" />
+              </div>
+              <div>
+                <span className="font-cinzel text-[11px] font-bold tracking-[0.16em] text-[#226380] dark:text-[#A3C3C7] uppercase">
+                  Província BRM
+                </span>
+                <h1 className="font-cinzel text-2xl md:text-3xl font-bold tracking-tight text-[#113240] dark:text-white mt-1">
+                  Comunicação & Mídia
+                </h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Central de produtividade, pautas, aprovação de posts, cronograma, captações, roteiros e banco de mídias.
+                </p>
+              </div>
             </div>
-            <div>
-              <span className="text-xs font-semibold block text-white">Província BRM</span>
-              <span className="text-xs text-white/70 block">Central de Comunicação</span>
-            </div>
-          </div>
 
-          {/* Menus Agrupados Logicamente */}
-          {gruposNavegacao.map((grupo, gIdx) => (
-            <div key={gIdx} className={`space-y-1 ${gIdx > 0 ? 'pt-2 border-t border-white/10' : ''}`}>
-              <span className="text-xs font-semibold text-white/50 px-3 block mb-1">
-                {grupo.titulo}
-              </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setModalNovoConteudo({ aberto: true, tipo: 'pauta' })}
+                className="px-3.5 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] text-[#113240] dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-4 h-4 text-[#226380]" />
+                <span>Nova pauta</span>
+              </button>
 
-              {grupo.itens.map(item => {
-                const Icon = item.icon;
-                const ativo = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setActiveTab(item.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                      ativo
-                        ? 'bg-white/15 text-white font-semibold'
-                        : 'text-white/70 hover:bg-white/5 hover:text-white'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 truncate">
-                      <Icon className="w-4 h-4 opacity-80 shrink-0" />
-                      <span className="truncate">{item.label}</span>
-                    </div>
-
-                    {Boolean(item.badge && item.badge > 0) && (
-                      <span className={`text-xs px-1.5 py-0.2 rounded text-white shrink-0 ml-1 ${item.badgeColor || 'bg-white/20'}`}>
-                        {item.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-
-        {/* Rodapé da Sidebar */}
-        <div className="p-4 border-t border-white/10 space-y-3">
-          <Link
-            to="/inicio"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-white/70 hover:bg-white/10 hover:text-white transition-colors border border-white/10"
-            title="Retornar ao Painel Principal do Sistema BRM"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Voltar ao Sistema BRM</span>
-          </Link>
-
-          <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded bg-[#226380] text-white flex items-center justify-center font-semibold text-xs shrink-0">
-              {usuarioNome.charAt(0)}
-            </div>
-            <div className="truncate">
-              <span className="text-xs font-semibold block text-white truncate">{usuarioNome}</span>
-              <span className="text-xs text-white/60 block">Comunicação BRM</span>
+              <button
+                type="button"
+                onClick={() => setModalNovoConteudo({ aberto: true, tipo: 'post' })}
+                className="px-4 py-2 text-xs font-semibold rounded-lg bg-[#226380] text-white hover:bg-[#1a4f66] transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Novo post</span>
+              </button>
             </div>
           </div>
         </div>
-      </aside>
 
-      {/* Área Central Principal do Conteúdo */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        {/* Barra Superior */}
-        <header className="h-14 border-b border-[#dce4e2] dark:border-[#354246] bg-white dark:bg-[#1c2427] px-6 flex items-center justify-between gap-4 sticky top-0 z-20">
-          <div className="flex items-center gap-2.5 text-xs font-medium text-[#52636a] dark:text-[#a0aeaf]">
-            <Link
-              to="/inicio"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#dce4e2] dark:border-[#354246] text-[#52636a] dark:text-[#a0aeaf] hover:text-[#113240] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-[#141a1c] transition-colors"
-              title="Voltar ao Sistema BRM"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Sistema BRM</span>
-            </Link>
-            <span>/</span>
-            <span>Central de Comunicação</span>
-            <span>/</span>
-            <span className="text-[#113240] dark:text-white font-semibold capitalize">
-              {activeTab.replace(/_/g, ' ')}
-            </span>
-          </div>
+        {/* Barra de Abas / Pílulas Horizontais Modernas (Utxica Anti-slop / Sistema BRM) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 border-b border-slate-200 dark:border-slate-800 pb-3">
+          {tabsList.map(tab => {
+            const isActive = activeTab === tab.id;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => handleMudarTab(tab.id)}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all shrink-0 cursor-pointer ${
+                  isActive
+                    ? 'bg-[#113240] text-white dark:bg-white dark:text-[#113240] font-semibold shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{tab.label}</span>
+                {tab.count !== undefined && (
+                  <span className={`text-[10px] tabular-nums px-1.5 py-0.2 rounded-full font-bold ${
+                    isActive ? 'bg-white/20 dark:bg-black/15 text-white dark:text-[#113240]' : 'bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+                {tab.badge !== undefined && tab.badge > 0 && (
+                  <span className="text-[10px] tabular-nums px-1.5 py-0.2 rounded-full bg-amber-600 text-white font-bold">
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </header>
 
-          <div className="flex items-center gap-3">
-            {/* Campo de Busca Rápida */}
-            <div className="relative hidden sm:block w-64">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                value={buscaTexto}
-                onChange={e => setBuscaTexto(e.target.value)}
-                placeholder="Buscar pautas, legendas..."
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-[#dce4e2] dark:border-[#354246] bg-[#f8faf9] dark:bg-[#141a1c] text-[#113240] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#226380]"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setModalNovoConteudo({ aberto: true, tipo: 'post' })}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#226380] hover:bg-[#1a4f66] text-white text-xs font-semibold transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Novo conteúdo</span>
-            </button>
-          </div>
-        </header>
-
-        {/* View Ativa */}
-        <div className="p-6 sm:p-8 max-w-7xl w-full mx-auto">
-          {activeTab === 'visao_geral' && (
-            <VisaoGeralView
-              usuarioNome={usuarioNome}
-              posts={posts}
-              tarefas={tarefas}
-              captacoes={captacoes}
-              aniversariantes={aniversariantes}
-              religiosos={religiosos}
-              onNavegarTab={tab => setActiveTab(tab)}
-              onAbrirNovoConteudo={(tipo, dataIso) => setModalNovoConteudo({ aberto: true, tipo: tipo || 'post', dataInicial: dataIso })}
-              onAprovarPost={handleAprovarPost}
-              onPedirAjustes={handlePedirAjustes}
-              onToggleTarefa={handleToggleTarefa}
-              onCriarHomenagemReligioso={rel => {
-                setModalNovoConteudo({
-                  aberto: true,
-                  tipo: 'post',
-                  dataInicial: new Date().toISOString().split('T')[0],
-                  religiosoInicial: rel
-                });
-              }}
-            />
-          )}
-
-          {activeTab === 'banco_pautas' && (
-            <BancoPautasView
-              pautas={pautas}
-              onCriarPauta={handleCriarPauta}
-              onEnviarParaProducao={pauta => {
-                handleCriarPost({
-                  pauta_id: pauta.id,
-                  titulo: pauta.titulo,
-                  area: pauta.area,
-                  formato: pauta.formato,
-                  canais: pauta.canais,
-                  status: 'em_producao',
-                  arte_entregue: false,
-                  texto_entregue: false,
-                  arquivos_arte: []
-                });
-                setActiveTab('producao');
-              }}
-            />
-          )}
-
-          {activeTab === 'religiosos_conteudo' && (
-            <ReligiososConteudoView
-              religiosos={religiosos}
-              posts={posts}
-              captacoes={captacoes}
-              pautas={pautas}
-              onCriarPostComReligioso={rel => {
-                setModalNovoConteudo({
-                  aberto: true,
-                  tipo: 'post',
-                  dataInicial: new Date().toISOString().split('T')[0],
-                  religiosoInicial: rel
-                });
-              }}
-              onAgendarCaptacaoComReligioso={() => {
-                setActiveTab('captacao');
-              }}
-            />
-          )}
-
-          {activeTab === 'producao' && (
-            <ProducaoKanbanView
-              posts={posts}
-              onAvancarStatus={handleAvancarStatusPost}
-              onAbrirPost={post => {
-                if (post.status === 'aprovacao') setActiveTab('aprovacao');
-                else if (post.status === 'aprovado') setActiveTab('programar');
-              }}
-            />
-          )}
-
-          {activeTab === 'aprovacao' && (
-            <AprovacaoView
-              posts={posts}
-              comentarios={comentarios}
-              onAprovar={handleAprovarPost}
-              onPedirAjustes={handlePedirAjustes}
-              onAdicionarComentario={handleAdicionarComentarioPost}
-              onAbrirPhotoCraft={(url, nome) => setModalArtCraft({
+      {/* Conteúdo da Aba Ativa */}
+      <div>
+        {activeTab === 'visao_geral' && (
+          <VisaoGeralView
+            usuarioNome={usuarioNome}
+            posts={posts}
+            tarefas={tarefas}
+            captacoes={captacoes}
+            aniversariantes={aniversariantes}
+            religiosos={religiosos}
+            onNavegarTab={tab => handleMudarTab(tab)}
+            onAbrirNovoConteudo={(tipo, dataIso) => setModalNovoConteudo({ aberto: true, tipo: tipo || 'post', dataInicial: dataIso })}
+            onAprovarPost={handleAprovarPost}
+            onPedirAjustes={handlePedirAjustes}
+            onToggleTarefa={handleToggleTarefa}
+            onCriarHomenagemReligioso={rel => {
+              setModalNovoConteudo({
                 aberto: true,
-                tipo: 'photocraft',
-                arquivoUrl: url,
-                arquivoNome: nome
-              })}
-            />
-          )}
+                tipo: 'post',
+                dataInicial: new Date().toISOString().split('T')[0],
+                religiosoInicial: rel
+              });
+            }}
+          />
+        )}
 
-          {activeTab === 'cronograma' && (
-            <CronogramaView
-              posts={posts}
-              captacoes={captacoes}
-              aniversariantes={aniversariantes}
-              onAbrirNovoConteudo={dataIso => setModalNovoConteudo({ aberto: true, tipo: 'post', dataInicial: dataIso })}
-              onAbrirPost={() => setActiveTab('producao')}
-            />
-          )}
+        {activeTab === 'banco_pautas' && (
+          <BancoPautasView
+            pautas={pautas}
+            onCriarPauta={handleCriarPauta}
+            onEnviarParaProducao={pauta => {
+              handleCriarPost({
+                pauta_id: pauta.id,
+                titulo: pauta.titulo,
+                area: pauta.area,
+                formato: pauta.formato,
+                canais: pauta.canais,
+                status: 'em_producao',
+                arte_entregue: false,
+                texto_entregue: false,
+                arquivos_arte: []
+              });
+              handleMudarTab('producao');
+            }}
+          />
+        )}
 
-          {activeTab === 'tarefas' && (
-            <TarefasView
-              tarefas={tarefas}
-              equipe={emails}
-              usuarioNome={usuarioNome}
-              onCriarTarefa={handleCriarTarefa}
-              onToggleTarefa={handleToggleTarefa}
-              onDeletarTarefa={handleDeletarTarefa}
-            />
-          )}
+        {activeTab === 'religiosos_conteudo' && (
+          <ReligiososConteudoView
+            religiosos={religiosos}
+            posts={posts}
+            captacoes={captacoes}
+            pautas={pautas}
+            onCriarPostComReligioso={rel => {
+              setModalNovoConteudo({
+                aberto: true,
+                tipo: 'post',
+                dataInicial: new Date().toISOString().split('T')[0],
+                religiosoInicial: rel
+              });
+            }}
+            onAgendarCaptacaoComReligioso={() => {
+              handleMudarTab('captacao');
+            }}
+          />
+        )}
 
-          {activeTab === 'estudio_arte' && (
-            <EstudioArteView
-              assets={brandAssets}
-              onAbrirPhotoCraft={(url, nome) => setModalArtCraft({ aberto: true, tipo: 'photocraft', arquivoUrl: url, arquivoNome: nome })}
-              onAbrirVectorCraft={(url, nome) => setModalArtCraft({ aberto: true, tipo: 'vectorcraft', arquivoUrl: url, arquivoNome: nome })}
-              onAdicionarAsset={handleAdicionarBrandAsset}
-              onExcluirAsset={handleExcluirBrandAsset}
-            />
-          )}
+        {activeTab === 'producao' && (
+          <ProducaoKanbanView
+            posts={posts}
+            onAvancarStatus={handleAvancarStatusPost}
+            onAbrirPost={post => {
+              if (post.status === 'aprovacao') handleMudarTab('aprovacao');
+              else if (post.status === 'aprovado') handleMudarTab('programar');
+            }}
+          />
+        )}
 
-          {activeTab === 'captacao' && (
-            <CaptacaoView
-              captacoes={captacoes}
-              religiosos={religiosos}
-              obras={obras}
-              equipe={emails}
-              usuarioNome={usuarioNome}
-              onCriarCaptacao={async c => {
-                const criada = await servico.createCaptacao(c);
-                if (criada) setCaptacoes(prev => [...prev, criada]);
-              }}
-              onAtualizarChecklist={async (capId, idx, val) => {
-                const cap = captacoes.find(c => c.id === capId);
-                if (cap) {
-                  const novoCheck = [...cap.checklist_equipamentos];
-                  novoCheck[idx].checado = val;
-                  await servico.updateCaptacao(capId, { checklist_equipamentos: novoCheck });
-                  setCaptacoes(prev => prev.map(c => c.id === capId ? { ...c, checklist_equipamentos: novoCheck } : c));
-                }
-              }}
-              onMarcarComoGravada={async capId => {
-                await servico.updateCaptacao(capId, { situacao: 'gravada' });
-                setCaptacoes(prev => prev.map(c => c.id === capId ? { ...c, situacao: 'gravada' } : c));
-              }}
-              onAdicionarComentario={handleAdicionarComentarioCaptacao}
-              onAtualizarRoteiro={async (capId, roteiro, tags, mencoes) => {
-                await servico.updateCaptacao(capId, { roteiro, tags, mencoes });
-                setCaptacoes(prev => prev.map(c => c.id === capId ? { ...c, roteiro, tags, mencoes } : c));
-              }}
-            />
-          )}
+        {activeTab === 'aprovacao' && (
+          <AprovacaoView
+            posts={posts}
+            comentarios={comentarios}
+            onAprovar={handleAprovarPost}
+            onPedirAjustes={handlePedirAjustes}
+            onAdicionarComentario={handleAdicionarComentarioPost}
+            onAbrirPhotoCraft={(url, nome) => setModalArtCraft({
+              aberto: true,
+              tipo: 'photocraft',
+              arquivoUrl: url,
+              arquivoNome: nome
+            })}
+          />
+        )}
 
-          {activeTab === 'aniversariantes' && (
-            <AniversariantesView
-              aniversariantes={aniversariantes}
-              onCriarStory={() => {
-                setModalNovoConteudo({
-                  aberto: true,
-                  tipo: 'post',
-                  dataInicial: new Date().toISOString().split('T')[0]
-                });
-              }}
-            />
-          )}
+        {activeTab === 'cronograma' && (
+          <CronogramaView
+            posts={posts}
+            captacoes={captacoes}
+            aniversariantes={aniversariantes}
+            onAbrirNovoConteudo={dataIso => setModalNovoConteudo({ aberto: true, tipo: 'post', dataInicial: dataIso })}
+            onAbrirPost={() => handleMudarTab('producao')}
+          />
+        )}
 
-          {activeTab === 'programar' && (
-            <ProgramarPostsView
-              posts={posts}
-              onProgramarPost={async (postId, dataHora) => {
-                await servico.updatePost(postId, { status: 'programado', data_cronograma: dataHora });
-                setPosts(prev => prev.map(p => p.id === postId ? { ...p, status: 'programado' } : p));
-              }}
-            />
-          )}
+        {activeTab === 'tarefas' && (
+          <TarefasView
+            tarefas={tarefas}
+            equipe={emails}
+            usuarioNome={usuarioNome}
+            onCriarTarefa={handleCriarTarefa}
+            onToggleTarefa={handleToggleTarefa}
+            onDeletarTarefa={handleDeletarTarefa}
+          />
+        )}
 
-          {activeTab === 'previa_feed' && (
-            <PreviaFeedView
-              posts={posts}
-              onAbrirPost={post => {
-                if (post.status === 'aprovacao') setActiveTab('aprovacao');
-                else if (post.status === 'aprovado') setActiveTab('programar');
-              }}
-            />
-          )}
+        {activeTab === 'estudio_arte' && (
+          <EstudioArteView
+            assets={brandAssets}
+            onAbrirPhotoCraft={(url, nome) => setModalArtCraft({ aberto: true, tipo: 'photocraft', arquivoUrl: url, arquivoNome: nome })}
+            onAbrirVectorCraft={(url, nome) => setModalArtCraft({ aberto: true, tipo: 'vectorcraft', arquivoUrl: url, arquivoNome: nome })}
+            onAdicionarAsset={handleAdicionarBrandAsset}
+            onExcluirAsset={handleExcluirBrandAsset}
+          />
+        )}
 
-          {activeTab === 'analise_instagram' && metricas && (
-            <InstagramAnalyticsView metricas={metricas} />
-          )}
+        {activeTab === 'captacao' && (
+          <CaptacaoView
+            captacoes={captacoes}
+            religiosos={religiosos}
+            obras={obras}
+            equipe={emails}
+            usuarioNome={usuarioNome}
+            onCriarCaptacao={async c => {
+              const criada = await servico.createCaptacao(c);
+              if (criada) setCaptacoes(prev => [...prev, criada]);
+            }}
+            onAtualizarChecklist={async (capId, idx, val) => {
+              const cap = captacoes.find(c => c.id === capId);
+              if (cap) {
+                const novoCheck = [...cap.checklist_equipamentos];
+                novoCheck[idx].checado = val;
+                await servico.updateCaptacao(capId, { checklist_equipamentos: novoCheck });
+                setCaptacoes(prev => prev.map(c => c.id === capId ? { ...c, checklist_equipamentos: novoCheck } : c));
+              }
+            }}
+            onMarcarComoGravada={async capId => {
+              await servico.updateCaptacao(capId, { situacao: 'gravada' });
+              setCaptacoes(prev => prev.map(c => c.id === capId ? { ...c, situacao: 'gravada' } : c));
+            }}
+            onAdicionarComentario={handleAdicionarComentarioCaptacao}
+            onAtualizarRoteiro={async (capId, roteiro, tags, mencoes) => {
+              await servico.updateCaptacao(capId, { roteiro, tags, mencoes });
+              setCaptacoes(prev => prev.map(c => c.id === capId ? { ...c, roteiro, tags, mencoes } : c));
+            }}
+          />
+        )}
 
-          {activeTab === 'benchmarking' && (
-            <BenchmarkingView
-              benchmarks={benchmarks}
-              onAdicionarBenchmark={async b => {
-                setBenchmarks(prev => [{ 
-                  id: `bm-${Date.now()}`, 
-                  perfil_nome: b.perfil_nome || '', 
-                  canal: 'Instagram', 
-                  created_at: new Date().toISOString(), 
-                  ...b 
-                }, ...prev]);
-              }}
-            />
-          )}
+        {activeTab === 'aniversariantes' && (
+          <AniversariantesView
+            aniversariantes={aniversariantes}
+            onCriarStory={() => {
+              setModalNovoConteudo({
+                aberto: true,
+                tipo: 'post',
+                dataInicial: new Date().toISOString().split('T')[0]
+              });
+            }}
+          />
+        )}
 
-          {activeTab === 'emails_equipe' && (
-            <EmailsEquipeView emails={emails} />
-          )}
-        </div>
+        {activeTab === 'programar' && (
+          <ProgramarPostsView
+            posts={posts}
+            onProgramarPost={async (postId, dataHora) => {
+              await servico.updatePost(postId, { status: 'programado', data_cronograma: dataHora });
+              setPosts(prev => prev.map(p => p.id === postId ? { ...p, status: 'programado' } : p));
+            }}
+          />
+        )}
+
+        {activeTab === 'previa_feed' && (
+          <PreviaFeedView
+            posts={posts}
+            onAbrirPost={post => {
+              if (post.status === 'aprovacao') handleMudarTab('aprovacao');
+              else if (post.status === 'aprovado') handleMudarTab('programar');
+            }}
+          />
+        )}
+
+        {activeTab === 'analise_instagram' && metricas && (
+          <InstagramAnalyticsView metricas={metricas} />
+        )}
+
+        {activeTab === 'benchmarking' && (
+          <BenchmarkingView
+            benchmarks={benchmarks}
+            onAdicionarBenchmark={async b => {
+              setBenchmarks(prev => [{ 
+                id: `bm-${Date.now()}`, 
+                perfil_nome: b.perfil_nome || '', 
+                canal: 'Instagram', 
+                created_at: new Date().toISOString(), 
+                ...b 
+              }, ...prev]);
+            }}
+          />
+        )}
+
+        {activeTab === 'emails_equipe' && (
+          <EmailsEquipeView emails={emails} />
+        )}
       </div>
 
       {/* Modal ArtCraft (PhotoCraft / VectorCraft) */}
