@@ -32,12 +32,14 @@ import {
   User,
   UserCheck,
   Users,
+  UserX,
   X,
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { confirmAction, showToast } from '../hooks/useFeedback';
 import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../lib/religiosoNome';
 import { formatarDataBR } from '../utils/dateUtils';
+import { obterFotoReligiosoBase64 } from '../services/religiosoFotoService';
 import {
   CARGOS_GOVERNO_PADRAO,
   type CargoGoverno,
@@ -58,6 +60,56 @@ const PASTAS_SUGERIDAS = [
 ];
 
 const TRIENIOS_PADRAO = ['2024 - 2027', '2027 - 2030', '2021 - 2024', '2018 - 2021'];
+
+const FotoGovernoCard: React.FC<{
+  rel?: { id?: string; foto_path?: string | null; foto_url?: string | null; nome_civil?: string | null } | null;
+  defaultIcon: React.ReactNode;
+}> = ({ rel, defaultIcon }) => {
+  const [src, setSrc] = useState<string | null>(null);
+  const [falha, setFalha] = useState(false);
+
+  useEffect(() => {
+    let cancel = false;
+    setFalha(false);
+    setSrc(null);
+
+    if (!rel?.id) return;
+
+    async function resolverFoto() {
+      try {
+        const foto = await obterFotoReligiosoBase64({
+          id: rel!.id!,
+          foto_path: rel!.foto_path,
+          foto_url: (rel as any)!.foto_url,
+        });
+        if (!cancel && foto) {
+          setSrc(foto);
+          setFalha(false);
+        }
+      } catch {
+        if (!cancel) setFalha(true);
+      }
+    }
+
+    resolverFoto();
+    return () => {
+      cancel = true;
+    };
+  }, [rel?.id, rel?.foto_path]);
+
+  if (!rel || !src || falha) {
+    return <>{defaultIcon}</>;
+  }
+
+  return (
+    <img
+      src={src}
+      alt={rel.nome_civil || 'Foto'}
+      className="h-full w-full object-cover"
+      onError={() => setFalha(true)}
+    />
+  );
+};
 
 export const GovernoProvincial: React.FC = () => {
   const [tabAtiva, setTabAtiva] = useState<'vigente' | 'cadastro' | 'historico'>('vigente');
@@ -157,7 +209,7 @@ export const GovernoProvincial: React.FC = () => {
           )
         `)
         .order('ordem_precedencia', { ascending: true })
-        .order('created_at', { ascending: false });
+        .order('updated_at', { ascending: false });
 
       if (govErr) {
         if (govErr.code === '42P01' || govErr.message.includes('does not exist')) {
@@ -199,11 +251,23 @@ export const GovernoProvincial: React.FC = () => {
     return membros.filter(m => m.trienio === trienioSelecionado);
   }, [membros, trienioSelecionado]);
 
-  // Mapa de cargos preenchidos no triênio
+  // Mapa de cargos preenchidos no triênio (somente mandatos ativos: Vigente ou Interino)
   const mapaMembrosPorCargo = useMemo(() => {
     const mapa = new Map<CargoGoverno, MembroGovernoProvincial>();
-    membrosDoTrienio.forEach(m => {
-      if (!mapa.has(m.cargo) || m.status === 'Vigente') {
+    // Apenas membros ativos preenchem a cadeira oficial do triênio
+    const membrosAtivos = membrosDoTrienio.filter(
+      m => m.status === 'Vigente' || m.status === 'Interino'
+    );
+
+    // Ordenar pelo mais recentemente modificado/cadastrado para que a última edição sempre tenha precedência
+    const ordenados = [...membrosAtivos].sort((a, b) => {
+      const timeA = new Date(a.updated_at || a.created_at || 0).getTime();
+      const timeB = new Date(b.updated_at || b.created_at || 0).getTime();
+      return timeB - timeA;
+    });
+
+    ordenados.forEach(m => {
+      if (!mapa.has(m.cargo)) {
         mapa.set(m.cargo, m);
       }
     });
@@ -331,6 +395,17 @@ export const GovernoProvincial: React.FC = () => {
     setSalvando(true);
     try {
       if (editingId) {
+        // Se este membro está sendo definido como 'Vigente', arquivar outros membros que porventura estejam como 'Vigente' neste mesmo cargo e triênio
+        if (statusMandato === 'Vigente') {
+          await supabase
+            .from('governo_provincial')
+            .update({ status: 'Concluído', updated_at: new Date().toISOString() })
+            .eq('trienio', trienioForm.trim())
+            .eq('cargo', cargoSelecionado)
+            .eq('status', 'Vigente')
+            .neq('id', editingId);
+        }
+
         // Atualizar
         const { error } = await supabase
           .from('governo_provincial')
@@ -340,6 +415,16 @@ export const GovernoProvincial: React.FC = () => {
         if (error) throw error;
         showToast.success(`Membro do Governo Provincial (${cargoSelecionado}) atualizado com sucesso!`);
       } else {
+        // Se cadastrando um novo membro 'Vigente', arquivar qualquer outro membro anterior para o mesmo cargo e triênio
+        if (statusMandato === 'Vigente') {
+          await supabase
+            .from('governo_provincial')
+            .update({ status: 'Concluído', updated_at: new Date().toISOString() })
+            .eq('trienio', trienioForm.trim())
+            .eq('cargo', cargoSelecionado)
+            .eq('status', 'Vigente');
+        }
+
         // Inserir
         const { error } = await supabase
           .from('governo_provincial')
@@ -381,6 +466,41 @@ export const GovernoProvincial: React.FC = () => {
     }
   };
 
+  // Desocupar cargo (marcar mandato como Concluído, tornando a cadeira vaga no triênio)
+  const handleDesocuparCargo = async (membro: MembroGovernoProvincial) => {
+    const nome = atribuirNomeReligioso(membro.religioso?.grau, membro.religioso?.nome_civil) || membro.religioso?.nome_civil || 'o confrade';
+    const confirmou = await confirmAction({
+      title: 'Desocupar Cargo no Governo',
+      message: `Deseja realmente desocupar o cargo de ${membro.cargo} (atualmente ocupado por ${nome})? A vaga ficará aberta no triênio e o histórico será preservado como Concluído.`,
+      confirmLabel: 'Sim, desocupar cargo',
+      cancelLabel: 'Cancelar',
+      tone: 'warning',
+    });
+
+    if (!confirmou) return;
+
+    try {
+      const { error } = await supabase
+        .from('governo_provincial')
+        .update({
+          status: 'Concluído',
+          data_termino: new Date().toISOString().slice(0, 10),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', membro.id);
+
+      if (error) throw error;
+      showToast.success(`Cargo de ${membro.cargo} agora está vago no triênio.`);
+      if (editingId === membro.id) {
+        handleLimparFormulario();
+        setTabAtiva('vigente');
+      }
+      await carregarDados();
+    } catch (err: any) {
+      showToast.error(`Erro ao desocupar cargo: ${err.message}`);
+    }
+  };
+
   // Excluir membro
   const handleExcluir = async (id: string, cargo: string, nome: string) => {
     const confirmou = await confirmAction({
@@ -401,6 +521,10 @@ export const GovernoProvincial: React.FC = () => {
 
       if (error) throw error;
       showToast.success(`Registro de ${cargo} removido com sucesso.`);
+      if (editingId === id) {
+        handleLimparFormulario();
+        setTabAtiva('vigente');
+      }
       await carregarDados();
     } catch (err: any) {
       showToast.error(`Erro ao excluir: ${err.message}`);
@@ -460,7 +584,7 @@ CREATE POLICY governo_provincial_all ON public.governo_provincial FOR ALL USING 
             Governo Provincial
           </h1>
           <p className="mt-1.5 max-w-2xl text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-            Superior Provincial, Conselho Provincial e Oficiais de Cúria da Província São Paulo Apóstolo (Dehonianos).
+            Superior Provincial, Conselho Provincial e Oficiais de Cúria da Província Brasil Meridional – BRM (Dehonianos).
           </p>
         </div>
 
@@ -602,7 +726,7 @@ CREATE POLICY governo_provincial_all ON public.governo_provincial FOR ALL USING 
                     Composição Oficial do Triênio {trienioSelecionado}
                   </h3>
                   <p className="text-xs text-slate-600 dark:text-slate-400">
-                    Província São Paulo Apóstolo • Congregação dos Padres do Sagrado Coração de Jesus
+                    Província Brasil Meridional – BRM • Congregação dos Padres do Sagrado Coração de Jesus
                   </p>
                 </div>
               </div>
@@ -626,16 +750,11 @@ CREATE POLICY governo_provincial_all ON public.governo_provincial FOR ALL USING 
 
                 <div className="flex flex-col md:flex-row md:items-center gap-5">
                   {/* Foto ou Brasão */}
-                  <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl border-2 border-amber-400 bg-amber-100/70 text-amber-900 shadow-md dark:border-amber-600 dark:bg-amber-950/60 dark:text-amber-200">
-                    {superior?.religioso?.foto_path ? (
-                      <img
-                        src={superior.religioso.foto_path}
-                        alt="Foto Superior"
-                        className="h-full w-full rounded-2xl object-cover"
-                      />
-                    ) : (
-                      <Landmark className="h-10 w-10 text-amber-800 dark:text-amber-300" />
-                    )}
+                  <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl border-2 border-amber-400 bg-amber-100/70 text-amber-900 shadow-md dark:border-amber-600 dark:bg-amber-950/60 dark:text-amber-200 overflow-hidden">
+                    <FotoGovernoCard
+                      rel={superior?.religioso}
+                      defaultIcon={<Landmark className="h-10 w-10 text-amber-800 dark:text-amber-300" />}
+                    />
                   </div>
 
                   {/* Dados do Superior */}
@@ -705,22 +824,31 @@ CREATE POLICY governo_provincial_all ON public.governo_provincial FOR ALL USING 
                   </div>
 
                   {/* Ações */}
-                  <div className="flex md:flex-col items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap md:flex-col items-stretch gap-2 shrink-0 sm:min-w-[130px]">
                     {superior ? (
                       <>
                         <button
                           type="button"
                           onClick={() => handleEditar(superior)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-[#161b22] dark:text-slate-200 cursor-pointer"
+                          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-[#161b22] dark:text-slate-200 cursor-pointer"
                         >
                           <Edit3 className="h-3.5 w-3.5" />
                           <span>Editar</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDesocuparCargo(superior)}
+                          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-amber-300/80 bg-amber-50/80 px-3 py-1.5 text-xs font-semibold text-amber-800 shadow-sm transition hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 cursor-pointer"
+                          title="Tornar este cargo vago no triênio atual"
+                        >
+                          <UserX className="h-3.5 w-3.5" />
+                          <span>Desocupar</span>
                         </button>
                         {superior.religioso_id && (
                           <Link
                             to={`/religiosos/${superior.religioso_id}/dossie`}
                             target="_blank"
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#113240] shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-[#161b22] dark:text-sky-300"
+                            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#113240] shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-[#161b22] dark:text-sky-300"
                           >
                             <ExternalLink className="h-3.5 w-3.5" />
                             <span>Ver Dossiê</span>
@@ -731,7 +859,7 @@ CREATE POLICY governo_provincial_all ON public.governo_provincial FOR ALL USING 
                       <button
                         type="button"
                         onClick={() => handleIniciarDesignacaoCargo('Superior Provincial')}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3.5 py-2 text-xs font-semibold text-white shadow transition hover:bg-amber-700 cursor-pointer"
+                        className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3.5 py-2 text-xs font-semibold text-white shadow transition hover:bg-amber-700 cursor-pointer"
                       >
                         <Plus className="h-3.5 w-3.5" />
                         <span>Designar Superior</span>
@@ -785,9 +913,12 @@ CREATE POLICY governo_provincial_all ON public.governo_provincial FOR ALL USING 
                       {conselheiro ? (
                         <div className="space-y-2">
                           <div className="flex items-start gap-2.5">
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 font-semibold dark:bg-slate-800 dark:text-slate-300">
-                              <User className="h-5 w-5" />
-                            </span>
+                            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 font-semibold dark:bg-slate-800 dark:text-slate-300 overflow-hidden border border-slate-200 dark:border-slate-700">
+                              <FotoGovernoCard
+                                rel={conselheiro.religioso}
+                                defaultIcon={<User className="h-5 w-5 text-slate-400" />}
+                              />
+                            </div>
                             <div className="min-w-0 flex-1">
                               <h4 className="font-semibold text-slate-900 dark:text-white text-sm truncate">
                                 {atribuirNomeReligioso(conselheiro.religioso?.grau, conselheiro.religioso?.nome_civil) || conselheiro.religioso?.nome_civil}
@@ -832,17 +963,28 @@ CREATE POLICY governo_provincial_all ON public.governo_provincial FOR ALL USING 
                       )}
                     </div>
 
-                    <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                    <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-1">
                       {conselheiro ? (
                         <>
-                          <button
-                            type="button"
-                            onClick={() => handleEditar(conselheiro)}
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-[#17485b] hover:underline dark:text-sky-300 cursor-pointer"
-                          >
-                            <Edit3 className="h-3 w-3" />
-                            <span>Editar</span>
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleEditar(conselheiro)}
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-[#17485b] hover:underline dark:text-sky-300 cursor-pointer"
+                            >
+                              <Edit3 className="h-3 w-3" />
+                              <span>Editar</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDesocuparCargo(conselheiro)}
+                              className="inline-flex items-center gap-1 text-xs text-amber-700 hover:underline dark:text-amber-400 cursor-pointer"
+                              title="Desocupar cargo (ficará vago neste triênio)"
+                            >
+                              <UserX className="h-3 w-3" />
+                              <span>Desocupar</span>
+                            </button>
+                          </div>
                           {conselheiro.religioso_id && (
                             <Link
                               to={`/religiosos/${conselheiro.religioso_id}/dossie`}
@@ -910,9 +1052,12 @@ CREATE POLICY governo_provincial_all ON public.governo_provincial FOR ALL USING 
                       {oficial ? (
                         <div className="space-y-2.5">
                           <div className="flex items-start gap-3">
-                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 font-semibold dark:bg-slate-800 dark:text-slate-300">
-                              {isSec ? <FileText className="h-5 w-5 text-[#226380]" /> : <Landmark className="h-5 w-5 text-emerald-700" />}
-                            </span>
+                            <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 font-semibold dark:bg-slate-800 dark:text-slate-300 overflow-hidden border border-slate-200 dark:border-slate-700">
+                              <FotoGovernoCard
+                                rel={oficial.religioso}
+                                defaultIcon={isSec ? <FileText className="h-5 w-5 text-[#226380]" /> : <Landmark className="h-5 w-5 text-emerald-700" />}
+                              />
+                            </div>
                             <div className="min-w-0 flex-1">
                               <h4 className="font-bold text-slate-900 dark:text-white text-base truncate">
                                 {atribuirNomeReligioso(oficial.religioso?.grau, oficial.religioso?.nome_civil) || oficial.religioso?.nome_civil}
@@ -959,17 +1104,28 @@ CREATE POLICY governo_provincial_all ON public.governo_provincial FOR ALL USING 
                       )}
                     </div>
 
-                    <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                    <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-1">
                       {oficial ? (
                         <>
-                          <button
-                            type="button"
-                            onClick={() => handleEditar(oficial)}
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-[#17485b] hover:underline dark:text-sky-300 cursor-pointer"
-                          >
-                            <Edit3 className="h-3 w-3" />
-                            <span>Editar</span>
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleEditar(oficial)}
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-[#17485b] hover:underline dark:text-sky-300 cursor-pointer"
+                            >
+                              <Edit3 className="h-3 w-3" />
+                              <span>Editar</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDesocuparCargo(oficial)}
+                              className="inline-flex items-center gap-1 text-xs text-amber-700 hover:underline dark:text-amber-400 cursor-pointer"
+                              title="Desocupar cargo (ficará vago neste triênio)"
+                            >
+                              <UserX className="h-3 w-3" />
+                              <span>Desocupar</span>
+                            </button>
+                          </div>
                           {oficial.religioso_id && (
                             <Link
                               to={`/religiosos/${oficial.religioso_id}/dossie`}
@@ -1144,9 +1300,12 @@ CREATE POLICY governo_provincial_all ON public.governo_provincial FOR ALL USING 
                     </div>
 
                     <div className="flex items-start gap-3">
-                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 font-bold dark:bg-emerald-900/60 dark:text-emerald-200">
-                        <UserCheck className="h-5 w-5" />
-                      </span>
+                      <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 font-bold dark:bg-emerald-900/60 dark:text-emerald-200 overflow-hidden border border-emerald-200 dark:border-emerald-800">
+                        <FotoGovernoCard
+                          rel={religiosoSelecionado}
+                          defaultIcon={<UserCheck className="h-5 w-5" />}
+                        />
+                      </div>
                       <div className="min-w-0 flex-1">
                         <h4 className="font-bold text-slate-900 dark:text-white text-sm">
                           {atribuirNomeReligioso(religiosoSelecionado.grau, religiosoSelecionado.nome_civil) || religiosoSelecionado.nome_civil}
@@ -1389,32 +1548,66 @@ CREATE POLICY governo_provincial_all ON public.governo_provincial FOR ALL USING 
                 </div>
 
                 {/* Botões de Ação */}
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <button
-                    type="button"
-                    onClick={handleLimparFormulario}
-                    className="rounded-lg border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer"
-                  >
-                    Limpar
-                  </button>
-
-                  <button
-                    type="submit"
-                    disabled={salvando}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#113240] px-5 py-2 text-xs font-cinzel font-semibold uppercase tracking-wider text-white shadow transition hover:bg-[#1b4b5f] disabled:opacity-50 cursor-pointer dark:bg-sky-600 dark:hover:bg-sky-500"
-                  >
-                    {salvando ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {editingId && (
                       <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Salvando...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Check className="h-4 w-4" />
-                        <span>{editingId ? 'Salvar Alterações' : 'Salvar no Governo'}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const membro = membros.find(m => m.id === editingId);
+                            if (membro) void handleDesocuparCargo(membro);
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300 cursor-pointer"
+                          title="Tornar este cargo vago no triênio"
+                        >
+                          <UserX className="h-3.5 w-3.5" />
+                          <span>Desocupar Cargo</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const membro = membros.find(m => m.id === editingId);
+                            const nome = religiosoSelecionado?.nome_civil || 'confrade';
+                            if (membro) void handleExcluir(membro.id, membro.cargo, nome);
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-300 cursor-pointer"
+                          title="Remover definitivamente do banco"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>Excluir Registro</span>
+                        </button>
                       </>
                     )}
-                  </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleLimparFormulario}
+                      className="rounded-lg border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer"
+                    >
+                      Limpar
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={salvando}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-[#113240] px-5 py-2 text-xs font-cinzel font-semibold uppercase tracking-wider text-white shadow transition hover:bg-[#1b4b5f] disabled:opacity-50 cursor-pointer dark:bg-sky-600 dark:hover:bg-sky-500"
+                    >
+                      {salvando ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Salvando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-4 w-4" />
+                          <span>{editingId ? 'Salvar Alterações' : 'Salvar no Governo'}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1518,6 +1711,16 @@ CREATE POLICY governo_provincial_all ON public.governo_provincial FOR ALL USING 
 
                         <td className="py-3 px-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            {item.status === 'Vigente' && (
+                              <button
+                                type="button"
+                                onClick={() => void handleDesocuparCargo(item)}
+                                className="rounded p-1 text-amber-600 hover:bg-amber-50 hover:text-amber-800 dark:hover:bg-amber-950/40 cursor-pointer"
+                                title="Desocupar cargo (marcar mandato como Concluído)"
+                              >
+                                <UserX className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => handleEditar(item)}
@@ -1528,7 +1731,7 @@ CREATE POLICY governo_provincial_all ON public.governo_provincial FOR ALL USING 
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleExcluir(item.id, item.cargo, nomeRel)}
+                              onClick={() => void handleExcluir(item.id, item.cargo, nomeRel)}
                               className="rounded p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 cursor-pointer"
                               title="Excluir"
                             >
