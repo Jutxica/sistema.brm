@@ -286,7 +286,7 @@ const SidebarGroup: React.FC<{
       <Icon className="h-4 w-4 shrink-0" />
       {!collapsed && <><span className="flex-1 text-left">{label}</span><ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`} /></>}
     </button>
-    {open && !collapsed && <ul className="ml-4 mt-1 space-y-1 border-l border-[#e5e5ea] pl-2.5 dark:border-white/10">{children}</ul>}
+    {open && !collapsed && <ul className="mt-1 space-y-0.5">{children}</ul>}
   </li>
 );
 
@@ -302,14 +302,14 @@ const SidebarSubLink: React.FC<{ to: string; label: string; icon: React.ElementT
       <NavLink
         to={to}
         title={collapsed ? label : undefined}
-        className={`brm-sidebar-link flex min-h-9 items-center gap-2.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+        className={`brm-sidebar-link flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
           isMatch
-            ? 'border-[#226380]/10 bg-[#226380]/10 text-[#17333d] font-semibold dark:border-[#A3C3C7]/20 dark:bg-[#226380]/25 dark:text-[#A3C3C7]'
-            : 'border-transparent text-[#68777d] hover:bg-slate-100 hover:text-[#17333d] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white'
+            ? 'bg-[#226380] text-white font-semibold dark:bg-[#1a3447] dark:text-white'
+            : 'text-[#52636a] hover:bg-slate-100 hover:text-[#113240] dark:text-[#94a3b8] dark:hover:bg-white/5 dark:hover:text-white'
         }`}
       >
-        <Icon className="h-3.5 w-3.5 shrink-0" />
-        {!collapsed && <span>{label}</span>}
+        <Icon className="h-4 w-4 shrink-0" />
+        {!collapsed && <span className="truncate">{label}</span>}
       </NavLink>
     </li>
   );
