@@ -308,7 +308,9 @@ export const ComunicacaoAdmin: React.FC = () => {
     <div className="space-y-6 animate-fade-in font-sans pb-12">
       {/* Cabeçalho Institucional do Módulo (Padrão Sistema BRM) */}
       <header className="space-y-3">
-        <div className="rounded-[10px] bg-white dark:bg-[#161b22] p-5 md:p-6 border border-slate-200/90 dark:border-slate-800 border-t-2 border-t-[#226380] shadow-xs">
+        {/* Card Institucional exibido exclusivamente na Visão Geral */}
+        {activeTab === 'visao_geral' && (
+          <div className="rounded-[10px] bg-white dark:bg-[#161b22] p-5 md:p-6 border border-slate-200/90 dark:border-slate-800 border-t-2 border-t-[#226380] shadow-xs">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="flex items-center shrink-0">
@@ -349,6 +351,7 @@ export const ComunicacaoAdmin: React.FC = () => {
             </div>
           </div>
         </div>
+        )}
 
         {/* Barra de Abas / Pílulas Horizontais Modernas (Utxica Anti-slop / Sistema BRM) */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 border-b border-slate-200 dark:border-slate-800 pb-3">
