@@ -512,21 +512,23 @@ export function extrairRedesSociais(redesTexto?: string | null): { instagram?: s
   let youtube: string | undefined;
 
   // Instagram match: @usuario ou link instagram.com/usuario
-  const instaMatch = limpo.match(/instagram\.com\/([a-zA-Z0-9_\.]+)|@([a-zA-Z0-9_\.]+)/i);
+  const instaMatch = limpo.match(/(?:https?:\/\/)?(?:www\.)?instagram\.com\/([a-zA-Z0-9_\.]+)|@([a-zA-Z0-9_\.]+)/i);
   if (instaMatch) {
-    instagram = `@${(instaMatch[1] || instaMatch[2]).replace('@', '')}`;
+    const handle = (instaMatch[1] || instaMatch[2] || '').replace(/^@+/, '');
+    if (handle) instagram = `@${handle}`;
   } else if (!limpo.includes(' ') && !limpo.includes('/') && limpo.length > 2) {
-    instagram = limpo.startsWith('@') ? limpo : `@${limpo}`;
+    const handle = limpo.replace(/^@+/, '');
+    instagram = `@${handle}`;
   }
 
   // Facebook match
-  const fbMatch = limpo.match(/facebook\.com\/([a-zA-Z0-9_\.]+)/i);
+  const fbMatch = limpo.match(/(?:https?:\/\/)?(?:www\.)?facebook\.com\/([a-zA-Z0-9_\.]+)/i);
   if (fbMatch) {
     facebook = fbMatch[1];
   }
 
   // YouTube match
-  const ytMatch = limpo.match(/youtube\.com\/(@?[a-zA-Z0-9_\.\-]+)/i);
+  const ytMatch = limpo.match(/(?:https?:\/\/)?(?:www\.)?youtube\.com\/(@?[a-zA-Z0-9_\.\-]+)/i);
   if (ytMatch) {
     youtube = ytMatch[1];
   }
@@ -557,7 +559,11 @@ export async function getReligiososParaConteudo(): Promise<ReligiosoConteudo[]> 
           ordensFallbackRes,
           origemRes,
           desigRes,
-          docsRes
+          docsRes,
+          familiaresRes,
+          sacramentosRes,
+          academicaRes,
+          idiomasRes
         ] = await Promise.allSettled([
           supabase.from('religiosos_enderecos_contatos').select('*'),
           supabase.from('religiosos_profissoes_votos').select('*').order('data', { ascending: true }),
@@ -565,7 +571,11 @@ export async function getReligiososParaConteudo(): Promise<ReligiosoConteudo[]> 
           supabase.from('religiosos_ordens').select('*').order('data', { ascending: true }),
           supabase.from('religiosos_origem_vocacional').select('*'),
           supabase.from('religiosos_designacoes').select('*, comunidades(nome), religiosos_obras_referencia(nome)').order('vigencia_inicio', { ascending: false }),
-          supabase.from('religiosos_documentos').select('religioso_id, categoria, nome_arquivo, caminho_storage').eq('status', 'Ativo')
+          supabase.from('religiosos_documentos').select('religioso_id, categoria, nome_arquivo, caminho_storage').eq('status', 'Ativo'),
+          supabase.from('religiosos_familiares').select('*'),
+          supabase.from('religiosos_sacramentos').select('*'),
+          supabase.from('religiosos_formacao_academica').select('*'),
+          supabase.from('religiosos_idiomas').select('*')
         ]);
 
         const contatosData = contatosRes.status === 'fulfilled' && contatosRes.value?.data ? contatosRes.value.data : [];
@@ -575,6 +585,10 @@ export async function getReligiososParaConteudo(): Promise<ReligiosoConteudo[]> 
         const origemData = origemRes.status === 'fulfilled' && origemRes.value?.data ? origemRes.value.data : [];
         const desigData = desigRes.status === 'fulfilled' && desigRes.value?.data ? desigRes.value.data : [];
         const docsData = docsRes.status === 'fulfilled' && docsRes.value?.data ? docsRes.value.data : [];
+        const familiaresData = familiaresRes.status === 'fulfilled' && familiaresRes.value?.data ? familiaresRes.value.data : [];
+        const sacramentosData = sacramentosRes.status === 'fulfilled' && sacramentosRes.value?.data ? sacramentosRes.value.data : [];
+        const academicaData = academicaRes.status === 'fulfilled' && academicaRes.value?.data ? academicaRes.value.data : [];
+        const idiomasData = idiomasRes.status === 'fulfilled' && idiomasRes.value?.data ? idiomasRes.value.data : [];
 
         const allOrdens = [...ordensData, ...ordensFallbackData];
 
@@ -585,6 +599,27 @@ export async function getReligiososParaConteudo(): Promise<ReligiosoConteudo[]> 
           const origem = origemData.find(o => o.religioso_id === r.id);
           const desig = desigData.find(d => d.religioso_id === r.id);
           const docs = docsData.filter(d => d.religioso_id === r.id);
+          const familiares = familiaresData.filter(f => f.religioso_id === r.id);
+          const sacramentos = sacramentosData.filter(s => s.religioso_id === r.id);
+          const academicas = academicaData.filter(a => a.religioso_id === r.id).map(a => ({
+            curso: a.categoria || (a as any).curso || 'Curso Superior',
+            instituicao: a.instituicao,
+            periodo: a.periodo
+          }));
+          const idiomas = idiomasData.filter(i => i.religioso_id === r.id).map(i => ({
+            idioma: i.idioma,
+            nivel: i.nivel
+          }));
+
+          // Filiação
+          const pai = familiares.find(f => f.tipo === 'Pai')?.nome || null;
+          const mae = familiares.find(f => f.tipo === 'Mãe')?.nome || null;
+
+          // Sacramentos
+          const batismo = sacramentos.find(s => (s.tipo || '').toLowerCase().includes('batis'));
+          const crisma = sacramentos.find(s => (s.tipo || '').toLowerCase().includes('cris') || (s.tipo || '').toLowerCase().includes('confirm'));
+          const batismoInfo = batismo ? [batismo.data, batismo.paroquia, batismo.cidade ? `${batismo.cidade}${batismo.uf ? `/${batismo.uf}` : ''}` : null].filter(Boolean).join(' • ') : null;
+          const crismaInfo = crisma ? [crisma.data, crisma.paroquia, crisma.cidade ? `${crisma.cidade}${crisma.uf ? `/${crisma.uf}` : ''}` : null].filter(Boolean).join(' • ') : null;
 
           // Votos e Profissões Religiosas
           const primVoto = votos.find(v => {
@@ -617,10 +652,12 @@ export async function getReligiososParaConteudo(): Promise<ReligiosoConteudo[]> 
 
           const lemaDestacado = ordPresb?.lema || ordDiac?.lema || perpVoto?.lema || primVoto?.lema || origem?.lema || origem?.lema_vida || r.lema_destacado || r.lema_ordenacao_presbiteral || 'Ecce Venio — Eis que venho para fazer a tua vontade';
 
-          // Naturalidade
-          const naturalidadeCidade = r.naturalidade_cidade || r.cidade_natal || contato?.cidade || null;
-          const naturalidadeUf = r.naturalidade_uf || r.uf_natal || contato?.estado || null;
-          const paisNascimento = r.pais_nascimento || contato?.pais || 'Brasil';
+          // Naturalidade REAL (estritamente do registro de nascimento, NUNCA o endereço de moradia atual)
+          const naturalidadeCidade = r.municipio_nascimento || r.naturalidade_cidade || r.local_nascimento || r.cidade_natal || null;
+          const naturalidadeUf = r.estado_nascimento || r.naturalidade_uf || r.uf_natal || null;
+          const paisNascimento = r.pais_nascimento || 'Brasil';
+          const localNascimento = r.local_nascimento || null;
+          const nacionalidade = r.nacionalidade || 'Brasileira';
 
           // Contatos e Redes Sociais
           const redesTexto = contato?.redes_sociais || (r as any).redes_sociais || null;
@@ -640,36 +677,31 @@ export async function getReligiososParaConteudo(): Promise<ReligiosoConteudo[]> 
           const obraAtual = obrNome || comNome || r.obra_atual_nome || 'Província BRM';
           const cargoFuncao = desig?.funcao || r.cargo_funcao || r.cargo || r.funcao || r.oficio_atual || (r.grau === 'Diácono' ? 'Diácono Dehoniano' : r.grau === 'Frater' ? 'Frater Dehoniano' : 'Religioso Dehoniano');
 
-          // Foto oficial
+          // Foto oficial: busca primeiro nos documentos de perfil do religioso
+          const docFoto = docs.find(d => {
+            const cat = (d.categoria || '').toLowerCase();
+            const nome = (d.nome_arquivo || '').toLowerCase();
+            return cat.includes('perfil') || cat.includes('foto') || cat.includes('4x4') || /\.(jpe?g|png|webp)$/i.test(nome);
+          });
+
+          const rawFoto = r.foto_path || (r as any).foto_url || docFoto?.caminho_storage || null;
           let fotoUrl: string | null = null;
-          const rawFoto = r.foto_path || (r as any).foto_url;
+
           if (rawFoto && typeof rawFoto === 'string' && rawFoto.trim()) {
             if (rawFoto.startsWith('http://') || rawFoto.startsWith('https://') || rawFoto.startsWith('data:image/')) {
               fotoUrl = rawFoto;
             } else {
-              const { data: pPerfil } = supabase.storage.from('religiosos-perfil').getPublicUrl(rawFoto);
-              if (pPerfil?.publicUrl && !pPerfil.publicUrl.endsWith('/')) {
-                fotoUrl = pPerfil.publicUrl;
-              } else {
-                const { data: pDoc } = supabase.storage.from('religiosos-documentos').getPublicUrl(rawFoto);
-                fotoUrl = pDoc?.publicUrl || null;
+              // Tenta primeiro bucket oficial 'religiosos-documentos' (onde são salvos os uploads da secretaria)
+              const { data: pDoc } = supabase.storage.from('religiosos-documentos').getPublicUrl(rawFoto);
+              if (pDoc?.publicUrl) {
+                fotoUrl = pDoc.publicUrl;
               }
             }
           }
 
-          if (!fotoUrl) {
-            const docFoto = docs.find(d => {
-              const cat = (d.categoria || '').toLowerCase();
-              const nome = (d.nome_arquivo || '').toLowerCase();
-              return cat.includes('perfil') || cat.includes('foto') || cat.includes('4x4') || /\.(jpe?g|png|webp)$/i.test(nome);
-            });
-            if (docFoto?.caminho_storage) {
-              const { data: pDoc } = supabase.storage.from('religiosos-documentos').getPublicUrl(docFoto.caminho_storage);
-              if (pDoc?.publicUrl) fotoUrl = pDoc.publicUrl;
-            }
-          }
-
           const biografia = r.biografia || r.historico || r.observacoes || `${r.nome_religioso || r.nome_civil} é religioso consagrado da Província Brasil Meridional dos Padres Dehonianos (SCJ), atuando na evangelização, espiritualidade e obras pastorais da congregação.`;
+
+          const todosLemas = Array.isArray(r.lemas) ? r.lemas : [];
 
           return {
             id: r.id,
@@ -680,6 +712,17 @@ export async function getReligiososParaConteudo(): Promise<ReligiosoConteudo[]> 
             naturalidade_cidade: naturalidadeCidade,
             naturalidade_uf: naturalidadeUf,
             pais_nascimento: paisNascimento,
+            local_nascimento: localNascimento,
+            nacionalidade: nacionalidade,
+            filiacao_pai: pai,
+            filiacao_mae: mae,
+            batismo_info: batismoInfo,
+            crisma_info: crismaInfo,
+            etapa_formativa_atual: r.etapa_formativa_atual || (r.grau === 'Frater' ? 'Configuração (Teologia)' : null),
+            ano_configuracao: r.ano_configuracao || null,
+            formacao_academica: academicas,
+            idiomas: idiomas,
+            todos_lemas: todosLemas,
             primeira_profissao_data: primeiraProfissaoData,
             profissao_perpetua_data: votosPerpetuosData,
             ordenacao_diaconal_data: ordDiac?.data || null,
@@ -689,13 +732,15 @@ export async function getReligiososParaConteudo(): Promise<ReligiosoConteudo[]> 
             ordenacao_local: ordPresb?.local || ordDiac?.local || null,
             ordenacao_bispo: ordPresb?.bispo_ordenante || ordDiac?.bispo_ordenante || null,
             profissao_local: perpVoto?.local || primVoto?.local || null,
+            profissao_celebrante: perpVoto?.celebrante || primVoto?.celebrante || null,
             paroquia_origem: origem?.paroquia_origem || null,
             diocese_origem: origem?.diocese_origem || null,
+            promotor_vocacional: origem?.promotor_vocacional || null,
             comunidade_atual_nome: comunidadeAtual,
             obra_atual_nome: obraAtual,
             diocese_atual: r.diocese || r.diocese_atual || null,
             cargo_funcao: cargoFuncao,
-            foto_path: r.foto_path || null,
+            foto_path: rawFoto,
             foto_url: fotoUrl,
             lema_destacado: lemaDestacado,
             lema_destacado_fase: ordPresb ? 'Ordenação Presbiteral' : ordDiac ? 'Ordenação Diaconal' : perpVoto ? 'Profissão Perpétua' : 'Vida Religiosa',

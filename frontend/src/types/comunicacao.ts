@@ -176,6 +176,10 @@ export interface ReligiosoConteudo {
   naturalidade_cidade?: string | null;
   naturalidade_uf?: string | null;
   pais_nascimento?: string | null;
+  local_nascimento?: string | null;
+  nacionalidade?: string | null;
+  filiacao_pai?: string | null;
+  filiacao_mae?: string | null;
 
   // Datas Canônicas
   primeira_profissao_data?: string | null;
@@ -189,14 +193,25 @@ export interface ReligiosoConteudo {
   ordenacao_local?: string | null;
   ordenacao_bispo?: string | null;
   profissao_local?: string | null;
+  profissao_celebrante?: string | null;
 
   // Lema e Espiritualidade
   lema_destacado?: string | null;
   lema_destacado_fase?: string | null;
+  todos_lemas?: Array<{ texto: string; referencia?: string; fase?: string }>;
 
-  // Origem Vocacional
+  // Origem Vocacional & Sacramentos
   paroquia_origem?: string | null;
   diocese_origem?: string | null;
+  promotor_vocacional?: string | null;
+  batismo_info?: string | null;
+  crisma_info?: string | null;
+
+  // Formação e Estudos
+  etapa_formativa_atual?: string | null;
+  ano_configuracao?: number | null;
+  formacao_academica?: Array<{ curso: string; instituicao?: string; periodo?: string }>;
+  idiomas?: Array<{ idioma: string; nivel?: string }>;
 
   // Comunidade, Obra e Cargo
   comunidade_atual_nome?: string | null;

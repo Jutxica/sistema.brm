@@ -13,6 +13,123 @@ import type {
   HistoricoConteudoItem 
 } from '../../types/comunicacao';
 import { getHistoricoConteudoReligioso } from '../../services/comunicacaoService';
+import { obterFotoReligiosoBase64 } from '../../services/religiosoFotoService';
+
+// Subcomponente robusto para exibição da foto oficial do perfil
+const FotoReligiosoOficial: React.FC<{ rel: ReligiosoConteudo }> = ({ rel }) => {
+  const [src, setSrc] = useState<string | null>(rel.foto_url || null);
+  const [error, setError] = useState(false);
+
+  React.useEffect(() => {
+    let cancel = false;
+    setError(false);
+    setSrc(rel.foto_url || null);
+
+    async function carregarFoto() {
+      try {
+        const fotoReal = await obterFotoReligiosoBase64({
+          id: rel.id,
+          foto_path: rel.foto_path,
+          foto_url: rel.foto_url
+        });
+        if (!cancel && fotoReal) {
+          setSrc(fotoReal);
+          setError(false);
+        }
+      } catch (err) {
+        console.warn('Falha ao resolver foto oficial em alta resolução:', err);
+      }
+    }
+
+    carregarFoto();
+    return () => { cancel = true; };
+  }, [rel.id, rel.foto_path, rel.foto_url]);
+
+  if (!src || error) {
+    const letra = rel.nome_religioso.replace(/^(Fr\.|Pe\.|Dom|Ir\.|Diác\.)\s+/i, '').charAt(0) || 'D';
+    return (
+      <div className="p-8 text-center space-y-3">
+        <div className="w-20 h-20 mx-auto rounded-full bg-[#113240]/10 dark:bg-white/10 flex items-center justify-center text-3xl font-bold text-[#113240] dark:text-white">
+          {letra}
+        </div>
+        <span className="text-xs font-semibold text-[#66777b] dark:text-[#a0aeaf] block">
+          Foto oficial da Província BRM
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={rel.nome_religioso}
+      className="w-full h-full object-cover"
+      onError={async () => {
+        try {
+          const fotoB64 = await obterFotoReligiosoBase64({
+            id: rel.id,
+            foto_path: rel.foto_path,
+            foto_url: rel.foto_url
+          });
+          if (fotoB64 && fotoB64 !== src) {
+            setSrc(fotoB64);
+            setError(false);
+            return;
+          }
+        } catch {}
+        setError(true);
+      }}
+    />
+  );
+};
+
+// Subcomponente para miniatura nos cards da lista
+const FotoReligiosoThumb: React.FC<{ rel: ReligiosoConteudo }> = ({ rel }) => {
+  const [src, setSrc] = useState<string | null>(rel.foto_url || null);
+  const [error, setError] = useState(false);
+
+  React.useEffect(() => {
+    let cancel = false;
+    setError(false);
+    setSrc(rel.foto_url || null);
+
+    async function carregar() {
+      if (rel.foto_path || !rel.foto_url) {
+        try {
+          const fotoReal = await obterFotoReligiosoBase64({
+            id: rel.id,
+            foto_path: rel.foto_path,
+            foto_url: rel.foto_url
+          });
+          if (!cancel && fotoReal) {
+            setSrc(fotoReal);
+            setError(false);
+          }
+        } catch {}
+      }
+    }
+    carregar();
+    return () => { cancel = true; };
+  }, [rel.id, rel.foto_path, rel.foto_url]);
+
+  if (!src || error) {
+    const letra = rel.nome_religioso.replace(/^(Fr\.|Pe\.|Dom|Ir\.|Diác\.)\s+/i, '').charAt(0) || 'D';
+    return (
+      <div className="w-full h-full flex items-center justify-center font-bold text-lg text-[#113240] dark:text-white bg-[#113240]/10">
+        {letra}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={rel.nome_religioso}
+      className="w-full h-full object-cover"
+      onError={() => setError(true)}
+    />
+  );
+};
 
 interface ReligiososConteudoViewProps {
   religiosos: ReligiosoConteudo[];
@@ -167,22 +284,7 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
           <div className="lg:col-span-5 space-y-6">
             {/* Foto Oficial em Alta Resolução com Bordas Arredondadas Nobres */}
             <div className="w-full aspect-[4/5] rounded-2xl overflow-hidden bg-slate-100 dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] relative flex items-center justify-center">
-              {rel.foto_url || (rel.foto_path && rel.foto_path.startsWith('http')) ? (
-                <img
-                  src={rel.foto_url || rel.foto_path || ''}
-                  alt={rel.nome_religioso}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="p-8 text-center space-y-3">
-                  <div className="w-20 h-20 mx-auto rounded-full bg-[#113240]/10 dark:bg-white/10 flex items-center justify-center text-3xl font-bold text-[#113240] dark:text-white">
-                    {rel.nome_religioso.charAt(0)}
-                  </div>
-                  <span className="text-xs font-semibold text-[#66777b] dark:text-[#a0aeaf] block">
-                    Foto oficial da Província BRM
-                  </span>
-                </div>
-              )}
+              <FotoReligiosoOficial rel={rel} />
             </div>
 
             {/* SEÇÃO: Conteúdos Produzidos com este Confrade (Substitui Notícias Relacionadas) */}
@@ -252,7 +354,7 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
 
             {/* Blocos de Informações Canônicas e Pastorais */}
             <div className="space-y-4 text-xs">
-              {/* Aniversário de Vida */}
+              {/* Aniversário de Vida & Naturalidade Oficial */}
               <div className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-1">
                 <span className="font-bold text-[#113240] dark:text-white block">
                   Aniversário de vida / Natalício
@@ -265,14 +367,29 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
                   Naturalidade: <strong>{rel.naturalidade_cidade || 'Não informada'}{rel.naturalidade_uf ? ` / ${rel.naturalidade_uf}` : ''}</strong>
                   {rel.pais_nascimento && rel.pais_nascimento !== 'Brasil' ? ` (${rel.pais_nascimento})` : ''}
                 </p>
+                {rel.local_nascimento && (
+                  <p className="text-[#86868b]">
+                    Local de nascimento: {rel.local_nascimento}
+                  </p>
+                )}
+                {(rel.filiacao_pai || rel.filiacao_mae) && (
+                  <p className="text-[#52636a] dark:text-[#a0aeaf]">
+                    Filiação: <strong>{[rel.filiacao_pai, rel.filiacao_mae].filter(Boolean).join(' e ')}</strong>
+                  </p>
+                )}
+                {rel.nacionalidade && rel.nacionalidade !== 'Brasileira' && (
+                  <p className="text-[#86868b]">
+                    Nacionalidade: {rel.nacionalidade}
+                  </p>
+                )}
               </div>
 
-              {/* Origem Vocacional (se houver) */}
-              {(rel.paroquia_origem || rel.diocese_origem) && (
-                <div className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-1">
+              {/* Origem Vocacional & Iniciação Cristã */}
+              {(rel.paroquia_origem || rel.diocese_origem || rel.promotor_vocacional || rel.batismo_info || rel.crisma_info) && (
+                <div className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-1.5">
                   <span className="font-bold text-[#113240] dark:text-white block flex items-center gap-1.5">
                     <Church className="w-3.5 h-3.5 text-[#226380]" />
-                    <span>Origem vocacional</span>
+                    <span>Origem vocacional & sacramentos</span>
                   </span>
                   {rel.paroquia_origem && (
                     <p className="text-[#52636a] dark:text-[#a0aeaf]">
@@ -282,6 +399,21 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
                   {rel.diocese_origem && (
                     <p className="text-[#52636a] dark:text-[#a0aeaf]">
                       Diocese de origem: <strong>{rel.diocese_origem}</strong>
+                    </p>
+                  )}
+                  {rel.promotor_vocacional && (
+                    <p className="text-[#86868b]">
+                      Promotor vocacional: {rel.promotor_vocacional}
+                    </p>
+                  )}
+                  {rel.batismo_info && (
+                    <p className="text-[#86868b]">
+                      Batismo: {rel.batismo_info}
+                    </p>
+                  )}
+                  {rel.crisma_info && (
+                    <p className="text-[#86868b]">
+                      Crisma: {rel.crisma_info}
                     </p>
                   )}
                 </div>
@@ -305,10 +437,15 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
                       Local: {rel.profissao_local}
                     </p>
                   )}
+                  {rel.profissao_celebrante && (
+                    <p className="text-[#86868b]">
+                      Celebrante: {rel.profissao_celebrante}
+                    </p>
+                  )}
                 </div>
               </div>
 
-              {/* Ordenação Diaconal ou Presbiteral */}
+              {/* Ordenação Diaconal, Presbiteral ou Etapa Formativa */}
               <div className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-1.5">
                 <span className="font-bold text-[#113240] dark:text-white block">
                   {rel.grau === 'Diácono'
@@ -321,6 +458,11 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
                 </span>
                 
                 <div className="space-y-1 text-[#52636a] dark:text-[#a0aeaf]">
+                  {rel.etapa_formativa_atual && (
+                    <p>
+                      Etapa formativa: <strong>{rel.etapa_formativa_atual}{rel.ano_configuracao ? ` — ${rel.ano_configuracao}º ano` : ''}</strong>
+                    </p>
+                  )}
                   {rel.ordenacao_presbiteral_data && (
                     <p>
                       Presbiterado: <strong>{formatarDataCompleta(rel.ordenacao_presbiteral_data)}</strong>
@@ -339,7 +481,7 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
                       {anosOrdenacao ? ` (${anosOrdenacao} anos)` : ''}
                     </p>
                   )}
-                  {!rel.ordenacao_presbiteral_data && !rel.ordenacao_diaconal_data && !rel.ordenacao_data && (
+                  {!rel.ordenacao_presbiteral_data && !rel.ordenacao_diaconal_data && !rel.ordenacao_data && !rel.etapa_formativa_atual && (
                     <p className="text-[#86868b] italic">
                       {rel.grau === 'Frater' ? 'Religioso em etapa de formação teológica / votos' : 'Data canônica em atualização pela Secretaria Provincial'}
                     </p>
@@ -356,6 +498,34 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
                   )}
                 </div>
               </div>
+
+              {/* Formação Acadêmica & Idiomas (quando preenchido) */}
+              {((rel.formacao_academica && rel.formacao_academica.length > 0) || (rel.idiomas && rel.idiomas.length > 0)) && (
+                <div className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-2">
+                  <span className="font-bold text-[#113240] dark:text-white block flex items-center gap-1.5">
+                    <BookOpen className="w-3.5 h-3.5 text-[#226380]" />
+                    <span>Formação acadêmica & competências</span>
+                  </span>
+                  {rel.formacao_academica && rel.formacao_academica.length > 0 && (
+                    <div className="space-y-1 text-[#52636a] dark:text-[#a0aeaf]">
+                      {rel.formacao_academica.map((fa, i) => (
+                        <p key={i}>
+                          • <strong>{fa.curso}</strong>{fa.instituicao ? ` — ${fa.instituicao}` : ''}{fa.periodo ? ` (${fa.periodo})` : ''}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                  {rel.idiomas && rel.idiomas.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {rel.idiomas.map((idm, i) => (
+                        <span key={i} className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[11px] text-slate-700 dark:text-slate-300">
+                          {idm.idioma}{idm.nivel ? ` (${idm.nivel})` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Funções Atuais na Província BRM */}
               <div className="p-3.5 rounded-xl bg-[#f8faf9] dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] space-y-1">
@@ -383,11 +553,11 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
                 <div className="flex flex-wrap items-center gap-2 pt-1">
                   {rel.instagram ? (
                     <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-pink-50 dark:bg-pink-950/30 border border-pink-200 dark:border-pink-900/40 text-pink-700 dark:text-pink-300">
-                      <AtSign className="w-3.5 h-3.5" />
-                      <span className="font-semibold">{rel.instagram}</span>
+                      <AtSign className="w-3.5 h-3.5 shrink-0" />
+                      <span className="font-semibold">{rel.instagram.replace(/^@+/, '')}</span>
                       <button
                         type="button"
-                        onClick={() => copiarTexto(rel.instagram || '', 'insta')}
+                        onClick={() => copiarTexto(`@${rel.instagram?.replace(/^@+/, '')}`, 'insta')}
                         className="ml-1 text-xs hover:underline text-pink-800 dark:text-pink-200 inline-flex items-center gap-0.5"
                         title="Copiar arroba para post do Instagram"
                       >
@@ -398,7 +568,7 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
 
                   {rel.facebook ? (
                     <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900/40 text-sky-700 dark:text-sky-300">
-                      <Globe className="w-3.5 h-3.5" />
+                      <Globe className="w-3.5 h-3.5 shrink-0" />
                       <span className="font-semibold">{rel.facebook}</span>
                       <button
                         type="button"
@@ -412,7 +582,7 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
 
                   {rel.redes_sociais && !rel.instagram && !rel.facebook ? (
                     <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[#113240] dark:text-white font-medium">
-                      <Share2 className="w-3.5 h-3.5 text-[#226380]" />
+                      <Share2 className="w-3.5 h-3.5 text-[#226380] shrink-0" />
                       <span>{rel.redes_sociais}</span>
                       <button
                         type="button"
@@ -572,13 +742,7 @@ export const ReligiososConteudoView: React.FC<ReligiososConteudoViewProps> = ({
                 {/* Topo do Card: Foto 4x4 + Grau + Nome */}
                 <div className="flex items-start gap-3.5">
                   <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-[#141a1c] border border-[#dce4e2] dark:border-[#354246] overflow-hidden shrink-0 flex items-center justify-center">
-                    {rel.foto_url || (rel.foto_path && rel.foto_path.startsWith('http')) ? (
-                      <img src={rel.foto_url || rel.foto_path || ''} alt={rel.nome_religioso} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center font-bold text-lg text-[#113240] dark:text-white bg-[#113240]/10">
-                        {rel.nome_religioso.charAt(0)}
-                      </div>
-                    )}
+                    <FotoReligiosoThumb rel={rel} />
                   </div>
 
                   <div className="min-w-0 flex-1 space-y-0.5">
