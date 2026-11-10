@@ -87,6 +87,18 @@ export const PortalReligioso: React.FC = () => {
     return 'inicio';
   });
 
+  // Preserva abas visitadas montadas no DOM (display toggle) para nunca perder dados digitados ao navegar entre seções
+  const [visitedSections, setVisitedSections] = useState<Set<PortalSection>>(() => new Set([activeSection]));
+
+  useEffect(() => {
+    setVisitedSections(prev => {
+      if (prev.has(activeSection)) return prev;
+      const next = new Set(prev);
+      next.add(activeSection);
+      return next;
+    });
+  }, [activeSection]);
+
   const initialDraftCheckedRef = useRef(false);
 
   const setActiveSection = React.useCallback((section: PortalSection) => {
@@ -283,7 +295,7 @@ export const PortalReligioso: React.FC = () => {
         ? err.message
         : 'Não foi possível localizar seu cadastro. Entre em contato com a Secretaria Provincial.');
     }
-  }, [isE2E, user]);
+  }, [isE2E, user?.id]);
 
   const openRegistration = async () => {
     setActiveSection('inscricao');
@@ -432,10 +444,10 @@ export const PortalReligioso: React.FC = () => {
   }, [canAccessPortal]);
 
   useEffect(() => {
-    if (user || isE2E) {
+    if (user?.id || isE2E) {
       void Promise.resolve().then(loadMemberData);
     }
-  }, [isE2E, loadMemberData, user]);
+  }, [isE2E, loadMemberData, user?.id]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(event => {
@@ -1196,30 +1208,32 @@ export const PortalReligioso: React.FC = () => {
           )}
           
           {/* SEÇÃO: INÍCIO / PAINEL DO CONFRADE */}
-          {activeSection === 'inicio' && (
-            <PortalInicioTab
-              religiosoData={religiosoData}
-              displayName={displayName}
-              hasCompletedRegistration={hasCompletedRegistration}
-              registrationMenuLabel={registrationMenuLabel}
-              displayGrau={displayGrau}
-              userEmail={user?.email}
-              proximoEvento={proximoEvento}
-              documentoRecente={documentoRecente}
-              documentos={documentos}
-              eventos={eventos}
-              navigateToSection={navigateToSection}
-              openRegistration={openRegistration}
-              formatPeriodo={formatPeriodo}
-              getCategoriaCor={getCategoriaCor}
-              getTipoCor={getTipoCor}
-              onLerDocumento={(doc) => setDocumentoLeitura(doc)}
-            />
+          {visitedSections.has('inicio') && (
+            <div className={activeSection === 'inicio' ? '' : 'hidden'} aria-hidden={activeSection !== 'inicio'}>
+              <PortalInicioTab
+                religiosoData={religiosoData}
+                displayName={displayName}
+                hasCompletedRegistration={hasCompletedRegistration}
+                registrationMenuLabel={registrationMenuLabel}
+                displayGrau={displayGrau}
+                userEmail={user?.email}
+                proximoEvento={proximoEvento}
+                documentoRecente={documentoRecente}
+                documentos={documentos}
+                eventos={eventos}
+                navigateToSection={navigateToSection}
+                openRegistration={openRegistration}
+                formatPeriodo={formatPeriodo}
+                getCategoriaCor={getCategoriaCor}
+                getTipoCor={getTipoCor}
+                onLerDocumento={(doc) => setDocumentoLeitura(doc)}
+              />
+            </div>
           )}
 
           {/* SEÇÃO: MEU PERFIL */}
-          {activeSection === 'perfil' && (
-            <div className="space-y-4">
+          {visitedSections.has('perfil') && (
+            <div className={activeSection === 'perfil' ? 'space-y-4' : 'hidden'} aria-hidden={activeSection !== 'perfil'}>
               <div>
                 <button
                   type="button"
@@ -1235,8 +1249,8 @@ export const PortalReligioso: React.FC = () => {
           )}
 
           {/* SEÇÃO: INSCRIÇÃO BRM (FICHA COMPLETA) */}
-          {activeSection === 'inscricao' && (
-            <div className="space-y-4">
+          {visitedSections.has('inscricao') && (
+            <div className={activeSection === 'inscricao' ? 'space-y-4' : 'hidden'} aria-hidden={activeSection !== 'inscricao'}>
               <div>
                 <button
                   type="button"
@@ -1278,10 +1292,10 @@ export const PortalReligioso: React.FC = () => {
                     <a className="underline" href="mailto:secretaria@brm.org.br">secretaria@brm.org.br</a>.
                   </p>
                 </div>
-              ) : religiosoData?.id ? (
+              ) : (religiosoData?.id || user?.religiosoId) ? (
                 <CadastroReligiosoPublico
                   memberMode
-                  religiosoId={religiosoData.id}
+                  religiosoId={religiosoData?.id || user?.religiosoId}
                   onSaved={() => {
                     setActiveSection('inicio');
                     void loadMemberData();
@@ -1305,13 +1319,15 @@ export const PortalReligioso: React.FC = () => {
           )}
 
           {/* SEÇÃO: MINHA FICHA COMPLETA (PDF ESTILO OFICIAL) */}
-          {activeSection === 'ficha-pdf' && (
-            <FichaCanonicaPDF onBack={() => setActiveSection('inicio')} />
+          {visitedSections.has('ficha-pdf') && (
+            <div className={activeSection === 'ficha-pdf' ? '' : 'hidden'} aria-hidden={activeSection !== 'ficha-pdf'}>
+              <FichaCanonicaPDF onBack={() => setActiveSection('inicio')} />
+            </div>
           )}
 
           {/* SEÇÃO: ELENCO BRM */}
-          {activeSection === 'anuario' && (
-            <div className="space-y-4">
+          {visitedSections.has('anuario') && (
+            <div className={activeSection === 'anuario' ? 'space-y-4' : 'hidden'} aria-hidden={activeSection !== 'anuario'}>
               <div>
                 <button
                   type="button"
@@ -1327,60 +1343,66 @@ export const PortalReligioso: React.FC = () => {
           )}
 
           {/* SEÇÃO: CALENDÁRIO & AGENDA */}
-          {activeSection === 'calendario' && (
-            <PortalCalendarioTab
-              eventos={eventos}
-              eventosFiltrados={eventosFiltrados}
-              loadingEventos={loadingEventos}
-              eventosError={eventosError}
-              eventoVisualizacao={eventoVisualizacao}
-              setEventoVisualizacao={setEventoVisualizacao}
-              eventoFiltroTipo={eventoFiltroTipo}
-              setEventoFiltroTipo={setEventoFiltroTipo}
-              eventoSearch={eventoSearch}
-              setEventoSearch={setEventoSearch}
-              onVoltar={() => setActiveSection('inicio')}
-              formatPeriodo={formatPeriodo}
-              getTipoCor={getTipoCor}
-              respostasInscricoes={respostasInscricoes}
-              formulariosSecretaria={formulariosSecretaria}
-              formulariosError={formulariosError}
-              religiosoData={religiosoData}
-              userEmail={user?.email}
-              onAbrirInscricao={(evt, form) => {
-                setEventoInscricaoModal(evt);
-                setFormularioInscricaoAtivo(form);
-              }}
-            />
+          {visitedSections.has('calendario') && (
+            <div className={activeSection === 'calendario' ? '' : 'hidden'} aria-hidden={activeSection !== 'calendario'}>
+              <PortalCalendarioTab
+                eventos={eventos}
+                eventosFiltrados={eventosFiltrados}
+                loadingEventos={loadingEventos}
+                eventosError={eventosError}
+                eventoVisualizacao={eventoVisualizacao}
+                setEventoVisualizacao={setEventoVisualizacao}
+                eventoFiltroTipo={eventoFiltroTipo}
+                setEventoFiltroTipo={setEventoFiltroTipo}
+                eventoSearch={eventoSearch}
+                setEventoSearch={setEventoSearch}
+                onVoltar={() => setActiveSection('inicio')}
+                formatPeriodo={formatPeriodo}
+                getTipoCor={getTipoCor}
+                respostasInscricoes={respostasInscricoes}
+                formulariosSecretaria={formulariosSecretaria}
+                formulariosError={formulariosError}
+                religiosoData={religiosoData}
+                userEmail={user?.email}
+                onAbrirInscricao={(evt, form) => {
+                  setEventoInscricaoModal(evt);
+                  setFormularioInscricaoAtivo(form);
+                }}
+              />
+            </div>
           )}
 
           {/* SEÇÃO: DOCUMENTOS OFICIAIS */}
-          {activeSection === 'documentos' && (
-            <PortalDocumentosTab
-              documentos={documentos}
-              documentosFiltrados={documentosFiltrados}
-              loadingDocumentos={loadingDocumentos}
-              documentosError={documentosError}
-              docSearch={docSearch}
-              setDocSearch={setDocSearch}
-              docCategoria={docCategoria}
-              setDocCategoria={setDocCategoria}
-              categoriasOficiais={CATEGORIAS_OFICIAIS}
-              onVoltar={() => setActiveSection('inicio')}
-              onLerDocumento={(doc) => setDocumentoLeitura(doc)}
-              formatData={formatData}
-              formatFileSize={formatFileSize}
-              getCategoriaCor={getCategoriaCor}
-            />
+          {visitedSections.has('documentos') && (
+            <div className={activeSection === 'documentos' ? '' : 'hidden'} aria-hidden={activeSection !== 'documentos'}>
+              <PortalDocumentosTab
+                documentos={documentos}
+                documentosFiltrados={documentosFiltrados}
+                loadingDocumentos={loadingDocumentos}
+                documentosError={documentosError}
+                docSearch={docSearch}
+                setDocSearch={setDocSearch}
+                docCategoria={docCategoria}
+                setDocCategoria={setDocCategoria}
+                categoriasOficiais={CATEGORIAS_OFICIAIS}
+                onVoltar={() => setActiveSection('inicio')}
+                onLerDocumento={(doc) => setDocumentoLeitura(doc)}
+                formatData={formatData}
+                formatFileSize={formatFileSize}
+                getCategoriaCor={getCategoriaCor}
+              />
+            </div>
           )}
 
           {/* SEÇÃO: PEDIR HOSPEDAGEM */}
-          {activeSection === 'hospedagem' && (
-            <PortalHospedagemTab
-              casasAcolhida={casasAcolhida}
-              loadingCasas={loadingCasas}
-              onVoltar={() => setActiveSection('inicio')}
-            />
+          {visitedSections.has('hospedagem') && (
+            <div className={activeSection === 'hospedagem' ? '' : 'hidden'} aria-hidden={activeSection !== 'hospedagem'}>
+              <PortalHospedagemTab
+                casasAcolhida={casasAcolhida}
+                loadingCasas={loadingCasas}
+                onVoltar={() => setActiveSection('inicio')}
+              />
+            </div>
           )}
         </main>
       </div>

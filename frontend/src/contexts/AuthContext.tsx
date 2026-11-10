@@ -37,6 +37,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const currentUserIdRef = useRef<string | null>(null);
 
+  const updateUserIfChanged = (nextUser: User | null) => {
+    setUser(prev => {
+      if (!prev && !nextUser) return null;
+      if (!prev || !nextUser) return nextUser;
+      if (
+        prev.id === nextUser.id &&
+        prev.nome === nextUser.nome &&
+        prev.email === nextUser.email &&
+        prev.status === nextUser.status &&
+        prev.isAdmin === nextUser.isAdmin &&
+        prev.isReligioso === nextUser.isReligioso &&
+        prev.religiosoId === nextUser.religiosoId &&
+        prev.religiosoNome === nextUser.religiosoNome &&
+        prev.religiosoGrau === nextUser.religiosoGrau &&
+        prev.religiosoStatusCadastro === nextUser.religiosoStatusCadastro &&
+        prev.precisaTrocarSenha === nextUser.precisaTrocarSenha &&
+        prev.acessos.length === nextUser.acessos.length &&
+        prev.acessos.every((v, i) => v === nextUser.acessos[i])
+      ) {
+        return prev;
+      }
+      return nextUser;
+    });
+  };
+
   const fetchUserProfile = async (userId: string, email: string) => {
     try {
       const [userRes, relRes] = await Promise.all([
@@ -93,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const isAdmin = acessos.includes('admin');
 
-        setUser({
+        updateUserIfChanged({
           id: userId,
           nome: userData.usu_nome || religiosoNome || email.split('@')[0],
           email: userData.usu_email || email,
@@ -108,7 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       } else if (isReligioso) {
         const aprovado = religiosoStatusCadastro === 'Aprovado';
-        setUser({
+        updateUserIfChanged({
           id: userId,
           nome: religiosoNome || email.split('@')[0],
           email: email,
@@ -122,7 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAdmin: false,
         });
       } else {
-        setUser({
+        updateUserIfChanged({
           id: userId,
           nome: email.split('@')[0],
           email,
@@ -134,7 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (err) {
       console.error("Falha ao obter perfil do usuario:", err);
-      setUser({
+      updateUserIfChanged({
         id: userId,
         nome: email.split('@')[0],
         email,

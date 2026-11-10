@@ -430,8 +430,8 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   const { id: routeReligiosoId } = useParams<{ id: string }>();
   const religiosoId = religiosoIdProp || profileReligiosoId || routeReligiosoId;
   const isEditing = Boolean(religiosoId);
-  const serverDraftKey = memberMode && religiosoId
-    ? `member:${religiosoId}`
+  const serverDraftKey = memberMode
+    ? (religiosoId ? `member:${religiosoId}` : 'member:new')
     : adminMode && religiosoId ? `admin:edit:${religiosoId}` : 'admin:new';
   const [step, setStep] = useState(1);
   const formTopRef = useRef<HTMLDivElement>(null);

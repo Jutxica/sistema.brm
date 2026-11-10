@@ -113,42 +113,80 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
         }
 
         if (!user?.id) return;
-        const [{ data: authResult, error: authError }, { data: profile, error: profileError }] = await Promise.all([
+        const [
+          { data: authResult, error: authError },
+          { data: profile, error: profileError },
+          { data: oficial, error: oficialError }
+        ] = await Promise.all([
           supabase.auth.getUser(),
           supabase
             .from('portal_perfis_religiosos')
             .select('*')
             .eq('auth_user_id', user.id)
             .maybeSingle(),
+          supabase
+            .from('religiosos')
+            .select('*')
+            .eq('auth_user_id', user.id)
+            .maybeSingle(),
         ]);
         if (authError) throw authError;
-        if (profileError) throw profileError;
+        if (profileError && (profileError as { code?: string }).code !== 'PGRST116') {
+          console.warn('Aviso ao consultar portal_perfis_religiosos:', profileError);
+        }
+        if (oficialError && (oficialError as { code?: string }).code !== 'PGRST116') {
+          console.warn('Aviso ao consultar cadastro oficial de religiosos:', oficialError);
+        }
 
         const metadata = authResult.user?.user_metadata || {};
         let photoUrl = '';
-        if (profile?.foto_path) {
-          const { data: signedPhoto, error: photoError } = await supabase.storage
+        const chosenPhotoPath = profile?.foto_path || oficial?.foto_path || '';
+        if (chosenPhotoPath) {
+          const { data: signedPhoto } = await supabase.storage
             .from('religiosos-perfil')
-            .createSignedUrl(profile.foto_path, 60 * 60);
-          if (photoError) throw photoError;
-          photoUrl = signedPhoto.signedUrl;
+            .createSignedUrl(chosenPhotoPath, 60 * 60);
+          if (signedPhoto?.signedUrl) {
+            photoUrl = signedPhoto.signedUrl;
+          }
         }
-        setForm({
-          nome_civil: profile?.nome_civil || metadata.nome || user.nome || '',
-          nome_religioso: profile?.nome_religioso || '',
-          grau: profile?.grau || 'Padre',
-          data_nascimento: profile?.data_nascimento || metadata.data_nascimento || '',
+
+        const dbForm: PerfilData = {
+          nome_civil: profile?.nome_civil || oficial?.nome_civil || metadata.nome || user.nome || '',
+          nome_religioso: profile?.nome_religioso || oficial?.nome_religioso || '',
+          grau: profile?.grau || oficial?.grau || 'Padre',
+          data_nascimento: profile?.data_nascimento || oficial?.data_nascimento || metadata.data_nascimento || '',
           foto_url: photoUrl,
-          foto_path: profile?.foto_path || '',
-          comunidade_atual_nome: formatarComunidadeReligiosa(profile?.comunidade_atual_nome || ''),
-          obra_atual_nome: profile?.obra_atual_nome || '',
-          etapa_formativa_atual: profile?.etapa_formativa_atual || '',
-          ano_configuracao: profile?.ano_configuracao ? String(profile.ano_configuracao) : '',
-          ano_referencia_etapa: profile?.ano_referencia_etapa ? String(profile.ano_referencia_etapa) : '2026',
-          email_institucional: profile?.email_institucional || authResult.user?.email || user.email || '',
-          whatsapp: profile?.whatsapp || '',
-          telefone_celular: profile?.telefone_celular || '',
-        });
+          foto_path: chosenPhotoPath,
+          comunidade_atual_nome: formatarComunidadeReligiosa(profile?.comunidade_atual_nome || oficial?.comunidade_atual_nome || ''),
+          obra_atual_nome: profile?.obra_atual_nome || oficial?.obra_atual_nome || '',
+          etapa_formativa_atual: profile?.etapa_formativa_atual || oficial?.etapa_formativa_atual || '',
+          ano_configuracao: profile?.ano_configuracao ? String(profile.ano_configuracao) : (oficial?.ano_configuracao ? String(oficial.ano_configuracao) : ''),
+          ano_referencia_etapa: profile?.ano_referencia_etapa ? String(profile.ano_referencia_etapa) : (oficial?.ano_referencia_etapa ? String(oficial.ano_referencia_etapa) : '2026'),
+          email_institucional: profile?.email_institucional || oficial?.email_institucional || authResult.user?.email || user.email || '',
+          whatsapp: profile?.whatsapp || oficial?.whatsapp || oficial?.telefone_celular || '',
+          telefone_celular: profile?.telefone_celular || oficial?.telefone_celular || oficial?.whatsapp || '',
+        };
+
+        // Recupera rascunho salvo no navegador se houver dados não sincronizados
+        let draftForm: Partial<PerfilData> | null = null;
+        try {
+          const draftKey = `brm_rascunho_perfil_${user.id}`;
+          const draftStr = localStorage.getItem(draftKey);
+          if (draftStr) {
+            draftForm = JSON.parse(draftStr);
+          }
+        } catch (_) {}
+
+        if (draftForm && typeof draftForm === 'object') {
+          setForm({
+            ...dbForm,
+            ...draftForm,
+            foto_url: draftForm.foto_url || dbForm.foto_url,
+            foto_path: draftForm.foto_path || dbForm.foto_path,
+          });
+        } else {
+          setForm(dbForm);
+        }
       } catch (err) {
         console.error('Erro ao carregar perfil:', err);
         setErrorMsg(err instanceof Error
@@ -160,7 +198,32 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
     };
 
     loadProfile();
-  }, [user, isE2E]);
+  }, [user?.id, isE2E]);
+
+  // Persistir rascunho de edições para não perder dados ao alternar de aba ou recarregar
+  useEffect(() => {
+    if (loading || !user?.id || isE2E) return;
+    try {
+      const draftKey = `brm_rascunho_perfil_${user.id}`;
+      localStorage.setItem(draftKey, JSON.stringify(form));
+    } catch (_) {}
+  }, [form, loading, user?.id, isE2E]);
+
+  // Garantir gravação síncrona no encerramento da página/aba
+  useEffect(() => {
+    if (!user?.id || isE2E) return;
+    const saveImmediate = () => {
+      try {
+        localStorage.setItem(`brm_rascunho_perfil_${user.id}`, JSON.stringify(form));
+      } catch (_) {}
+    };
+    window.addEventListener('pagehide', saveImmediate);
+    window.addEventListener('beforeunload', saveImmediate);
+    return () => {
+      window.removeEventListener('pagehide', saveImmediate);
+      window.removeEventListener('beforeunload', saveImmediate);
+    };
+  }, [form, user?.id, isE2E]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -270,64 +333,112 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
 
         const nomeReligiosoAtribuido = atribuirNomeReligioso(form.grau, form.nome_civil);
 
-        const payload: Record<string, unknown> = {
+        const isFraterOuDiacono = form.grau === 'Frater' || form.grau === 'Diácono';
+        const etapaVal = isFraterOuDiacono ? (form.etapa_formativa_atual || null) : null;
+        const anoConfigVal = isFraterOuDiacono && form.etapa_formativa_atual === 'Configuração (Teologia)' && form.ano_configuracao ? Number(form.ano_configuracao) : null;
+        const anoRefVal = isFraterOuDiacono ? (Number(form.ano_referencia_etapa) || new Date().getFullYear()) : null;
+
+        // Base payload para portal_perfis_religiosos (NUNCA incluir nome_elenco aqui, pois esta coluna pertence apenas à tabela oficiais public.religiosos)
+        const basePortalPayload: Record<string, unknown> = {
           auth_user_id: user.id,
           nome_civil: form.nome_civil,
           nome_religioso: nomeReligiosoAtribuido || form.nome_religioso,
-          nome_elenco: nomeReligiosoAtribuido || form.nome_religioso || form.nome_civil,
           grau: form.grau,
           data_nascimento: form.data_nascimento || null,
           comunidade_atual_nome: form.comunidade_atual_nome,
           obra_atual_nome: form.obra_atual_nome,
-          etapa_formativa_atual: (form.grau === 'Frater' || form.grau === 'Diácono') ? (form.etapa_formativa_atual || null) : null,
-          ano_configuracao: (form.grau === 'Frater' || form.grau === 'Diácono') && form.etapa_formativa_atual === 'Configuração (Teologia)' && form.ano_configuracao ? Number(form.ano_configuracao) : null,
-          ano_referencia_etapa: (form.grau === 'Frater' || form.grau === 'Diácono') ? (Number(form.ano_referencia_etapa) || new Date().getFullYear()) : null,
           email_institucional: form.email_institucional,
           whatsapp: form.whatsapp,
           telefone_celular: form.whatsapp,
           atualizado_em: new Date().toISOString()
         };
         if (pendingPhoto || photoRemoved) {
-          payload.foto_path = nextPhotoPath || null;
+          basePortalPayload.foto_path = nextPhotoPath || null;
         }
 
-        const { error } = await supabase
-          .from('portal_perfis_religiosos')
-          .upsert(payload, { onConflict: 'auth_user_id' });
+        // Tenta salvar em portal_perfis_religiosos com campos formativos caso existam na tabela
+        let portalError: unknown = null;
+        const fullPortalPayload = {
+          ...basePortalPayload,
+          etapa_formativa_atual: etapaVal,
+          ano_configuracao: anoConfigVal,
+          ano_referencia_etapa: anoRefVal,
+        };
 
-        if (error) {
+        const { error: upsertError } = await supabase
+          .from('portal_perfis_religiosos')
+          .upsert(fullPortalPayload, { onConflict: 'auth_user_id' });
+
+        if (upsertError) {
+          const msg = (upsertError as { message?: string })?.message || '';
+          const code = (upsertError as { code?: string })?.code;
+          // Se a tabela portal_perfis_religiosos não possuir colunas formativas no banco, salva dados essenciais com segurança
+          if (code === 'PGRST204' || msg.includes('column') || msg.includes('etapa_formativa_atual') || msg.includes('schema cache')) {
+            console.warn('portal_perfis_religiosos não possui colunas formativas no cache; salvando dados básicos:', upsertError);
+            const { error: retryError } = await supabase
+              .from('portal_perfis_religiosos')
+              .upsert(basePortalPayload, { onConflict: 'auth_user_id' });
+            if (retryError) {
+              portalError = retryError;
+            }
+          } else {
+            portalError = upsertError;
+          }
+        }
+
+        if (portalError) {
           if (uploadedPhotoPath) {
             const { error: cleanupError } = await supabase.storage
               .from('religiosos-perfil')
               .remove([uploadedPhotoPath]);
             if (cleanupError) console.error('Falha ao limpar foto não vinculada ao perfil:', cleanupError);
           }
-          throw error;
+          throw portalError;
         }
 
-        // Sincroniza também com a tabela religiosos caso haja vínculo por auth_user_id
-        await supabase
+        // Sincroniza também com a tabela oficiais public.religiosos da Província BRM
+        const relUpdatePayload: Record<string, unknown> = {
+          nome_civil: form.nome_civil,
+          nome_religioso: nomeReligiosoAtribuido,
+          nome_elenco: nomeReligiosoAtribuido,
+          grau: form.grau,
+          data_nascimento: form.data_nascimento || null,
+          comunidade_atual_nome: form.comunidade_atual_nome,
+          obra_atual_nome: form.obra_atual_nome,
+          telefone_celular: form.whatsapp,
+          whatsapp: form.whatsapp,
+          etapa_formativa_atual: etapaVal,
+          ano_configuracao: anoConfigVal,
+          ano_referencia_etapa: anoRefVal,
+        };
+
+        const { error: relError } = await supabase
           .from('religiosos')
-          .update({
-            nome_civil: form.nome_civil,
-            nome_religioso: nomeReligiosoAtribuido,
-            nome_elenco: nomeReligiosoAtribuido,
-            grau: form.grau,
-            data_nascimento: form.data_nascimento || null,
-            comunidade_atual_nome: form.comunidade_atual_nome,
-            obra_atual_nome: form.obra_atual_nome,
-            etapa_formativa_atual: (form.grau === 'Frater' || form.grau === 'Diácono') ? (form.etapa_formativa_atual || null) : null,
-            ano_configuracao: (form.grau === 'Frater' || form.grau === 'Diácono') && form.etapa_formativa_atual === 'Configuração (Teologia)' && form.ano_configuracao ? Number(form.ano_configuracao) : null,
-            ano_referencia_etapa: (form.grau === 'Frater' || form.grau === 'Diácono') ? (Number(form.ano_referencia_etapa) || new Date().getFullYear()) : null,
-            telefone_celular: form.whatsapp,
-            whatsapp: form.whatsapp,
-          })
+          .update(relUpdatePayload)
           .eq('auth_user_id', user.id);
+
+        if (relError) {
+          const relErrMsg = (relError as { message?: string })?.message || '';
+          const relErrCode = (relError as { code?: string })?.code;
+          if (relErrCode === 'PGRST204' || relErrMsg.includes('etapa_formativa_atual') || relErrMsg.includes('column')) {
+            delete relUpdatePayload.etapa_formativa_atual;
+            delete relUpdatePayload.ano_configuracao;
+            delete relUpdatePayload.ano_referencia_etapa;
+            await supabase.from('religiosos').update(relUpdatePayload).eq('auth_user_id', user.id);
+          } else {
+            console.warn('Aviso ao sincronizar dados com tabela oficiais de religiosos:', relError);
+          }
+        }
 
         setForm(prev => ({ ...prev, foto_path: nextPhotoPath, foto_url: nextPhotoUrl }));
         setPendingPhoto(null);
         setPhotoPreview('');
         setPhotoRemoved(false);
+
+        // Limpa o rascunho de edições locais após sucesso
+        try {
+          localStorage.removeItem(`brm_rascunho_perfil_${user.id}`);
+        } catch (_) {}
 
         if ((pendingPhoto || photoRemoved) && previousPhotoPath) {
           const { error: removeError } = await supabase.storage
@@ -347,7 +458,15 @@ export const MeuPerfilReligioso: React.FC<MeuPerfilProps> = ({ isPortal = false,
       setTimeout(() => setSuccessMsg(null), 5000);
     } catch (err: unknown) {
       console.error('Erro ao salvar perfil:', err);
-      setErrorMsg(err instanceof Error ? err.message : 'Erro ao salvar perfil. Tente novamente.');
+      const message = 
+        (err && typeof err === 'object' && 'message' in err && typeof (err as { message: unknown }).message === 'string')
+          ? (err as { message: string }).message
+          : (err && typeof err === 'object' && 'error_description' in err && typeof (err as { error_description: unknown }).error_description === 'string')
+          ? (err as { error_description: string }).error_description
+          : err instanceof Error
+          ? err.message
+          : 'Erro ao salvar perfil. Tente novamente.';
+      setErrorMsg(message);
     } finally {
       setSaving(false);
     }
