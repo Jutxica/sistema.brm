@@ -1819,9 +1819,11 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         } catch (fotoRelErr) {
           console.warn('Aviso ao persistir foto_path em religiosos:', fotoRelErr);
         }
-        if (user?.id) {
+        if (user?.id && chosenProfileStoragePath) {
           try {
-            await supabase.from('portal_perfis_religiosos').update({ foto_path: chosenProfileStoragePath }).eq('auth_user_id', user.id);
+            if (chosenProfileStoragePath.startsWith(`${user.id}/`) || chosenProfileStoragePath.startsWith('http')) {
+              await supabase.from('portal_perfis_religiosos').update({ foto_path: chosenProfileStoragePath }).eq('auth_user_id', user.id);
+            }
           } catch (fotoPortalErr) {
             console.warn('Aviso ao sincronizar foto_path em portal_perfis_religiosos:', fotoPortalErr);
           }
@@ -1865,15 +1867,35 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       });
 
       // Sincronização automática com o site oficial da Província BRM (testes.scj.org.br)
+      const nomeFormatadoParaSync = atribuirNomeReligioso(base.grau, base.nome_religioso || base.nome_civil) || base.nome_religioso || base.nome_civil;
+      const cidadeAtuacaoSync = base.cidade ? `${base.cidade}${base.estado ? ` - ${base.estado}` : ''}` : undefined;
+      const naturalidadeSync = base.municipio_nascimento ? `${base.municipio_nascimento}${base.estado_nascimento ? ` - ${base.estado_nascimento}` : ''}` : undefined;
+      const fotoUrlSync = chosenProfileStoragePath
+        ? (chosenProfileStoragePath.startsWith('http') ? chosenProfileStoragePath : supabase.storage.from('religiosos-documentos').getPublicUrl(chosenProfileStoragePath).data?.publicUrl)
+        : undefined;
+
       siteSyncService.triggerOfficialSiteSync(id, {
-        nome: atribuirNomeReligioso(base.grau, base.nome_religioso || base.nome_civil) || base.nome_religioso || base.nome_civil,
+        religioso_id: id,
+        nome: nomeFormatadoParaSync,
         data_nascimento: base.data_nascimento || undefined,
-        cidade_nascimento: base.municipio_nascimento ? `${base.municipio_nascimento}${base.estado_nascimento ? ` - ${base.estado_nascimento}` : ''}` : undefined,
+        nascimento: base.data_nascimento || undefined,
+        cidade_nascimento: naturalidadeSync,
+        naturalidade: naturalidadeSync,
+        foto: fotoUrlSync,
+        foto_url: fotoUrlSync,
+        lema: base.lema || undefined,
+        lema_sacerdotal: base.lema || undefined,
         grau: base.grau || undefined,
+        categoria: (base.grau || '').toLowerCase().includes('bispo') ? 'bispos' :
+                   (base.grau || '').toLowerCase().includes('frater') ? 'fratres' :
+                   (base.grau || '').toLowerCase().includes('irm') ? 'irmaos' : 'padres',
         comunidade: base.comunidade_atual_nome || undefined,
         paroquia: base.obra_atual_nome || base.comunidade_atual_nome || undefined,
+        cidade: cidadeAtuacaoSync,
         cargo: base.cargo || undefined,
         funcao: base.cargo || undefined,
+        biografia: base.observacoes || undefined,
+        bio: base.observacoes || undefined,
       });
 
       if (adminMode) {

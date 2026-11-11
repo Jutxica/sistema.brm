@@ -873,7 +873,28 @@ export const siteSyncService = {
     try {
       let payload: OfficialSiteSyncPayload;
       if (typeof religiosoIdOrPayload === 'string') {
-        payload = await this.buildOfficialSitePayload(religiosoIdOrPayload, extraPayload);
+        try {
+          payload = await this.buildOfficialSitePayload(religiosoIdOrPayload, extraPayload);
+        } catch (dbErr: any) {
+          console.warn(`[Sync Site Oficial] Consulta detalhada do banco para ID ${religiosoIdOrPayload} retornou aviso (${dbErr?.message || dbErr}). Prosseguindo com payload direto do formulário:`, extraPayload);
+          const extraNome = extraPayload?.nome || 'Religioso SCJ';
+          const extraGrau = extraPayload?.grau || 'Padre';
+          payload = {
+            id: this.generateSlug(extraNome, extraGrau),
+            religioso_id: religiosoIdOrPayload,
+            nome: extraNome,
+            grau: extraGrau,
+            categoria: extraGrau.toLowerCase().includes('bispo') ? 'bispos' :
+                       extraGrau.toLowerCase().includes('frater') ? 'fratres' :
+                       extraGrau.toLowerCase().includes('irm') ? 'irmaos' : 'padres',
+            comunidade: extraPayload?.comunidade || 'Província BRM',
+            paroquia: extraPayload?.paroquia || extraPayload?.comunidade || 'Província BRM',
+            cidade: extraPayload?.cidade || 'Santa Catarina / Paraná',
+            cargo: extraPayload?.cargo || extraPayload?.funcao || 'Religioso Dehoniano',
+            funcao: extraPayload?.funcao || extraPayload?.cargo || 'Religioso Dehoniano',
+            ...extraPayload,
+          } as OfficialSiteSyncPayload;
+        }
       } else {
         payload = { ...religiosoIdOrPayload, ...extraPayload };
       }
