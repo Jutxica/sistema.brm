@@ -1870,8 +1870,8 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       const nomeFormatadoParaSync = atribuirNomeReligioso(base.grau, base.nome_religioso || base.nome_civil) || base.nome_religioso || base.nome_civil;
       const cidadeAtuacaoSync = base.cidade ? `${base.cidade}${base.estado ? ` - ${base.estado}` : ''}` : undefined;
       const naturalidadeSync = base.municipio_nascimento ? `${base.municipio_nascimento}${base.estado_nascimento ? ` - ${base.estado_nascimento}` : ''}` : undefined;
-      const fotoUrlSync = chosenProfileStoragePath
-        ? (chosenProfileStoragePath.startsWith('http') ? chosenProfileStoragePath : supabase.storage.from('religiosos-documentos').getPublicUrl(chosenProfileStoragePath).data?.publicUrl)
+      const fotoUrlSync = (chosenProfileStoragePath && (chosenProfileStoragePath.startsWith('http://') || chosenProfileStoragePath.startsWith('https://')))
+        ? chosenProfileStoragePath
         : undefined;
 
       siteSyncService.triggerOfficialSiteSync(id, {
