@@ -817,7 +817,17 @@ export const siteSyncService = {
     // 12. Slug canônico determinístico
     const slug = this.generateSlug(rel.nome_religioso || rel.nome_civil, rel.grau, rel.publicado_site_id);
 
-    // 13. Monta o payload canônico para a integração oficial
+    // 13. Limpa overrides removendo valores undefined/null para não sobrescrever dados válidos
+    const cleanOverrides: Partial<OfficialSiteSyncPayload> = {};
+    if (extraOverrides) {
+      for (const [k, v] of Object.entries(extraOverrides)) {
+        if (v !== undefined && v !== null && v !== '') {
+          (cleanOverrides as any)[k] = v;
+        }
+      }
+    }
+
+    // 14. Monta o payload canônico para a integração oficial
     const payload: OfficialSiteSyncPayload = {
       id: slug,
       slug,
@@ -847,7 +857,7 @@ export const siteSyncService = {
       ordenacao_episcopal: this.formatDateBr(ordEpisc?.data) || ordEpisc?.data || null,
       biografia: bioFinal,
       bio: bioFinal,
-      ...extraOverrides,
+      ...cleanOverrides,
     };
 
     return payload;

@@ -1869,22 +1869,58 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       // Sincronização automática com o site oficial da Província BRM (testes.scj.org.br)
       const nomeFormatadoParaSync = atribuirNomeReligioso(base.grau, base.nome_religioso || base.nome_civil) || base.nome_religioso || base.nome_civil;
       const cidadeAtuacaoSync = base.cidade ? `${base.cidade}${base.estado ? ` - ${base.estado}` : ''}` : undefined;
-      const naturalidadeSync = base.municipio_nascimento ? `${base.municipio_nascimento}${base.estado_nascimento ? ` - ${base.estado_nascimento}` : ''}` : undefined;
-      const fotoUrlSync = (chosenProfileStoragePath && (chosenProfileStoragePath.startsWith('http://') || chosenProfileStoragePath.startsWith('https://')))
-        ? chosenProfileStoragePath
-        : undefined;
+      const naturalidadeSync = base.municipio_nascimento ? `${base.municipio_nascimento}${base.estado_nascimento ? ` - ${base.estado_nascimento}` : ''}` : (base.naturalidade || base.local_nascimento || undefined);
+      
+      let fotoUrlSync: string | undefined = undefined;
+      if (chosenProfileStoragePath) {
+        if (chosenProfileStoragePath.startsWith('http://') || chosenProfileStoragePath.startsWith('https://')) {
+          fotoUrlSync = chosenProfileStoragePath;
+        } else {
+          const { data: pubData } = supabase.storage.from('religiosos-documentos').getPublicUrl(chosenProfileStoragePath);
+          if (pubData?.publicUrl) {
+            fotoUrlSync = pubData.publicUrl;
+          }
+        }
+      }
+
+      const formatBr = (val?: string | null) => {
+        if (!val) return undefined;
+        const clean = val.split('T')[0];
+        const parts = clean.split('-');
+        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        return clean;
+      };
+
+      const primVotosRow = profissoesVotosPayload.find(v => (v.tipo || '').toLowerCase().includes('primeir') || (v.tipo || '').toLowerCase().includes('tempor'));
+      const perpVotosRow = profissoesVotosPayload.find(v => (v.tipo || '').toLowerCase().includes('perp'));
+      const ordDiacRow = ministeriosOrdensPayload.find(o => (o.tipo || '').toLowerCase().includes('diac'));
+      const ordPresbRow = ministeriosOrdensPayload.find(o => (o.tipo || '').toLowerCase().includes('presb') || (o.tipo || '').toLowerCase().includes('sacerd'));
+      const ordEpiscRow = ministeriosOrdensPayload.find(o => (o.tipo || '').toLowerCase().includes('episc') || (o.tipo || '').toLowerCase().includes('bispo'));
+
+      const dataNascRaw = base.data_nascimento ? base.data_nascimento.split('T')[0] : undefined;
+      const dataNascBr = formatBr(base.data_nascimento);
+      const primVotosBr = formatBr(primVotosRow?.data);
+      const perpVotosBr = formatBr(perpVotosRow?.data);
+      const ordDiacBr = formatBr(ordDiacRow?.data);
+      const ordPresbBr = formatBr(ordPresbRow?.data);
+      const ordEpiscBr = formatBr(ordEpiscRow?.data);
+      const ordBr = ordPresbBr || ordDiacBr || ordEpiscBr || undefined;
+
+      const lemaPrincipal = lemas.find(l => l.texto?.trim())?.texto || base.lema || undefined;
+      const cargoSync = base.cargo || base.oficio_atual || base.etapa_formativa_atual || undefined;
+      const bioSync = base.observacoes || base.biografia || undefined;
 
       siteSyncService.triggerOfficialSiteSync(id, {
         religioso_id: id,
         nome: nomeFormatadoParaSync,
-        data_nascimento: base.data_nascimento || undefined,
-        nascimento: base.data_nascimento || undefined,
+        data_nascimento: dataNascRaw,
+        nascimento: dataNascBr || dataNascRaw,
         cidade_nascimento: naturalidadeSync,
         naturalidade: naturalidadeSync,
         foto: fotoUrlSync,
         foto_url: fotoUrlSync,
-        lema: base.lema || undefined,
-        lema_sacerdotal: base.lema || undefined,
+        lema: lemaPrincipal,
+        lema_sacerdotal: lemaPrincipal,
         grau: base.grau || undefined,
         categoria: (base.grau || '').toLowerCase().includes('bispo') ? 'bispos' :
                    (base.grau || '').toLowerCase().includes('frater') ? 'fratres' :
@@ -1892,10 +1928,16 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         comunidade: base.comunidade_atual_nome || undefined,
         paroquia: base.obra_atual_nome || base.comunidade_atual_nome || undefined,
         cidade: cidadeAtuacaoSync,
-        cargo: base.cargo || undefined,
-        funcao: base.cargo || undefined,
-        biografia: base.observacoes || undefined,
-        bio: base.observacoes || undefined,
+        cargo: cargoSync,
+        funcao: cargoSync,
+        primeira_profissao: primVotosBr,
+        profissao_perpetua: perpVotosBr,
+        ordenacao_diaconal: ordDiacBr,
+        ordenacao_presbiteral: ordPresbBr,
+        ordenacao: ordBr,
+        ordenacao_episcopal: ordEpiscBr,
+        biografia: bioSync,
+        bio: bioSync,
       });
 
       if (adminMode) {
