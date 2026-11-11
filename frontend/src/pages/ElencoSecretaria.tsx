@@ -377,6 +377,12 @@ export const ElencoSecretaria: React.FC = () => {
       return;
     }
     showToast.success('Designação registrada e histórico atualizado.');
+    if (formulario.religioso_id) {
+      siteSyncService.triggerOfficialSiteSync(formulario.religioso_id, {
+        cargo: formulario.funcao,
+        funcao: formulario.funcao,
+      });
+    }
     setModalAberto(false);
     await carregar();
   };

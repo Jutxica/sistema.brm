@@ -10,6 +10,7 @@ import { showToast } from '../hooks/useFeedback';
 import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../lib/religiosoNome';
 import { formatarDataBR } from '../utils/dateUtils';
 import { deduplicarObras } from '../utils/obrasUtils';
+import { siteSyncService } from '../services/siteSyncService';
 import type { Religioso } from '../types/religioso';
 import type {
   Comunidade, Obra, Designacao, TipoVinculo, FuncaoCatalogo
@@ -412,7 +413,16 @@ export const TransferenciaReligioso: React.FC = () => {
           });
       }
 
-        const nomeConfrade = atribuirNomeReligioso(religiosoSelecionado?.grau, religiosoSelecionado?.nome_civil) || religiosoSelecionado?.nome_civil || 'Confrade';
+      // Sincronização automática com o site oficial da Província BRM (scj.org.br)
+      siteSyncService.triggerOfficialSiteSync(selectedReligiosoId, {
+        comunidade: comNome,
+        paroquia: obrNome,
+        cargo: funcaoSelecionada,
+        funcao: funcaoSelecionada,
+        cidade: novaComunidade?.cidade ? `${novaComunidade.cidade}${novaComunidade.estado ? ` - ${novaComunidade.estado}` : ''}` : undefined,
+      });
+
+      const nomeConfrade = atribuirNomeReligioso(religiosoSelecionado?.grau, religiosoSelecionado?.nome_civil) || religiosoSelecionado?.nome_civil || 'Confrade';
       showToast.success(`Transferência canônica de ${nomeConfrade} efetivada com sucesso! Elenco, Dossiê e Portal foram atualizados.`);
 
       // Recarregar dados

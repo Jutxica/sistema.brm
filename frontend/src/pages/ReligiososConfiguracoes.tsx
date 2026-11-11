@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertCircle, Check, CheckCircle2, Globe, Info, Link2, Loader2, Save, Settings2 } from 'lucide-react';
+import { AlertCircle, Check, CheckCircle2, Globe, Info, Link2, Loader2, RefreshCw, Save, Settings2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { showToast } from '../hooks/useFeedback';
 import { siteSyncService, type SiteConfig } from '../services/siteSyncService';
@@ -351,6 +351,30 @@ export const ReligiososConfiguracoes: React.FC = () => {
               Chave com permissão de gravação nas tabelas <code className="font-mono">religiosos</code> e <code className="font-mono">locais</code> do projeto do site.
             </span>
           </div>
+        </div>
+
+        {/* ROTINA DE SINCRONIZAÇÃO AUTOMÁTICA EM TEMPO REAL */}
+        <div className="rounded-[6px] bg-sky-50/60 dark:bg-sky-950/20 p-5 border border-sky-200/80 dark:border-sky-900/40 text-xs text-sky-900 dark:text-sky-200 space-y-3">
+          <div className="flex items-center gap-2 text-sky-800 dark:text-sky-300 font-semibold font-cinzel text-xs uppercase tracking-wider">
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Sincronização Automática em Tempo Real</span>
+          </div>
+          <p className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
+            Sempre que os dados de um religioso forem salvos (cadastro novo ou atualização) ou quando for efetivada uma transferência canônica de comunidade/paróquia, o sistema dispara imediatamente uma chamada HTTP POST assíncrona não-bloqueante para o endpoint oficial do portal:
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2 text-[11px] font-mono bg-white dark:bg-slate-900 p-3 rounded-[4px] border border-sky-100 dark:border-sky-900/50">
+            <div>
+              <span className="text-slate-400 block text-[10px] uppercase font-sans font-medium">Endpoint Oficial</span>
+              <span className="text-slate-800 dark:text-slate-200 select-all font-semibold">https://testes.scj.org.br/api/sync/religioso</span>
+            </div>
+            <div>
+              <span className="text-slate-400 block text-[10px] uppercase font-sans font-medium">Token de Integração</span>
+              <span className="text-slate-800 dark:text-slate-200 select-all font-semibold">brm-curia-sync-2026</span>
+            </div>
+          </div>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 italic">
+            * O envio possui timeout automático e proteção try/catch não-bloqueante: caso o site oficial esteja temporariamente fora ou em deploy, a rotina interna da secretaria provincial nunca é interrompida.
+          </p>
         </div>
       </section>
     </form>

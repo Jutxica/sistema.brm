@@ -10,6 +10,7 @@ import { validateCpf } from '../lib/cpf';
 import { parseAddressString } from '../utils/addressParser';
 import { processarObrasReferencia } from '../utils/obrasUtils';
 import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../lib/religiosoNome';
+import { siteSyncService } from '../services/siteSyncService';
 import type { LemaReligioso, FaseLema } from '../types/religioso';
 
 interface FotoReligiosoItem {
@@ -1813,9 +1814,17 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       }
 
       if (chosenProfileStoragePath) {
-        await supabase.from('religiosos').update({ foto_path: chosenProfileStoragePath }).eq('id', id);
+        try {
+          await supabase.from('religiosos').update({ foto_path: chosenProfileStoragePath }).eq('id', id);
+        } catch (fotoRelErr) {
+          console.warn('Aviso ao persistir foto_path em religiosos:', fotoRelErr);
+        }
         if (user?.id) {
-          await supabase.from('portal_perfis_religiosos').update({ foto_path: chosenProfileStoragePath }).eq('auth_user_id', user.id);
+          try {
+            await supabase.from('portal_perfis_religiosos').update({ foto_path: chosenProfileStoragePath }).eq('auth_user_id', user.id);
+          } catch (fotoPortalErr) {
+            console.warn('Aviso ao sincronizar foto_path em portal_perfis_religiosos:', fotoPortalErr);
+          }
         }
       }
 
@@ -1853,6 +1862,18 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         }
       }).catch(err => {
         console.warn('Falha na chamada da Edge Function enviar-ficha-religioso:', err);
+      });
+
+      // Sincronização automática com o site oficial da Província BRM (testes.scj.org.br)
+      siteSyncService.triggerOfficialSiteSync(id, {
+        nome: atribuirNomeReligioso(base.grau, base.nome_religioso || base.nome_civil) || base.nome_religioso || base.nome_civil,
+        data_nascimento: base.data_nascimento || undefined,
+        cidade_nascimento: base.municipio_nascimento ? `${base.municipio_nascimento}${base.estado_nascimento ? ` - ${base.estado_nascimento}` : ''}` : undefined,
+        grau: base.grau || undefined,
+        comunidade: base.comunidade_atual_nome || undefined,
+        paroquia: base.obra_atual_nome || base.comunidade_atual_nome || undefined,
+        cargo: base.cargo || undefined,
+        funcao: base.cargo || undefined,
       });
 
       if (adminMode) {

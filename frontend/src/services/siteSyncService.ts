@@ -49,6 +49,45 @@ export interface SiteLocalItem {
   equipe?: SiteEquipeMembro[];
 }
 
+export const OFFICIAL_SITE_SYNC_URL = 'https://testes.scj.org.br/api/sync/religioso';
+export const OFFICIAL_SITE_SYNC_TOKEN = 'brm-curia-sync-2026';
+
+export interface OfficialSiteSyncPayload {
+  // Identificadores e compatibilidade
+  id?: string;
+  slug?: string;
+  religioso_id?: string;
+  numero_cadastro?: number | null;
+
+  // Campos exigidos na integração
+  nome: string;
+  data_nascimento?: string | null;
+  nascimento?: string | null;
+  cidade_nascimento?: string | null;
+  naturalidade?: string | null;
+  foto?: string | null;
+  foto_url?: string | null;
+  lema?: string | null;
+  lema_sacerdotal?: string | null;
+  grau?: string;
+  categoria?: string;
+  comunidade?: string;
+  paroquia?: string;
+  cidade?: string;
+  cargo?: string;
+  funcao?: string;
+  primeira_profissao?: string | null;
+  profissao_perpetua?: string | null;
+  ordenacao_diaconal?: string | null;
+  ordenacao_presbiteral?: string | null;
+  ordenacao?: string | null;
+  ordenacao_episcopal?: string | null;
+  biografia?: string | null;
+  bio?: string | null;
+
+  [key: string]: any;
+}
+
 const DEFAULT_CONFIG: SiteConfig = {
   site_url: 'https://scj-brm.onrender.com',
   site_supabase_url: '',
@@ -232,6 +271,56 @@ export const siteSyncService = {
   },
 
   /**
+   * Testa a conectividade com o endpoint oficial de sincronização automática
+   */
+  async testSyncEndpoint(
+    endpointUrl: string = OFFICIAL_SITE_SYNC_URL,
+    token: string = OFFICIAL_SITE_SYNC_TOKEN
+  ): Promise<{ success: boolean; message: string; status?: number }> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    try {
+      const res = await fetch(endpointUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-sync-token': token,
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ ping: true, teste_conexao: true }),
+        signal: controller.signal,
+      });
+
+      if (res.status === 200) {
+        return {
+          success: true,
+          message: `Endpoint de sincronização oficial online e autenticado (HTTP 200 OK em ${endpointUrl})!`,
+          status: 200,
+        };
+      } else {
+        return {
+          success: false,
+          message: `Endpoint respondeu com status HTTP ${res.status} (${res.statusText}).`,
+          status: res.status,
+        };
+      }
+    } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        return {
+          success: false,
+          message: `Timeout ao testar o endpoint (${endpointUrl}) após 8s. O site pode estar em deploy ou com alta latência.`,
+        };
+      }
+      return {
+        success: false,
+        message: `Falha ao conectar no endpoint oficial (${endpointUrl}): ${err?.message || err}`,
+      };
+    } finally {
+      clearTimeout(timer);
+    }
+  },
+
+  /**
    * Busca as comunidades (locais) cadastradas no site oficial
    */
   async fetchSiteLocais(config?: SiteConfig): Promise<SiteLocalItem[]> {
@@ -294,7 +383,7 @@ export const siteSyncService = {
       { data: desigData },
     ] = await Promise.all([
       supabase.from('religiosos_profissoes_votos').select('*').eq('religioso_id', religiosoId).order('data', { ascending: true }),
-      supabase.from('religiosos_ordens').select('*').eq('religioso_id', religiosoId).order('data', { ascending: true }),
+      supabase.from('religiosos_ministerios_ordens').select('*').eq('religioso_id', religiosoId).order('data', { ascending: true }),
       supabase.from('religiosos_documentos').select('*').eq('religioso_id', religiosoId).eq('status', 'Ativo'),
       supabase.from('religiosos_designacoes').select('funcao, tipo_vinculo, ano_referencia, vigencia_inicio, comunidades(nome)').eq('religioso_id', religiosoId).order('vigencia_inicio', { ascending: false }).limit(1),
     ]);
@@ -522,10 +611,315 @@ export const siteSyncService = {
       // Ignora erro de evento se tabela tiver restrição
     }
 
+    // 5. Dispara sincronização com o endpoint da API oficial de sync
+    this.triggerOfficialSiteSync(religiosoId, payloadOverride as any);
+
     return {
       success: true,
       message: `Religioso ${finalItem.nome} publicado com sucesso no Site Oficial!`,
       slug: finalItem.id,
     };
+  },
+
+  /**
+   * Constrói o payload completo exigido pelo endpoint de sincronização do site oficial:
+   * https://testes.scj.org.br/api/sync/religioso
+   */
+  async buildOfficialSitePayload(
+    religiosoId: string,
+    extraOverrides?: Partial<OfficialSiteSyncPayload>
+  ): Promise<OfficialSiteSyncPayload> {
+    // 1. Busca dados do religioso com tolerância a relacionamentos opcionais
+    let rel: any = null;
+    try {
+      const { data, error } = await supabase
+        .from('religiosos')
+        .select(`
+          *,
+          comunidade_atual:comunidades(id, nome, cidade, estado),
+          obra_atual:obras(id, nome, cidade, estado)
+        `)
+        .eq('id', religiosoId)
+        .maybeSingle();
+
+      if (!error && data) {
+        rel = data;
+      }
+    } catch {
+      // Fallback se obras não existir no schema cache
+    }
+
+    if (!rel) {
+      try {
+        const { data: relDirect, error: directErr } = await supabase
+          .from('religiosos')
+          .select(`
+            *,
+            comunidade_atual:comunidades(id, nome, cidade, estado)
+          `)
+          .eq('id', religiosoId)
+          .maybeSingle();
+
+        if (!directErr && relDirect) {
+          rel = relDirect;
+        }
+      } catch {
+        // Fallback básico
+      }
+    }
+
+    if (!rel) {
+      const { data: relFallback } = await supabase
+        .from('religiosos')
+        .select('*')
+        .eq('id', religiosoId)
+        .single();
+      rel = relFallback;
+    }
+
+    if (!rel) {
+      throw new Error(`Religioso com ID ${religiosoId} não foi encontrado.`);
+    }
+
+    // 2. Busca votos, ordens, documentos e designações
+    const [votosRes, ordensRes, ordensAltRes, docsRes, desigRes] = await Promise.all([
+      supabase.from('religiosos_profissoes_votos').select('*').eq('religioso_id', religiosoId).order('data', { ascending: true }),
+      supabase.from('religiosos_ministerios_ordens').select('*').eq('religioso_id', religiosoId).order('data', { ascending: true }),
+      supabase.from('religiosos_ordens').select('*').eq('religioso_id', religiosoId).order('data', { ascending: true }),
+      supabase.from('religiosos_documentos').select('*').eq('religioso_id', religiosoId).eq('status', 'Ativo'),
+      supabase.from('religiosos_designacoes').select('funcao, tipo_vinculo, ano_referencia, vigencia_inicio, comunidades(nome, cidade, estado)').eq('religioso_id', religiosoId).order('vigencia_inicio', { ascending: false }).limit(1),
+    ]);
+
+    const votos = votosRes.data || [];
+    const ordens = (ordensRes.data && ordensRes.data.length > 0) ? ordensRes.data : (ordensAltRes.data || []);
+    const documentos = docsRes.data || [];
+    const desigAtiva = (desigRes.data || [])[0];
+
+    // 3. Determina fotografia oficial (perfil 4x4)
+    let fotoUrl: string | null = null;
+    if (rel.foto_url && (rel.foto_url.startsWith('http://') || rel.foto_url.startsWith('https://'))) {
+      fotoUrl = rel.foto_url;
+    } else {
+      const docPerfil = documentos.find(d => (d.categoria || '').includes('Perfil') || (d.categoria || '').includes('4x4'));
+      const docFoto = docPerfil || documentos.find(d => (d.categoria || '').includes('Foto'));
+      const rawFotoPath = rel.foto_path || docFoto?.caminho_storage;
+
+      if (rawFotoPath) {
+        if (rawFotoPath.startsWith('http://') || rawFotoPath.startsWith('https://')) {
+          fotoUrl = rawFotoPath;
+        } else {
+          const { data: publicData } = supabase.storage.from('religiosos-documentos').getPublicUrl(rawFotoPath);
+          if (publicData?.publicUrl) {
+            fotoUrl = publicData.publicUrl;
+          }
+        }
+      }
+    }
+
+    // 4. Determina datas canônicas
+    const primVotos = votos.find(v => (v.tipo || '').toLowerCase().includes('primeir') || (v.tipo || '').toLowerCase().includes('tempor'));
+    const perpVotos = votos.find(v => (v.tipo || '').toLowerCase().includes('perp'));
+    const ordPresb = ordens.find(o => (o.tipo || '').toLowerCase().includes('presb') || (o.tipo || '').toLowerCase().includes('sacerd'));
+    const ordDiac = ordens.find(o => (o.tipo || '').toLowerCase().includes('diac'));
+    const ordEpisc = ordens.find(o => (o.tipo || '').toLowerCase().includes('episc') || (o.tipo || '').toLowerCase().includes('bispo'));
+
+    // 5. Determina categoria e grau
+    const grau = rel.grau || (ordEpisc ? 'Bispo' : ordPresb ? 'Padre' : ordDiac ? 'Diácono' : 'Padre');
+    let categoria = 'padres';
+    if (grau === 'Bispo' || ordEpisc) categoria = 'bispos';
+    else if (grau === 'Frater') categoria = 'fratres';
+    else if (grau === 'Irmão') categoria = 'irmaos';
+    else if (grau === 'Diácono') categoria = 'padres';
+    else categoria = 'padres';
+
+    // 6. Determina nome formatado e canônico
+    let nomeFormatado = (rel.nome_religioso || rel.nome_civil || '').trim();
+    const lowerNome = nomeFormatado.toLowerCase();
+    if (
+      !lowerNome.startsWith('pe.') &&
+      !lowerNome.startsWith('padre ') &&
+      !lowerNome.startsWith('dom ') &&
+      !lowerNome.startsWith('bispo ') &&
+      !lowerNome.startsWith('fr.') &&
+      !lowerNome.startsWith('frater ') &&
+      !lowerNome.startsWith('ir.') &&
+      !lowerNome.startsWith('irmão ') &&
+      !lowerNome.startsWith('irmao ') &&
+      !lowerNome.startsWith('diác.') &&
+      !lowerNome.startsWith('diac.') &&
+      !lowerNome.startsWith('diácono ') &&
+      !lowerNome.startsWith('diacono ')
+    ) {
+      if (grau === 'Bispo') nomeFormatado = `Dom ${nomeFormatado}`;
+      else if (grau === 'Frater') nomeFormatado = `Fr. ${nomeFormatado}`;
+      else if (grau === 'Irmão') nomeFormatado = `Ir. ${nomeFormatado}`;
+      else if (grau === 'Diácono') nomeFormatado = `Diác. ${nomeFormatado}`;
+      else nomeFormatado = `Pe. ${nomeFormatado}`;
+    }
+    if (!nomeFormatado.includes('SCJ')) {
+      nomeFormatado = `${nomeFormatado}, SCJ`;
+    }
+
+    // 7. Determina comunidade e paróquia
+    const comObj = desigAtiva?.comunidades;
+    const comDesignada = Array.isArray(comObj) ? (comObj[0] as any)?.nome : (comObj as any)?.nome;
+    const comunidadeNome = comDesignada || rel.comunidade_atual_nome || rel.comunidade_atual?.nome || 'Província BRM';
+    const paroquiaNome = rel.obra_atual_nome || rel.obra_atual?.nome || comunidadeNome;
+
+    // 8. Determina função / cargo
+    const funcaoDesignada = desigAtiva?.funcao || null;
+    const isSuperior = (funcaoDesignada || '').toLowerCase().includes('superior') ||
+                       (rel.cargo || '').toLowerCase().includes('superior') ||
+                       (rel.oficio_atual || '').toLowerCase().includes('superior');
+
+    let cargoNome = funcaoDesignada || rel.cargo || rel.oficio_atual;
+    if (isSuperior && (!cargoNome || !cargoNome.toLowerCase().includes('superior'))) {
+      cargoNome = 'Superior da Comunidade';
+    }
+    if (!cargoNome) {
+      cargoNome = grau === 'Padre' ? 'Vigário Paroquial' :
+                  grau === 'Bispo' ? 'Bispo Emérito / Titular' :
+                  grau === 'Diácono' ? 'Diácono' :
+                  grau === 'Frater' ? 'Frater Dehoniano' :
+                  grau === 'Irmão' ? 'Irmão Dehoniano' : 'Religioso Dehoniano';
+    }
+
+    // 9. Determina cidade de atuação atual
+    let cidadeAtuacao = '';
+    if (rel.comunidade_atual?.cidade) {
+      cidadeAtuacao = `${rel.comunidade_atual.cidade}${rel.comunidade_atual.estado ? ` - ${rel.comunidade_atual.estado}` : ''}`;
+    } else if (rel.obra_atual?.cidade) {
+      cidadeAtuacao = `${rel.obra_atual.cidade}${rel.obra_atual.estado ? ` - ${rel.obra_atual.estado}` : ''}`;
+    } else {
+      const comCidadeObj = Array.isArray(comObj) ? (comObj[0] as any) : (comObj as any);
+      if (comCidadeObj?.cidade) {
+        cidadeAtuacao = `${comCidadeObj.cidade}${comCidadeObj.estado ? ` - ${comCidadeObj.estado}` : ''}`;
+      } else if (rel.municipio_nascimento && rel.estado_nascimento) {
+        cidadeAtuacao = `${rel.municipio_nascimento} - ${rel.estado_nascimento}`;
+      } else {
+        cidadeAtuacao = 'Santa Catarina / Paraná';
+      }
+    }
+
+    // 10. Naturalidade / Cidade de nascimento
+    let cidadeNasc = '';
+    if (rel.municipio_nascimento && rel.estado_nascimento) {
+      cidadeNasc = `${rel.municipio_nascimento} - ${rel.estado_nascimento}`;
+    } else {
+      cidadeNasc = rel.municipio_nascimento || rel.local_nascimento || rel.naturalidade || 'Joinville - SC';
+    }
+
+    // 11. Lema e Biografia
+    const lemaFinal = rel.lema_destacado || rel.lema || ordPresb?.lema || (Array.isArray(rel.lemas) && rel.lemas[0]?.texto) || 'Ecce Venio — Eis que venho para fazer a Tua vontade';
+    const bioFinal = rel.biografia || rel.observacoes || rel.historico ||
+      `${nomeFormatado} é religioso consagrado da Congregação dos Sacerdotes do Sagrado Coração de Jesus (Dehonianos), atuando no serviço pastoral e comunitário da Província BRM em ${comunidadeNome}.`;
+
+    // 12. Slug canônico determinístico
+    const slug = this.generateSlug(rel.nome_religioso || rel.nome_civil, rel.grau, rel.publicado_site_id);
+
+    // 13. Monta o payload canônico para a integração oficial
+    const payload: OfficialSiteSyncPayload = {
+      id: slug,
+      slug,
+      religioso_id: rel.id,
+      numero_cadastro: rel.numero_cadastro ?? null,
+      nome: nomeFormatado,
+      data_nascimento: rel.data_nascimento ? rel.data_nascimento.split('T')[0] : null,
+      nascimento: this.formatDateBr(rel.data_nascimento),
+      cidade_nascimento: cidadeNasc,
+      naturalidade: cidadeNasc,
+      foto: fotoUrl,
+      foto_url: fotoUrl,
+      lema: lemaFinal,
+      lema_sacerdotal: lemaFinal,
+      grau,
+      categoria,
+      comunidade: comunidadeNome,
+      paroquia: paroquiaNome,
+      cidade: cidadeAtuacao,
+      cargo: cargoNome,
+      funcao: cargoNome,
+      primeira_profissao: this.formatDateBr(primVotos?.data) || primVotos?.data || null,
+      profissao_perpetua: this.formatDateBr(perpVotos?.data) || perpVotos?.data || null,
+      ordenacao_diaconal: this.formatDateBr(ordDiac?.data) || ordDiac?.data || null,
+      ordenacao_presbiteral: this.formatDateBr(ordPresb?.data) || ordPresb?.data || null,
+      ordenacao: this.formatDateBr(ordPresb?.data) || ordPresb?.data || null,
+      ordenacao_episcopal: this.formatDateBr(ordEpisc?.data) || ordEpisc?.data || null,
+      biografia: bioFinal,
+      bio: bioFinal,
+      ...extraOverrides,
+    };
+
+    return payload;
+  },
+
+  /**
+   * Sincronização automática com o site oficial da Província BRM (scj.org.br).
+   * Chamada HTTP POST não-bloqueante protegida por try/catch com timeout de contingência.
+   * Disparada sempre que os dados de um religioso forem salvos ou quando houver transferência.
+   */
+  async syncReligiosoSiteOficial(
+    religiosoIdOrPayload: string | OfficialSiteSyncPayload,
+    extraPayload?: Partial<OfficialSiteSyncPayload>,
+    options?: { timeoutMs?: number; endpointUrl?: string; token?: string }
+  ): Promise<{ success: boolean; status?: number; error?: string }> {
+    const timeoutMs = options?.timeoutMs ?? 10000;
+    const url = options?.endpointUrl || OFFICIAL_SITE_SYNC_URL;
+    const token = options?.token || OFFICIAL_SITE_SYNC_TOKEN;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      let payload: OfficialSiteSyncPayload;
+      if (typeof religiosoIdOrPayload === 'string') {
+        payload = await this.buildOfficialSitePayload(religiosoIdOrPayload, extraPayload);
+      } else {
+        payload = { ...religiosoIdOrPayload, ...extraPayload };
+      }
+
+      console.log(`[Sync Site Oficial] Enviando dados de "${payload.nome || 'Religioso'}" para ${url}...`);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-sync-token': token,
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      if (response.status === 200) {
+        console.log(`[Sync Site Oficial] Sincronização automática com o site oficial retornou 200 OK para o religioso: "${payload.nome}".`);
+        return { success: true, status: 200 };
+      } else {
+        console.warn(`[Sync Site Oficial] O endpoint do site oficial retornou status HTTP ${response.status} (${response.statusText}) para "${payload.nome}".`);
+        return { success: false, status: response.status, error: `HTTP ${response.status}: ${response.statusText}` };
+      }
+    } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        console.warn(`[Sync Site Oficial] Timeout de ${timeoutMs}ms atingido na sincronização com ${url}. A operação principal do sistema foi concluída sem interrupções.`);
+        return { success: false, error: 'Timeout de sincronização com o site oficial' };
+      }
+      console.warn(`[Sync Site Oficial] Falha não-bloqueante na sincronização com o site oficial (${err?.message || err}). A operação principal do sistema foi preservada.`);
+      return { success: false, error: err?.message || String(err) };
+    } finally {
+      clearTimeout(timer);
+    }
+  },
+
+  /**
+   * Disparo não-bloqueante (fire-and-forget seguro) da sincronização com o site oficial.
+   * Não bloqueia a thread de execução do formulário ou o feedback para o secretário.
+   */
+  triggerOfficialSiteSync(
+    religiosoIdOrPayload: string | OfficialSiteSyncPayload,
+    extraPayload?: Partial<OfficialSiteSyncPayload>
+  ): void {
+    void this.syncReligiosoSiteOficial(religiosoIdOrPayload, extraPayload).catch(err => {
+      console.warn('[Sync Site Oficial] Erro capturado no wrapper não-bloqueante:', err);
+    });
   },
 };
