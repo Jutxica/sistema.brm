@@ -214,6 +214,50 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
     carregarDadosFicha();
   }, [religiosoId, user, isE2E]);
 
+  const formatarData = (d?: string) => {
+    if (!d) return '—';
+    try {
+      const parts = d.split('-');
+      if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+      return d;
+    } catch {
+      return d;
+    }
+  };
+
+  const formatCpfMask = (cpf?: string | null) => {
+    if (!cpf) return '—';
+    const clean = cpf.replace(/\D/g, '');
+    if (clean.length === 11) {
+      return clean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    }
+    return cpf;
+  };
+
+  const naturalidadeTexto = [data?.municipio_nascimento, data?.estado_nascimento].filter(Boolean).join(' - ') || '—';
+  const pai = data?.familiares?.find((f: any) => (f.parentesco || f.tipo || '').toLowerCase().includes('pai'))?.nome;
+  const mae = data?.familiares?.find((f: any) => (f.parentesco || f.tipo || '').toLowerCase().includes('mãe') || (f.parentesco || f.tipo || '').toLowerCase().includes('mae'))?.nome;
+  const paisTexto = [pai, mae].filter(Boolean).join(' e ') || '—';
+
+  const anoIngresso = extrairAno(data?.data_ingresso);
+  const batismo = data?.batismo || data?.sacramentosList?.find((s: any) => (s.tipo || '').toLowerCase().includes('batis')) || null;
+
+  const { etapasFormacaoInicial, etapasTirocinio } = useMemo(() => {
+    const iniciais: any[] = [];
+    const tirocinio: any[] = [];
+    (data?.formacaoReligiosa || []).forEach((f: any) => {
+      const etapaNome = f.etapa || '';
+      if (etapaNome.toLowerCase().includes('tirocín') || etapaNome.toLowerCase().includes('tirocin')) {
+        tirocinio.push(f);
+      } else {
+        iniciais.push(f);
+      }
+    });
+    return { etapasFormacaoInicial: iniciais, etapasTirocinio: tirocinio };
+  }, [data?.formacaoReligiosa]);
+
   const handleExportarGotenberg = async () => {
     if (!data) return;
     setExportandoGotenberg(true);
@@ -490,19 +534,6 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
     }
   };
 
-  const formatarData = (d?: string) => {
-    if (!d) return '—';
-    try {
-      const parts = d.split('-');
-      if (parts.length === 3) {
-        return `${parts[2]}/${parts[1]}/${parts[0]}`;
-      }
-      return d;
-    } catch {
-      return d;
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] w-full py-16">
@@ -526,37 +557,6 @@ export const FichaCanonicaPDF: React.FC<FichaCanonicaPDFProps> = ({
       </div>
     );
   }
-
-  const formatCpfMask = (cpf?: string | null) => {
-    if (!cpf) return '—';
-    const clean = cpf.replace(/\D/g, '');
-    if (clean.length === 11) {
-      return clean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-    }
-    return cpf;
-  };
-
-  const naturalidadeTexto = [data?.municipio_nascimento, data?.estado_nascimento].filter(Boolean).join(' - ') || '—';
-  const pai = data?.familiares?.find((f: any) => (f.parentesco || f.tipo || '').toLowerCase().includes('pai'))?.nome;
-  const mae = data?.familiares?.find((f: any) => (f.parentesco || f.tipo || '').toLowerCase().includes('mãe') || (f.parentesco || f.tipo || '').toLowerCase().includes('mae'))?.nome;
-  const paisTexto = [pai, mae].filter(Boolean).join(' e ') || '—';
-
-  const anoIngresso = extrairAno(data?.data_ingresso);
-  const batismo = data?.batismo || data?.sacramentosList?.find((s: any) => (s.tipo || '').toLowerCase().includes('batis')) || null;
-
-  const { etapasFormacaoInicial, etapasTirocinio } = useMemo(() => {
-    const iniciais: any[] = [];
-    const tirocinio: any[] = [];
-    (data?.formacaoReligiosa || []).forEach((f: any) => {
-      const etapaNome = f.etapa || '';
-      if (etapaNome.toLowerCase().includes('tirocín') || etapaNome.toLowerCase().includes('tirocin')) {
-        tirocinio.push(f);
-      } else {
-        iniciais.push(f);
-      }
-    });
-    return { etapasFormacaoInicial: iniciais, etapasTirocinio: tirocinio };
-  }, [data?.formacaoReligiosa]);
 
   return (
     <div className="w-full">
