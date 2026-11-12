@@ -35,6 +35,243 @@ interface RegistroHistorico {
   relatorio_envio?: any[];
 }
 
+function gerarHtmlCredenciaisPreview(
+  nomeTratamento?: string,
+  emailLogin?: string,
+  senhaProvisoria?: string
+): string {
+  const nome = nomeTratamento || 'Pe. João da Silva, SCJ';
+  const email = emailLogin || 'joao.silva@brm.org.br';
+  const senha = senhaProvisoria || 'brm@15081978';
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acesso ao Portal do Religioso - Província BRM</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f3f6f8;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #17333d;
+      -webkit-font-smoothing: antialiased;
+    }
+    table {
+      border-collapse: collapse;
+    }
+    a {
+      color: #226380;
+      text-decoration: underline;
+    }
+    @media only screen and (max-width: 620px) {
+      .container {
+        width: 100% !important;
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+      }
+      .content-padding {
+        padding: 24px 18px !important;
+      }
+      .cred-table td {
+        display: block !important;
+        width: 100% !important;
+        padding: 4px 0 !important;
+      }
+      .btn-cta {
+        display: block !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        text-align: center !important;
+      }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 24px 12px; background-color: #f3f6f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #17333d;">
+
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td align="center">
+        <!-- Container Principal -->
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" class="container" style="max-width: 620px; background-color: #ffffff; border: 1px solid #dce5e8; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 18px rgba(17, 50, 64, 0.05);">
+          
+          <!-- Cabeçalho Timbrado com Identidade Visual BRM -->
+          <tr>
+            <td style="background-color: #113240; padding: 36px 28px 24px; text-align: center; border-bottom: 3px solid #226380;">
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td align="center">
+                    <img src="https://sistema.brm.org.br/brasao-colorido-dehoniano.png" alt="Brasão Dehoniano - Província BRM" width="125" style="display: block; width: 125px; max-width: 100%; height: auto; margin: 0 auto 16px; border: 0;">
+                    <div style="font-size: 11px; font-weight: 700; letter-spacing: 2.2px; text-transform: uppercase; color: #8bb6c6;">
+                      Província Brasileira Meridional · SCJ
+                    </div>
+                    <div style="margin-top: 6px; font-size: 23px; font-weight: 700; color: #ffffff; letter-spacing: -0.3px;">
+                      Portal do Religioso
+                    </div>
+                    <div style="margin-top: 4px; font-size: 13px; color: #c0d6df;">
+                      Credenciais de Primeiro Acesso
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Corpo do E-mail -->
+          <tr>
+            <td class="content-padding" style="padding: 36px 36px 28px;">
+              
+              <!-- Saudação -->
+              <p style="margin: 0 0 16px; font-size: 16px; font-weight: 700; color: #113240;">
+                Prezado ${nome},
+              </p>
+              
+              <p style="margin: 0 0 18px; font-size: 14px; line-height: 1.7; color: #374f59;">
+                Fraternas saudações em Cristo Jesus!
+              </p>
+              
+              <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.7; color: #374f59;">
+                A Secretaria Provincial disponibiliza o seu acesso ao <strong>Portal do Religioso</strong> da Província Brasileira Meridional. Este ambiente digital reúne a sua Ficha Cadastral Oficial, histórico formativo, designações, agenda e comunicados da Província.
+              </p>
+
+              <!-- Card de Credenciais -->
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f7fafb; border: 1px solid #d5e2e6; border-left: 4px solid #226380; border-radius: 6px; margin-bottom: 20px;">
+                <tr>
+                  <td style="padding: 20px 22px;">
+                    <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #226380; margin-bottom: 12px;">
+                      Credenciais de Acesso
+                    </div>
+
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" class="cred-table" style="font-size: 14px;">
+                      <tr>
+                        <td style="padding: 6px 0; color: #627b85; font-weight: 500; width: 36%;">
+                          Endereço do Portal:
+                        </td>
+                        <td style="padding: 6px 0; color: #113240; font-weight: 600;">
+                          <a href="https://portal.brm.org.br" style="color: #226380; text-decoration: none; word-break: break-all;">https://portal.brm.org.br</a>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #627b85; font-weight: 500;">
+                          E-mail de Login:
+                        </td>
+                        <td style="padding: 6px 0; color: #113240; font-weight: 600;">
+                          <span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; word-break: break-all;">${email}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0 6px; color: #627b85; font-weight: 500;">
+                          Senha Provisória:
+                        </td>
+                        <td style="padding: 8px 0 6px;">
+                          <span style="display: inline-block; background-color: #e6eef1; border: 1px solid #cad8dc; border-radius: 4px; padding: 4px 10px; font-family: 'SF Mono', Menlo, Consolas, Monaco, monospace; font-size: 14px; font-weight: 700; color: #113240; letter-spacing: 0.6px;">${senha}</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Nota de Primeiro Acesso -->
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px;">
+                <tr>
+                  <td style="font-size: 13px; line-height: 1.6; color: #526b75; border-left: 3px solid #cad8dc; padding-left: 12px;">
+                    <strong>Observação:</strong> no primeiro acesso com a senha provisória, o sistema solicitará o cadastro de uma nova senha pessoal definitiva. A senha provisória deixa de valer logo após essa atualização.
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Passo a Passo -->
+              <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #113240; margin-bottom: 14px;">
+                Como realizar o primeiro acesso:
+              </div>
+
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 28px;">
+                <tr>
+                  <td width="30" valign="top" style="padding-bottom: 10px;">
+                    <div style="width: 22px; height: 22px; background-color: #113240; color: #ffffff; border-radius: 50%; font-size: 11px; font-weight: 700; text-align: center; line-height: 22px;">1</div>
+                  </td>
+                  <td style="padding-bottom: 10px; font-size: 14px; line-height: 1.6; color: #374f59;">
+                    Acesse o endereço do Portal pelo botão abaixo.
+                  </td>
+                </tr>
+                <tr>
+                  <td width="30" valign="top" style="padding-bottom: 10px;">
+                    <div style="width: 22px; height: 22px; background-color: #113240; color: #ffffff; border-radius: 50%; font-size: 11px; font-weight: 700; text-align: center; line-height: 22px;">2</div>
+                  </td>
+                  <td style="padding-bottom: 10px; font-size: 14px; line-height: 1.6; color: #374f59;">
+                    Informe seu e-mail e a <strong>senha provisória</strong> indicada acima.
+                  </td>
+                </tr>
+                <tr>
+                  <td width="30" valign="top" style="padding-bottom: 10px;">
+                    <div style="width: 22px; height: 22px; background-color: #113240; color: #ffffff; border-radius: 50%; font-size: 11px; font-weight: 700; text-align: center; line-height: 22px;">3</div>
+                  </td>
+                  <td style="padding-bottom: 10px; font-size: 14px; line-height: 1.6; color: #374f59;">
+                    Cadastre a sua <strong>nova senha pessoal</strong> na tela de primeiro acesso.
+                  </td>
+                </tr>
+                <tr>
+                  <td width="30" valign="top">
+                    <div style="width: 22px; height: 22px; background-color: #226380; color: #ffffff; border-radius: 50%; font-size: 11px; font-weight: 700; text-align: center; line-height: 22px;">4</div>
+                  </td>
+                  <td style="font-size: 14px; line-height: 1.6; color: #374f59;">
+                    Concluída a alteração, o acesso ao Portal estará liberado para que você realize seu cadastro, anexe documentos e consulte a agenda provincial.
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Botão CTA Centralizado -->
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 28px;">
+                <tr>
+                  <td align="center">
+                    <a href="https://portal.brm.org.br" class="btn-cta" style="background-color: #113240; color: #ffffff; display: inline-block; padding: 13px 30px; font-size: 14px; font-weight: 700; text-decoration: none; border-radius: 6px; letter-spacing: 0.2px; text-align: center;">
+                      Acessar o Portal do Religioso &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Bloco de Apoio da Secretaria -->
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f7fafb; border: 1px solid #e1ebed; border-radius: 6px;">
+                <tr>
+                  <td style="padding: 14px 18px; font-size: 13px; line-height: 1.6; color: #4e656d; text-align: center;">
+                    Em caso de dúvidas ou necessidade de auxílio no primeiro acesso, entre em contato com a Secretaria Provincial pelo e-mail <a href="mailto:secretaria@brm.org.br" style="color: #226380; font-weight: 600; text-decoration: none;">secretaria@brm.org.br</a>.
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Rodapé Institucional -->
+          <tr>
+            <td style="background-color: #edf2f4; border-top: 1px solid #dce5e8; padding: 22px 28px; text-align: center;">
+              <p style="margin: 0 0 6px; font-size: 12px; font-weight: 700; color: #113240;">
+                Província Brasileira Meridional · Congregação dos Sacerdotes do Sagrado Coração de Jesus
+              </p>
+              <p style="margin: 0 0 10px; font-size: 11px; line-height: 1.6; color: #627b85;">
+                Cúria Provincial · Rua Padre Gabriel Lux, 900 – Caixa Postal 21 · Corupá - SC · CEP 89278-000<br>
+                Secretaria Provincial · <a href="mailto:secretaria@brm.org.br" style="color: #226380; text-decoration: none;">secretaria@brm.org.br</a>
+              </p>
+              <p style="margin: 0; font-size: 11px; line-height: 1.5; color: #78909c;">
+                <em>Aviso: este e-mail contém credenciais temporárias de uso individual e intransferível. Por favor, não compartilhe esta mensagem.</em>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>`.trim();
+}
+
 export const DispararCredenciaisPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -993,39 +1230,93 @@ export const DispararCredenciaisPage: React.FC = () => {
           {/* Editor de Conteúdo */}
           <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] p-6 space-y-4">
             <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-cinzel">
-              Parâmetros e Texto da Mensagem
+              {tipoMensagem === 'credenciais' ? 'Modelo Homologado de Primeiro Acesso' : 'Parâmetros e Texto da Mensagem'}
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Assunto do E-mail <span className="text-rose-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={assunto}
-                  onChange={e => setAssunto(e.target.value)}
-                  placeholder="Ex: Carta Circular 01/2026 - Governo Provincial"
-                  className="w-full px-3 py-2 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#10171B] text-slate-900 dark:text-white focus:outline-none focus:border-[#226380]"
-                />
-              </div>
+            {tipoMensagem === 'credenciais' ? (
+              <div className="space-y-4">
+                <div className="p-4 rounded-lg border border-[#226380]/30 bg-[#f4f8fa] dark:bg-[#11242d] space-y-3">
+                  <div className="flex items-center gap-2 font-bold text-xs text-[#113240] dark:text-[#A3C3C7]">
+                    <ShieldCheck className="w-4 h-4 text-[#226380]" />
+                    <span>Modelo Canônico Oficial Aprovado</span>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                    O modelo de <strong>Primeiro Acesso ao Portal do Religioso</strong> utiliza a redação formal e padronizada da Província Brasileira Meridional, sem alterações no texto. Cada confrade recebe seus dados individuais de login e a senha provisória calculada automaticamente.
+                  </p>
+                  <div className="text-[11px] text-slate-600 dark:text-slate-400 space-y-1 pt-1 border-t border-slate-200 dark:border-slate-800">
+                    <div>• <strong>Assunto:</strong> Portal do Religioso: Suas credenciais de primeiro acesso - [Nome do Confrade]</div>
+                    <div>• <strong>Cabeçalho:</strong> Brasão Dehoniano Colorido Oficial sobre fundo #113240</div>
+                    <div>• <strong>Instruções:</strong> Passo a passo em 4 etapas numeradas para cadastro de senha definitiva</div>
+                    <div>• <strong>Rodapé:</strong> Cúria Provincial em Corupá - SC e aviso canônico institucional</div>
+                  </div>
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Subtítulo no Cabeçalho Timbrado
-                </label>
-                <input
-                  type="text"
-                  value={subtituloCabecalho}
-                  onChange={e => setSubtituloCabecalho(e.target.value)}
-                  placeholder="Ex: Carta Circular nº 01/2026"
-                  className="w-full px-3 py-2 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#10171B] text-slate-900 dark:text-white focus:outline-none focus:border-[#226380]"
-                />
-              </div>
-            </div>
+                <div className="flex items-center justify-between pt-2">
+                  <a
+                    href="/templates/preview-credenciais-exemplo.html"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs text-[#226380] hover:underline font-semibold"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Visualizar Modelo Completo em Nova Janela</span>
+                  </a>
 
-            {tipoMensagem !== 'credenciais' && (
+                  <button
+                    type="button"
+                    onClick={() => setViewModo('teste')}
+                    className="px-4 py-2 rounded-md bg-[#113240] hover:bg-[#1A4355] text-white text-xs font-semibold flex items-center gap-2 cursor-pointer transition shadow-xs"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Ver Prévia Fiel & Testar Envio</span>
+                  </button>
+                </div>
+
+                {/* Prévia Integrada do Modelo Oficial */}
+                <div className="rounded-lg border border-slate-300 dark:border-slate-800 overflow-hidden bg-[#F3F6F8] mt-3">
+                  <div className="p-2.5 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                      Visualização Fiel do Modelo Oficial Aprovado
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-mono">Largura Canônica: 620px</span>
+                  </div>
+                  <iframe
+                    title="Modelo Oficial de Credenciais"
+                    src="/templates/preview-credenciais-exemplo.html"
+                    className="w-full h-[640px] border-none bg-[#F3F6F8]"
+                  />
+                </div>
+              </div>
+            ) : (
               <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Assunto do E-mail <span className="text-rose-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={assunto}
+                      onChange={e => setAssunto(e.target.value)}
+                      placeholder="Ex: Carta Circular 01/2026 - Governo Provincial"
+                      className="w-full px-3 py-2 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#10171B] text-slate-900 dark:text-white focus:outline-none focus:border-[#226380]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Subtítulo no Cabeçalho Timbrado
+                    </label>
+                    <input
+                      type="text"
+                      value={subtituloCabecalho}
+                      onChange={e => setSubtituloCabecalho(e.target.value)}
+                      placeholder="Ex: Carta Circular nº 01/2026"
+                      className="w-full px-3 py-2 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#10171B] text-slate-900 dark:text-white focus:outline-none focus:border-[#226380]"
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Corpo da Mensagem (Parágrafos)
@@ -1095,31 +1386,25 @@ export const DispararCredenciaisPage: React.FC = () => {
                     className="w-full px-3 py-2 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#10171B] text-slate-900 dark:text-white focus:outline-none focus:border-[#226380]"
                   />
                 </div>
+
+                <div className="pt-3 flex items-center justify-between border-t border-slate-200 dark:border-slate-800">
+                  <span className="text-xs text-slate-500">
+                    Destinatários atuais selecionados: <strong>{selecionados.size}</strong> confrade(s).
+                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setViewModo('teste')}
+                      className="px-4 py-2 rounded-md bg-[#113240] hover:bg-[#1A4355] text-white text-xs font-semibold flex items-center gap-2 cursor-pointer transition shadow-xs"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Ver Prévia & Testar</span>
+                    </button>
+                  </div>
+                </div>
               </>
             )}
-
-            {tipoMensagem === 'credenciais' && (
-              <div className="p-3.5 rounded border border-blue-200 dark:border-blue-900/40 bg-blue-50/50 dark:bg-blue-950/20 text-xs text-blue-900 dark:text-blue-200 leading-relaxed">
-                <strong>Modelo de Credenciais Automático:</strong> Os dados de login (e-mail cadastrado, senha provisória calculada pela data de nascimento e instruções de segurança canônica) serão inseridos dinamicamente para cada confrade no momento do envio.
-              </div>
-            )}
-
-            <div className="pt-3 flex items-center justify-between border-t border-slate-200 dark:border-slate-800">
-              <span className="text-xs text-slate-500">
-                Destinatários atuais selecionados: <strong>{selecionados.size}</strong> confrade(s).
-              </span>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setViewModo('teste')}
-                  className="px-4 py-2 rounded-md bg-[#113240] hover:bg-[#1A4355] text-white text-xs font-semibold flex items-center gap-2 cursor-pointer transition shadow-xs"
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  <span>Ver Prévia & Testar</span>
-                </button>
-              </div>
-            </div>
           </div>
 
         </div>
@@ -1260,95 +1545,97 @@ export const DispararCredenciaisPage: React.FC = () => {
           {/* Coluna 2: Prévia Visual ao Vivo */}
           <div className="lg:col-span-7 space-y-2">
             <div className="flex items-center justify-between text-xs text-slate-500">
-              <span className="font-semibold uppercase tracking-wider text-[11px]">Prévia Fiel do E-mail Oficial:</span>
+              <span className="font-semibold uppercase tracking-wider text-[11px]">
+                {tipoMensagem === 'credenciais' ? 'Modelo Oficial Aprovado de Primeiro Acesso:' : 'Prévia Fiel do Comunicado:'}
+              </span>
               <span className="text-[11px] text-slate-400 font-mono">Largura canônica: 620px</span>
             </div>
 
-            <div className="rounded-lg border border-slate-300 dark:border-slate-800 overflow-hidden bg-[#F3F6F8] p-4 flex justify-center">
-              <div className="w-full max-w-[580px] bg-white border border-[#dce5e8] rounded-xl overflow-hidden shadow-xs text-[#17333d]">
-                
-                {/* Cabeçalho Timbrado */}
-                <div className="bg-[#113240] px-6 py-8 text-center border-b-4 border-[#226380]">
-                  <img
-                    src="https://sistema.brm.org.br/brasao-colorido-dehoniano.png"
-                    alt="Brasão Dehoniano"
-                    className="h-20 w-auto mx-auto mb-3 object-contain"
-                  />
-                  <div className="text-[10px] font-bold tracking-[2px] uppercase text-[#8bb6c6]">
-                    Província Brasileira Meridional · SCJ
-                  </div>
-                  <div className="text-lg font-bold text-white tracking-tight mt-1">
-                    {tipoMensagem === 'credenciais' ? 'Portal do Religioso' : (tituloCabecalho || 'Secretaria Provincial')}
-                  </div>
-                  <div className="text-xs text-[#c0d6df] mt-0.5">
-                    {subtituloCabecalho || 'Comunicado Oficial'}
-                  </div>
+            {tipoMensagem === 'credenciais' ? (
+              <div className="rounded-lg border border-slate-300 dark:border-slate-800 overflow-hidden bg-[#F3F6F8]">
+                <div className="p-2.5 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">
+                    E-mail Timbrado com Credenciais (Renderização Real)
+                  </span>
+                  <a
+                    href="/templates/preview-credenciais-exemplo.html"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-[#226380] dark:text-[#A3C3C7] hover:underline font-semibold"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Abrir em Nova Janela</span>
+                  </a>
                 </div>
+                <iframe
+                  title="Prévia do E-mail Oficial de Credenciais"
+                  srcDoc={gerarHtmlCredenciaisPreview(nomeTeste, emailTeste1, senhaTeste)}
+                  className="w-full h-[720px] border-none bg-[#F3F6F8]"
+                />
+              </div>
+            ) : (
+              <div className="rounded-lg border border-slate-300 dark:border-slate-800 overflow-hidden bg-[#F3F6F8] p-4 flex justify-center">
+                <div className="w-full max-w-[580px] bg-white border border-[#dce5e8] rounded-xl overflow-hidden shadow-xs text-[#17333d]">
+                  
+                  {/* Cabeçalho Timbrado */}
+                  <div className="bg-[#113240] px-6 py-8 text-center border-b-4 border-[#226380]">
+                    <img
+                      src="https://sistema.brm.org.br/brasao-colorido-dehoniano.png"
+                      alt="Brasão Dehoniano"
+                      className="h-20 w-auto mx-auto mb-3 object-contain"
+                    />
+                    <div className="text-[10px] font-bold tracking-[2px] uppercase text-[#8bb6c6]">
+                      Província Brasileira Meridional · SCJ
+                    </div>
+                    <div className="text-lg font-bold text-white tracking-tight mt-1">
+                      {tituloCabecalho || 'Secretaria Provincial'}
+                    </div>
+                    <div className="text-xs text-[#c0d6df] mt-0.5">
+                      {subtituloCabecalho || 'Comunicado Oficial'}
+                    </div>
+                  </div>
 
-                {/* Corpo */}
-                <div className="p-6 space-y-4 text-xs text-[#374f59] leading-relaxed">
-                  <p className="font-bold text-sm text-[#113240]">
-                    Prezado {nomeTeste || 'Pe. Confrade, SCJ'},
-                  </p>
+                  {/* Corpo */}
+                  <div className="p-6 space-y-4 text-xs text-[#374f59] leading-relaxed">
+                    <p className="font-bold text-sm text-[#113240]">
+                      Prezado {nomeTeste || 'Pe. Confrade, SCJ'},
+                    </p>
 
-                  {tipoMensagem === 'credenciais' ? (
-                    <>
-                      <p>
-                        A Secretaria Provincial disponibiliza o seu acesso ao <strong>Portal do Religioso</strong> da Província Brasileira Meridional.
-                      </p>
+                    <div className="whitespace-pre-line space-y-2">
+                      {corpoTexto || 'Escreva o corpo da mensagem na aba "Redigir Comunicado" para visualizá-lo aqui.'}
+                    </div>
 
-                      <div className="p-4 rounded border border-[#d5e2e6] border-l-4 border-l-[#226380] bg-[#f7fafb] space-y-2">
-                        <div className="text-[10px] font-bold text-[#226380] uppercase tracking-wider">Credenciais de Acesso</div>
-                        <div className="font-mono text-[11px] space-y-1">
-                          <div><strong>E-mail:</strong> confrade@brm.org.br</div>
-                          <div><strong>Senha Provisória:</strong> {senhaTeste}</div>
-                        </div>
+                    {blocoDestaque && (
+                      <div className="p-4 rounded border border-[#d5e2e6] border-l-4 border-l-[#226380] bg-[#f7fafb] whitespace-pre-line text-[#17333d]">
+                        {blocoDestaque}
                       </div>
+                    )}
 
+                    {botaoTexto && (
                       <div className="text-center py-2">
                         <span className="inline-block px-6 py-2.5 rounded bg-[#113240] text-white font-semibold text-xs">
-                          Acessar Portal do Religioso
+                          {botaoTexto}
                         </span>
                       </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="whitespace-pre-line space-y-2">
-                        {corpoTexto || 'Escreva o corpo da mensagem na aba "Redigir Comunicado" para visualizá-lo aqui.'}
-                      </div>
+                    )}
 
-                      {blocoDestaque && (
-                        <div className="p-4 rounded border border-[#d5e2e6] border-l-4 border-l-[#226380] bg-[#f7fafb] whitespace-pre-line text-[#17333d]">
-                          {blocoDestaque}
-                        </div>
-                      )}
-
-                      {botaoTexto && (
-                        <div className="text-center py-2">
-                          <span className="inline-block px-6 py-2.5 rounded bg-[#113240] text-white font-semibold text-xs">
-                            {botaoTexto}
-                          </span>
-                        </div>
-                      )}
-                    </>
-                  )}
-
-                  {/* Assinatura */}
-                  <div className="pt-4 border-t border-slate-200 text-[11px] text-slate-500 space-y-0.5">
-                    <div className="italic text-slate-600">Em Cristo e Dehon,</div>
-                    <div className="font-bold text-slate-800">{assinaturaTexto || 'Secretaria Provincial'}</div>
-                    <div>Província Brasileira Meridional · SCJ</div>
+                    {/* Assinatura */}
+                    <div className="pt-4 border-t border-slate-200 text-[11px] text-slate-500 space-y-0.5">
+                      <div className="italic text-slate-600">Em Cristo e Dehon,</div>
+                      <div className="font-bold text-slate-800">{assinaturaTexto || 'Secretaria Provincial'}</div>
+                      <div>Província Brasileira Meridional · SCJ</div>
+                    </div>
                   </div>
-                </div>
 
-                {/* Rodapé */}
-                <div className="bg-[#f7fafb] p-4 text-center border-t border-[#e7eff2] text-[10px] text-slate-500 leading-relaxed">
-                  <strong>Província Brasileira Meridional</strong> · Congregação dos Sacerdotes do Sagrado Coração de Jesus<br />
-                  Cúria Provincial · Rua Padre Gabriel Lux, 900 – Caixa Postal 21 · Corupá - SC · CEP 89278-000
-                </div>
+                  {/* Rodapé */}
+                  <div className="bg-[#f7fafb] p-4 text-center border-t border-[#e7eff2] text-[10px] text-slate-500 leading-relaxed">
+                    <strong>Província Brasileira Meridional</strong> · Congregação dos Sacerdotes do Sagrado Coração de Jesus<br />
+                    Cúria Provincial · Rua Padre Gabriel Lux, 900 – Caixa Postal 21 · Corupá - SC · CEP 89278-000
+                  </div>
 
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
         </div>

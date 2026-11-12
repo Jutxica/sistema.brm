@@ -491,9 +491,9 @@ Deno.serve(async (req: Request) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    const gerarHtml = (nomeTratamento: string, emailLogin: string, dataNasc?: string | null) => {
+    const gerarHtml = (nomeTratamento: string, emailLogin: string, dataNasc?: string | null, senhaManual?: string | null) => {
       if (tipoMensagem === "credenciais") {
-        const senhaProvisoria = formatarSenhaProvisoria(dataNasc);
+        const senhaProvisoria = senhaManual || formatarSenhaProvisoria(dataNasc);
         return renderizarTemplateEmail({
           nomeTratamento,
           emailLogin,
@@ -518,7 +518,7 @@ Deno.serve(async (req: Request) => {
 
     const obterAssunto = (nomeTratamento: string) => {
       if (tipoMensagem === "credenciais") {
-        return `Portal do Religioso: Suas credenciais de acesso - ${nomeTratamento}`;
+        return `Portal do Religioso: Suas credenciais de primeiro acesso - ${nomeTratamento}`;
       }
       return assuntoPersonalizado ? `${assuntoPersonalizado}` : `Comunicado Oficial - Província BRM`;
     };
@@ -544,7 +544,8 @@ Deno.serve(async (req: Request) => {
         }
 
         const nomeTratamento = body.nome_teste || "Pe. João da Silva, SCJ";
-        const html = gerarHtml(nomeTratamento, emailLimpo, body.data_nascimento_teste || "1978-08-15");
+        const senhaManual = body.senha_teste || null;
+        const html = gerarHtml(nomeTratamento, emailLimpo, body.data_nascimento_teste || "1978-08-15", senhaManual);
         const subject = `[TESTE] ${obterAssunto(nomeTratamento)}`;
 
         const envio = await enviarEmailResend(emailLimpo, subject, html);
