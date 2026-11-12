@@ -142,7 +142,7 @@ function renderizarTemplateEmail(params: {
           
           <!-- Cabeçalho Timbrado com Identidade Visual BRM (Conforme Imagem Oficial) -->
           <tr>
-            <td style="background-color: #102d3a; padding: 38px 28px 26px; text-align: center; border-bottom: 3px solid #226380;">
+            <td style="background-color: #113240; padding: 38px 28px 26px; text-align: center; border-bottom: 3px solid #226380;">
               <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
                   <td align="center">
