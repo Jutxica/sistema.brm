@@ -140,20 +140,20 @@ function renderizarTemplateEmail(params: {
         <!-- Container Principal -->
         <table role="presentation" cellpadding="0" cellspacing="0" width="100%" class="container" style="max-width: 620px; background-color: #ffffff; border: 1px solid #dce5e8; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 18px rgba(17, 50, 64, 0.05);">
           
-          <!-- Cabeçalho Timbrado com Identidade Visual BRM -->
+          <!-- Cabeçalho Timbrado com Identidade Visual BRM (Conforme Imagem Oficial) -->
           <tr>
-            <td style="background-color: #113240; padding: 32px 28px 24px; text-align: center; border-bottom: 4px solid #226380;">
+            <td style="background-color: #102d3a; padding: 38px 28px 26px; text-align: center; border-bottom: 3px solid #226380;">
               <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
                   <td align="center">
-                    <img src="https://sistema.brm.org.br/logo-sistema.png" alt="Província Brasileira Meridional - SCJ" width="180" style="display: block; width: 180px; max-width: 100%; height: auto; margin-bottom: 14px; border: 0;">
-                    <div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #9bc5d4;">
+                    <img src="https://sistema.brm.org.br/brasao-dehonianos.png" alt="Brasão Dehoniano - Província BRM" width="125" style="display: block; width: 125px; max-width: 100%; height: auto; margin: 0 auto 16px; border: 0;">
+                    <div style="font-size: 11px; font-weight: 700; letter-spacing: 2.2px; text-transform: uppercase; color: #8bb6c6;">
                       Província Brasileira Meridional · SCJ
                     </div>
-                    <div style="margin-top: 6px; font-size: 21px; font-weight: 700; color: #ffffff; letter-spacing: -0.3px;">
+                    <div style="margin-top: 6px; font-size: 23px; font-weight: 700; color: #ffffff; letter-spacing: -0.3px;">
                       Portal do Religioso
                     </div>
-                    <div style="margin-top: 4px; font-size: 13px; color: #d0e4ec;">
+                    <div style="margin-top: 4px; font-size: 13px; color: #c0d6df;">
                       Credenciais de Primeiro Acesso
                     </div>
                   </td>

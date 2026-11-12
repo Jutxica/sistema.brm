@@ -44,6 +44,7 @@ const SecretariaDashboard = lazy(() => import('./pages/SecretariaDashboard'));
 const ReligiosoDossie = lazy(() => import('./pages/ReligiosoDossie'));
 const RedefinirSenha = lazy(() => import('./pages/RedefinirSenha'));
 const ComunicacaoAdmin = lazy(() => import('./pages/ComunicacaoAdmin'));
+const DispararCredenciaisPage = lazy(() => import('./pages/DispararCredenciaisPage'));
 
 // Apple Loading Spinner Fallback
 const AppleLoadingFallback: React.FC = () => (
@@ -252,6 +253,8 @@ export const App: React.FC = () => {
                   <Route path="secretaria" element={<SecretariaDashboardRoute />} />
                   <Route path="secretaria/arquivo" element={<ArquivoSecretariaRoute><ArquivoSecretaria modo="secretaria" /></ArquivoSecretariaRoute>} />
                   <Route path="secretaria/elenco" element={<ModuleRoute accessKey="secretaria"><ElencoSecretaria /></ModuleRoute>} />
+                  <Route path="secretaria/credenciais" element={<ModuleRoute accessKey="secretaria"><DispararCredenciaisPage /></ModuleRoute>} />
+                  <Route path="secretaria/disparar-credenciais" element={<Navigate to="/secretaria/credenciais" replace />} />
                   <Route path="secretaria/transferir" element={<ModuleRoute accessKey="secretaria"><TransferenciaReligioso /></ModuleRoute>} />
                   <Route path="secretaria/transferir/:id" element={<ModuleRoute accessKey="secretaria"><TransferenciaReligioso /></ModuleRoute>} />
                   <Route path="secretaria/transferencias" element={<ModuleRoute accessKey="secretaria"><TransferenciaReligioso /></ModuleRoute>} />
