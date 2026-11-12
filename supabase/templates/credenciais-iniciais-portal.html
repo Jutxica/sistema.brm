@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acesso ao Portal do Religioso - Província BRM</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f3f6f8;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #17333d;
+      -webkit-font-smoothing: antialiased;
+    }
+    table {
+      border-collapse: collapse;
+    }
+    a {
+      color: #226380;
+      text-decoration: underline;
+    }
+    @media only screen and (max-width: 620px) {
+      .container {
+        width: 100% !important;
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+      }
+      .content-padding {
+        padding: 24px 18px !important;
+      }
+      .cred-table td {
+        display: block !important;
+        width: 100% !important;
+        padding: 4px 0 !important;
+      }
+      .btn-cta {
+        display: block !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        text-align: center !important;
+      }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 28px 12px; background-color: #f3f6f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #17333d;">
+
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td align="center">
+        <!-- Container Principal -->
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" class="container" style="max-width: 620px; background-color: #ffffff; border: 1px solid #dce5e8; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 18px rgba(17, 50, 64, 0.05);">
+          
+          <!-- Cabeçalho Timbrado com Identidade Visual BRM -->
+          <tr>
+            <td style="background-color: #113240; padding: 32px 28px 24px; text-align: center; border-bottom: 4px solid #226380;">
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td align="center">
+                    <img src="https://sistema.brm.org.br/logo-sistema.png" alt="Província Brasileira Meridional - SCJ" width="180" style="display: block; width: 180px; max-width: 100%; height: auto; margin-bottom: 14px; border: 0;">
+                    <div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #9bc5d4;">
+                      Província Brasileira Meridional · SCJ
+                    </div>
+                    <div style="margin-top: 6px; font-size: 21px; font-weight: 700; color: #ffffff; letter-spacing: -0.3px;">
+                      Portal do Religioso
+                    </div>
+                    <div style="margin-top: 4px; font-size: 13px; color: #d0e4ec;">
+                      Credenciais de Primeiro Acesso
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Corpo do E-mail -->
+          <tr>
+            <td class="content-padding" style="padding: 36px 36px 28px;">
+              
+              <!-- Saudação -->
+              <p style="margin: 0 0 16px; font-size: 16px; font-weight: 700; color: #113240;">
+                Prezado {{NOME_TRATAMENTO}},
+              </p>
+              
+              <p style="margin: 0 0 18px; font-size: 14px; line-height: 1.7; color: #374f59;">
+                Fraternas saudações em Cristo Jesus!
+              </p>
+              
+              <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.7; color: #374f59;">
+                A Secretaria Provincial disponibiliza o seu acesso ao <strong>Portal do Religioso</strong> da Província Brasileira Meridional. Este ambiente digital reúne a sua Ficha Cadastral Oficial, histórico formativo, designações, agenda e comunicados da Província.
+              </p>
+
+              <!-- Card de Credenciais -->
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f7fafb; border: 1px solid #d5e2e6; border-left: 4px solid #226380; border-radius: 6px; margin-bottom: 20px;">
+                <tr>
+                  <td style="padding: 20px 22px;">
+                    <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #226380; margin-bottom: 12px;">
+                      Credenciais de Acesso
+                    </div>
+
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" class="cred-table" style="font-size: 14px;">
+                      <tr>
+                        <td style="padding: 6px 0; color: #627b85; font-weight: 500; width: 36%;">
+                          Endereço do Portal:
+                        </td>
+                        <td style="padding: 6px 0; color: #113240; font-weight: 600;">
+                          <a href="{{PORTAL_URL}}" style="color: #226380; text-decoration: none; word-break: break-all;">{{PORTAL_URL}}</a>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #627b85; font-weight: 500;">
+                          E-mail de Login:
+                        </td>
+                        <td style="padding: 6px 0; color: #113240; font-weight: 600;">
+                          <span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; word-break: break-all;">{{EMAIL_LOGIN}}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0 6px; color: #627b85; font-weight: 500;">
+                          Senha Provisória:
+                        </td>
+                        <td style="padding: 8px 0 6px;">
+                          <span style="display: inline-block; background-color: #e6eef1; border: 1px solid #cad8dc; border-radius: 4px; padding: 4px 10px; font-family: 'SF Mono', Menlo, Consolas, Monaco, monospace; font-size: 14px; font-weight: 700; color: #113240; letter-spacing: 0.6px;">{{SENHA_PROVISORIA}}</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Nota de Primeiro Acesso (Sem emoji, sem caixa amarela, tipografia limpa) -->
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px;">
+                <tr>
+                  <td style="font-size: 13px; line-height: 1.6; color: #526b75; border-left: 3px solid #cad8dc; padding-left: 12px;">
+                    <strong>Observação:</strong> no primeiro acesso com a senha provisória, o sistema solicitará o cadastro de uma nova senha pessoal definitiva. A senha provisória deixa de valer logo após essa atualização.
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Passo a Passo -->
+              <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #113240; margin-bottom: 14px;">
+                Como realizar o primeiro acesso:
+              </div>
+
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 28px;">
+                <tr>
+                  <td width="30" valign="top" style="padding-bottom: 10px;">
+                    <div style="width: 22px; height: 22px; background-color: #113240; color: #ffffff; border-radius: 50%; font-size: 11px; font-weight: 700; text-align: center; line-height: 22px;">1</div>
+                  </td>
+                  <td style="padding-bottom: 10px; font-size: 14px; line-height: 1.6; color: #374f59;">
+                    Acesse o endereço do Portal pelo botão abaixo.
+                  </td>
+                </tr>
+                <tr>
+                  <td width="30" valign="top" style="padding-bottom: 10px;">
+                    <div style="width: 22px; height: 22px; background-color: #113240; color: #ffffff; border-radius: 50%; font-size: 11px; font-weight: 700; text-align: center; line-height: 22px;">2</div>
+                  </td>
+                  <td style="padding-bottom: 10px; font-size: 14px; line-height: 1.6; color: #374f59;">
+                    Informe seu e-mail e a <strong>senha provisória</strong> indicada acima.
+                  </td>
+                </tr>
+                <tr>
+                  <td width="30" valign="top" style="padding-bottom: 10px;">
+                    <div style="width: 22px; height: 22px; background-color: #113240; color: #ffffff; border-radius: 50%; font-size: 11px; font-weight: 700; text-align: center; line-height: 22px;">3</div>
+                  </td>
+                  <td style="padding-bottom: 10px; font-size: 14px; line-height: 1.6; color: #374f59;">
+                    Cadastre a sua <strong>nova senha pessoal</strong> na tela de primeiro acesso.
+                  </td>
+                </tr>
+                <tr>
+                  <td width="30" valign="top">
+                    <div style="width: 22px; height: 22px; background-color: #226380; color: #ffffff; border-radius: 50%; font-size: 11px; font-weight: 700; text-align: center; line-height: 22px;">4</div>
+                  </td>
+                  <td style="font-size: 14px; line-height: 1.6; color: #374f59;">
+                    Concluída a alteração, o acesso ao Portal estará liberado para que você realize seu cadastro, anexe documentos e consulte a agenda provincial.
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Botão CTA Centralizado -->
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 28px;">
+                <tr>
+                  <td align="center">
+                    <!--[if mso]>
+                    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{PORTAL_URL}}" style="height:46px;v-text-anchor:middle;width:280px;" arcsize="10%" stroke="f" fillcolor="#113240">
+                      <w:anchorlock/>
+                      <center style="color:#ffffff;font-family:sans-serif;font-size:14px;font-weight:bold;">Acessar o Portal do Religioso &rarr;</center>
+                    </v:roundrect>
+                    <![endif]-->
+                    <a href="{{PORTAL_URL}}" class="btn-cta" style="background-color: #113240; color: #ffffff; display: inline-block; padding: 13px 30px; font-size: 14px; font-weight: 700; text-decoration: none; border-radius: 6px; letter-spacing: 0.2px; text-align: center;">
+                      Acessar o Portal do Religioso &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Bloco de Apoio da Secretaria -->
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f7fafb; border: 1px solid #e1ebed; border-radius: 6px;">
+                <tr>
+                  <td style="padding: 14px 18px; font-size: 13px; line-height: 1.6; color: #4e656d; text-align: center;">
+                    Em caso de dúvidas ou necessidade de auxílio no primeiro acesso, entre em contato com a Secretaria Provincial pelo e-mail <a href="mailto:{{CONTATO_SECRETARIA}}" style="color: #226380; font-weight: 600; text-decoration: none;">{{CONTATO_SECRETARIA}}</a>.
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Rodapé Institucional -->
+          <tr>
+            <td style="background-color: #edf2f4; border-top: 1px solid #dce5e8; padding: 22px 28px; text-align: center;">
+              <p style="margin: 0 0 6px; font-size: 12px; font-weight: 700; color: #113240;">
+                Província Brasileira Meridional · Congregação dos Sacerdotes do Sagrado Coração de Jesus
+              </p>
+              <p style="margin: 0 0 10px; font-size: 11px; line-height: 1.6; color: #627b85;">
+                Cúria Provincial · Rua Padre Gabriel Lux, 900 – Caixa Postal 21 · Corupá - SC · CEP 89278-000<br>
+                Secretaria Provincial · <a href="mailto:{{CONTATO_SECRETARIA}}" style="color: #226380; text-decoration: none;">{{CONTATO_SECRETARIA}}</a>
+              </p>
+              <p style="margin: 0; font-size: 11px; line-height: 1.5; color: #78909c;">
+                <em>Aviso: este e-mail contém credenciais temporárias de uso individual e intransferível. Por favor, não compartilhe esta mensagem.</em>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

@@ -50,6 +50,11 @@ export interface Religioso {
   etapa_formativa_atual?: string | null;
   ano_configuracao?: number | string | null;
   ano_referencia_etapa?: number | string | null;
+  email_institucional?: string | null;
+  email_pessoal?: string | null;
+  data_nascimento?: string | null;
+  credenciais_enviadas_em?: string | null;
+  credenciais_enviadas_por?: string | null;
 }
 
 export interface RawReligioso {
@@ -119,6 +124,9 @@ export interface ReligiosoPortalData {
   etapa_formativa_atual?: string | null;
   ano_configuracao?: number | string | null;
   ano_referencia_etapa?: number | string | null;
+  email_pessoal?: string | null;
+  credenciais_enviadas_em?: string | null;
+  credenciais_enviadas_por?: string | null;
 }
 
 export interface ReligiosoDossieData {
