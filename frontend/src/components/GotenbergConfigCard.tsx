@@ -483,7 +483,7 @@ export const GotenbergConfigCard: React.FC = () => {
         blob = await gotenbergService.gerarCircularPdf({
           numeroCircular: numeroDoc,
           assunto: assuntoDoc,
-          saudacao: 'Caríssimos Confrades, Paz e Bem no Coração de Jesus!',
+          saudacao: 'Vivat Cor Iesu, Per Cor Mariae',
           corpoTexto: `<p>${textoCorpo}</p>`,
           dataEmissao: dataHoje,
           provincialNome: 'Pe. Superior Provincial, SCJ'

@@ -850,13 +850,13 @@ export const gotenbergService = {
   async gerarCircularPdf(dados: DadosCircularProvincial): Promise<Blob> {
     const corpo = `
       <div style="text-align: justify; margin: 25px 0; font-size: 11pt; line-height: 1.8;">
-        <p style="font-weight: 600; margin-bottom: 20px; color: #113240;">
-          ${dados.saudacao || 'Caríssimos Confrades, Paz e Bem no Coração de Jesus!'}
+        <p style="font-weight: 600; font-style: italic; margin-bottom: 20px; color: #113240; font-size: 11.5pt;">
+          ${dados.saudacao || 'Vivat Cor Iesu, Per Cor Mariae'}
         </p>
 
         <div>${dados.corpoTexto}</div>
 
-        <p style="margin-top: 35px;">Em comunhão de orações e no Coração de Jesus,</p>
+        <p style="margin-top: 35px; font-style: italic; font-weight: 600; color: #113240;">In corde Iesu.</p>
         <p>Sede Provincial, Corupá/SC, ${dados.dataEmissao}.</p>
       </div>
 

@@ -124,13 +124,13 @@ function gerarHtmlCredenciaisPreview(
           <tr>
             <td class="content-padding" style="padding: 36px 36px 28px;">
               
-              <!-- Saudação -->
-              <p style="margin: 0 0 16px; font-size: 16px; font-weight: 700; color: #113240;">
+              <!-- Saudação Oficial Dehoniana -->
+              <p style="margin: 0 0 14px; font-size: 16px; font-weight: 700; color: #113240;">
                 Prezado ${nome},
               </p>
               
-              <p style="margin: 0 0 18px; font-size: 14px; line-height: 1.7; color: #374f59;">
-                Fraternas saudações em Cristo Jesus!
+              <p style="margin: 0 0 18px; font-size: 14px; line-height: 1.7; font-weight: 600; font-style: italic; color: #226380; letter-spacing: 0.2px;">
+                Vivat Cor Iesu, Per Cor Mariae
               </p>
               
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.7; color: #374f59;">
@@ -244,6 +244,15 @@ function gerarHtmlCredenciaisPreview(
                 </tr>
               </table>
 
+              <!-- Fechamento Oficial Dehoniano -->
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 24px;">
+                <tr>
+                  <td align="center" style="font-size: 14px; font-style: italic; font-weight: 600; color: #48626e;">
+                    In corde Iesu.
+                  </td>
+                </tr>
+              </table>
+
             </td>
           </tr>
 
@@ -322,7 +331,7 @@ export const DispararCredenciaisPage: React.FC = () => {
       setTituloCabecalho('Governo Provincial');
       setSubtituloCabecalho('Carta Circular nº 01/2026');
       setCorpoTexto(
-        'Caríssimos confrades em Cristo e Dehon,\n\nDirijo-me a toda a Província Brasileira Meridional para comunicar as recentes deliberações e nomeações canônicas homologadas pelo Superior Provincial e seu Conselho.\n\nRenovamos nossa fraterna comunhão de orações e zelo pela missão dehoniana em todas as nossas obras e comunidades.'
+        'Vivat Cor Iesu, Per Cor Mariae\n\nCaríssimos confrades,\n\nDirijo-me a toda a Província Brasileira Meridional para comunicar as recentes deliberações e nomeações canônicas homologadas pelo Superior Provincial e seu Conselho.\n\nRenovamos nossa fraterna comunhão de orações e zelo pela missão em todas as nossas obras e comunidades.'
       );
       setBlocoDestaque('Atos do Governo Provincial:\nAs nomeações entram em vigor canônico a partir da data de publicação desta circular provincial.');
       setBotaoTexto('Consultar Atos no Sistema');
@@ -1621,8 +1630,8 @@ export const DispararCredenciaisPage: React.FC = () => {
 
                     {/* Assinatura */}
                     <div className="pt-4 border-t border-slate-200 text-[11px] text-slate-500 space-y-0.5">
-                      <div className="italic text-slate-600">Em Cristo e Dehon,</div>
-                      <div className="font-bold text-slate-800">{assinaturaTexto || 'Secretaria Provincial'}</div>
+                      <div className="italic font-semibold text-slate-700 dark:text-slate-300">In corde Iesu.</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">{assinaturaTexto || 'Secretaria Provincial'}</div>
                       <div>Província Brasileira Meridional · SCJ</div>
                     </div>
                   </div>

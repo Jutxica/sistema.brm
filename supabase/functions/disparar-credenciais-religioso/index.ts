@@ -166,13 +166,13 @@ function renderizarTemplateEmail(params: {
           <tr>
             <td class="content-padding" style="padding: 36px 36px 28px;">
               
-              <!-- Saudação -->
-              <p style="margin: 0 0 16px; font-size: 16px; font-weight: 700; color: #113240;">
+              <!-- Saudação Oficial Dehoniana -->
+              <p style="margin: 0 0 14px; font-size: 16px; font-weight: 700; color: #113240;">
                 Prezado ${params.nomeTratamento},
               </p>
               
-              <p style="margin: 0 0 18px; font-size: 14px; line-height: 1.7; color: #374f59;">
-                Fraternas saudações em Cristo Jesus!
+              <p style="margin: 0 0 18px; font-size: 14px; line-height: 1.7; font-weight: 600; font-style: italic; color: #226380; letter-spacing: 0.2px;">
+                Vivat Cor Iesu, Per Cor Mariae
               </p>
               
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.7; color: #374f59;">
@@ -282,6 +282,15 @@ function renderizarTemplateEmail(params: {
                 <tr>
                   <td style="padding: 14px 18px; font-size: 13px; line-height: 1.6; color: #4e656d; text-align: center;">
                     Em caso de dúvidas ou necessidade de auxílio no primeiro acesso, entre em contato com a Secretaria Provincial pelo e-mail <a href="mailto:${params.contatoSecretaria}" style="color: #226380; font-weight: 600; text-decoration: none;">${params.contatoSecretaria}</a>.
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Fechamento Oficial Dehoniano -->
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 24px;">
+                <tr>
+                  <td align="center" style="font-size: 14px; font-style: italic; font-weight: 600; color: #48626e;">
+                    In corde Iesu.
                   </td>
                 </tr>
               </table>
@@ -403,8 +412,13 @@ function renderizarTemplateComunicado(params: {
           <!-- Corpo da Mensagem -->
           <tr>
             <td class="content-padding" style="padding: 36px 36px 28px;">
-              <p style="margin: 0 0 16px; font-size: 16px; font-weight: 700; color: #113240;">
+              <!-- Saudação Oficial Dehoniana -->
+              <p style="margin: 0 0 14px; font-size: 16px; font-weight: 700; color: #113240;">
                 Prezado ${params.nomeTratamento},
+              </p>
+
+              <p style="margin: 0 0 18px; font-size: 14px; line-height: 1.7; font-weight: 600; font-style: italic; color: #226380; letter-spacing: 0.2px;">
+                Vivat Cor Iesu, Per Cor Mariae
               </p>
 
               ${paragrafos}
@@ -415,7 +429,7 @@ function renderizarTemplateComunicado(params: {
 
               <!-- Assinatura Canônica -->
               <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e3ebed; font-size: 13px; color: #627b85; line-height: 1.6;">
-                <div style="font-style: italic; margin-bottom: 4px; color: #48626e;">Em Cristo e Dehon,</div>
+                <div style="font-style: italic; font-weight: 600; margin-bottom: 4px; color: #48626e;">In corde Iesu.</div>
                 <div style="font-weight: 700; color: #113240; font-size: 14px;">${params.assinaturaTexto || 'Secretaria Provincial'}</div>
                 <div style="font-size: 12px; color: #78909c;">Província Brasileira Meridional · SCJ</div>
               </div>
