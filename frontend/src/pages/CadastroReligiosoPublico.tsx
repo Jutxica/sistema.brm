@@ -610,7 +610,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
             obra_atual_id: canonicalObraId,
             nome_religioso: autoNomeReligioso || loadedBase.nome_religioso || '',
             nome_elenco: autoNomeReligioso || loadedBase.nome_elenco || loadedBase.nome_civil || '',
-            consentimento_dados: religiosoData.consentimento_dados ? 'true' : ''
+            consentimento_dados: (religiosoData.consentimento_dados ?? true) ? 'true' : ''
           };
         });
         if ((profileReligiosoId || memberMode) && religiosoData.status_cadastro === 'Aprovado') {
@@ -1386,7 +1386,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         return 'Informe o estado do endereço atual selecionado como “Outro”.';
       }
     }
-    if (targetStep === 6 && ((publicConfig.exigir_documentos && !documentos.length && !documentosExistentes.length) || !base.consentimento_dados)) {
+    if (targetStep === 6 && !isEditing && !adminMode && !memberMode && ((publicConfig.exigir_documentos && !documentos.length && !documentosExistentes.length) || !base.consentimento_dados)) {
       return `${publicConfig.exigir_documentos ? 'Anexe pelo menos um documento e ' : ''}confirme a autorização.`;
     }
     return null;
@@ -2118,62 +2118,82 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                 {(step === 6 && isEditing) ? 'Saúde, documentos e atualização' : etapas[step - 1]}
               </p>
             </div>
-            <span className="shrink-0 text-xs font-semibold text-[#226380] dark:text-[#A3C3C7]">
-              {Math.round((step / etapas.length) * 100)}%
-            </span>
+            <button
+              type="submit"
+              disabled={submitting || profileUnavailable}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-[6px] bg-[#226380] hover:bg-[#1a4b60] text-white px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
+            >
+              {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+              <span>{isEditing ? 'Salvar' : 'Enviar'}</span>
+            </button>
           </div>
-          <div
-            className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#226380]/10"
-            role="progressbar"
-            aria-label="Progresso do cadastro"
-            aria-valuemin={1}
-            aria-valuemax={etapas.length}
-            aria-valuenow={step}
-          >
-            <div
-              className="h-full rounded-full bg-[#226380] transition-[width] duration-300"
-              style={{ width: `${(step / etapas.length) * 100}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Stepper detalhado para telas maiores */}
-        <div className="mb-8 hidden overflow-x-auto pb-2 -mx-2 px-2 sm:block">
-          <div className="flex items-center gap-2 min-w-max">
+          <div className="mt-3 grid grid-cols-6 gap-1.5">
             {etapas.map((rawLabel, index) => {
-              const label = (index === 5 && isEditing) ? 'Saúde, documentos e atualização' : rawLabel;
-              return { label, stepIndex: index + 1 };
-            })
-              .map(({ label, stepIndex }) => {
-              const complete = step > stepIndex;
+              const stepIndex = index + 1;
               const active = step === stepIndex;
-              const isPast = stepIndex < step;
               return (
                 <button
                   type="button"
-                  key={label}
-                  disabled={!isPast && !active}
+                  key={rawLabel}
                   onClick={() => {
-                    if (isPast) {
-                      setErrorMessage(null);
-                      setStep(stepIndex);
-                    }
+                    setErrorMessage(null);
+                    setStep(stepIndex);
                   }}
-                  className={`inline-flex items-center gap-2 rounded-[6px] px-3.5 py-1.5 text-xs font-medium transition-all border ${
+                  aria-label={`Ir para etapa ${stepIndex}: ${rawLabel}`}
+                  className={`flex h-8 items-center justify-center rounded-[6px] text-xs font-semibold transition-all cursor-pointer border ${
                     active
                       ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white'
-                      : complete
-                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-500/30 cursor-pointer hover:bg-emerald-100'
-                        : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-slate-800 text-[#707070] dark:text-[#86868b] opacity-40 cursor-not-allowed'}`}
+                      : 'bg-white dark:bg-white/5 border-slate-200 dark:border-slate-800 text-[#1d1d1f] dark:text-[#f5f5f7] hover:border-[#226380]/50'
+                  }`}
                 >
-                  <span className={`flex h-4 w-4 items-center justify-center rounded-[4px] text-[10px] font-bold ${active ? 'bg-white/20 text-white' : complete ? 'text-emerald-600' : 'text-[#707070]'}`}>
-                    {complete ? <CheckCircle2 className="h-3.5 w-3.5" /> : stepIndex}
-                  </span>
-                  <span>{label}</span>
+                  {stepIndex}
                 </button>
               );
             })}
           </div>
+        </div>
+
+        {/* Stepper detalhado para telas maiores */}
+        <div className="mb-8 hidden sm:flex sm:items-center sm:justify-between gap-3">
+          <div className="overflow-x-auto pb-2 -mx-2 px-2 flex-1">
+            <div className="flex items-center gap-2 min-w-max">
+              {etapas.map((rawLabel, index) => {
+                const label = (index === 5 && isEditing) ? 'Saúde, documentos e atualização' : rawLabel;
+                return { label, stepIndex: index + 1 };
+              })
+                .map(({ label, stepIndex }) => {
+                const active = step === stepIndex;
+                return (
+                  <button
+                    type="button"
+                    key={label}
+                    onClick={() => {
+                      setErrorMessage(null);
+                      setStep(stepIndex);
+                    }}
+                    className={`inline-flex items-center gap-2 rounded-[6px] px-3.5 py-1.5 text-xs font-medium transition-all border cursor-pointer ${
+                      active
+                        ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white'
+                        : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-slate-800 text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-slate-100 dark:hover:bg-white/10 hover:border-slate-300 dark:hover:border-slate-700'}`}
+                  >
+                    <span className={`flex h-4 w-4 items-center justify-center rounded-[4px] text-[10px] font-bold ${active ? 'bg-white/20 text-white dark:bg-slate-900/20 dark:text-slate-900' : 'bg-slate-200/70 dark:bg-white/10 text-[#1d1d1f] dark:text-[#f5f5f7]'}`}>
+                      {stepIndex}
+                    </span>
+                    <span>{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={submitting || profileUnavailable}
+            className="mb-2 inline-flex shrink-0 items-center justify-center gap-2 rounded-[6px] bg-[#226380] hover:bg-[#1a4b60] text-white px-4 py-2 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
+          >
+            {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+            <span>{isEditing ? 'Atualizar dados' : 'Enviar cadastro'}</span>
+          </button>
         </div>
 
         {errorMessage && (
@@ -3310,34 +3330,35 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
         )}
 
         {/* Footer Navigation Buttons */}
-        <footer className="mt-8 flex items-center justify-between gap-3 border-t border-[#e5e5ea] dark:border-white/10 pt-5 sm:mt-10 sm:pt-6">
+        <footer className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[#e5e5ea] dark:border-white/10 pt-5 sm:mt-10 sm:pt-6">
           <button
             type="button"
             disabled={step === 1}
-            onClick={() => setStep(previous => Math.max(1, previous - 1))}
+            onClick={() => {
+              setErrorMessage(null);
+              setStep(previous => Math.max(1, previous - 1));
+            }}
             className="inline-flex items-center gap-2 rounded-[6px] border border-slate-200 dark:border-slate-800 px-5 py-2.5 text-xs font-semibold text-[#707070] hover:text-[#1d1d1f] hover:bg-black/5 dark:hover:bg-white/5 transition-all disabled:opacity-30 cursor-pointer"
           >
             <ChevronLeft className="h-4 w-4" />
             Voltar
           </button>
 
-          {step < etapas.length ? (
-            <button
-              type="button"
-              onClick={() => {
-                const validation = validateStep();
-                if (validation) setErrorMessage(validation);
-                else {
+          <div className="flex flex-1 sm:flex-none items-center justify-end gap-2.5">
+            {step < etapas.length && (
+              <button
+                type="button"
+                onClick={() => {
                   setErrorMessage(null);
                   setStep(previous => Math.min(etapas.length, previous + 1));
-                }
-              }}
-              className="inline-flex min-h-12 flex-1 sm:flex-none items-center justify-center gap-2 rounded-[6px] bg-slate-900 hover:bg-black dark:bg-white dark:text-slate-900 text-white px-5 sm:px-7 py-3 text-sm sm:text-xs font-semibold transition-all cursor-pointer shadow-none active:scale-[0.98]"
-            >
-              <span>Avançar</span>
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          ) : (
+                }}
+                className="inline-flex min-h-12 flex-1 sm:flex-none items-center justify-center gap-2 rounded-[6px] border border-slate-300 dark:border-slate-700 bg-white hover:bg-slate-50 dark:bg-[#161b22] dark:hover:bg-white/5 text-[#1d1d1f] dark:text-white px-5 sm:px-6 py-3 text-sm sm:text-xs font-semibold transition-all cursor-pointer active:scale-[0.98]"
+              >
+                <span>Avançar</span>
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            )}
+
             <button
               type="submit"
               disabled={submitting || profileUnavailable}
@@ -3346,7 +3367,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
               <span>{isEditing ? 'Atualizar dados' : 'Enviar cadastro'}</span>
             </button>
-          )}
+          </div>
         </footer>
       </form>
     </PublicShell>
