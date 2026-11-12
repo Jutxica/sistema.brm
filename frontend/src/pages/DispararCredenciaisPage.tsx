@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
-  ArrowLeft, Mail, Send, CheckCircle2, AlertCircle, RefreshCw, 
+  ArrowLeft, Mail, Send, CheckCircle2, AlertCircle, AlertTriangle, RefreshCw, 
   Users, Search, ExternalLink, Square, Filter
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
@@ -56,6 +56,7 @@ export const DispararCredenciaisPage: React.FC = () => {
     executado: boolean;
     itens: { email: string; ok: boolean; id?: string; error?: string }[];
   } | null>(null);
+  const [erroPublicacaoEdgeFunction, setErroPublicacaoEdgeFunction] = useState<boolean>(false);
 
   // Carregar lista de religiosos da base
   const carregarReligiosos = useCallback(async () => {
@@ -163,6 +164,7 @@ export const DispararCredenciaisPage: React.FC = () => {
     setResultadoTeste(null);
 
     try {
+      setErroPublicacaoEdgeFunction(false);
       const res = await supabase.functions.invoke('disparar-credenciais-religioso', {
         body: {
           modo: 'teste',
@@ -191,7 +193,14 @@ export const DispararCredenciaisPage: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Falha no envio de teste:', err);
-      showToast.error(`Erro ao disparar teste: ${err.message || 'Falha na Edge Function'}`);
+      const msg = err?.message || String(err || '');
+      const isNotFound = msg.includes('Failed to send a request') || msg.includes('FunctionsFetchError') || msg.includes('NOT_FOUND') || msg.includes('404');
+      if (isNotFound) {
+        setErroPublicacaoEdgeFunction(true);
+        showToast.error('A Edge Function "disparar-credenciais-religioso" ainda não foi publicada no projeto Supabase em produção (ukhxcwzifugxdkdhobsi).');
+      } else {
+        showToast.error(`Erro ao disparar teste: ${msg || 'Falha na Edge Function'}`);
+      }
     } finally {
       setEnviandoTeste(false);
     }
@@ -303,13 +312,22 @@ export const DispararCredenciaisPage: React.FC = () => {
         }
       } catch (err: any) {
         falhasCount++;
+        const msg = err?.message || String(err || '');
+        const isNotFound = msg.includes('Failed to send a request') || msg.includes('FunctionsFetchError') || msg.includes('NOT_FOUND') || msg.includes('404');
+
         setLogsLote(prev => prev.map(item => 
           item.id === rel.id ? { 
             ...item, 
             status: 'erro', 
-            mensagem: err.message || 'Erro de conexão' 
+            mensagem: isNotFound ? 'Edge Function não publicada no Supabase' : (err.message || 'Erro de conexão')
           } : item
         ));
+
+        if (isNotFound) {
+          setErroPublicacaoEdgeFunction(true);
+          showToast.error('Disparo interrompido: a Edge Function "disparar-credenciais-religioso" não está implantada no Supabase.');
+          break;
+        }
       }
 
       setProgressoLote(prev => ({
@@ -820,6 +838,30 @@ export const DispararCredenciaisPage: React.FC = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+            {/* Alerta Institucional de Publicação da Edge Function */}
+            {erroPublicacaoEdgeFunction && (
+              <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900/60 p-4 text-xs text-amber-900 dark:text-amber-200 space-y-2.5">
+                <div className="flex items-center gap-2 font-bold text-amber-900 dark:text-amber-300">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <span>Edge Function pendente de publicação no Supabase</span>
+                </div>
+                <p className="leading-relaxed text-slate-700 dark:text-slate-300">
+                  A função <code className="font-mono font-semibold px-1 py-0.5 rounded bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900">disparar-credenciais-religioso</code> ainda não foi implantada no seu projeto Supabase em produção (<strong>ukhxcwzifugxdkdhobsi</strong>). Para ativá-la:
+                </p>
+                <div className="space-y-2 pt-1">
+                  <p className="font-semibold text-slate-900 dark:text-white">Opção 1 — Via Supabase CLI (Terminal):</p>
+                  <div className="bg-slate-900 text-slate-100 p-2.5 rounded font-mono text-[11px] select-all overflow-x-auto">
+                    npx supabase functions deploy disparar-credenciais-religioso --project-ref ukhxcwzifugxdkdhobsi --no-verify-jwt
+                  </div>
+                  <p className="font-semibold text-slate-900 dark:text-white pt-1">Opção 2 — Via Painel Web do Supabase:</p>
+                  <div className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed pl-2 border-l-2 border-amber-300 dark:border-amber-700 space-y-1">
+                    <p>1. Acesse <strong>Edge Functions</strong> no painel do Supabase e crie uma função com o nome <code className="font-mono">disparar-credenciais-religioso</code>.</p>
+                    <p>2. Cole o código de <code className="font-mono">supabase/functions/disparar-credenciais-religioso/index.ts</code> e clique em <strong>Deploy</strong>.</p>
+                    <p>3. Em <strong>Project Settings &gt; Edge Functions &gt; Secrets</strong>, certifique-se de configurar a chave <code className="font-mono">RESEND_API_KEY</code>.</p>
+                  </div>
                 </div>
               </div>
             )}
