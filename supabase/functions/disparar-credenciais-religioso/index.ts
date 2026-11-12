@@ -314,7 +314,131 @@ function renderizarTemplateEmail(params: {
 </html>`.trim();
 }
 
-async function enviarEmailResend(destinatario: string, nomeTratamento: string, html: string): Promise<{ ok: boolean; id?: string; error?: string }> {
+function renderizarTemplateComunicado(params: {
+  nomeTratamento: string;
+  tipoMensagem: string;
+  tituloCabecalho?: string;
+  subtituloCabecalho?: string;
+  corpoTexto: string;
+  blocoDestaque?: string;
+  botaoTexto?: string;
+  botaoUrl?: string;
+  assinaturaTexto?: string;
+}): string {
+  const titulo = params.tituloCabecalho || (params.tipoMensagem === 'circular' ? 'Governo Provincial' : 'Secretaria Provincial');
+  const subtitulo = params.subtituloCabecalho || (
+    params.tipoMensagem === 'circular' ? 'Carta Circular' :
+    params.tipoMensagem === 'convocacao' ? 'Convocação Oficial' : 'Comunicado Oficial'
+  );
+
+  const paragrafos = (params.corpoTexto || '')
+    .split(/\n{2,}/)
+    .map(p => p.trim())
+    .filter(Boolean)
+    .map(p => `<p style="margin: 0 0 16px; font-size: 14px; line-height: 1.7; color: #374f59;">${p.replace(/\n/g, '<br>')}</p>`)
+    .join('');
+
+  const htmlDestaque = params.blocoDestaque ? `
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f7fafb; border: 1px solid #d5e2e6; border-left: 4px solid #226380; border-radius: 6px; margin: 22px 0;">
+      <tr>
+        <td style="padding: 18px 22px; font-size: 13.5px; line-height: 1.6; color: #17333d;">
+          ${params.blocoDestaque.replace(/\n/g, '<br>')}
+        </td>
+      </tr>
+    </table>
+  ` : '';
+
+  const htmlBotao = (params.botaoTexto && params.botaoUrl) ? `
+    <div style="text-align: center; margin: 28px 0 22px;">
+      <a href="${params.botaoUrl}" class="btn-cta" style="display: inline-block; background-color: #113240; color: #ffffff; text-decoration: none; padding: 13px 32px; border-radius: 6px; font-size: 14px; font-weight: 600; letter-spacing: 0.3px;">
+        ${params.botaoTexto}
+      </a>
+    </div>
+  ` : '';
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subtitulo} - Província BRM</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #f3f6f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #17333d; -webkit-font-smoothing: antialiased; }
+    table { border-collapse: collapse; }
+    a { color: #226380; text-decoration: underline; }
+    @media only screen and (max-width: 620px) {
+      .container { width: 100% !important; border-radius: 0 !important; border-left: none !important; border-right: none !important; }
+      .content-padding { padding: 24px 18px !important; }
+      .btn-cta { display: block !important; width: 100% !important; box-sizing: border-box !important; text-align: center !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 28px 12px; background-color: #f3f6f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #17333d;">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td align="center">
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" class="container" style="max-width: 620px; background-color: #ffffff; border: 1px solid #dce5e8; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 18px rgba(17, 50, 64, 0.05);">
+          <!-- Cabeçalho Oficial BRM -->
+          <tr>
+            <td style="background-color: #113240; padding: 38px 28px 26px; text-align: center; border-bottom: 3px solid #226380;">
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td align="center">
+                    <img src="https://sistema.brm.org.br/brasao-colorido-dehoniano.png" alt="Brasão Dehoniano - Província BRM" width="125" style="display: block; width: 125px; max-width: 100%; height: auto; margin: 0 auto 16px; border: 0;">
+                    <div style="font-size: 11px; font-weight: 700; letter-spacing: 2.2px; text-transform: uppercase; color: #8bb6c6;">
+                      Província Brasileira Meridional · SCJ
+                    </div>
+                    <div style="margin-top: 6px; font-size: 22px; font-weight: 700; color: #ffffff; letter-spacing: -0.3px;">
+                      ${titulo}
+                    </div>
+                    <div style="margin-top: 4px; font-size: 13px; color: #c0d6df;">
+                      ${subtitulo}
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Corpo da Mensagem -->
+          <tr>
+            <td class="content-padding" style="padding: 36px 36px 28px;">
+              <p style="margin: 0 0 16px; font-size: 16px; font-weight: 700; color: #113240;">
+                Prezado ${params.nomeTratamento},
+              </p>
+
+              ${paragrafos}
+
+              ${htmlDestaque}
+
+              ${htmlBotao}
+
+              <!-- Assinatura Canônica -->
+              <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e3ebed; font-size: 13px; color: #627b85; line-height: 1.6;">
+                <div style="font-style: italic; margin-bottom: 4px; color: #48626e;">Em Cristo e Dehon,</div>
+                <div style="font-weight: 700; color: #113240; font-size: 14px;">${params.assinaturaTexto || 'Secretaria Provincial'}</div>
+                <div style="font-size: 12px; color: #78909c;">Província Brasileira Meridional · SCJ</div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Rodapé Institucional Canônico -->
+          <tr>
+            <td style="background-color: #f7fafb; padding: 22px 28px; text-align: center; border-top: 1px solid #e7eff2; font-size: 11.5px; color: #768d96; line-height: 1.6;">
+              <strong style="color: #113240; font-weight: 600;">Província Brasileira Meridional</strong> · Congregação dos Sacerdotes do Sagrado Coração de Jesus<br>
+              Cúria Provincial · Rua Padre Gabriel Lux, 900 – Caixa Postal 21 · Corupá - SC · CEP 89278-000<br>
+              <span style="font-size: 11px; color: #94a7af;">Comunicação e Atos Oficiais aos Religiosos Dehonianos</span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`.trim();
+}
+
+async function enviarEmailResend(destinatario: string, subject: string, html: string): Promise<{ ok: boolean; id?: string; error?: string }> {
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -325,7 +449,7 @@ async function enviarEmailResend(destinatario: string, nomeTratamento: string, h
       body: JSON.stringify({
         from: FROM_EMAIL,
         to: [destinatario],
-        subject: `Portal do Religioso: Suas credenciais de acesso - ${nomeTratamento}`,
+        subject,
         html,
       }),
     });
@@ -355,8 +479,49 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}));
     const modo = body.modo || "teste";
     const operadorNome = body.operador_nome || "Secretaria Provincial";
+    const tipoMensagem = body.tipo_mensagem || "credenciais";
+    const assuntoPersonalizado = (body.assunto || "").trim();
+    const tituloCabecalho = (body.titulo_cabecalho || "").trim();
+    const subtituloCabecalho = (body.subtitulo_cabecalho || "").trim();
+    const corpoTexto = (body.corpo_texto || "").trim();
+    const blocoDestaque = (body.bloco_destaque || "").trim();
+    const botaoTexto = (body.botao_texto || "").trim();
+    const botaoUrl = (body.botao_url || "").trim();
+    const assinaturaTexto = (body.assinatura_texto || "").trim();
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    const gerarHtml = (nomeTratamento: string, emailLogin: string, dataNasc?: string | null) => {
+      if (tipoMensagem === "credenciais") {
+        const senhaProvisoria = formatarSenhaProvisoria(dataNasc);
+        return renderizarTemplateEmail({
+          nomeTratamento,
+          emailLogin,
+          senhaProvisoria,
+          portalUrl: PORTAL_URL,
+          contatoSecretaria: CONTATO_SECRETARIA,
+        });
+      } else {
+        return renderizarTemplateComunicado({
+          nomeTratamento,
+          tipoMensagem,
+          tituloCabecalho,
+          subtituloCabecalho,
+          corpoTexto,
+          blocoDestaque,
+          botaoTexto,
+          botaoUrl,
+          assinaturaTexto,
+        });
+      }
+    };
+
+    const obterAssunto = (nomeTratamento: string) => {
+      if (tipoMensagem === "credenciais") {
+        return `Portal do Religioso: Suas credenciais de acesso - ${nomeTratamento}`;
+      }
+      return assuntoPersonalizado ? `${assuntoPersonalizado}` : `Comunicado Oficial - Província BRM`;
+    };
 
     // =========================================================================
     // MODO 1: TESTE / HOMOLOGAÇÃO (1 ou 2 destinatários)
@@ -379,17 +544,10 @@ Deno.serve(async (req: Request) => {
         }
 
         const nomeTratamento = body.nome_teste || "Pe. João da Silva, SCJ";
-        const senhaProvisoria = body.senha_teste || "brm@15081978";
+        const html = gerarHtml(nomeTratamento, emailLimpo, body.data_nascimento_teste || "1978-08-15");
+        const subject = `[TESTE] ${obterAssunto(nomeTratamento)}`;
 
-        const html = renderizarTemplateEmail({
-          nomeTratamento,
-          emailLogin: emailLimpo,
-          senhaProvisoria,
-          portalUrl: PORTAL_URL,
-          contatoSecretaria: CONTATO_SECRETARIA,
-        });
-
-        const envio = await enviarEmailResend(emailLimpo, nomeTratamento, html);
+        const envio = await enviarEmailResend(emailLimpo, subject, html);
         resultados.push({
           email: emailLimpo,
           ok: envio.ok,
@@ -401,6 +559,7 @@ Deno.serve(async (req: Request) => {
       return corsResponse({
         ok: true,
         modo: "teste",
+        tipo_mensagem: tipoMensagem,
         total: resultados.length,
         resultados,
       });
@@ -451,28 +610,23 @@ Deno.serve(async (req: Request) => {
         continue;
       }
 
-      const senhaProvisoria = formatarSenhaProvisoria(rel.data_nascimento);
+      const html = gerarHtml(nomeTratamento, email, rel.data_nascimento);
+      const subject = obterAssunto(nomeTratamento);
 
-      const html = renderizarTemplateEmail({
-        nomeTratamento,
-        emailLogin: email,
-        senhaProvisoria,
-        portalUrl: PORTAL_URL,
-        contatoSecretaria: CONTATO_SECRETARIA,
-      });
-
-      const envio = await enviarEmailResend(email, nomeTratamento, html);
+      const envio = await enviarEmailResend(email, subject, html);
 
       if (envio.ok) {
         enviados++;
-        // Atualizar o carimbo de envio no banco de dados
-        await supabase
-          .from("religiosos")
-          .update({
-            credenciais_enviadas_em: new Date().toISOString(),
-            credenciais_enviadas_por: operadorNome,
-          })
-          .eq("id", rel.id);
+        // Atualizar o carimbo de envio no banco de dados se for credencial
+        if (tipoMensagem === "credenciais") {
+          await supabase
+            .from("religiosos")
+            .update({
+              credenciais_enviadas_em: new Date().toISOString(),
+              credenciais_enviadas_por: operadorNome,
+            })
+            .eq("id", rel.id);
+        }
 
         relatorioEnvio.push({
           id: rel.id,
@@ -496,9 +650,30 @@ Deno.serve(async (req: Request) => {
       await new Promise((resolve) => setTimeout(resolve, 600));
     }
 
+    // Registrar histórico na tabela comunicados_disparos
+    try {
+      await supabase.from("comunicados_disparos").insert({
+        operador_nome: operadorNome,
+        tipo_mensagem: tipoMensagem,
+        assunto: assuntoPersonalizado || (tipoMensagem === "credenciais" ? "Credenciais de Acesso ao Portal" : "Comunicado Oficial"),
+        subtitulo_cabecalho: subtituloCabecalho || null,
+        corpo_texto: corpoTexto || null,
+        bloco_destaque: blocoDestaque || null,
+        botao_texto: botaoTexto || null,
+        botao_url: botaoUrl || null,
+        total_destinatarios: religiosos.length,
+        total_sucessos: enviados,
+        total_falhas: falhas,
+        relatorio_envio: relatorioEnvio,
+      });
+    } catch (saveErr) {
+      console.warn("Aviso ao salvar histórico em comunicados_disparos:", saveErr);
+    }
+
     return corsResponse({
       ok: true,
       modo,
+      tipo_mensagem: tipoMensagem,
       total: religiosos.length,
       enviados,
       falhas,

@@ -578,12 +578,12 @@ export const ElencoSecretaria: React.FC = () => {
         <div className="flex items-center gap-2.5 shrink-0 self-start md:self-auto pt-1 md:pt-0">
           <button
             type="button"
-            onClick={() => navigate('/secretaria/credenciais')}
+            onClick={() => navigate('/secretaria/comunicados')}
             className="inline-flex items-center justify-center gap-2 rounded-[6px] border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] hover:bg-slate-50 dark:hover:bg-slate-800 px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
-            title="Acessar página de disparo de credenciais de primeiro acesso aos confrades"
+            title="Acessar central de comunicados oficiais e disparo de e-mails aos confrades"
           >
             <Mail className="h-3.5 w-3.5 text-[#226380] dark:text-[#A3C3C7]" />
-            <span>Disparar Credenciais</span>
+            <span>Comunicados & Credenciais</span>
           </button>
 
           <button
@@ -864,7 +864,7 @@ export const ElencoSecretaria: React.FC = () => {
                               ? `Credenciais já enviadas em ${new Date(religioso.credenciais_enviadas_em).toLocaleDateString('pt-BR')}. Clique para gerenciar envio.`
                               : 'Disparar e-mail com as credenciais iniciais deste confrade'
                           }
-                          onClick={() => navigate('/secretaria/credenciais?religioso=' + religioso.id)}
+                          onClick={() => navigate('/secretaria/comunicados?religioso=' + religioso.id)}
                           className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-white/5 cursor-pointer"
                         >
                           <Mail className={`h-3.5 w-3.5 ${religioso.credenciais_enviadas_em ? 'text-emerald-600 dark:text-emerald-400' : 'text-[#226380] dark:text-[#A3C3C7]'}`} />

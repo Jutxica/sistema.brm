@@ -253,8 +253,9 @@ export const App: React.FC = () => {
                   <Route path="secretaria" element={<SecretariaDashboardRoute />} />
                   <Route path="secretaria/arquivo" element={<ArquivoSecretariaRoute><ArquivoSecretaria modo="secretaria" /></ArquivoSecretariaRoute>} />
                   <Route path="secretaria/elenco" element={<ModuleRoute accessKey="secretaria"><ElencoSecretaria /></ModuleRoute>} />
+                  <Route path="secretaria/comunicados" element={<ModuleRoute accessKey="secretaria"><DispararCredenciaisPage /></ModuleRoute>} />
                   <Route path="secretaria/credenciais" element={<ModuleRoute accessKey="secretaria"><DispararCredenciaisPage /></ModuleRoute>} />
-                  <Route path="secretaria/disparar-credenciais" element={<Navigate to="/secretaria/credenciais" replace />} />
+                  <Route path="secretaria/disparar-credenciais" element={<Navigate to="/secretaria/comunicados" replace />} />
                   <Route path="secretaria/transferir" element={<ModuleRoute accessKey="secretaria"><TransferenciaReligioso /></ModuleRoute>} />
                   <Route path="secretaria/transferir/:id" element={<ModuleRoute accessKey="secretaria"><TransferenciaReligioso /></ModuleRoute>} />
                   <Route path="secretaria/transferencias" element={<ModuleRoute accessKey="secretaria"><TransferenciaReligioso /></ModuleRoute>} />

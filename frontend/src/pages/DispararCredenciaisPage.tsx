@@ -2,14 +2,16 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   ArrowLeft, Mail, Send, CheckCircle2, AlertCircle, AlertTriangle, RefreshCw, 
-  Users, Search, ExternalLink, Square, Filter
+  Users, Search, ExternalLink, Square, Filter, FileText, Check, ChevronDown, 
+  History, Sparkles, ShieldCheck, Eye, Layers, Clock
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { showToast, confirmAction } from '../hooks/useFeedback';
 import { atribuirNomeReligioso } from '../lib/religiosoNome';
 import type { Religioso } from '../types/religioso';
 
-type ViewModo = 'elenco' | 'teste' | 'modelo';
+export type TipoMensagem = 'credenciais' | 'comunicado' | 'circular' | 'convocacao';
+export type ViewModo = 'elenco' | 'redigir' | 'teste' | 'historico';
 
 interface ItemLog {
   id: string;
@@ -18,6 +20,19 @@ interface ItemLog {
   status: 'pendente' | 'enviando' | 'sucesso' | 'erro';
   mensagem?: string;
   resendId?: string;
+}
+
+interface RegistroHistorico {
+  id: string;
+  criado_em: string;
+  operador_nome: string;
+  tipo_mensagem: string;
+  assunto: string;
+  subtitulo_cabecalho?: string;
+  total_destinatarios: number;
+  total_sucessos: number;
+  total_falhas: number;
+  relatorio_envio?: any[];
 }
 
 export const DispararCredenciaisPage: React.FC = () => {
@@ -29,11 +44,81 @@ export const DispararCredenciaisPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [viewModo, setViewModo] = useState<ViewModo>('elenco');
 
-  // Estados de Disparo para o Elenco
+  // =========================================================================
+  // MODELO E CONTEÚDO DA MENSAGEM
+  // =========================================================================
+  const [tipoMensagem, setTipoMensagem] = useState<TipoMensagem>('credenciais');
+  const [assunto, setAssunto] = useState('');
+  const [tituloCabecalho, setTituloCabecalho] = useState('Secretaria Provincial');
+  const [subtituloCabecalho, setSubtituloCabecalho] = useState('Credenciais de Primeiro Acesso');
+  const [corpoTexto, setCorpoTexto] = useState('');
+  const [blocoDestaque, setBlocoDestaque] = useState('');
+  const [botaoTexto, setBotaoTexto] = useState('');
+  const [botaoUrl, setBotaoUrl] = useState('');
+  const [assinaturaTexto, setAssinaturaTexto] = useState('Secretaria Provincial');
+
+  // Alternar modelo preenchendo presets institucionais dehonianos
+  const aplicarPresetModelo = (tipo: TipoMensagem) => {
+    setTipoMensagem(tipo);
+    if (tipo === 'credenciais') {
+      setAssunto('Portal do Religioso: Suas credenciais de primeiro acesso');
+      setTituloCabecalho('Portal do Religioso');
+      setSubtituloCabecalho('Credenciais de Primeiro Acesso');
+      setCorpoTexto('');
+      setBlocoDestaque('');
+      setBotaoTexto('Acessar Portal do Religioso');
+      setBotaoUrl('https://portal.brm.org.br');
+      setAssinaturaTexto('Secretaria Provincial');
+    } else if (tipo === 'comunicado') {
+      setAssunto('Comunicado Oficial da Secretaria Provincial');
+      setTituloCabecalho('Secretaria Provincial');
+      setSubtituloCabecalho('Comunicado Oficial');
+      setCorpoTexto(
+        'A Secretaria Provincial transmite a todos os confrades as seguintes orientações canônicas e administrativas para conhecimento e devido cumprimento.\n\nPedimos que leiam com atenção as determinações e realizem os devidos encaminhamentos no prazo estipulado.'
+      );
+      setBlocoDestaque('Aviso da Cúria:\nFavor acusar recebimento desta comunicação e regularizar as pendências cadastrais solicitadas até o dia 30 do corrente mês.');
+      setBotaoTexto('Acessar Documentos no Portal');
+      setBotaoUrl('https://portal.brm.org.br');
+      setAssinaturaTexto('Secretaria Provincial');
+    } else if (tipo === 'circular') {
+      setAssunto('Carta Circular nº 01/2026 - Governo Provincial');
+      setTituloCabecalho('Governo Provincial');
+      setSubtituloCabecalho('Carta Circular nº 01/2026');
+      setCorpoTexto(
+        'Caríssimos confrades em Cristo e Dehon,\n\nDirijo-me a toda a Província Brasileira Meridional para comunicar as recentes deliberações e nomeações canônicas homologadas pelo Superior Provincial e seu Conselho.\n\nRenovamos nossa fraterna comunhão de orações e zelo pela missão dehoniana em todas as nossas obras e comunidades.'
+      );
+      setBlocoDestaque('Atos do Governo Provincial:\nAs nomeações entram em vigor canônico a partir da data de publicação desta circular provincial.');
+      setBotaoTexto('Consultar Atos no Sistema');
+      setBotaoUrl('https://sistema.brm.org.br/secretaria/governo-provincial');
+      setAssinaturaTexto('Pe. Superior Provincial e Conselho');
+    } else if (tipo === 'convocacao') {
+      setAssunto('Convocação Oficial: Retiro Provincial 2026');
+      setTituloCabecalho('Secretaria Provincial');
+      setSubtituloCabecalho('Convocação Oficial');
+      setCorpoTexto(
+        'Por determinação do Superior Provincial, convocamos todos os confrades da Província Brasileira Meridional para participarem do Retiro Provincial anual.\n\nPedimos que confirmem sua participação e hospedagem com antecedência através do Portal do Religioso.'
+      );
+      setBlocoDestaque('Informações do Encontro:\nData: 15 a 19 de Outubro de 2026\nLocal: Convento SCJ - Corupá / SC\nTema: "Sint Unum no Coração de Jesus"');
+      setBotaoTexto('Confirmar Participação no Portal');
+      setBotaoUrl('https://portal.brm.org.br');
+      setAssinaturaTexto('Secretaria Provincial');
+    }
+  };
+
+  // Inicializar presets no primeiro carregamento
+  useEffect(() => {
+    aplicarPresetModelo('credenciais');
+  }, []);
+
+  // =========================================================================
+  // DESTINATÁRIOS E FILTROS DO ELENCO
+  // =========================================================================
   const [busca, setBusca] = useState('');
-  const [filtroStatus, setFiltroStatus] = useState<'todos' | 'pendentes' | 'enviados'>('pendentes');
+  const [filtroGrau, setFiltroGrau] = useState<string>('todos');
+  const [filtroComunidade, setFiltroComunidade] = useState<string>('todas');
+  const [filtroStatus, setFiltroStatus] = useState<'todos' | 'pendentes' | 'enviados'>('todos');
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
-  
+
   // Execução do lote
   const [disparandoLote, setDisparandoLote] = useState(false);
   const [progressoLote, setProgressoLote] = useState({
@@ -46,7 +131,7 @@ export const DispararCredenciaisPage: React.FC = () => {
   const [logsLote, setLogsLote] = useState<ItemLog[]>([]);
   const abortBatchRef = useRef(false);
 
-  // Estados do Envio de Teste (1 ou 2 destinatários)
+  // Estados do Envio de Teste
   const [emailTeste1, setEmailTeste1] = useState('');
   const [emailTeste2, setEmailTeste2] = useState('');
   const [nomeTeste, setNomeTeste] = useState('Pe. João da Silva, SCJ');
@@ -57,6 +142,11 @@ export const DispararCredenciaisPage: React.FC = () => {
     itens: { email: string; ok: boolean; id?: string; error?: string }[];
   } | null>(null);
   const [erroPublicacaoEdgeFunction, setErroPublicacaoEdgeFunction] = useState<boolean>(false);
+
+  // Histórico de disparos
+  const [historico, setHistorico] = useState<RegistroHistorico[]>([]);
+  const [carregandoHistorico, setCarregandoHistorico] = useState(false);
+  const [historicoItemAberto, setHistoricoItemAberto] = useState<string | null>(null);
 
   // Carregar lista de religiosos da base
   const carregarReligiosos = useCallback(async () => {
@@ -84,9 +174,50 @@ export const DispararCredenciaisPage: React.FC = () => {
     }
   }, [preselectedId]);
 
+  // Carregar histórico de disparos
+  const carregarHistorico = useCallback(async () => {
+    try {
+      setCarregandoHistorico(true);
+      const { data, error } = await supabase
+        .from('comunicados_disparos')
+        .select('*')
+        .order('criado_em', { ascending: false })
+        .limit(40);
+
+      if (error) {
+        // Se a tabela ainda não existir no banco do usuário, trata graciosamente
+        console.warn('Aviso ao carregar histórico (tabela comunicados_disparos pode estar pendente de migração):', error.message);
+        setHistorico([]);
+      } else {
+        setHistorico((data || []) as RegistroHistorico[]);
+      }
+    } catch (err) {
+      console.warn('Erro ao consultar histórico:', err);
+    } finally {
+      setCarregandoHistorico(false);
+    }
+  }, []);
+
   useEffect(() => {
     void carregarReligiosos();
   }, [carregarReligiosos]);
+
+  useEffect(() => {
+    if (viewModo === 'historico') {
+      void carregarHistorico();
+    }
+  }, [viewModo, carregarHistorico]);
+
+  // Lista única de comunidades para filtro
+  const listaComunidades = useMemo(() => {
+    const setCom = new Set<string>();
+    for (const r of religiosos) {
+      if (r.comunidade_atual_nome && r.comunidade_atual_nome.trim()) {
+        setCom.add(r.comunidade_atual_nome.trim());
+      }
+    }
+    return Array.from(setCom).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }, [religiosos]);
 
   // Estatísticas da base
   const stats = useMemo(() => {
@@ -118,39 +249,49 @@ export const DispararCredenciaisPage: React.FC = () => {
       const nome = (r.nome_elenco || r.nome_religioso || r.nome_civil || '').toLowerCase();
       const comunidade = (r.comunidade_atual_nome || '').toLowerCase();
 
+      // Filtro de status
       if (filtroStatus === 'pendentes' && r.credenciais_enviadas_em) return false;
       if (filtroStatus === 'enviados' && !r.credenciais_enviadas_em) return false;
 
+      // Filtro de grau
+      if (filtroGrau !== 'todos') {
+        const g = (r.grau || '').toLowerCase();
+        if (filtroGrau === 'padres' && !g.includes('padre') && !g.includes('presbítero')) return false;
+        if (filtroGrau === 'fratres' && !g.includes('frater') && !g.includes('fráter')) return false;
+        if (filtroGrau === 'irmaos' && !g.includes('irmão') && !g.includes('irmao')) return false;
+        if (filtroGrau === 'bispos' && !g.includes('bispo')) return false;
+      }
+
+      // Filtro de comunidade
+      if (filtroComunidade !== 'todas') {
+        if ((r.comunidade_atual_nome || '').trim() !== filtroComunidade) return false;
+      }
+
+      // Busca textual
       if (!q) return true;
       return nome.includes(q) || email.includes(q) || comunidade.includes(q);
     });
-  }, [religiosos, busca, filtroStatus]);
+  }, [religiosos, busca, filtroStatus, filtroGrau, filtroComunidade]);
 
-  const handleSelecionarTodos = () => {
-    const novos = new Set<string>();
-    for (const r of religiososFiltrados) {
-      const email = (r.email_institucional || r.email_pessoal || '').trim();
-      if (email && email.includes('@')) {
-        novos.add(r.id);
-      }
-    }
-    setSelecionados(novos);
-  };
-
-  const handleDesmarcarTodos = () => {
-    setSelecionados(new Set());
-  };
-
-  const toggleSelecionado = (id: string) => {
+  // Ações de Seleção
+  const handleToggleSelect = (id: string) => {
     setSelecionados(prev => {
-      const copy = new Set(prev);
-      if (copy.has(id)) copy.delete(id);
-      else copy.add(id);
-      return copy;
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
   };
 
-  // Disparo de Teste
+  const handleSelecionarTodos = () => {
+    setSelecionados(new Set(religiososFiltrados.map(r => r.id)));
+  };
+
+  const handleLimparSelecao = () => {
+    setSelecionados(new Set());
+  };
+
+  // Disparo de Teste (Homologação)
   const handleEnviarTeste = async (e: React.FormEvent) => {
     e.preventDefault();
     const destinatarios = [emailTeste1.trim(), emailTeste2.trim()].filter(em => em && em.includes('@'));
@@ -162,13 +303,22 @@ export const DispararCredenciaisPage: React.FC = () => {
 
     setEnviandoTeste(true);
     setResultadoTeste(null);
+    setErroPublicacaoEdgeFunction(false);
 
     try {
-      setErroPublicacaoEdgeFunction(false);
       const res = await supabase.functions.invoke('disparar-credenciais-religioso', {
         body: {
           modo: 'teste',
           destinatarios,
+          tipo_mensagem: tipoMensagem,
+          assunto: assunto.trim() || undefined,
+          titulo_cabecalho: tituloCabecalho.trim() || undefined,
+          subtitulo_cabecalho: subtituloCabecalho.trim() || undefined,
+          corpo_texto: corpoTexto.trim() || undefined,
+          bloco_destaque: blocoDestaque.trim() || undefined,
+          botao_texto: botaoTexto.trim() || undefined,
+          botao_url: botaoUrl.trim() || undefined,
+          assinatura_texto: assinaturaTexto.trim() || undefined,
           nome_teste: nomeTeste.trim() || 'Pe. João da Silva, SCJ',
           senha_teste: senhaTeste.trim() || 'brm@15081978',
           operador_nome: 'Secretaria Provincial',
@@ -197,7 +347,7 @@ export const DispararCredenciaisPage: React.FC = () => {
       const isNotFound = msg.includes('Failed to send a request') || msg.includes('FunctionsFetchError') || msg.includes('NOT_FOUND') || msg.includes('404');
       if (isNotFound) {
         setErroPublicacaoEdgeFunction(true);
-        showToast.error('A Edge Function "disparar-credenciais-religioso" ainda não foi publicada no projeto Supabase em produção (ukhxcwzifugxdkdhobsi).');
+        showToast.error('A Edge Function "disparar-credenciais-religioso" ainda não foi publicada no projeto Supabase.');
       } else {
         showToast.error(`Erro ao disparar teste: ${msg || 'Falha na Edge Function'}`);
       }
@@ -213,11 +363,16 @@ export const DispararCredenciaisPage: React.FC = () => {
       return;
     }
 
+    const rotuloTipo = 
+      tipoMensagem === 'credenciais' ? 'Credenciais de Primeiro Acesso' :
+      tipoMensagem === 'circular' ? 'Carta Circular Provincial' :
+      tipoMensagem === 'convocacao' ? 'Convocação Oficial' : 'Comunicado da Secretaria';
+
     const confirmou = await confirmAction({
-      title: 'Disparo de Credenciais do Portal',
+      title: `Disparo de ${rotuloTipo}`,
       badge: 'Secretaria Provincial · Envio em Lote',
-      message: `Deseja realmente disparar os e-mails com as credenciais iniciais para ${selecionados.size} confrade(s) selecionado(s)?`,
-      detail: 'Os e-mails serão enviados via Resend a partir de secretaria@brm.org.br com intervalo de segurança.',
+      message: `Deseja realmente disparar os e-mails para ${selecionados.size} confrade(s) selecionado(s)?`,
+      detail: `Assunto: "${assunto || rotuloTipo}". Os e-mails serão enviados via Resend a partir de secretaria@brm.org.br.`,
       confirmLabel: 'Iniciar Disparo',
       cancelLabel: 'Cancelar',
     });
@@ -281,6 +436,15 @@ export const DispararCredenciaisPage: React.FC = () => {
           body: {
             modo: 'individual',
             religioso_id: rel.id,
+            tipo_mensagem: tipoMensagem,
+            assunto: assunto.trim() || undefined,
+            titulo_cabecalho: tituloCabecalho.trim() || undefined,
+            subtitulo_cabecalho: subtituloCabecalho.trim() || undefined,
+            corpo_texto: corpoTexto.trim() || undefined,
+            bloco_destaque: blocoDestaque.trim() || undefined,
+            botao_texto: botaoTexto.trim() || undefined,
+            botao_url: botaoUrl.trim() || undefined,
+            assinatura_texto: assinaturaTexto.trim() || undefined,
             operador_nome: 'Secretaria Provincial',
           },
         });
@@ -340,16 +504,16 @@ export const DispararCredenciaisPage: React.FC = () => {
     }
 
     setDisparandoLote(false);
-    showToast.success(`Disparo concluído: ${sucessosCount} enviados com sucesso, ${falhasCount} falhas.`);
-    await carregarReligiosos();
+    showToast.success(`Disparo finalizado: ${sucessosCount} enviado(s) com sucesso, ${falhasCount} falha(s).`);
+    void carregarReligiosos();
+    void carregarHistorico();
   };
 
-  const handleInterromperLote = () => {
+  const handleCancelarDisparo = () => {
     abortBatchRef.current = true;
-    setDisparandoLote(false);
   };
 
-  // Disparo individual direto na linha
+  // Disparo individual avulso
   const handleDispararIndividual = async (rel: Religioso) => {
     const nomeTratamento = atribuirNomeReligioso(rel.grau, rel.nome_elenco || rel.nome_religioso || rel.nome_civil);
     const email = (rel.email_institucional || rel.email_pessoal || '').trim();
@@ -359,42 +523,61 @@ export const DispararCredenciaisPage: React.FC = () => {
       return;
     }
 
+    const rotuloTipo = 
+      tipoMensagem === 'credenciais' ? 'Credenciais de Acesso' :
+      tipoMensagem === 'circular' ? 'Carta Circular' :
+      tipoMensagem === 'convocacao' ? 'Convocação' : 'Comunicado';
+
     const confirmou = await confirmAction({
-      title: 'Disparo de Credenciais',
-      badge: 'Secretaria Provincial',
-      message: `Enviar e-mail com as credenciais de acesso para ${nomeTratamento}?`,
-      detail: `Destinatário: ${email}`,
-      confirmLabel: 'Enviar Agora',
+      title: `Envio Individual: ${rotuloTipo}`,
+      badge: 'Secretaria Provincial · Envio Avulso',
+      message: `Deseja enviar para ${nomeTratamento}?`,
+      detail: `E-mail de destino: ${email}. Assunto: "${assunto || rotuloTipo}".`,
+      confirmLabel: 'Enviar E-mail',
       cancelLabel: 'Cancelar',
     });
 
     if (!confirmou) return;
 
     try {
+      showToast.info(`Enviando para ${email}...`);
       const res = await supabase.functions.invoke('disparar-credenciais-religioso', {
         body: {
           modo: 'individual',
           religioso_id: rel.id,
+          tipo_mensagem: tipoMensagem,
+          assunto: assunto.trim() || undefined,
+          titulo_cabecalho: tituloCabecalho.trim() || undefined,
+          subtitulo_cabecalho: subtituloCabecalho.trim() || undefined,
+          corpo_texto: corpoTexto.trim() || undefined,
+          bloco_destaque: blocoDestaque.trim() || undefined,
+          botao_texto: botaoTexto.trim() || undefined,
+          botao_url: botaoUrl.trim() || undefined,
+          assinatura_texto: assinaturaTexto.trim() || undefined,
           operador_nome: 'Secretaria Provincial',
         },
       });
 
       if (res.error) throw res.error;
 
-      showToast.success(`Credenciais enviadas para ${nomeTratamento} (${email})!`);
-      await carregarReligiosos();
+      showToast.success(`E-mail enviado com sucesso para ${nomeTratamento}!`);
+      void carregarReligiosos();
+      void carregarHistorico();
     } catch (err: any) {
-      console.error('Erro no envio individual:', err);
-      showToast.error(`Não foi possível enviar: ${err.message || 'Erro desconhecido'}`);
+      console.error('Falha no envio avulso:', err);
+      showToast.error(`Erro ao enviar: ${err.message || 'Falha na Edge Function'}`);
     }
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* Cabeçalho da Página */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-slate-800">
+    <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-24 font-sans text-slate-800 dark:text-slate-100">
+      
+      {/* ===================================================================== */}
+      {/* CABEÇALHO DA PÁGINA (DESIGN INSTITUCIONAL DEHONIANO) */}
+      {/* ===================================================================== */}
+      <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between border-b border-slate-200 dark:border-slate-800 pb-5">
         <div className="space-y-1">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
             <button
               type="button"
               onClick={() => navigate('/secretaria/elenco')}
@@ -405,15 +588,15 @@ export const DispararCredenciaisPage: React.FC = () => {
             </button>
             <span className="text-slate-300 dark:text-slate-700">|</span>
             <span className="font-cinzel text-[11px] font-semibold uppercase tracking-[0.18em] text-[#226380] dark:text-[#A3C3C7]">
-              Secretaria Provincial · Portal do Religioso
+              Secretaria Provincial · Comunicação Oficial
             </span>
           </div>
 
           <h1 className="font-cinzel text-2xl font-bold tracking-tight text-[#113240] dark:text-white sm:text-3xl pt-1">
-            Disparo de Credenciais
+            Comunicados & Disparo de E-mails
           </h1>
-          <p className="max-w-2xl text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-sans leading-relaxed">
-            Gestão e envio oficial de credenciais de primeiro acesso para os confrades da Província Brasileira Meridional.
+          <p className="max-w-3xl text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-sans leading-relaxed">
+            Central de envio e homologação de comunicados oficiais, cartas circulares e credenciais do Portal para os confrades da Província Brasileira Meridional.
           </p>
         </div>
 
@@ -421,12 +604,12 @@ export const DispararCredenciaisPage: React.FC = () => {
         <div className="flex items-center gap-2 self-start md:self-auto">
           <button
             type="button"
-            onClick={carregarReligiosos}
+            onClick={() => { void carregarReligiosos(); void carregarHistorico(); }}
             disabled={loading || disparandoLote}
             className="inline-flex items-center gap-2 rounded-[6px] border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Atualizar Base</span>
+            <span>Atualizar</span>
           </button>
         </div>
       </header>
@@ -444,12 +627,12 @@ export const DispararCredenciaisPage: React.FC = () => {
         </div>
 
         <div className="rounded-lg border border-slate-200 bg-white p-3.5 dark:border-slate-800 dark:bg-[#161b22]">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Já Notificados</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{stats.jaEnviados}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Selecionados</p>
+          <p className="mt-1 text-2xl font-bold text-[#226380] dark:text-[#7bb5cc] tabular-nums">{selecionados.size}</p>
         </div>
 
         <div className="rounded-lg border border-slate-200 bg-white p-3.5 dark:border-slate-800 dark:bg-[#161b22]">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Pendente de E-mail</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Sem E-mail</p>
           <p className="mt-1 text-2xl font-bold text-amber-700 dark:text-amber-400 tabular-nums">{stats.semEmail}</p>
         </div>
       </section>
@@ -466,7 +649,20 @@ export const DispararCredenciaisPage: React.FC = () => {
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>Disparo para o Elenco</span>
+          <span>1. Destinatários do Elenco ({selecionados.size}/{religiosos.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setViewModo('redigir')}
+          className={`py-3 px-4 text-xs font-semibold border-b-2 flex items-center gap-2 transition-colors cursor-pointer ${
+            viewModo === 'redigir'
+              ? 'border-[#113240] text-[#113240] dark:border-white dark:text-white'
+              : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
+          }`}
+        >
+          <FileText className="w-4 h-4" />
+          <span>2. Redigir Comunicado & Modelo</span>
         </button>
 
         <button
@@ -478,42 +674,41 @@ export const DispararCredenciaisPage: React.FC = () => {
               : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
           }`}
         >
-          <Send className="w-4 h-4" />
-          <span>Envio de Teste (Homologação)</span>
+          <Eye className="w-4 h-4" />
+          <span>3. Prévia & Teste de Homologação</span>
         </button>
 
         <button
           type="button"
-          onClick={() => setViewModo('modelo')}
+          onClick={() => setViewModo('historico')}
           className={`py-3 px-4 text-xs font-semibold border-b-2 flex items-center gap-2 transition-colors cursor-pointer ${
-            viewModo === 'modelo'
+            viewModo === 'historico'
               ? 'border-[#113240] text-[#113240] dark:border-white dark:text-white'
               : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
           }`}
         >
-          <Mail className="w-4 h-4" />
-          <span>Modelo Oficial do E-mail</span>
+          <History className="w-4 h-4" />
+          <span>4. Histórico de Envios</span>
         </button>
       </div>
 
       {/* ===================================================================== */}
-      {/* SEÇÃO 1: DISPARO PARA O ELENCO */}
+      {/* ABA 1: DESTINATÁRIOS DO ELENCO */}
       {/* ===================================================================== */}
       {viewModo === 'elenco' && (
         <div className="space-y-4">
           
-          {/* Painel de Progresso durante Disparo em Lote */}
+          {/* Painel de Progresso do Lote (quando ativo) */}
           {disparandoLote && (
-            <div className="p-4 rounded-lg bg-slate-50 dark:bg-[#161b22] border border-slate-300 dark:border-slate-700 space-y-3">
-              <div className="flex items-center justify-between text-xs font-semibold">
-                <span className="flex items-center gap-2 text-[#113240] dark:text-white">
-                  <RefreshCw className="w-4 h-4 animate-spin text-[#226380]" />
-                  Processando envio: {progressoLote.atual} de {progressoLote.total} — {progressoLote.atualNome}
+            <div className="rounded-lg border border-[#226380]/40 bg-[#f0f6f9] dark:bg-[#11242d] p-4 space-y-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-[#113240] dark:text-[#A3C3C7]">
+                  Disparando {progressoLote.atual} de {progressoLote.total} — {progressoLote.atualNome}
                 </span>
                 <button
                   type="button"
-                  onClick={handleInterromperLote}
-                  className="px-3 py-1.5 rounded bg-rose-700 hover:bg-rose-800 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                  onClick={handleCancelarDisparo}
+                  className="px-2.5 py-1 text-xs font-semibold rounded bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1 cursor-pointer transition"
                 >
                   <Square className="w-3.5 h-3.5" />
                   <span>Interromper Disparo</span>
@@ -536,7 +731,7 @@ export const DispararCredenciaisPage: React.FC = () => {
           )}
 
           {/* Barra de Filtros e Seleção */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-1 max-w-md">
               <div className="relative w-full">
                 <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
@@ -550,128 +745,120 @@ export const DispararCredenciaisPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Dropdown de Filtros por Grau e Comunidade */}
             <div className="flex items-center gap-2 flex-wrap text-xs">
-              <div className="flex items-center rounded-md border border-slate-300 dark:border-slate-700 overflow-hidden bg-white dark:bg-[#10171B]">
-                <button
-                  type="button"
-                  onClick={() => setFiltroStatus('pendentes')}
-                  className={`px-3 py-1.5 font-medium transition-colors ${
-                    filtroStatus === 'pendentes'
-                      ? 'bg-[#113240] text-white dark:bg-[#226380]'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  Apenas Pendentes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFiltroStatus('enviados')}
-                  className={`px-3 py-1.5 font-medium transition-colors ${
-                    filtroStatus === 'enviados'
-                      ? 'bg-[#113240] text-white dark:bg-[#226380]'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  Já Notificados
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFiltroStatus('todos')}
-                  className={`px-3 py-1.5 font-medium transition-colors ${
-                    filtroStatus === 'todos'
-                      ? 'bg-[#113240] text-white dark:bg-[#226380]'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  Todos
-                </button>
-              </div>
+              <select
+                value={filtroGrau}
+                onChange={e => setFiltroGrau(e.target.value)}
+                className="px-2.5 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#10171B] text-slate-700 dark:text-slate-300 focus:outline-none focus:border-[#226380]"
+              >
+                <option value="todos">Todos os Graus</option>
+                <option value="padres">Padres / Presbíteros</option>
+                <option value="fratres">Fratres</option>
+                <option value="irmaos">Irmãos</option>
+                <option value="bispos">Bispos</option>
+              </select>
+
+              <select
+                value={filtroComunidade}
+                onChange={e => setFiltroComunidade(e.target.value)}
+                className="px-2.5 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#10171B] text-slate-700 dark:text-slate-300 focus:outline-none focus:border-[#226380] max-w-[200px] truncate"
+              >
+                <option value="todas">Todas as Comunidades</option>
+                {listaComunidades.map(com => (
+                  <option key={com} value={com}>{com}</option>
+                ))}
+              </select>
 
               <span className="text-slate-300 dark:text-slate-700">|</span>
 
               <button
                 type="button"
                 onClick={handleSelecionarTodos}
-                className="text-xs font-semibold text-[#226380] dark:text-[#A3C3C7] hover:underline"
+                className="text-xs font-semibold text-[#226380] dark:text-[#A3C3C7] hover:underline cursor-pointer"
               >
                 Selecionar Exibidos ({religiososFiltrados.length})
               </button>
 
               <button
                 type="button"
-                onClick={handleDesmarcarTodos}
-                className="text-xs text-slate-500 hover:underline"
+                onClick={handleLimparSelecao}
+                className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
               >
-                Limpar Seleção
+                Limpar
               </button>
             </div>
           </div>
 
-          {/* Tabela do Elenco */}
-          <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] overflow-hidden">
+          {/* Tabela do Elenco Provincial */}
+          <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 dark:bg-[#10171B] text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                  <tr>
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-[#10171B] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
                     <th className="p-3 w-10 text-center">
                       <input
                         type="checkbox"
-                        checked={selecionados.size > 0 && selecionados.size === religiososFiltrados.length}
-                        onChange={e => e.target.checked ? handleSelecionarTodos() : handleDesmarcarTodos()}
-                        className="rounded text-[#113240]"
+                        checked={religiososFiltrados.length > 0 && religiososFiltrados.every(r => selecionados.has(r.id))}
+                        onChange={e => e.target.checked ? handleSelecionarTodos() : handleLimparSelecao()}
+                        className="rounded border-slate-300 text-[#113240] focus:ring-[#226380]"
                       />
                     </th>
-                    <th className="p-3 font-semibold uppercase tracking-wider">Confrade</th>
-                    <th className="p-3 font-semibold uppercase tracking-wider">E-mail de Acesso</th>
-                    <th className="p-3 font-semibold uppercase tracking-wider">Comunidade Atual</th>
-                    <th className="p-3 font-semibold uppercase tracking-wider">Status do Envio</th>
-                    <th className="p-3 font-semibold uppercase tracking-wider text-right">Ação</th>
+                    <th className="p-3">Confrade (Nome Canônico / Elenco)</th>
+                    <th className="p-3">Grau</th>
+                    <th className="p-3">Comunidade Atual</th>
+                    <th className="p-3">E-mail Cadastrado</th>
+                    <th className="p-3 text-right">Ação Rápida</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-inter">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-sans">
                   {religiososFiltrados.map(rel => {
+                    const isSelected = selecionados.has(rel.id);
+                    const nomeTratamento = atribuirNomeReligioso(rel.grau, rel.nome_elenco || rel.nome_religioso || rel.nome_civil);
                     const email = (rel.email_institucional || rel.email_pessoal || '').trim();
                     const semEmail = !email || !email.includes('@');
-                    const selecionado = selecionados.has(rel.id);
-                    const nomeTratamento = atribuirNomeReligioso(rel.grau, rel.nome_elenco || rel.nome_religioso || rel.nome_civil);
 
                     return (
                       <tr 
-                        key={rel.id}
-                        className={`hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors ${
-                          selecionado ? 'bg-sky-50/40 dark:bg-[#142630]' : ''
+                        key={rel.id} 
+                        className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors ${
+                          isSelected ? 'bg-sky-50/40 dark:bg-[#14232c]' : ''
                         }`}
                       >
                         <td className="p-3 text-center">
                           <input
                             type="checkbox"
-                            disabled={semEmail || disparandoLote}
-                            checked={selecionado}
-                            onChange={() => toggleSelecionado(rel.id)}
-                            className="rounded text-[#113240] disabled:opacity-30"
+                            checked={isSelected}
+                            disabled={disparandoLote}
+                            onChange={() => handleToggleSelect(rel.id)}
+                            className="rounded border-slate-300 text-[#113240] focus:ring-[#226380]"
                           />
                         </td>
-                        <td className="p-3 font-medium text-slate-900 dark:text-white">
-                          {nomeTratamento}
+                        <td className="p-3 font-semibold text-slate-900 dark:text-white">
+                          <div className="flex items-center gap-2">
+                            <span>{nomeTratamento}</span>
+                            {rel.credenciais_enviadas_em && (
+                              <span 
+                                title={`Credenciais enviadas em ${new Date(rel.credenciais_enviadas_em).toLocaleDateString('pt-BR')}`}
+                                className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 font-mono"
+                              >
+                                <Check className="w-3 h-3" />
+                                <span>Notificado</span>
+                              </span>
+                            )}
+                          </div>
                         </td>
-                        <td className="p-3 text-slate-600 dark:text-slate-400">
-                          {semEmail ? (
-                            <span className="text-amber-700 dark:text-amber-400 font-medium">Pendente de e-mail</span>
-                          ) : (
-                            email
-                          )}
-                        </td>
-                        <td className="p-3 text-slate-500 dark:text-slate-400">
-                          {rel.comunidade_atual_nome || '—'}
-                        </td>
+                        <td className="p-3 text-slate-600 dark:text-slate-300">{rel.grau || '—'}</td>
+                        <td className="p-3 text-slate-600 dark:text-slate-300">{rel.comunidade_atual_nome || '—'}</td>
                         <td className="p-3">
-                          {rel.credenciais_enviadas_em ? (
-                            <span className="inline-flex items-center gap-1.5 text-emerald-800 dark:text-emerald-400 font-medium">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>Enviado em {new Date(rel.credenciais_enviadas_em).toLocaleDateString('pt-BR')}</span>
+                          {semEmail ? (
+                            <span className="text-rose-600 dark:text-rose-400 font-semibold text-[11px]">
+                              Sem e-mail cadastrado
                             </span>
                           ) : (
-                            <span className="text-slate-400 font-normal">Ainda não enviado</span>
+                            <span className="font-mono text-slate-700 dark:text-slate-300 text-[11px] select-all">
+                              {email}
+                            </span>
                           )}
                         </td>
                         <td className="p-3 text-right">
@@ -682,7 +869,7 @@ export const DispararCredenciaisPage: React.FC = () => {
                             className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold transition cursor-pointer disabled:opacity-40"
                           >
                             <Mail className="w-3.5 h-3.5 text-[#226380]" />
-                            <span>{rel.credenciais_enviadas_em ? 'Reenviar' : 'Enviar'}</span>
+                            <span>Enviar Agora</span>
                           </button>
                         </td>
                       </tr>
@@ -706,15 +893,25 @@ export const DispararCredenciaisPage: React.FC = () => {
                 <strong className="text-slate-900 dark:text-white font-semibold">{selecionados.size}</strong> confrade(s) selecionado(s) para o disparo.
               </div>
 
-              <button
-                type="button"
-                disabled={disparandoLote || selecionados.size === 0}
-                onClick={handleIniciarDisparoLote}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-md bg-[#113240] hover:bg-[#1A4355] text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shadow-xs disabled:opacity-50"
-              >
-                <Send className="w-3.5 h-3.5" />
-                <span>Disparar Credenciais para os Selecionados ({selecionados.size})</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setViewModo('redigir')}
+                  className="px-4 py-2 rounded-md border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold cursor-pointer"
+                >
+                  Configurar Mensagem
+                </button>
+
+                <button
+                  type="button"
+                  disabled={disparandoLote || selecionados.size === 0}
+                  onClick={handleIniciarDisparoLote}
+                  className="px-5 py-2 rounded-md bg-[#113240] hover:bg-[#1A4355] text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shadow-xs disabled:opacity-50"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Disparar para Selecionados ({selecionados.size})</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -722,22 +919,231 @@ export const DispararCredenciaisPage: React.FC = () => {
       )}
 
       {/* ===================================================================== */}
-      {/* SEÇÃO 2: ENVIO DE TESTE (HOMOLOGAÇÃO) */}
+      {/* ABA 2: REDIGIR COMUNICADO & ESCOLHER MODELO */}
       {/* ===================================================================== */}
-      {viewModo === 'teste' && (
-        <div className="max-w-3xl space-y-6">
+      {viewModo === 'redigir' && (
+        <div className="max-w-4xl space-y-6">
+          
+          {/* Seletor de Modelo Institucional */}
           <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] p-6 space-y-5">
             <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                Homologação de Envio
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-cinzel">
+                Selecione o Modelo Institucional
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                Dispare uma mensagem de teste para um ou dois e-mails sob seu controle para inspecionar a entrega na caixa de entrada e a formatação no cliente de e-mail.
+                Escolha o formato da comunicação. Cada modelo possui uma matriz de cabeçalho e assinatura apropriada para a Cúria Provincial.
               </p>
             </div>
 
-            <form onSubmit={handleEnviarTeste} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <button
+                type="button"
+                onClick={() => aplicarPresetModelo('credenciais')}
+                className={`p-3.5 rounded-lg border text-left transition cursor-pointer ${
+                  tipoMensagem === 'credenciais'
+                    ? 'border-[#113240] bg-slate-50 dark:bg-slate-800/80 ring-2 ring-[#113240]/20'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                }`}
+              >
+                <div className="font-semibold text-xs text-slate-900 dark:text-white">1. Credenciais de Acesso</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Primeiro acesso ao Portal do Religioso com senha provisória automática.</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => aplicarPresetModelo('comunicado')}
+                className={`p-3.5 rounded-lg border text-left transition cursor-pointer ${
+                  tipoMensagem === 'comunicado'
+                    ? 'border-[#113240] bg-slate-50 dark:bg-slate-800/80 ring-2 ring-[#113240]/20'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                }`}
+              >
+                <div className="font-semibold text-xs text-slate-900 dark:text-white">2. Comunicado da Secretaria</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Avisos, prazos, orientações administrativas e canônicas aos confrades.</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => aplicarPresetModelo('circular')}
+                className={`p-3.5 rounded-lg border text-left transition cursor-pointer ${
+                  tipoMensagem === 'circular'
+                    ? 'border-[#113240] bg-slate-50 dark:bg-slate-800/80 ring-2 ring-[#113240]/20'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                }`}
+              >
+                <div className="font-semibold text-xs text-slate-900 dark:text-white">3. Carta Circular Provincial</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Atos de Governo, nomeações, transferências e cartas do Provincial.</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => aplicarPresetModelo('convocacao')}
+                className={`p-3.5 rounded-lg border text-left transition cursor-pointer ${
+                  tipoMensagem === 'convocacao'
+                    ? 'border-[#113240] bg-slate-50 dark:bg-slate-800/80 ring-2 ring-[#113240]/20'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                }`}
+              >
+                <div className="font-semibold text-xs text-slate-900 dark:text-white">4. Convocação Oficial</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Assembleias, Retiro Anual ou encontros com data, local e confirmação.</div>
+              </button>
+            </div>
+          </div>
+
+          {/* Editor de Conteúdo */}
+          <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] p-6 space-y-4">
+            <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-cinzel">
+              Parâmetros e Texto da Mensagem
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Assunto do E-mail <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={assunto}
+                  onChange={e => setAssunto(e.target.value)}
+                  placeholder="Ex: Carta Circular 01/2026 - Governo Provincial"
+                  className="w-full px-3 py-2 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#10171B] text-slate-900 dark:text-white focus:outline-none focus:border-[#226380]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Subtítulo no Cabeçalho Timbrado
+                </label>
+                <input
+                  type="text"
+                  value={subtituloCabecalho}
+                  onChange={e => setSubtituloCabecalho(e.target.value)}
+                  placeholder="Ex: Carta Circular nº 01/2026"
+                  className="w-full px-3 py-2 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#10171B] text-slate-900 dark:text-white focus:outline-none focus:border-[#226380]"
+                />
+              </div>
+            </div>
+
+            {tipoMensagem !== 'credenciais' && (
+              <>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Corpo da Mensagem (Parágrafos)
+                  </label>
+                  <textarea
+                    rows={6}
+                    value={corpoTexto}
+                    onChange={e => setCorpoTexto(e.target.value)}
+                    placeholder="Escreva a mensagem oficial aos confrades. Dê dois 'Enter' para criar novos parágrafos..."
+                    className="w-full px-3 py-2 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#10171B] text-slate-900 dark:text-white focus:outline-none focus:border-[#226380] font-sans leading-relaxed"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Cada parágrafo será renderizado com espaçamento canônico e tipografia legível.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Bloco de Destaque / Aviso Canônico (Opcional)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={blocoDestaque}
+                    onChange={e => setBlocoDestaque(e.target.value)}
+                    placeholder="Texto em destaque com borda azul e fundo diferenciado (ex: datas limites, orientações de comparecimento)..."
+                    className="w-full px-3 py-2 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#10171B] text-slate-900 dark:text-white focus:outline-none focus:border-[#226380]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Botão de Ação - Texto (Opcional)
+                    </label>
+                    <input
+                      type="text"
+                      value={botaoTexto}
+                      onChange={e => setBotaoTexto(e.target.value)}
+                      placeholder="Ex: Acessar Documento no Portal"
+                      className="w-full px-3 py-2 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#10171B] text-slate-900 dark:text-white focus:outline-none focus:border-[#226380]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Botão de Ação - URL / Link (Opcional)
+                    </label>
+                    <input
+                      type="url"
+                      value={botaoUrl}
+                      onChange={e => setBotaoUrl(e.target.value)}
+                      placeholder="https://portal.brm.org.br/..."
+                      className="w-full px-3 py-2 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#10171B] text-slate-900 dark:text-white font-mono focus:outline-none focus:border-[#226380]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Assinatura Institucional
+                  </label>
+                  <input
+                    type="text"
+                    value={assinaturaTexto}
+                    onChange={e => setAssinaturaTexto(e.target.value)}
+                    placeholder="Ex: Secretaria Provincial ou Pe. Superior Provincial e Conselho"
+                    className="w-full px-3 py-2 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#10171B] text-slate-900 dark:text-white focus:outline-none focus:border-[#226380]"
+                  />
+                </div>
+              </>
+            )}
+
+            {tipoMensagem === 'credenciais' && (
+              <div className="p-3.5 rounded border border-blue-200 dark:border-blue-900/40 bg-blue-50/50 dark:bg-blue-950/20 text-xs text-blue-900 dark:text-blue-200 leading-relaxed">
+                <strong>Modelo de Credenciais Automático:</strong> Os dados de login (e-mail cadastrado, senha provisória calculada pela data de nascimento e instruções de segurança canônica) serão inseridos dinamicamente para cada confrade no momento do envio.
+              </div>
+            )}
+
+            <div className="pt-3 flex items-center justify-between border-t border-slate-200 dark:border-slate-800">
+              <span className="text-xs text-slate-500">
+                Destinatários atuais selecionados: <strong>{selecionados.size}</strong> confrade(s).
+              </span>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setViewModo('teste')}
+                  className="px-4 py-2 rounded-md bg-[#113240] hover:bg-[#1A4355] text-white text-xs font-semibold flex items-center gap-2 cursor-pointer transition shadow-xs"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Ver Prévia & Testar</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* ABA 3: PRÉVIA AO VIVO & TESTE DE HOMOLOGAÇÃO */}
+      {/* ===================================================================== */}
+      {viewModo === 'teste' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          {/* Coluna 1: Formulário de Envio de Teste */}
+          <div className="lg:col-span-5 space-y-5">
+            <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] p-5 space-y-4">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-cinzel">
+                  Disparo de Teste
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                  Envie uma mensagem real para a sua própria caixa de entrada para conferir a entrega e formatação no celular ou computador.
+                </p>
+              </div>
+
+              <form onSubmit={handleEnviarTeste} className="space-y-3.5">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     E-mail de Teste 1 <span className="text-rose-600">*</span>
@@ -764,12 +1170,10 @@ export const DispararCredenciaisPage: React.FC = () => {
                     className="w-full px-3 py-2 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#10171B] text-slate-900 dark:text-white focus:outline-none focus:border-[#226380]"
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Nome / Tratamento Simulado
+                    Nome Simulado do Confrade
                   </label>
                   <input
                     type="text"
@@ -779,24 +1183,10 @@ export const DispararCredenciaisPage: React.FC = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Senha Provisória Simulada
-                  </label>
-                  <input
-                    type="text"
-                    value={senhaTeste}
-                    onChange={e => setSenhaTeste(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#10171B] text-slate-900 dark:text-white font-mono focus:outline-none focus:border-[#226380]"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2 flex justify-end">
                 <button
                   type="submit"
                   disabled={enviandoTeste}
-                  className="px-5 py-2.5 rounded-md bg-[#113240] hover:bg-[#1A4355] text-white text-xs font-semibold flex items-center gap-2 transition cursor-pointer shadow-xs disabled:opacity-50"
+                  className="w-full py-2.5 rounded-md bg-[#113240] hover:bg-[#1A4355] text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shadow-xs disabled:opacity-50"
                 >
                   {enviandoTeste ? (
                     <>
@@ -806,93 +1196,286 @@ export const DispararCredenciaisPage: React.FC = () => {
                   ) : (
                     <>
                       <Send className="w-3.5 h-3.5" />
-                      <span>Disparar E-mail(s) de Teste</span>
+                      <span>Disparar E-mail de Teste</span>
                     </>
                   )}
                 </button>
-              </div>
-            </form>
+              </form>
 
-            {/* Painel de Resultados do Teste */}
-            {resultadoTeste && (
-              <div className="border border-slate-200 dark:border-slate-800 rounded-md p-4 bg-slate-50 dark:bg-[#10171B] space-y-3">
-                <h3 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">
-                  Retorno do Envio de Teste
-                </h3>
-                <div className="space-y-2">
-                  {resultadoTeste.itens.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex items-center justify-between p-3 rounded border text-xs ${
-                        item.ok
-                          ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300'
-                          : 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/40 text-rose-800 dark:text-rose-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        {item.ok ? <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" /> : <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />}
-                        <span className="font-semibold">{item.email}</span>
+              {/* Resultado do Teste */}
+              {resultadoTeste && (
+                <div className="border border-slate-200 dark:border-slate-800 rounded-md p-3.5 bg-slate-50 dark:bg-[#10171B] space-y-2">
+                  <div className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    Retorno do Envio de Teste:
+                  </div>
+                  {resultadoTeste.itens.map((it, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-200">
+                        {it.ok ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <AlertCircle className="w-3.5 h-3.5 text-rose-600" />}
+                        <span>{it.email}</span>
                       </div>
-                      <div className="text-[11px] font-mono">
-                        {item.ok ? `Resend ID: ${item.id}` : `Erro: ${item.error}`}
-                      </div>
+                      <span className="font-mono text-[11px] text-slate-500">
+                        {it.ok ? `ID: ${it.id?.slice(0, 8)}...` : `Erro: ${it.error}`}
+                      </span>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-            {/* Alerta Institucional de Publicação da Edge Function */}
-            {erroPublicacaoEdgeFunction && (
-              <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900/60 p-4 text-xs text-amber-900 dark:text-amber-200 space-y-2.5">
-                <div className="flex items-center gap-2 font-bold text-amber-900 dark:text-amber-300">
-                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                  <span>Edge Function pendente de publicação no Supabase</span>
-                </div>
-                <p className="leading-relaxed text-slate-700 dark:text-slate-300">
-                  A função <code className="font-mono font-semibold px-1 py-0.5 rounded bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900">disparar-credenciais-religioso</code> ainda não foi implantada no seu projeto Supabase em produção (<strong>ukhxcwzifugxdkdhobsi</strong>). Para ativá-la:
-                </p>
-                <div className="space-y-2 pt-1">
-                  <p className="font-semibold text-slate-900 dark:text-white">Opção 1 — Via Supabase CLI (Terminal):</p>
-                  <div className="bg-slate-900 text-slate-100 p-2.5 rounded font-mono text-[11px] select-all overflow-x-auto">
+              )}
+
+              {/* Alerta Institucional de Publicação da Edge Function */}
+              {erroPublicacaoEdgeFunction && (
+                <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900/60 p-3.5 text-xs text-amber-900 dark:text-amber-200 space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-amber-900 dark:text-amber-300">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                    <span>Edge Function pendente de publicação no Supabase</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-slate-700 dark:text-slate-300">
+                    A função <code className="font-mono font-semibold">disparar-credenciais-religioso</code> precisa ser publicada no seu projeto Supabase (<code>ukhxcwzifugxdkdhobsi</code>).
+                  </p>
+                  <div className="bg-slate-900 text-slate-100 p-2 rounded font-mono text-[10px] select-all overflow-x-auto">
                     npx supabase functions deploy disparar-credenciais-religioso --project-ref ukhxcwzifugxdkdhobsi --no-verify-jwt
                   </div>
-                  <p className="font-semibold text-slate-900 dark:text-white pt-1">Opção 2 — Via Painel Web do Supabase:</p>
-                  <div className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed pl-2 border-l-2 border-amber-300 dark:border-amber-700 space-y-1">
-                    <p>1. Acesse <strong>Edge Functions</strong> no painel do Supabase e crie uma função com o nome <code className="font-mono">disparar-credenciais-religioso</code>.</p>
-                    <p>2. Cole o código de <code className="font-mono">supabase/functions/disparar-credenciais-religioso/index.ts</code> e clique em <strong>Deploy</strong>.</p>
-                    <p>3. Em <strong>Project Settings &gt; Edge Functions &gt; Secrets</strong>, certifique-se de configurar a chave <code className="font-mono">RESEND_API_KEY</code>.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Ação rápida para envio em lote */}
+            <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] p-4 text-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600 dark:text-slate-400">Pronto para disparar aos confrades?</span>
+                <span className="font-bold text-[#113240] dark:text-[#A3C3C7]">{selecionados.size} selecionado(s)</span>
+              </div>
+              <button
+                type="button"
+                disabled={disparandoLote || selecionados.size === 0}
+                onClick={handleIniciarDisparoLote}
+                className="w-full py-2.5 rounded-md bg-[#113240] hover:bg-[#1A4355] text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Disparar aos {selecionados.size} Confrades Selecionados</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Coluna 2: Prévia Visual ao Vivo */}
+          <div className="lg:col-span-7 space-y-2">
+            <div className="flex items-center justify-between text-xs text-slate-500">
+              <span className="font-semibold uppercase tracking-wider text-[11px]">Prévia Fiel do E-mail Oficial:</span>
+              <span className="text-[11px] text-slate-400 font-mono">Largura canônica: 620px</span>
+            </div>
+
+            <div className="rounded-lg border border-slate-300 dark:border-slate-800 overflow-hidden bg-[#F3F6F8] p-4 flex justify-center">
+              <div className="w-full max-w-[580px] bg-white border border-[#dce5e8] rounded-xl overflow-hidden shadow-xs text-[#17333d]">
+                
+                {/* Cabeçalho Timbrado */}
+                <div className="bg-[#113240] px-6 py-8 text-center border-b-4 border-[#226380]">
+                  <img
+                    src="https://sistema.brm.org.br/brasao-colorido-dehoniano.png"
+                    alt="Brasão Dehoniano"
+                    className="h-20 w-auto mx-auto mb-3 object-contain"
+                  />
+                  <div className="text-[10px] font-bold tracking-[2px] uppercase text-[#8bb6c6]">
+                    Província Brasileira Meridional · SCJ
+                  </div>
+                  <div className="text-lg font-bold text-white tracking-tight mt-1">
+                    {tipoMensagem === 'credenciais' ? 'Portal do Religioso' : (tituloCabecalho || 'Secretaria Provincial')}
+                  </div>
+                  <div className="text-xs text-[#c0d6df] mt-0.5">
+                    {subtituloCabecalho || 'Comunicado Oficial'}
                   </div>
                 </div>
+
+                {/* Corpo */}
+                <div className="p-6 space-y-4 text-xs text-[#374f59] leading-relaxed">
+                  <p className="font-bold text-sm text-[#113240]">
+                    Prezado {nomeTeste || 'Pe. Confrade, SCJ'},
+                  </p>
+
+                  {tipoMensagem === 'credenciais' ? (
+                    <>
+                      <p>
+                        A Secretaria Provincial disponibiliza o seu acesso ao <strong>Portal do Religioso</strong> da Província Brasileira Meridional.
+                      </p>
+
+                      <div className="p-4 rounded border border-[#d5e2e6] border-l-4 border-l-[#226380] bg-[#f7fafb] space-y-2">
+                        <div className="text-[10px] font-bold text-[#226380] uppercase tracking-wider">Credenciais de Acesso</div>
+                        <div className="font-mono text-[11px] space-y-1">
+                          <div><strong>E-mail:</strong> confrade@brm.org.br</div>
+                          <div><strong>Senha Provisória:</strong> {senhaTeste}</div>
+                        </div>
+                      </div>
+
+                      <div className="text-center py-2">
+                        <span className="inline-block px-6 py-2.5 rounded bg-[#113240] text-white font-semibold text-xs">
+                          Acessar Portal do Religioso
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="whitespace-pre-line space-y-2">
+                        {corpoTexto || 'Escreva o corpo da mensagem na aba "Redigir Comunicado" para visualizá-lo aqui.'}
+                      </div>
+
+                      {blocoDestaque && (
+                        <div className="p-4 rounded border border-[#d5e2e6] border-l-4 border-l-[#226380] bg-[#f7fafb] whitespace-pre-line text-[#17333d]">
+                          {blocoDestaque}
+                        </div>
+                      )}
+
+                      {botaoTexto && (
+                        <div className="text-center py-2">
+                          <span className="inline-block px-6 py-2.5 rounded bg-[#113240] text-white font-semibold text-xs">
+                            {botaoTexto}
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Assinatura */}
+                  <div className="pt-4 border-t border-slate-200 text-[11px] text-slate-500 space-y-0.5">
+                    <div className="italic text-slate-600">Em Cristo e Dehon,</div>
+                    <div className="font-bold text-slate-800">{assinaturaTexto || 'Secretaria Provincial'}</div>
+                    <div>Província Brasileira Meridional · SCJ</div>
+                  </div>
+                </div>
+
+                {/* Rodapé */}
+                <div className="bg-[#f7fafb] p-4 text-center border-t border-[#e7eff2] text-[10px] text-slate-500 leading-relaxed">
+                  <strong>Província Brasileira Meridional</strong> · Congregação dos Sacerdotes do Sagrado Coração de Jesus<br />
+                  Cúria Provincial · Rua Padre Gabriel Lux, 900 – Caixa Postal 21 · Corupá - SC · CEP 89278-000
+                </div>
+
               </div>
-            )}
+            </div>
           </div>
+
         </div>
       )}
 
       {/* ===================================================================== */}
-      {/* SEÇÃO 3: MODELO OFICIAL DO E-MAIL */}
+      {/* ABA 4: HISTÓRICO DE ENVIOS & AUDITORIA CANÔNICA */}
       {/* ===================================================================== */}
-      {viewModo === 'modelo' && (
-        <div className="space-y-4 max-w-4xl">
-          <div className="flex items-center justify-between text-xs text-slate-500">
-            <span>Visualização fiel do e-mail com a identidade timbrada e cabeçalho oficial:</span>
-            <a
-              href="/templates/preview-credenciais-exemplo.html"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-[#226380] hover:underline font-semibold"
+      {viewModo === 'historico' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-cinzel">
+                Auditoria de Disparos da Cúria
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Registro cronológico oficial de todas as transmissões de e-mail efetuadas pela Secretaria Provincial.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={carregarHistorico}
+              disabled={carregandoHistorico}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#161b22] text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 cursor-pointer"
             >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>Abrir Modelo em Nova Janela</span>
-            </a>
+              <RefreshCw className={`w-3.5 h-3.5 ${carregandoHistorico ? 'animate-spin' : ''}`} />
+              <span>Atualizar Histórico</span>
+            </button>
           </div>
 
-          <div className="rounded-lg border border-slate-300 dark:border-slate-800 overflow-hidden bg-[#F3F6F8]">
-            <iframe
-              title="Prévia do E-mail Oficial de Credenciais"
-              src="/templates/preview-credenciais-exemplo.html"
-              className="w-full h-[620px] border-none bg-[#F3F6F8]"
-            />
+          <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-[#10171B] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
+                    <th className="p-3">Data / Hora</th>
+                    <th className="p-3">Tipo</th>
+                    <th className="p-3">Assunto da Mensagem</th>
+                    <th className="p-3">Operador</th>
+                    <th className="p-3 text-center">Destinatários</th>
+                    <th className="p-3 text-center">Sucessos</th>
+                    <th className="p-3 text-center">Falhas</th>
+                    <th className="p-3 text-right">Detalhes</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-sans">
+                  {historico.map(reg => {
+                    const isOpen = historicoItemAberto === reg.id;
+                    const rotuloTipo = 
+                      reg.tipo_mensagem === 'credenciais' ? 'Credenciais' :
+                      reg.tipo_mensagem === 'circular' ? 'Carta Circular' :
+                      reg.tipo_mensagem === 'convocacao' ? 'Convocação' : 'Comunicado';
+
+                    return (
+                      <React.Fragment key={reg.id}>
+                        <tr className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                          <td className="p-3 font-mono text-[11px] text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                            {new Date(reg.criado_em).toLocaleString('pt-BR')}
+                          </td>
+                          <td className="p-3">
+                            <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                              {rotuloTipo}
+                            </span>
+                          </td>
+                          <td className="p-3 font-semibold text-slate-900 dark:text-white max-w-xs truncate">
+                            {reg.assunto}
+                          </td>
+                          <td className="p-3 text-slate-600 dark:text-slate-400">
+                            {reg.operador_nome}
+                          </td>
+                          <td className="p-3 text-center font-bold text-slate-800 dark:text-slate-200">
+                            {reg.total_destinatarios}
+                          </td>
+                          <td className="p-3 text-center font-bold text-emerald-700 dark:text-emerald-400">
+                            {reg.total_sucessos}
+                          </td>
+                          <td className="p-3 text-center font-bold text-rose-700 dark:text-rose-400">
+                            {reg.total_falhas}
+                          </td>
+                          <td className="p-3 text-right">
+                            <button
+                              type="button"
+                              onClick={() => setHistoricoItemAberto(isOpen ? null : reg.id)}
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#226380] hover:underline cursor-pointer"
+                            >
+                              <span>{isOpen ? 'Ocultar' : 'Ver Lista'}</span>
+                              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                            </button>
+                          </td>
+                        </tr>
+
+                        {/* Detalhes expansíveis do envio */}
+                        {isOpen && reg.relatorio_envio && (
+                          <tr className="bg-slate-50/70 dark:bg-[#10171B]">
+                            <td colSpan={8} className="p-4 space-y-2">
+                              <div className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                Relatório Nominal de Confrades ({reg.relatorio_envio.length} registros):
+                              </div>
+                              <div className="max-h-48 overflow-y-auto rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] p-2 space-y-1 text-[11px] font-mono">
+                                {reg.relatorio_envio.map((it: any, idx: number) => (
+                                  <div key={idx} className="flex items-center justify-between py-1 px-2 border-b border-slate-100 dark:border-slate-800/40 last:border-none">
+                                    <span className="font-sans font-semibold text-slate-800 dark:text-slate-200">{it.nome}</span>
+                                    <span className="text-slate-500">{it.email || '—'}</span>
+                                    <span className={it.status === 'enviado' ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
+                                      {it.status === 'enviado' ? `OK (${it.resendId?.slice(0, 8)}...)` : `FALHA (${it.motivo})`}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+
+                  {historico.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="p-8 text-center text-slate-400">
+                        {carregandoHistorico ? 'Carregando histórico...' : 'Nenhum histórico de disparo registrado até o momento.'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
