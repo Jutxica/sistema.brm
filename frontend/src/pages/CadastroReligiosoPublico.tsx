@@ -1317,6 +1317,18 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
   };
 
   const validateStep = (targetStep = step) => {
+    // Para o Secretário Provincial (adminMode): NENHUMA ABA É OBRIGATÓRIA!
+    if (adminMode) {
+      if (targetStep === 1) {
+        if (!base.nome_civil?.trim()) {
+          setInvalidFields(['nome_civil']);
+          return 'Informe pelo menos o nome civil do religioso para identificação.';
+        }
+        setInvalidFields([]);
+      }
+      return null;
+    }
+
     if (targetStep === 1) {
       const missing = requiredStep1.filter(field => !base[field]?.trim());
       if (missing.length > 0) {
@@ -1398,11 +1410,19 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
       setErrorMessage('A ficha vinculada não foi carregada; não é possível salvar alterações com segurança.');
       return;
     }
-    for (let stepIndex = 1; stepIndex <= etapas.length; stepIndex += 1) {
-      const validation = validateStep(stepIndex);
-      if (validation) {
-        setStep(stepIndex);
-        setErrorMessage(validation);
+    if (!adminMode) {
+      for (let stepIndex = 1; stepIndex <= etapas.length; stepIndex += 1) {
+        const validation = validateStep(stepIndex);
+        if (validation) {
+          setStep(stepIndex);
+          setErrorMessage(validation);
+          return;
+        }
+      }
+    } else {
+      if (!base.nome_civil?.trim()) {
+        setStep(1);
+        setErrorMessage('Informe pelo menos o nome civil do religioso para salvar.');
         return;
       }
     }
@@ -2196,6 +2216,25 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
           </button>
         </div>
 
+        {adminMode && (
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50/80 p-4 text-xs dark:border-sky-900/50 dark:bg-sky-950/20">
+            <div className="flex items-center gap-2.5 text-[#226380] dark:text-sky-300">
+              <Info className="h-4 w-4 shrink-0" />
+              <span>
+                <strong>Modo Secretaria Provincial:</strong> Cadastro e Edição Livre. As abas e campos não são obrigatórios (somente o Nome Civil). Você pode navegar e salvar a qualquer momento.
+              </span>
+            </div>
+            <button
+              type="submit"
+              disabled={submitting || profileUnavailable}
+              className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#226380] px-4 py-2 font-bold text-white shadow-sm hover:bg-[#1a4f66] transition disabled:opacity-50"
+            >
+              {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+              <span>{isEditing ? 'Salvar Ficha' : 'Cadastrar Religioso'}</span>
+            </button>
+          </div>
+        )}
+
         {errorMessage && (
           <div className="mb-6 flex items-center gap-2.5 rounded-[6px] bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/30 p-4 text-xs font-medium text-rose-600 dark:text-rose-400">
             <AlertCircle className="h-4 w-4 shrink-0" />
@@ -2400,7 +2439,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
               base={base}
               update={updateBase}
               invalidFields={invalidFields}
-              requiredFields={memberMode ? requiredStep1.filter(field => field !== 'grau') : requiredStep1}
+              requiredFields={adminMode ? ['nome_civil'] : (memberMode ? requiredStep1.filter(field => field !== 'grau') : requiredStep1)}
               readOnlyFields={['nome_religioso', ...(memberMode ? ['cpf'] : [])]}
               afterField={{
                 nome_religioso: (
@@ -2430,7 +2469,7 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                           <div>
                             <label htmlFor="input-etapa_formativa_atual" className="block text-[12px] font-medium text-[#707070] dark:text-[#86868b] mb-1.5">
                               <span>Etapa Formativa Atual</span>
-                              <span className="text-rose-500 ml-1 font-bold">*</span>
+                              {!adminMode && <span className="text-rose-500 ml-1 font-bold">*</span>}
                             </label>
                             <select
                               id="input-etapa_formativa_atual"
@@ -2447,16 +2486,16 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                               className={inputClass}
                             >
                               <option value="">Selecione a etapa formativa...</option>
-                              <option value="Configuração (Teologia)">Configuração (Teologia)</option>
-                              <option value="Tirocínio">Tirocínio</option>
+                              <option value="Configuração (Teologia)">🎓 Configuração (Teologia)</option>
+                              <option value="Tirocínio">🌱 Tirocínio (Estágio Pastoral)</option>
                             </select>
                           </div>
 
                           {base.etapa_formativa_atual === 'Configuração (Teologia)' && (
                             <div>
                               <label htmlFor="input-ano_configuracao" className="block text-[12px] font-medium text-[#707070] dark:text-[#86868b] mb-1.5">
-                                <span>Ano de Configuração</span>
-                                <span className="text-rose-500 ml-1 font-bold">*</span>
+                                <span>Ano de Teologia / Configuração</span>
+                                {!adminMode && <span className="text-rose-500 ml-1 font-bold">*</span>}
                               </label>
                               <select
                                 id="input-ano_configuracao"
@@ -2513,11 +2552,12 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                           let novoAno = previous.ano_configuracao;
 
                           if (previous.grau === 'Frater' || previous.grau === 'Diácono') {
-                            if (isConventinho) {
-                              novaEtapa = 'Configuração (Teologia)';
-                              if (!novoAno) novoAno = '1';
-                            } else if (selectedObra) {
-                              if (!novaEtapa || novaEtapa === 'Configuração (Teologia)') {
+                            // Sugestão automática apenas se o religioso ainda não tiver etapa cadastrada
+                            if (!novaEtapa) {
+                              if (isConventinho) {
+                                novaEtapa = 'Configuração (Teologia)';
+                                if (!novoAno) novoAno = '1';
+                              } else if (selectedObra) {
                                 novaEtapa = 'Tirocínio';
                                 novoAno = '';
                               }

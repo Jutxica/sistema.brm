@@ -60,7 +60,7 @@ export const ReligiososAdmin: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'fichas' | 'contas'>('fichas');
   const [accountDialog, setAccountDialog] = useState<AccountDialog | null>(null);
   const [accountActionLoading, setAccountActionLoading] = useState(false);
-  const [filtroAuditoria, setFiltroAuditoria] = useState<'todos' | 'configuracao' | 'tirocinio' | 'sem_foto' | 'sem_docs' | 'pendente_revisao' | 'pendente_site' | 'publicado_site'>('todos');
+  const [filtroAuditoria, setFiltroAuditoria] = useState<'todos' | 'configuracao_todos' | 'configuracao_1' | 'configuracao_2' | 'configuracao_3' | 'configuracao_4' | 'tirocinio' | 'sem_foto' | 'sem_docs' | 'pendente_revisao' | 'pendente_site' | 'publicado_site'>('todos');
 
   const load = async () => {
     setLoading(true);
@@ -128,7 +128,11 @@ export const ReligiososAdmin: React.FC = () => {
 
   const auditCounts = useMemo(() => ({
     todos: items.length,
-    configuracao: items.filter(i => i.etapa_formativa_atual === 'Configuração (Teologia)').length,
+    configuracao_todos: items.filter(i => i.etapa_formativa_atual === 'Configuração (Teologia)').length,
+    configuracao_1: items.filter(i => i.etapa_formativa_atual === 'Configuração (Teologia)' && Number(i.ano_configuracao) === 1).length,
+    configuracao_2: items.filter(i => i.etapa_formativa_atual === 'Configuração (Teologia)' && Number(i.ano_configuracao) === 2).length,
+    configuracao_3: items.filter(i => i.etapa_formativa_atual === 'Configuração (Teologia)' && Number(i.ano_configuracao) === 3).length,
+    configuracao_4: items.filter(i => i.etapa_formativa_atual === 'Configuração (Teologia)' && Number(i.ano_configuracao) === 4).length,
     tirocinio: items.filter(i => i.etapa_formativa_atual === 'Tirocínio').length,
     sem_foto: items.filter(i => !i.foto_path).length,
     sem_docs: items.filter(i => !i.has_documents).length,
@@ -141,7 +145,11 @@ export const ReligiososAdmin: React.FC = () => {
     const normalized = query.trim().toLocaleLowerCase();
     return items.filter(item => {
       // Filtros de Auditoria e Segmentação Formativa
-      if (filtroAuditoria === 'configuracao' && item.etapa_formativa_atual !== 'Configuração (Teologia)') return false;
+      if (filtroAuditoria === 'configuracao_todos' && item.etapa_formativa_atual !== 'Configuração (Teologia)') return false;
+      if (filtroAuditoria === 'configuracao_1' && (item.etapa_formativa_atual !== 'Configuração (Teologia)' || Number(item.ano_configuracao) !== 1)) return false;
+      if (filtroAuditoria === 'configuracao_2' && (item.etapa_formativa_atual !== 'Configuração (Teologia)' || Number(item.ano_configuracao) !== 2)) return false;
+      if (filtroAuditoria === 'configuracao_3' && (item.etapa_formativa_atual !== 'Configuração (Teologia)' || Number(item.ano_configuracao) !== 3)) return false;
+      if (filtroAuditoria === 'configuracao_4' && (item.etapa_formativa_atual !== 'Configuração (Teologia)' || Number(item.ano_configuracao) !== 4)) return false;
       if (filtroAuditoria === 'tirocinio' && item.etapa_formativa_atual !== 'Tirocínio') return false;
       if (filtroAuditoria === 'sem_foto' && item.foto_path) return false;
       if (filtroAuditoria === 'sem_docs' && item.has_documents) return false;
@@ -227,6 +235,41 @@ export const ReligiososAdmin: React.FC = () => {
       return;
     }
     showToast.success(`Status atualizado para ${status}.`);
+    await load();
+  };
+
+  const updateEtapaFormativa = async (religiosoId: string, etapa: string | null, anoConfig: number | null) => {
+    const payload: Record<string, any> = {
+      etapa_formativa_atual: etapa,
+      ano_configuracao: anoConfig,
+      ano_referencia_etapa: new Date().getFullYear(),
+    };
+    const { error } = await supabase
+      .from('religiosos')
+      .update(payload)
+      .eq('id', religiosoId);
+
+    if (error) {
+      showToast.error(`Não foi possível atualizar a etapa formativa: ${error.message}`);
+      return;
+    }
+
+    try {
+      await supabase
+        .from('portal_perfis_religiosos')
+        .update({
+          etapa_formativa_atual: etapa,
+          ano_configuracao: anoConfig,
+        })
+        .eq('id', religiosoId);
+    } catch (e) {
+      // ignore
+    }
+
+    const label = etapa === 'Configuração (Teologia)'
+      ? `${anoConfig ? `${anoConfig}º Ano ` : ''}Configuração (Teologia)`
+      : etapa || 'Sem etapa formativa';
+    showToast.success(`Etapa formativa atualizada para: ${label}`);
     await load();
   };
 
@@ -393,7 +436,11 @@ export const ReligiososAdmin: React.FC = () => {
                 className="appearance-none rounded-md border border-slate-200 bg-slate-50 py-1.5 pl-3 pr-8 text-xs font-semibold text-slate-800 outline-none transition hover:bg-slate-100 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 cursor-pointer"
               >
                 <option value="todos">Todos os cadastros ({auditCounts.todos})</option>
-                <option value="configuracao">🎓 Configuração / Teologia ({auditCounts.configuracao})</option>
+                <option value="configuracao_todos">🎓 Configuração / Teologia - Todos ({auditCounts.configuracao_todos})</option>
+                <option value="configuracao_1">   ↳ 1º Ano Teologia ({auditCounts.configuracao_1})</option>
+                <option value="configuracao_2">   ↳ 2º Ano Teologia ({auditCounts.configuracao_2})</option>
+                <option value="configuracao_3">   ↳ 3º Ano Teologia ({auditCounts.configuracao_3})</option>
+                <option value="configuracao_4">   ↳ 4º Ano Teologia ({auditCounts.configuracao_4})</option>
                 <option value="tirocinio">🌱 Tirocinantes ({auditCounts.tirocinio})</option>
                 <option value="sem_foto">📷 Sem Foto 4x4 ({auditCounts.sem_foto})</option>
                 <option value="sem_docs">📄 Sem Documentos ({auditCounts.sem_docs})</option>
@@ -414,10 +461,11 @@ export const ReligiososAdmin: React.FC = () => {
       {activeTab === 'fichas' ? (
         <div className="border border-slate-200 bg-white dark:border-slate-800 dark:bg-[#161b22]">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-left text-xs">
+            <table className="w-full min-w-[1100px] text-left text-xs">
               <thead className="border-b border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-800 dark:bg-white/[0.02] dark:text-slate-400">
                 <tr>
                   <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Religioso</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Etapa / Formação</th>
                   <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Conta</th>
                   <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Origem</th>
                   <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Status</th>
@@ -427,6 +475,8 @@ export const ReligiososAdmin: React.FC = () => {
               <tbody className="divide-y divide-slate-100 font-inter dark:divide-slate-800/60">
                 {filtered.map(item => {
                   const account = accounts.find(candidate => candidate.id === item.auth_user_id);
+                  const isFraterOuDiacono = item.grau === 'Frater' || item.grau === 'Diácono';
+
                   return (
                     <tr key={item.id} className="transition-colors hover:bg-slate-50/70 dark:hover:bg-white/[0.02]">
                       <td className="px-4 py-3.5">
@@ -472,6 +522,53 @@ export const ReligiososAdmin: React.FC = () => {
                             </div>
                           </div>
                         </div>
+                      </td>
+
+                      {/* Coluna 2: Etapa Formativa (Edição rápida e direta pelo Secretário) */}
+                      <td className="px-4 py-3.5">
+                        {isFraterOuDiacono ? (
+                          <div className="space-y-1">
+                            <select
+                              value={
+                                item.etapa_formativa_atual === 'Configuração (Teologia)'
+                                  ? `config_${item.ano_configuracao || 1}`
+                                  : item.etapa_formativa_atual === 'Tirocínio'
+                                  ? 'tirocinio'
+                                  : 'nenhuma'
+                              }
+                              onChange={e => {
+                                const val = e.target.value;
+                                if (val.startsWith('config_')) {
+                                  const ano = parseInt(val.replace('config_', ''), 10);
+                                  void updateEtapaFormativa(item.id, 'Configuração (Teologia)', ano);
+                                } else if (val === 'tirocinio') {
+                                  void updateEtapaFormativa(item.id, 'Tirocínio', null);
+                                } else {
+                                  void updateEtapaFormativa(item.id, null, null);
+                                }
+                              }}
+                              className="w-full max-w-[210px] rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-800 outline-none transition focus:border-[#226380] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 cursor-pointer"
+                            >
+                              <option value="nenhuma">-- Nenhuma / Concluída --</option>
+                              <option value="tirocinio">🌱 Tirocínio (Estágio Pastoral)</option>
+                              <option value="config_1">🎓 1º Ano Teologia (Configuração)</option>
+                              <option value="config_2">🎓 2º Ano Teologia (Configuração)</option>
+                              <option value="config_3">🎓 3º Ano Teologia (Configuração)</option>
+                              <option value="config_4">🎓 4º Ano Teologia (Configuração)</option>
+                            </select>
+                            <span className="block text-[10px] text-slate-500 dark:text-slate-400">
+                              {item.etapa_formativa_atual === 'Configuração (Teologia)'
+                                ? `${item.ano_configuracao || 1}º Ano de Teologia`
+                                : item.etapa_formativa_atual === 'Tirocínio'
+                                ? 'Estágio Pastoral Comunitário'
+                                : 'Sem etapa formativa'}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-slate-400">
+                            {item.grau === 'Padre' ? 'Presbiterado' : item.grau === 'Bispo' ? 'Episcopado' : 'Formação concluída'}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3.5 text-slate-600 dark:text-slate-400">
                         <p className="font-medium text-slate-800 dark:text-slate-200">{account?.email || item.email_institucional || 'Conta sem e-mail'}</p>
