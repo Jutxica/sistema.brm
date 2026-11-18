@@ -804,7 +804,7 @@ export const TransferenciaReligioso: React.FC = () => {
   }, [designacoes]);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 pb-16">
+    <div className="w-full space-y-6 pb-16">
       {/* Cabeçalho Canônico da Página */}
       <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#11161d]">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -846,7 +846,7 @@ export const TransferenciaReligioso: React.FC = () => {
             }`}
           >
             <Layers className="h-4 w-4" />
-            Grade de Planejamento & Lote
+            Tabela de Edição
             {stagedCount > 0 && (
               <span className="ml-1 rounded-full bg-amber-400 text-slate-900 font-bold px-2 py-0.5 text-[10px]">
                 {stagedCount}
@@ -1175,22 +1175,22 @@ export const TransferenciaReligioso: React.FC = () => {
           {/* TABELA DE EDIÇÃO EM MASSA */}
           <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden dark:border-slate-800 dark:bg-[#11161d]">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1050px] text-left text-xs border-collapse">
+              <table className="w-full min-w-[1300px] text-left text-xs border-collapse">
                 <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-600 dark:border-slate-800 dark:bg-white/[0.02] dark:text-slate-400">
                   <tr>
-                    <th className="px-4 py-3 font-cinzel">Religioso</th>
-                    <th className="px-4 py-3 font-cinzel">Comunidade Atual (Origem)</th>
-                    <th className="px-4 py-3 font-cinzel">Nova Comunidade (Destino)</th>
-                    <th className="px-4 py-3 font-cinzel">Nova Obra / Paróquia</th>
-                    <th className="px-4 py-3 font-cinzel">Nova Função Canônica</th>
-                    <th className="px-4 py-3 font-cinzel text-center">Status</th>
-                    <th className="px-4 py-3 font-cinzel text-right">Ação</th>
+                    <th className="px-5 py-3.5 font-cinzel w-[280px]">Religioso</th>
+                    <th className="px-5 py-3.5 font-cinzel w-[220px]">Comunidade Atual (Origem)</th>
+                    <th className="px-4 py-3.5 font-cinzel w-[270px]">Nova Comunidade (Destino)</th>
+                    <th className="px-4 py-3.5 font-cinzel w-[250px]">Nova Obra / Paróquia</th>
+                    <th className="px-4 py-3.5 font-cinzel w-[210px]">Nova Função Canônica</th>
+                    <th className="px-4 py-3.5 font-cinzel text-center w-[110px]">Status</th>
+                    <th className="px-5 py-3.5 font-cinzel text-right w-[60px]">Ação</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-inter dark:divide-slate-800/60">
                   {religiososGrade.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                      <td colSpan={7} className="px-6 py-16 text-center text-slate-400">
                         Nenhum religioso encontrado para os filtros selecionados.
                       </td>
                     </tr>
@@ -1214,23 +1214,23 @@ export const TransferenciaReligioso: React.FC = () => {
                       return (
                         <tr
                           key={rel.id}
-                          className={`transition-colors hover:bg-slate-50/70 dark:hover:bg-white/[0.02] ${
+                          className={`transition-colors hover:bg-slate-50/80 dark:hover:bg-white/[0.02] ${
                             isModificado
-                              ? 'border-l-4 border-l-amber-500 bg-amber-50/20 dark:bg-amber-950/10'
+                              ? 'border-l-4 border-l-amber-500 bg-amber-50/30 dark:bg-amber-950/20'
                               : ''
                           }`}
                         >
                           {/* 1. Religioso */}
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2.5">
-                              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 font-serif text-[11px] font-bold text-slate-700 dark:border-slate-700 dark:bg-white/5 dark:text-slate-300">
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 font-serif text-xs font-bold text-slate-700 dark:border-slate-700 dark:bg-white/5 dark:text-slate-300">
                                 {rel.grau === 'Padre' ? 'P.' : rel.grau === 'Frater' ? 'Fr.' : rel.grau === 'Diácono' ? 'Diác.' : 'Dom'}
                               </span>
-                              <div className="min-w-0">
-                                <p className="font-semibold text-slate-900 dark:text-white truncate max-w-[200px]" title={nomeCanonical}>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-semibold text-slate-900 dark:text-white leading-snug" title={nomeCanonical}>
                                   {nomeCanonical}
                                 </p>
-                                <p className="text-[11px] text-slate-400 truncate max-w-[200px]">
+                                <p className="text-[11.5px] text-slate-400 mt-0.5">
                                   {rel.nome_civil}
                                   {rel.grau === 'Frater' && rel.etapa_formativa_atual ? ` · ${rel.etapa_formativa_atual}` : ''}
                                 </p>
@@ -1239,11 +1239,11 @@ export const TransferenciaReligioso: React.FC = () => {
                           </td>
 
                           {/* 2. Comunidade Atual (Origem) */}
-                          <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                            <p className="font-medium text-slate-800 dark:text-slate-200 truncate max-w-[180px]">
+                          <td className="px-5 py-4 text-slate-600 dark:text-slate-400">
+                            <p className="font-medium text-slate-800 dark:text-slate-200 leading-snug">
                               {rel.comunidade_atual_nome || 'Sem comunidade'}
                             </p>
-                            <p className="text-[11px] text-slate-400 truncate max-w-[180px]">
+                            <p className="text-[11.5px] text-slate-400 mt-0.5">
                               {rel.obra_atual_nome && rel.obra_atual_nome !== rel.comunidade_atual_nome
                                 ? rel.obra_atual_nome
                                 : (desigAtiva?.funcao || 'Ofício atual')}
@@ -1251,14 +1251,14 @@ export const TransferenciaReligioso: React.FC = () => {
                           </td>
 
                           {/* 3. Nova Comunidade (Destino) */}
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-4">
                             <select
                               value={comEfetivaId}
                               onChange={e => handleRowChange(rel.id, 'comunidade', e.target.value)}
-                              className={`w-full max-w-[220px] rounded-lg border px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-[#226380] ${
+                              className={`h-9 w-full rounded-lg border px-3 py-1.5 text-xs outline-none transition focus:ring-1 focus:ring-[#226380] ${
                                 isModificado && staged.novaComunidadeId !== rel.comunidade_atual_id
-                                  ? 'border-amber-400 bg-amber-50/50 font-semibold text-amber-950 dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-100'
-                                  : 'border-slate-200 bg-white text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100'
+                                  ? 'border-amber-400 bg-amber-50/70 font-semibold text-amber-950 dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-100'
+                                  : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100'
                               }`}
                             >
                               <option value="">-- Escolha o destino --</option>
@@ -1271,14 +1271,14 @@ export const TransferenciaReligioso: React.FC = () => {
                           </td>
 
                           {/* 4. Nova Obra / Paróquia */}
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-4">
                             <select
                               value={obraEfetivaId}
                               onChange={e => handleRowChange(rel.id, 'obra', e.target.value)}
-                              className={`w-full max-w-[220px] rounded-lg border px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-[#226380] ${
+                              className={`h-9 w-full rounded-lg border px-3 py-1.5 text-xs outline-none transition focus:ring-1 focus:ring-[#226380] ${
                                 isModificado && staged.novaObraId !== rel.obra_atual_id
-                                  ? 'border-amber-400 bg-amber-50/50 font-semibold text-amber-950 dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-100'
-                                  : 'border-slate-200 bg-white text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100'
+                                  ? 'border-amber-400 bg-amber-50/70 font-semibold text-amber-950 dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-100'
+                                  : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100'
                               }`}
                             >
                               <option value="">Sede da Comunidade / Casa</option>
@@ -1291,14 +1291,14 @@ export const TransferenciaReligioso: React.FC = () => {
                           </td>
 
                           {/* 5. Nova Função Canônica */}
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-4">
                             <select
                               value={funcaoEfetiva}
                               onChange={e => handleRowChange(rel.id, 'funcao', e.target.value)}
-                              className={`w-full max-w-[190px] rounded-lg border px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-[#226380] ${
+                              className={`h-9 w-full rounded-lg border px-3 py-1.5 text-xs outline-none transition focus:ring-1 focus:ring-[#226380] ${
                                 isModificado && staged.novaFuncao !== funcaoDefault
-                                  ? 'border-amber-400 bg-amber-50/50 font-semibold text-amber-950 dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-100'
-                                  : 'border-slate-200 bg-white text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100'
+                                  ? 'border-amber-400 bg-amber-50/70 font-semibold text-amber-950 dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-100'
+                                  : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100'
                               }`}
                             >
                               {funcoesDisponiveis.map(f => (
@@ -1310,29 +1310,29 @@ export const TransferenciaReligioso: React.FC = () => {
                           </td>
 
                           {/* 6. Status da Linha */}
-                          <td className="px-4 py-3 text-center">
+                          <td className="px-4 py-4 text-center">
                             {isModificado ? (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800/60">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10.5px] font-semibold bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800/60">
                                 <span className="h-1.5 w-1.5 rounded-full bg-amber-600 animate-pulse" />
                                 Proposta
                               </span>
                             ) : (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium text-slate-500 border border-slate-200 dark:border-slate-800">
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[10.5px] font-medium text-slate-500 border border-slate-200 dark:border-slate-800">
                                 Mantido
                               </span>
                             )}
                           </td>
 
                           {/* 7. Ação de Reversão */}
-                          <td className="px-4 py-3 text-right">
+                          <td className="px-5 py-4 text-right">
                             {isModificado && (
                               <button
                                 type="button"
                                 onClick={() => handleRevertRow(rel.id)}
                                 title="Desfazer alteração deste religioso"
-                                className="inline-flex items-center justify-center h-7 w-7 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white transition"
+                                className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white transition"
                               >
-                                <RotateCcw className="h-3.5 w-3.5" />
+                                <RotateCcw className="h-4 w-4" />
                               </button>
                             )}
                           </td>
