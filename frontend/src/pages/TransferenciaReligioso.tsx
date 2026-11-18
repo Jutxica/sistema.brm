@@ -4,7 +4,7 @@ import {
   ArrowLeft, ArrowRightLeft, Building2, Calendar, Check, CheckCircle2,
   Church, FileText, FolderOpen, History, Loader2, Plus, RefreshCw,
   Search, Shield, Tag, UserCheck, UserRound, Users, X, AlertCircle,
-  RotateCcw, ShieldCheck, ChevronDown, ChevronUp, Layers, Filter, CheckSquare
+  RotateCcw, ShieldCheck, ChevronDown, ChevronUp, Layers, Filter, CheckSquare, Save
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { showToast } from '../hooks/useFeedback';
@@ -347,9 +347,68 @@ export const TransferenciaReligioso: React.FC = () => {
     });
   };
 
+  const DRAFT_STORAGE_KEY = 'brm_planejamento_transferencias_v1';
+
+  // Carregar rascunho salvo anteriormente no navegador
+  useEffect(() => {
+    try {
+      const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed && typeof parsed === 'object') {
+          if (parsed.staged && typeof parsed.staged === 'object') {
+            setStagedTransfers(parsed.staged);
+            if (parsed.decretoGeralNumero) setDecretoGeralNumero(parsed.decretoGeralNumero);
+            if (parsed.decretoGeralData) setDecretoGeralData(parsed.decretoGeralData);
+            if (parsed.decretoGeralVigencia) setDecretoGeralVigencia(parsed.decretoGeralVigencia);
+            if (typeof parsed.decretoGeralEncerrar === 'boolean') setDecretoGeralEncerrar(parsed.decretoGeralEncerrar);
+            if (parsed.decretoGeralObservacoes) setDecretoGeralObservacoes(parsed.decretoGeralObservacoes);
+            const count = Object.keys(parsed.staged).length;
+            if (count > 0) {
+              showToast.info(`Rascunho recuperado: ${count} transferência(s) em estudo restauradas.`);
+            }
+          } else if (Object.keys(parsed).length > 0) {
+            setStagedTransfers(parsed);
+            showToast.info(`Rascunho recuperado: ${Object.keys(parsed).length} transferência(s) em estudo restauradas.`);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Erro ao carregar rascunho de transferências:', e);
+    }
+  }, []);
+
+  // Salvar rascunho para continuar editando mais tarde sem formalizar
+  const handleSalvarRascunhoManual = () => {
+    if (stagedCount === 0) {
+      showToast.info('Altere a comunidade, obra ou função de algum religioso na tabela para salvar o rascunho.');
+      return;
+    }
+    try {
+      const draftData = {
+        staged: stagedTransfers,
+        decretoGeralNumero,
+        decretoGeralData,
+        decretoGeralVigencia,
+        decretoGeralEncerrar,
+        decretoGeralObservacoes,
+        salvoEm: new Date().toISOString(),
+      };
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
+      showToast.success(`Rascunho salvo com sucesso! ${stagedCount} proposta(s) guardada(s) no navegador para continuar depois sem alterar o sistema.`);
+    } catch (e) {
+      showToast.error('Não foi possível salvar o rascunho localmente.');
+    }
+  };
+
   const handleDiscardAll = () => {
     setStagedTransfers({});
     setPainelFormalizacaoAberto(false);
+    try {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch (e) {
+      // ignore
+    }
     showToast.info('Todas as propostas em rascunho foram descartadas.');
   };
 
@@ -489,6 +548,11 @@ export const TransferenciaReligioso: React.FC = () => {
       showToast.success(`Sucesso! ${sucessos} transferências formalizadas com decreto canônico e publicadas no Elenco e Site Oficial.`);
       setStagedTransfers({});
       setPainelFormalizacaoAberto(false);
+      try {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+      } catch (e) {
+        // ignore
+      }
       await carregarDados();
     } catch (err: any) {
       console.error('Falha na formalização em lote:', err);
@@ -904,45 +968,100 @@ export const TransferenciaReligioso: React.FC = () => {
       {/* ABA PRINCIPAL: GRADE DE PLANEJAMENTO & LOTE */}
       {tabAtiva === 'lote' && (
         <div className="space-y-6">
-          {/* Banner de Auditoria In-Page (quando há modificações e painel fechado) */}
-          {stagedCount > 0 && !painelFormalizacaoAberto && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-amber-300 bg-amber-50/70 p-4 dark:border-amber-900/60 dark:bg-amber-950/20">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
-                  <ArrowRightLeft className="h-5 w-5" />
+          {/* BARRA PERMANENTE DE CONTROLE DO PLANEJAMENTO (Visível Sempre) */}
+          {!painelFormalizacaoAberto && (
+            <div
+              className={`flex flex-col lg:flex-row lg:items-center justify-between gap-4 rounded-2xl border p-5 shadow-sm transition-all ${
+                stagedCount > 0
+                  ? 'border-amber-300 bg-amber-50/70 dark:border-amber-900/60 dark:bg-amber-950/20'
+                  : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-[#11161d]'
+              }`}
+            >
+              <div className="flex items-center gap-3.5">
+                <div
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                    stagedCount > 0
+                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'
+                      : 'bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-400'
+                  }`}
+                >
+                  {stagedCount > 0 ? <ArrowRightLeft className="h-5 w-5" /> : <Layers className="h-5 w-5" />}
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wide text-amber-900 dark:text-amber-200">
-                    {stagedCount} transferência(s) proposta(s) em estudo
-                  </h3>
-                  <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80">
-                    As alterações estão salvas em rascunho de planejamento e aguardam a formalização canônica do decreto.
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 font-cinzel">
+                      {stagedCount > 0
+                        ? `${stagedCount} transferência(s) em estudo na tabela`
+                        : 'Planejamento de Transferências (Tabela de Edição)'}
+                    </h3>
+                    {stagedCount > 0 && (
+                      <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-900 dark:bg-amber-800 dark:text-amber-100">
+                        Rascunho Ativo
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 max-w-3xl">
+                    {stagedCount > 0
+                      ? 'As propostas estão em rascunho de trabalho. Você pode salvar para continuar editando depois ou formalizar o decreto canônico para transferir e atualizar o Elenco e Site Oficial.'
+                      : 'Selecione a Nova Comunidade, Obra ou Função diretamente nas linhas da tabela abaixo. Suas alterações ficam salvas em rascunho sem alterar o sistema oficial até a formalização.'}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                {stagedCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleDiscardAll}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-white px-3.5 py-2 text-xs font-medium text-amber-900 hover:bg-amber-100/60 dark:border-amber-800/60 dark:bg-transparent dark:text-amber-200 dark:hover:bg-amber-950/40 transition"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Descartar Alterações
+                  </button>
+                )}
+
                 <button
                   type="button"
-                  onClick={handleDiscardAll}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-50 dark:border-amber-800/60 dark:bg-transparent dark:text-amber-200 dark:hover:bg-amber-950/40"
+                  onClick={handleSalvarRascunhoManual}
+                  disabled={stagedCount === 0}
+                  title={
+                    stagedCount === 0
+                      ? 'Altere ao menos um religioso na tabela para salvar o rascunho'
+                      : 'Salva as alterações localmente para continuar editando depois sem transferir oficialmente ainda'
+                  }
+                  className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold transition ${
+                    stagedCount > 0
+                      ? 'border-[#226380]/40 bg-white text-[#226380] hover:bg-[#226380]/10 shadow-sm dark:border-[#226380]/60 dark:bg-white/5 dark:text-[#A3C3C7] dark:hover:bg-[#226380]/20'
+                      : 'border-slate-200 bg-slate-50 text-slate-400 opacity-60 cursor-not-allowed dark:border-slate-800 dark:bg-white/5 dark:text-slate-500'
+                  }`}
                 >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  Descartar Rascunhos
+                  <Save className="h-4 w-4" />
+                  Salvar Rascunho (Editar Depois)
                 </button>
+
                 <button
                   type="button"
                   onClick={() => setPainelFormalizacaoAberto(true)}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#226380] px-4 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-[#1a4f66]"
+                  disabled={stagedCount === 0}
+                  title={
+                    stagedCount === 0
+                      ? 'Altere ao menos um religioso na tabela para formalizar a transferência'
+                      : 'Abre o formulário do decreto canônico para transferir os religiosos selecionados'
+                  }
+                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition ${
+                    stagedCount > 0
+                      ? 'bg-[#226380] text-white shadow hover:bg-[#1a4f66]'
+                      : 'bg-slate-200 text-slate-400 opacity-60 cursor-not-allowed dark:bg-white/10 dark:text-slate-500'
+                  }`}
                 >
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  Revisar & Formalizar Decreto
+                  <ShieldCheck className="h-4 w-4" />
+                  Formalizar Decreto & Transferir {stagedCount > 0 ? `(${stagedCount})` : ''}
                 </button>
               </div>
             </div>
           )}
 
-          {/* Painel de Formalização Canônica In-Page (ZERO MODAIS) */}
+                    {/* Painel de Formalização Canônica In-Page (ZERO MODAIS) */}
           {painelFormalizacaoAberto && (
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#11161d] space-y-6">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
@@ -1095,11 +1214,19 @@ export const TransferenciaReligioso: React.FC = () => {
                   Descartar todas as alterações
                 </button>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleSalvarRascunhoManual}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-transparent dark:text-slate-200"
+                  >
+                    <Save className="h-4 w-4" />
+                    Salvar Rascunho (Concluir Depois)
+                  </button>
                   <button
                     type="button"
                     onClick={() => setPainelFormalizacaoAberto(false)}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-transparent dark:text-slate-200"
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-transparent dark:text-slate-200"
                   >
                     Continuar Editando
                   </button>
@@ -1110,7 +1237,7 @@ export const TransferenciaReligioso: React.FC = () => {
                     className="inline-flex items-center gap-2 rounded-xl bg-[#226380] px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-[#1a4f66] disabled:opacity-50"
                   >
                     {salvandoLote ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                    Efetivar Decreto & Publicar ({stagedCount} Confrades)
+                    Efetivar Decreto & Transferir ({stagedCount} Confrades)
                   </button>
                 </div>
               </div>
