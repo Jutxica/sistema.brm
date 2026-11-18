@@ -438,8 +438,9 @@ DROP POLICY IF EXISTS "obras_fotos_anon_delete" ON storage.objects;`;
         {/* Rodapé Informativo */}
         <div className="px-3 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] sm:px-5 sm:py-2.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400 shrink-0 font-mono">
           <div className="flex items-center gap-3 truncate">
-            <span className="truncate">
-              📄 {documento.arquivo_nome}
+            <span className="truncate flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <span>{documento.arquivo_nome}</span>
             </span>
             <span>•</span>
             <span>{formatFileSize(documento.arquivo_tamanho_bytes)}</span>

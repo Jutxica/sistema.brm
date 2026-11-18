@@ -2486,8 +2486,8 @@ export const CadastroReligiosoPublico: React.FC<CadastroReligiosoPublicoProps> =
                               className={inputClass}
                             >
                               <option value="">Selecione a etapa formativa...</option>
-                              <option value="Configuração (Teologia)">🎓 Configuração (Teologia)</option>
-                              <option value="Tirocínio">🌱 Tirocínio (Estágio Pastoral)</option>
+                              <option value="Configuração (Teologia)">Configuração (Teologia)</option>
+                              <option value="Tirocínio">Tirocínio (Estágio Pastoral)</option>
                             </select>
                           </div>
 

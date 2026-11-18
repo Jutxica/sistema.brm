@@ -28,7 +28,6 @@ export interface AniversarioItem {
   jubileu?: {
     tipo: 'prata' | 'ouro' | 'diamante' | 'platina' | 'outro';
     label: string;
-    icone: string;
     badgeClass: string;
   } | null;
   descricaoDetalhe?: string;
@@ -44,7 +43,6 @@ function getJubileuInfo(anos: number) {
     return {
       tipo: 'prata' as const,
       label: 'Jubileu de Prata (25 anos)',
-      icone: '🥈',
       badgeClass: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600',
     };
   }
@@ -52,7 +50,6 @@ function getJubileuInfo(anos: number) {
     return {
       tipo: 'ouro' as const,
       label: 'Jubileu de Ouro (50 anos)',
-      icone: '🥇',
       badgeClass: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-900/40 dark:text-amber-200 dark:border-amber-700',
     };
   }
@@ -60,7 +57,6 @@ function getJubileuInfo(anos: number) {
     return {
       tipo: 'diamante' as const,
       label: 'Jubileu de Diamante (60 anos)',
-      icone: '💎',
       badgeClass: 'bg-cyan-100 text-cyan-900 border-cyan-300 dark:bg-cyan-900/40 dark:text-cyan-200 dark:border-cyan-700',
     };
   }
@@ -68,7 +64,6 @@ function getJubileuInfo(anos: number) {
     return {
       tipo: 'platina' as const,
       label: 'Jubileu de Platina (70 anos)',
-      icone: '🌟',
       badgeClass: 'bg-purple-100 text-purple-900 border-purple-300 dark:bg-purple-900/40 dark:text-purple-200 dark:border-purple-700',
     };
   }
@@ -520,7 +515,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
                 key={`jubileu-pill-${jub.id}`}
                 className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-white/90 px-3 py-1.5 shadow-xs dark:border-amber-700 dark:bg-slate-800/90 text-xs font-medium text-slate-800 dark:text-slate-200"
               >
-                <span>{jub.jubileu?.icone}</span>
+                <Award className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                 <span className="font-semibold">{jub.nome}</span>
                 <span className="text-amber-800 dark:text-amber-300 font-bold">
                   {jub.jubileu?.label}
@@ -659,7 +654,7 @@ export const AniversariosJubileusCard: React.FC<AniversariosJubileusCardProps> =
                       </span>
                       {item.jubileu && (
                         <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold ${item.jubileu.badgeClass}`}>
-                          <span>{item.jubileu.icone}</span>
+                          <Award className="h-3 w-3 shrink-0" />
                           <span>{item.jubileu.label}</span>
                         </span>
                       )}

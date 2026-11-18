@@ -2,14 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Archive,
   Ban,
-  Camera,
   Check,
   CheckCircle2,
   ChevronDown,
   Edit,
   FileQuestion,
   FileText,
-  Globe,
   KeyRound,
   Loader2,
   Plus,
@@ -238,41 +236,6 @@ export const ReligiososAdmin: React.FC = () => {
     await load();
   };
 
-  const updateEtapaFormativa = async (religiosoId: string, etapa: string | null, anoConfig: number | null) => {
-    const payload: Record<string, any> = {
-      etapa_formativa_atual: etapa,
-      ano_configuracao: anoConfig,
-      ano_referencia_etapa: new Date().getFullYear(),
-    };
-    const { error } = await supabase
-      .from('religiosos')
-      .update(payload)
-      .eq('id', religiosoId);
-
-    if (error) {
-      showToast.error(`Não foi possível atualizar a etapa formativa: ${error.message}`);
-      return;
-    }
-
-    try {
-      await supabase
-        .from('portal_perfis_religiosos')
-        .update({
-          etapa_formativa_atual: etapa,
-          ano_configuracao: anoConfig,
-        })
-        .eq('id', religiosoId);
-    } catch (e) {
-      // ignore
-    }
-
-    const label = etapa === 'Configuração (Teologia)'
-      ? `${anoConfig ? `${anoConfig}º Ano ` : ''}Configuração (Teologia)`
-      : etapa || 'Sem etapa formativa';
-    showToast.success(`Etapa formativa atualizada para: ${label}`);
-    await load();
-  };
-
   const removeReligiousRecord = async (item: ReligiosoResumo) => {
     const confirmed = await confirmAction({
       title: 'Excluir Cadastro de Religioso',
@@ -436,17 +399,17 @@ export const ReligiososAdmin: React.FC = () => {
                 className="appearance-none rounded-md border border-slate-200 bg-slate-50 py-1.5 pl-3 pr-8 text-xs font-semibold text-slate-800 outline-none transition hover:bg-slate-100 focus:border-[#226380] focus:ring-1 focus:ring-[#226380] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 cursor-pointer"
               >
                 <option value="todos">Todos os cadastros ({auditCounts.todos})</option>
-                <option value="configuracao_todos">🎓 Configuração / Teologia - Todos ({auditCounts.configuracao_todos})</option>
-                <option value="configuracao_1">   ↳ 1º Ano Teologia ({auditCounts.configuracao_1})</option>
-                <option value="configuracao_2">   ↳ 2º Ano Teologia ({auditCounts.configuracao_2})</option>
-                <option value="configuracao_3">   ↳ 3º Ano Teologia ({auditCounts.configuracao_3})</option>
-                <option value="configuracao_4">   ↳ 4º Ano Teologia ({auditCounts.configuracao_4})</option>
-                <option value="tirocinio">🌱 Tirocinantes ({auditCounts.tirocinio})</option>
-                <option value="sem_foto">📷 Sem Foto 4x4 ({auditCounts.sem_foto})</option>
-                <option value="sem_docs">📄 Sem Documentos ({auditCounts.sem_docs})</option>
-                <option value="pendente_revisao">⏳ Em Revisão ({auditCounts.pendente_revisao})</option>
-                <option value="pendente_site">🌐 Pendente no Site ({auditCounts.pendente_site})</option>
-                <option value="publicado_site">✓ Publicado no Site ({auditCounts.publicado_site})</option>
+                <option value="configuracao_todos">Configuração (Teologia) — Todos ({auditCounts.configuracao_todos})</option>
+                <option value="configuracao_1">Configuração: 1º Ano ({auditCounts.configuracao_1})</option>
+                <option value="configuracao_2">Configuração: 2º Ano ({auditCounts.configuracao_2})</option>
+                <option value="configuracao_3">Configuração: 3º Ano ({auditCounts.configuracao_3})</option>
+                <option value="configuracao_4">Configuração: 4º Ano ({auditCounts.configuracao_4})</option>
+                <option value="tirocinio">Tirocínio ({auditCounts.tirocinio})</option>
+                <option value="sem_foto">Sem foto de perfil ({auditCounts.sem_foto})</option>
+                <option value="sem_docs">Sem documentos ({auditCounts.sem_docs})</option>
+                <option value="pendente_revisao">Em revisão ({auditCounts.pendente_revisao})</option>
+                <option value="pendente_site">Pendente no site ({auditCounts.pendente_site})</option>
+                <option value="publicado_site">Publicado no site ({auditCounts.publicado_site})</option>
               </select>
               <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-slate-400" />
             </div>
@@ -485,38 +448,33 @@ export const ReligiososAdmin: React.FC = () => {
                           <div>
                             <p className="font-semibold text-slate-900 dark:text-white">{nomeExibido(item)}</p>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                              {item.grau || 'Grau pendente'}
-                              {item.etapa_formativa_atual ? (
-                                item.etapa_formativa_atual === 'Configuração (Teologia)'
-                                  ? ` · ${item.ano_configuracao ? `${item.ano_configuracao}º Ano ` : ''}Configuração`
-                                  : ' · Tirocinante'
-                              ) : ''} · {item.nome_civil || 'Nome civil pendente'}
+                              {item.grau || 'Grau pendente'} · {item.nome_civil || 'Nome civil pendente'}
                             </p>
                             <div className="mt-1 flex flex-wrap items-center gap-1.5">
                               <span className="font-mono text-[10px] font-medium tracking-wide text-[#226380] dark:text-[#A3C3C7] mr-1">
                                 BRM-{new Date(item.created_at).getFullYear()}-{String(item.numero_cadastro).padStart(6, '0')}
                               </span>
                               {item.foto_path ? (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-medium dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900/40" title="Foto oficial de perfil 4x4 cadastrada">
-                                  <Camera className="h-2.5 w-2.5" /> 4x4
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-medium dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900/40" title="Foto oficial de perfil 4x4 cadastrada">
+                                  4x4
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-medium dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/40" title="Sem foto de perfil cadastrada">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-medium dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/40" title="Sem foto de perfil cadastrada">
                                   Sem foto
                                 </span>
                               )}
                               {item.has_documents ? (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 text-[9px] font-medium dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700" title="Documentos anexados">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 text-[9px] font-medium dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700" title="Documentos anexados">
                                   Docs OK
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[9px] font-medium dark:bg-rose-950/30 dark:text-rose-300 dark:border-rose-900/40" title="Nenhum documento anexado">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[9px] font-medium dark:bg-rose-950/30 dark:text-rose-300 dark:border-rose-900/40" title="Nenhum documento anexado">
                                   Sem docs
                                 </span>
                               )}
                               {item.publicado_site_em && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-50 text-[#226380] border border-sky-200 text-[9px] font-medium dark:bg-sky-950/30 dark:text-sky-300 dark:border-sky-900/40" title="Publicado no Site Oficial">
-                                  <Globe className="h-2.5 w-2.5" /> No site
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-sky-50 text-[#226380] border border-sky-200 text-[9px] font-medium dark:bg-sky-950/30 dark:text-sky-300 dark:border-sky-900/40" title="Publicado no Site Oficial">
+                                  No site
                                 </span>
                               )}
                             </div>
@@ -524,48 +482,36 @@ export const ReligiososAdmin: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Coluna 2: Etapa Formativa (Edição rápida e direta pelo Secretário) */}
+                      {/* Coluna 2: Etapa Formativa */}
                       <td className="px-4 py-3.5">
                         {isFraterOuDiacono ? (
-                          <div className="space-y-1">
-                            <select
-                              value={
-                                item.etapa_formativa_atual === 'Configuração (Teologia)'
-                                  ? `config_${item.ano_configuracao || 1}`
-                                  : item.etapa_formativa_atual === 'Tirocínio'
-                                  ? 'tirocinio'
-                                  : 'nenhuma'
-                              }
-                              onChange={e => {
-                                const val = e.target.value;
-                                if (val.startsWith('config_')) {
-                                  const ano = parseInt(val.replace('config_', ''), 10);
-                                  void updateEtapaFormativa(item.id, 'Configuração (Teologia)', ano);
-                                } else if (val === 'tirocinio') {
-                                  void updateEtapaFormativa(item.id, 'Tirocínio', null);
-                                } else {
-                                  void updateEtapaFormativa(item.id, null, null);
-                                }
-                              }}
-                              className="w-full max-w-[210px] rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-800 outline-none transition focus:border-[#226380] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 cursor-pointer"
-                            >
-                              <option value="nenhuma">-- Nenhuma / Concluída --</option>
-                              <option value="tirocinio">🌱 Tirocínio (Estágio Pastoral)</option>
-                              <option value="config_1">🎓 1º Ano Teologia (Configuração)</option>
-                              <option value="config_2">🎓 2º Ano Teologia (Configuração)</option>
-                              <option value="config_3">🎓 3º Ano Teologia (Configuração)</option>
-                              <option value="config_4">🎓 4º Ano Teologia (Configuração)</option>
-                            </select>
-                            <span className="block text-[10px] text-slate-500 dark:text-slate-400">
-                              {item.etapa_formativa_atual === 'Configuração (Teologia)'
-                                ? `${item.ano_configuracao || 1}º Ano de Teologia`
-                                : item.etapa_formativa_atual === 'Tirocínio'
-                                ? 'Estágio Pastoral Comunitário'
-                                : 'Sem etapa formativa'}
-                            </span>
+                          <div className="space-y-0.5">
+                            {item.etapa_formativa_atual === 'Configuração (Teologia)' ? (
+                              <>
+                                <p className="font-semibold text-slate-800 dark:text-slate-200 leading-tight">
+                                  {item.ano_configuracao ? `${item.ano_configuracao}º ano · Teologia` : 'Teologia'}
+                                </p>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                  Etapa da Configuração
+                                </p>
+                              </>
+                            ) : item.etapa_formativa_atual === 'Tirocínio' ? (
+                              <>
+                                <p className="font-semibold text-slate-800 dark:text-slate-200 leading-tight">
+                                  Tirocínio
+                                </p>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                  Estágio pastoral comunitário
+                                </p>
+                              </>
+                            ) : (
+                              <span className="text-[11px] text-slate-400 dark:text-slate-500 italic">
+                                Não informada
+                              </span>
+                            )}
                           </div>
                         ) : (
-                          <span className="text-[11px] text-slate-400">
+                          <span className="text-[11px] text-slate-400 dark:text-slate-500">
                             {item.grau === 'Padre' ? 'Presbiterado' : item.grau === 'Bispo' ? 'Episcopado' : 'Formação concluída'}
                           </span>
                         )}
