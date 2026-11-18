@@ -3,7 +3,8 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft, ArrowRightLeft, Building2, Calendar, Check, CheckCircle2,
   Church, FileText, FolderOpen, History, Loader2, Plus, RefreshCw,
-  Search, Shield, Tag, UserCheck, UserRound, Users, X, AlertCircle
+  Search, Shield, Tag, UserCheck, UserRound, Users, X, AlertCircle,
+  RotateCcw, ShieldCheck, ChevronDown, ChevronUp, Layers, Filter, CheckSquare
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { showToast } from '../hooks/useFeedback';
@@ -16,6 +17,13 @@ import type {
   Comunidade, Obra, Designacao, TipoVinculo, FuncaoCatalogo
 } from '../types/obra';
 import { FUNCOES_PADRAO_BRM } from '../types/obra';
+
+export interface StagedTransfer {
+  religiosoId: string;
+  novaComunidadeId: string;
+  novaObraId: string;
+  novaFuncao: string;
+}
 
 const tiposVinculoOptions: { value: TipoVinculo; label: string; desc: string }[] = [
   { value: 'pastoral', label: 'Pastoral / Paroquial', desc: 'Pároco, Vigário, Reitor de Santuário' },
@@ -31,9 +39,25 @@ const tiposVinculoOptions: { value: TipoVinculo; label: string; desc: string }[]
 export const TransferenciaReligioso: React.FC = () => {
   const navigate = useNavigate();
   const { id: routeReligiosoId } = useParams<{ id?: string }>();
+  const hojeStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
 
   // Navegação por abas
-  const [tabAtiva, setTabAtiva] = useState<'transferir' | 'historico' | 'funcoes'>('transferir');
+  const [tabAtiva, setTabAtiva] = useState<'lote' | 'transferir' | 'historico' | 'funcoes'>('lote');
+
+  // Estados da Grade de Planejamento & Lote
+  const [stagedTransfers, setStagedTransfers] = useState<Record<string, StagedTransfer>>({});
+  const [painelFormalizacaoAberto, setPainelFormalizacaoAberto] = useState(false);
+  const [filtroComunidadeOrigem, setFiltroComunidadeOrigem] = useState<string>('todas');
+  const [filtroStatusGrade, setFiltroStatusGrade] = useState<'todos' | 'modificados' | 'inalterados' | 'fratres' | 'padres'>('todos');
+  const [buscaGrade, setBuscaGrade] = useState<string>('');
+
+  // Metadados do Decreto Coletivo / Formalização em Lote
+  const [decretoGeralNumero, setDecretoGeralNumero] = useState<string>('');
+  const [decretoGeralData, setDecretoGeralData] = useState<string>(hojeStr);
+  const [decretoGeralVigencia, setDecretoGeralVigencia] = useState<string>(hojeStr);
+  const [decretoGeralEncerrar, setDecretoGeralEncerrar] = useState<boolean>(true);
+  const [decretoGeralObservacoes, setDecretoGeralObservacoes] = useState<string>('');
+  const [salvandoLote, setSalvandoLote] = useState(false);
 
   // Estados de dados
   const [religiosos, setReligiosos] = useState<Religioso[]>([]);
@@ -44,7 +68,7 @@ export const TransferenciaReligioso: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
 
-  // Estados do formulário de transferência
+  // Estados do formulário de transferência individual
   const [selectedReligiosoId, setSelectedReligiosoId] = useState<string>(routeReligiosoId || '');
   const [buscaReligioso, setBuscaReligioso] = useState<string>('');
   const [dropdownReligiosoAberto, setDropdownReligiosoAberto] = useState(false);
@@ -59,8 +83,7 @@ export const TransferenciaReligioso: React.FC = () => {
   const [funcaoSelecionada, setFuncaoSelecionada] = useState<string>('Pároco');
   const [tipoVinculo, setTipoVinculo] = useState<TipoVinculo>('pastoral');
 
-  // Decreto e Vigência
-  const hojeStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+  // Decreto e Vigência Individual
   const [dataInicio, setDataInicio] = useState<string>(hojeStr);
   const [numeroDecreto, setNumeroDecreto] = useState<string>('');
   const [dataDecreto, setDataDecreto] = useState<string>(hojeStr);
@@ -211,6 +234,269 @@ export const TransferenciaReligioso: React.FC = () => {
     FUNCOES_PADRAO_BRM.forEach(f => list.add(f));
     return Array.from(list);
   }, [funcoesCatalogo]);
+
+  // Mapa de designações ativas por religioso
+  const mapaDesignacoesAtivasPorReligioso = useMemo(() => {
+    const map = new Map<string, Designacao>();
+    designacoes.forEach(d => {
+      if (!d.vigencia_fim || d.vigencia_fim >= hojeStr) {
+        if (!map.has(d.religioso_id)) {
+          map.set(d.religioso_id, d);
+        }
+      }
+    });
+    return map;
+  }, [designacoes, hojeStr]);
+
+  const stagedCount = useMemo(() => Object.keys(stagedTransfers).length, [stagedTransfers]);
+  const stagedList = useMemo(() => Object.values(stagedTransfers), [stagedTransfers]);
+
+  // Religiosos filtrados para exibição na grade
+  const religiososGrade = useMemo(() => {
+    let lista = [...religiosos];
+
+    // Filtro de comunidade de origem
+    if (filtroComunidadeOrigem !== 'todas') {
+      lista = lista.filter(r => r.comunidade_atual_id === filtroComunidadeOrigem);
+    }
+
+    // Filtro por situação
+    if (filtroStatusGrade === 'modificados') {
+      lista = lista.filter(r => Boolean(stagedTransfers[r.id]));
+    } else if (filtroStatusGrade === 'inalterados') {
+      lista = lista.filter(r => !stagedTransfers[r.id]);
+    } else if (filtroStatusGrade === 'fratres') {
+      lista = lista.filter(r => r.grau === 'Frater');
+    } else if (filtroStatusGrade === 'padres') {
+      lista = lista.filter(r => r.grau === 'Padre' || r.grau === 'Diácono' || r.grau === 'Bispo');
+    }
+
+    // Busca textual
+    if (buscaGrade.trim()) {
+      const termo = buscaGrade.toLowerCase().trim();
+      lista = lista.filter(r => {
+        const civil = (r.nome_civil || '').toLowerCase();
+        const rel = (r.nome_religioso || '').toLowerCase();
+        const elenco = (r.nome_elenco || '').toLowerCase();
+        const grau = (r.grau || '').toLowerCase();
+        const com = (r.comunidade_atual_nome || '').toLowerCase();
+        const obr = (r.obra_atual_nome || '').toLowerCase();
+        return civil.includes(termo) || rel.includes(termo) || elenco.includes(termo) || grau.includes(termo) || com.includes(termo) || obr.includes(termo);
+      });
+    }
+
+    return lista;
+  }, [religiosos, filtroComunidadeOrigem, filtroStatusGrade, buscaGrade, stagedTransfers]);
+
+  // Manipulação de alterações em linha na grade
+  const handleRowChange = (religiosoId: string, campo: 'comunidade' | 'obra' | 'funcao', valor: string) => {
+    const rel = religiosos.find(r => r.id === religiosoId);
+    if (!rel) return;
+
+    const desigAtiva = mapaDesignacoesAtivasPorReligioso.get(religiosoId);
+    const funcaoAtual = desigAtiva?.funcao || (rel.grau === 'Frater' ? 'Estudante (Teologia)' : 'Vigário Paroquial');
+
+    const current = stagedTransfers[religiosoId] || {
+      religiosoId,
+      novaComunidadeId: rel.comunidade_atual_id || '',
+      novaObraId: rel.obra_atual_id || '',
+      novaFuncao: funcaoAtual,
+    };
+
+    const updated: StagedTransfer = { ...current };
+
+    if (campo === 'comunidade') {
+      updated.novaComunidadeId = valor;
+      const obrasDaComunidade = obras.filter(o => o.comunidade_id === valor);
+      if (obrasDaComunidade.length > 0) {
+        updated.novaObraId = obrasDaComunidade[0].id;
+      } else {
+        updated.novaObraId = '';
+      }
+    } else if (campo === 'obra') {
+      updated.novaObraId = valor;
+    } else if (campo === 'funcao') {
+      updated.novaFuncao = valor;
+    }
+
+    const origComId = rel.comunidade_atual_id || '';
+    const origObraId = rel.obra_atual_id || '';
+    const origFuncao = funcaoAtual;
+
+    const ehIgualAoOriginal =
+      updated.novaComunidadeId === origComId &&
+      updated.novaObraId === origObraId &&
+      updated.novaFuncao === origFuncao;
+
+    setStagedTransfers(prev => {
+      const copy = { ...prev };
+      if (ehIgualAoOriginal) {
+        delete copy[religiosoId];
+      } else {
+        copy[religiosoId] = updated;
+      }
+      return copy;
+    });
+  };
+
+  const handleRevertRow = (religiosoId: string) => {
+    setStagedTransfers(prev => {
+      const copy = { ...prev };
+      delete copy[religiosoId];
+      return copy;
+    });
+  };
+
+  const handleDiscardAll = () => {
+    setStagedTransfers({});
+    setPainelFormalizacaoAberto(false);
+    showToast.info('Todas as propostas em rascunho foram descartadas.');
+  };
+
+  // Executar Formalização Canônica em Lote
+  const handleExecutarLote = async () => {
+    if (stagedList.length === 0) {
+      showToast.error('Nenhuma transferência modificada para formalizar.');
+      return;
+    }
+    if (!decretoGeralVigencia) {
+      showToast.error('Informe a data de início da vigência / posse.');
+      return;
+    }
+
+    setSalvandoLote(true);
+    try {
+      const anoVigencia = new Date(decretoGeralVigencia).getFullYear() || new Date().getFullYear();
+      const numeroDec = decretoGeralNumero.trim() || null;
+      const dataDec = decretoGeralData || null;
+
+      let sucessos = 0;
+
+      for (const item of stagedList) {
+        const rel = religiosos.find(r => r.id === item.religiosoId);
+        if (!rel) continue;
+
+        const novaCom = mapaComunidades.get(item.novaComunidadeId);
+        const novaObr = mapaObras.get(item.novaObraId);
+        const comNome = formatarComunidadeReligiosa(novaCom?.nome) || formatarComunidadeReligiosa(rel.comunidade_atual_nome) || 'Província BRM';
+        const obrNome = novaObr?.nome || comNome;
+        const finalObraId = item.novaObraId || null;
+        const dbComId = item.novaComunidadeId || null;
+
+        // 1. Encerramento se solicitado
+        if (decretoGeralEncerrar) {
+          try {
+            await supabase
+              .from('religiosos_designacoes')
+              .update({ vigencia_fim: decretoGeralVigencia })
+              .eq('religioso_id', item.religiosoId)
+              .or(`vigencia_fim.is.null,vigencia_fim.gt.${decretoGeralVigencia}`);
+          } catch (e) {
+            console.warn('Aviso ao encerrar designação anterior:', e);
+          }
+
+          try {
+            await supabase
+              .from('religiosos_historico_comunidades')
+              .update({ periodo_fim: decretoGeralVigencia })
+              .eq('religioso_id', item.religiosoId)
+              .or('periodo_fim.is.null,periodo_fim.eq.Atual');
+          } catch (e) {
+            console.warn('Aviso ao atualizar histórico de comunidades:', e);
+          }
+        }
+
+        // 2. Inserir nova designação
+        const desigBase: Record<string, any> = {
+          religioso_id: item.religiosoId,
+          tipo_vinculo: 'pastoral',
+          funcao: item.novaFuncao,
+          vigencia_inicio: decretoGeralVigencia,
+          ano_referencia: anoVigencia,
+          numero_decreto: numeroDec,
+          data_decreto: dataDec,
+          observacoes: decretoGeralObservacoes.trim() || null,
+        };
+
+        let desigSalva = false;
+        if (dbComId && finalObraId) {
+          const { error: e1 } = await supabase.from('religiosos_designacoes').insert({ ...desigBase, comunidade_id: dbComId, obra_id: finalObraId });
+          if (!e1) desigSalva = true;
+        }
+        if (!desigSalva && dbComId) {
+          const { error: e2 } = await supabase.from('religiosos_designacoes').insert({ ...desigBase, comunidade_id: dbComId, obra_id: null });
+          if (!e2) desigSalva = true;
+        }
+        if (!desigSalva && finalObraId) {
+          const { error: e3 } = await supabase.from('religiosos_designacoes').insert({ ...desigBase, comunidade_id: null, obra_id: finalObraId });
+          if (!e3) desigSalva = true;
+        }
+        if (!desigSalva) {
+          const fallbackId = dbComId || comunidades[0]?.id;
+          if (fallbackId) {
+            await supabase.from('religiosos_designacoes').insert({ ...desigBase, comunidade_id: fallbackId, obra_id: null });
+          }
+        }
+
+        // 3. Atualizar tabela public.religiosos
+        const updatePayload: Record<string, any> = {
+          comunidade_atual_id: dbComId,
+          comunidade_atual_nome: comNome,
+          obra_atual_id: finalObraId,
+          obra_atual_nome: obrNome,
+        };
+        if (rel.grau === 'Frater') {
+          if (comNome.toLowerCase().includes('conventinho')) {
+            updatePayload.etapa_formativa_atual = 'Configuração (Teologia)';
+          } else {
+            updatePayload.etapa_formativa_atual = 'Tirocínio';
+          }
+        }
+
+        await supabase.from('religiosos').update(updatePayload).eq('id', item.religiosoId);
+
+        // 4. Atualizar portal_perfis_religiosos se existir
+        await supabase.from('portal_perfis_religiosos').update({
+          comunidade_atual_nome: comNome,
+          obra_atual_nome: obrNome,
+        }).or(`auth_user_id.eq.${rel.auth_user_id || '00000000-0000-0000-0000-000000000000'},nome_civil.ilike.${rel.nome_civil}`);
+
+        // 5. Inserir histórico de comunidades permanente
+        const cidadeRef = novaCom?.cidade || (finalObraId ? mapaObras.get(finalObraId)?.cidade : null) || 'Província BRM';
+        await supabase.from('religiosos_historico_comunidades').insert({
+          religioso_id: item.religiosoId,
+          periodo_inicio: decretoGeralVigencia,
+          periodo_fim: null,
+          instituicao: obrNome !== comNome ? `${comNome} • ${obrNome}` : comNome,
+          funcao: item.novaFuncao,
+          cidade: cidadeRef,
+          local: 'Província BRM',
+          observacoes: numeroDec ? `Decreto ${numeroDec}${decretoGeralObservacoes.trim() ? ' - ' + decretoGeralObservacoes.trim() : ''}` : (decretoGeralObservacoes.trim() || null),
+        });
+
+        // 6. Sincronizar com o site oficial da Província BRM
+        siteSyncService.triggerOfficialSiteSync(item.religiosoId, {
+          comunidade: comNome,
+          paroquia: obrNome,
+          cargo: item.novaFuncao,
+          funcao: item.novaFuncao,
+          cidade: novaCom?.cidade ? `${novaCom.cidade}${novaCom.estado ? ` - ${novaCom.estado}` : ''}` : undefined,
+        });
+
+        sucessos++;
+      }
+
+      showToast.success(`Sucesso! ${sucessos} transferências formalizadas com decreto canônico e publicadas no Elenco e Site Oficial.`);
+      setStagedTransfers({});
+      setPainelFormalizacaoAberto(false);
+      await carregarDados();
+    } catch (err: any) {
+      console.error('Falha na formalização em lote:', err);
+      showToast.error(`Não foi possível formalizar o lote: ${err.message || 'Erro no banco'}`);
+    } finally {
+      setSalvandoLote(false);
+    }
+  };
 
   // Filtro de religiosos para seleção
   const religiososFiltradosParaSelecao = useMemo(() => {
@@ -552,6 +838,24 @@ export const TransferenciaReligioso: React.FC = () => {
         <div className="mt-6 flex flex-wrap gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
           <button
             type="button"
+            onClick={() => setTabAtiva('lote')}
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+              tabAtiva === 'lote'
+                ? 'bg-[#226380] text-white shadow-sm'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10'
+            }`}
+          >
+            <Layers className="h-4 w-4" />
+            Grade de Planejamento & Lote
+            {stagedCount > 0 && (
+              <span className="ml-1 rounded-full bg-amber-400 text-slate-900 font-bold px-2 py-0.5 text-[10px]">
+                {stagedCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
             onClick={() => setTabAtiva('transferir')}
             className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
               tabAtiva === 'transferir'
@@ -560,7 +864,7 @@ export const TransferenciaReligioso: React.FC = () => {
             }`}
           >
             <ArrowRightLeft className="h-4 w-4" />
-            Registrar Transferência Canônica
+            Transferência Individual
           </button>
 
           <button
@@ -589,13 +893,459 @@ export const TransferenciaReligioso: React.FC = () => {
             }`}
           >
             <Tag className="h-4 w-4" />
-            Cadastrar & Gerenciar Funções
+            Catálogo de Funções
             <span className="ml-1 rounded-full bg-white/20 px-2 py-0.5 text-[10px]">
               {funcoesDisponiveis.length}
             </span>
           </button>
         </div>
       </header>
+
+      {/* ABA PRINCIPAL: GRADE DE PLANEJAMENTO & LOTE */}
+      {tabAtiva === 'lote' && (
+        <div className="space-y-6">
+          {/* Banner de Auditoria In-Page (quando há modificações e painel fechado) */}
+          {stagedCount > 0 && !painelFormalizacaoAberto && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-amber-300 bg-amber-50/70 p-4 dark:border-amber-900/60 dark:bg-amber-950/20">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+                  <ArrowRightLeft className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wide text-amber-900 dark:text-amber-200">
+                    {stagedCount} transferência(s) proposta(s) em estudo
+                  </h3>
+                  <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80">
+                    As alterações estão salvas em rascunho de planejamento e aguardam a formalização canônica do decreto.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleDiscardAll}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-50 dark:border-amber-800/60 dark:bg-transparent dark:text-amber-200 dark:hover:bg-amber-950/40"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Descartar Rascunhos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPainelFormalizacaoAberto(true)}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#226380] px-4 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-[#1a4f66]"
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Revisar & Formalizar Decreto
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Painel de Formalização Canônica In-Page (ZERO MODAIS) */}
+          {painelFormalizacaoAberto && (
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#11161d] space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#226380]/10 text-[#226380]">
+                    <ShieldCheck className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold uppercase tracking-wide text-slate-800 dark:text-slate-100 font-cinzel">
+                      Formalização do Decreto Provincial em Lote
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Os {stagedCount} confrades modificados na grade receberão o ato canônico com os dados abaixo.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setPainelFormalizacaoAberto(false)}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+                >
+                  <ChevronUp className="h-4 w-4" /> Recolher painel
+                </button>
+              </div>
+
+              {/* Formulário do Decreto Geral */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Número do Decreto / Circular Geral *
+                  </label>
+                  <input
+                    type="text"
+                    value={decretoGeralNumero}
+                    onChange={e => setDecretoGeralNumero(e.target.value)}
+                    placeholder="Ex.: Decreto Provincial 01/2027"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#226380] focus:ring-1 focus:ring-[#226380] dark:border-slate-700 dark:bg-[#0d1117] dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Data de Expedição do Decreto
+                  </label>
+                  <input
+                    type="date"
+                    value={decretoGeralData}
+                    onChange={e => setDecretoGeralData(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#226380] dark:border-slate-700 dark:bg-[#0d1117] dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Data de Início da Vigência / Posse *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={decretoGeralVigencia}
+                    onChange={e => setDecretoGeralVigencia(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#226380] dark:border-slate-700 dark:bg-[#0d1117] dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Observações Gerais / Ementa (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={decretoGeralObservacoes}
+                    onChange={e => setDecretoGeralObservacoes(e.target.value)}
+                    placeholder="Ex.: Nomeações aprovadas na sessão capitular / provisões do triênio..."
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#226380] dark:border-slate-700 dark:bg-[#0d1117] dark:text-white"
+                  />
+                </div>
+
+                <div className="flex items-center pt-5">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={decretoGeralEncerrar}
+                      onChange={e => setDecretoGeralEncerrar(e.target.checked)}
+                      className="rounded border-slate-300 text-[#226380] focus:ring-[#226380] h-4 w-4"
+                    />
+                    Encerrar automaticamente designações anteriores nesta data de vigência
+                  </label>
+                </div>
+              </div>
+
+              {/* Resumo Diff de Conferência */}
+              <div className="border border-slate-200 rounded-xl overflow-hidden dark:border-slate-800">
+                <div className="bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-600 dark:bg-white/[0.02] dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                  Conferência de Transferências ({stagedCount})
+                </div>
+                <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto font-inter text-xs dark:divide-slate-800">
+                  {stagedList.map(st => {
+                    const rel = religiosos.find(r => r.id === st.religiosoId);
+                    const desigAtiva = mapaDesignacoesAtivasPorReligioso.get(st.religiosoId);
+                    const novaCom = mapaComunidades.get(st.novaComunidadeId);
+                    const novaObr = mapaObras.get(st.novaObraId);
+
+                    const nomeCanonical = atribuirNomeReligioso(rel?.grau, rel?.nome_civil) || rel?.nome_civil || 'Confrade';
+                    const comOrigem = rel?.comunidade_atual_nome || 'Sem comunidade';
+                    const comDestino = novaCom?.nome || 'Comunidade não definida';
+                    const funcOrigem = desigAtiva?.funcao || (rel?.grau === 'Frater' ? 'Estudante' : 'Vigário');
+                    const funcDestino = st.novaFuncao;
+
+                    return (
+                      <div key={st.religiosoId} className="p-3 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-slate-50/50 dark:hover:bg-white/[0.01]">
+                        <div className="min-w-[200px]">
+                          <span className="font-semibold text-slate-800 dark:text-white block">{nomeCanonical}</span>
+                          <span className="text-[11px] text-slate-400">{rel?.grau} · {rel?.nome_civil}</span>
+                        </div>
+
+                        <div className="flex-1 flex items-center gap-3 text-xs">
+                          <div className="text-slate-500 line-through truncate max-w-[220px]">
+                            {comOrigem} ({funcOrigem})
+                          </div>
+                          <ArrowRightLeft className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                          <div className="text-[#226380] font-semibold dark:text-[#A3C3C7] truncate max-w-[260px]">
+                            {comDestino} {novaObr ? `• ${novaObr.nome}` : ''} ({funcDestino})
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRevertRow(st.religiosoId)}
+                          className="text-xs text-rose-600 hover:underline shrink-0"
+                        >
+                          Remover do decreto
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Barra de Ação Final */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={handleDiscardAll}
+                  className="text-xs text-slate-500 hover:text-rose-600 transition"
+                >
+                  Descartar todas as alterações
+                </button>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPainelFormalizacaoAberto(false)}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-transparent dark:text-slate-200"
+                  >
+                    Continuar Editando
+                  </button>
+                  <button
+                    type="button"
+                    disabled={salvandoLote}
+                    onClick={handleExecutarLote}
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#226380] px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-[#1a4f66] disabled:opacity-50"
+                  >
+                    {salvandoLote ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                    Efetivar Decreto & Publicar ({stagedCount} Confrades)
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Barra de Ferramentas e Filtros da Grade */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#11161d]">
+            <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {/* Campo de Busca */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Pesquisar por nome, grau, comunidade..."
+                  value={buscaGrade}
+                  onChange={e => setBuscaGrade(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs outline-none focus:border-[#226380] focus:bg-white dark:border-slate-700 dark:bg-white/5 dark:focus:bg-[#0d1117] dark:text-white"
+                />
+              </div>
+
+              {/* Filtro de Comunidade de Origem */}
+              <div className="w-full sm:w-64">
+                <select
+                  value={filtroComunidadeOrigem}
+                  onChange={e => setFiltroComunidadeOrigem(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:border-[#226380] dark:border-slate-700 dark:bg-[#0d1117] dark:text-slate-200"
+                >
+                  <option value="todas">Todas as Comunidades de Origem</option>
+                  {comunidades.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.nome} {c.cidade ? `(${c.cidade})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Filtro de Situação */}
+              <div className="w-full sm:w-56">
+                <select
+                  value={filtroStatusGrade}
+                  onChange={e => setFiltroStatusGrade(e.target.value as any)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:border-[#226380] dark:border-slate-700 dark:bg-[#0d1117] dark:text-slate-200"
+                >
+                  <option value="todos">Todos os Religiosos ({religiosos.length})</option>
+                  <option value="modificados">Propostas Pendentes ({stagedCount})</option>
+                  <option value="inalterados">Inalterados ({religiosos.length - stagedCount})</option>
+                  <option value="padres">Apenas Padres & Diáconos</option>
+                  <option value="fratres">Apenas Fratres (Formação)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Contador de Registros */}
+            <div className="text-right">
+              <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                {religiososGrade.length} exibidos • {stagedCount} em estudo
+              </span>
+            </div>
+          </div>
+
+          {/* TABELA DE EDIÇÃO EM MASSA */}
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden dark:border-slate-800 dark:bg-[#11161d]">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1050px] text-left text-xs border-collapse">
+                <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-600 dark:border-slate-800 dark:bg-white/[0.02] dark:text-slate-400">
+                  <tr>
+                    <th className="px-4 py-3 font-cinzel">Religioso</th>
+                    <th className="px-4 py-3 font-cinzel">Comunidade Atual (Origem)</th>
+                    <th className="px-4 py-3 font-cinzel">Nova Comunidade (Destino)</th>
+                    <th className="px-4 py-3 font-cinzel">Nova Obra / Paróquia</th>
+                    <th className="px-4 py-3 font-cinzel">Nova Função Canônica</th>
+                    <th className="px-4 py-3 font-cinzel text-center">Status</th>
+                    <th className="px-4 py-3 font-cinzel text-right">Ação</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-inter dark:divide-slate-800/60">
+                  {religiososGrade.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                        Nenhum religioso encontrado para os filtros selecionados.
+                      </td>
+                    </tr>
+                  ) : (
+                    religiososGrade.map(rel => {
+                      const staged = stagedTransfers[rel.id];
+                      const isModificado = Boolean(staged);
+                      const desigAtiva = mapaDesignacoesAtivasPorReligioso.get(rel.id);
+                      const funcaoDefault = desigAtiva?.funcao || (rel.grau === 'Frater' ? 'Estudante (Teologia)' : 'Vigário Paroquial');
+
+                      const comEfetivaId = staged ? staged.novaComunidadeId : (rel.comunidade_atual_id || '');
+                      const obraEfetivaId = staged ? staged.novaObraId : (rel.obra_atual_id || '');
+                      const funcaoEfetiva = staged ? staged.novaFuncao : funcaoDefault;
+
+                      const obrasDaComunidade = comEfetivaId
+                        ? obras.filter(o => o.comunidade_id === comEfetivaId)
+                        : [];
+
+                      const nomeCanonical = atribuirNomeReligioso(rel.grau, rel.nome_civil) || rel.nome_civil || 'Confrade';
+
+                      return (
+                        <tr
+                          key={rel.id}
+                          className={`transition-colors hover:bg-slate-50/70 dark:hover:bg-white/[0.02] ${
+                            isModificado
+                              ? 'border-l-4 border-l-amber-500 bg-amber-50/20 dark:bg-amber-950/10'
+                              : ''
+                          }`}
+                        >
+                          {/* 1. Religioso */}
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2.5">
+                              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 font-serif text-[11px] font-bold text-slate-700 dark:border-slate-700 dark:bg-white/5 dark:text-slate-300">
+                                {rel.grau === 'Padre' ? 'P.' : rel.grau === 'Frater' ? 'Fr.' : rel.grau === 'Diácono' ? 'Diác.' : 'Dom'}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-slate-900 dark:text-white truncate max-w-[200px]" title={nomeCanonical}>
+                                  {nomeCanonical}
+                                </p>
+                                <p className="text-[11px] text-slate-400 truncate max-w-[200px]">
+                                  {rel.nome_civil}
+                                  {rel.grau === 'Frater' && rel.etapa_formativa_atual ? ` · ${rel.etapa_formativa_atual}` : ''}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* 2. Comunidade Atual (Origem) */}
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                            <p className="font-medium text-slate-800 dark:text-slate-200 truncate max-w-[180px]">
+                              {rel.comunidade_atual_nome || 'Sem comunidade'}
+                            </p>
+                            <p className="text-[11px] text-slate-400 truncate max-w-[180px]">
+                              {rel.obra_atual_nome && rel.obra_atual_nome !== rel.comunidade_atual_nome
+                                ? rel.obra_atual_nome
+                                : (desigAtiva?.funcao || 'Ofício atual')}
+                            </p>
+                          </td>
+
+                          {/* 3. Nova Comunidade (Destino) */}
+                          <td className="px-4 py-3">
+                            <select
+                              value={comEfetivaId}
+                              onChange={e => handleRowChange(rel.id, 'comunidade', e.target.value)}
+                              className={`w-full max-w-[220px] rounded-lg border px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-[#226380] ${
+                                isModificado && staged.novaComunidadeId !== rel.comunidade_atual_id
+                                  ? 'border-amber-400 bg-amber-50/50 font-semibold text-amber-950 dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-100'
+                                  : 'border-slate-200 bg-white text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100'
+                              }`}
+                            >
+                              <option value="">-- Escolha o destino --</option>
+                              {comunidades.map(c => (
+                                <option key={c.id} value={c.id}>
+                                  {c.nome} {c.cidade ? `(${c.cidade})` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+
+                          {/* 4. Nova Obra / Paróquia */}
+                          <td className="px-4 py-3">
+                            <select
+                              value={obraEfetivaId}
+                              onChange={e => handleRowChange(rel.id, 'obra', e.target.value)}
+                              className={`w-full max-w-[220px] rounded-lg border px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-[#226380] ${
+                                isModificado && staged.novaObraId !== rel.obra_atual_id
+                                  ? 'border-amber-400 bg-amber-50/50 font-semibold text-amber-950 dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-100'
+                                  : 'border-slate-200 bg-white text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100'
+                              }`}
+                            >
+                              <option value="">Sede da Comunidade / Casa</option>
+                              {obrasDaComunidade.map(o => (
+                                <option key={o.id} value={o.id}>
+                                  {o.nome} {o.tipo ? `[${o.tipo}]` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+
+                          {/* 5. Nova Função Canônica */}
+                          <td className="px-4 py-3">
+                            <select
+                              value={funcaoEfetiva}
+                              onChange={e => handleRowChange(rel.id, 'funcao', e.target.value)}
+                              className={`w-full max-w-[190px] rounded-lg border px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-[#226380] ${
+                                isModificado && staged.novaFuncao !== funcaoDefault
+                                  ? 'border-amber-400 bg-amber-50/50 font-semibold text-amber-950 dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-100'
+                                  : 'border-slate-200 bg-white text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100'
+                              }`}
+                            >
+                              {funcoesDisponiveis.map(f => (
+                                <option key={f} value={f}>
+                                  {f}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+
+                          {/* 6. Status da Linha */}
+                          <td className="px-4 py-3 text-center">
+                            {isModificado ? (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800/60">
+                                <span className="h-1.5 w-1.5 rounded-full bg-amber-600 animate-pulse" />
+                                Proposta
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium text-slate-500 border border-slate-200 dark:border-slate-800">
+                                Mantido
+                              </span>
+                            )}
+                          </td>
+
+                          {/* 7. Ação de Reversão */}
+                          <td className="px-4 py-3 text-right">
+                            {isModificado && (
+                              <button
+                                type="button"
+                                onClick={() => handleRevertRow(rel.id)}
+                                title="Desfazer alteração deste religioso"
+                                className="inline-flex items-center justify-center h-7 w-7 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white transition"
+                              >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ABA 1: FORMULÁRIO DE TRANSFERÊNCIA */}
       {tabAtiva === 'transferir' && (
