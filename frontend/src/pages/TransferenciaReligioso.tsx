@@ -910,7 +910,7 @@ export const TransferenciaReligioso: React.FC = () => {
             }`}
           >
             <Layers className="h-4 w-4" />
-            Tabela de Edição
+            Transferência em Lote
             {stagedCount > 0 && (
               <span className="ml-1 rounded-full bg-amber-400 text-slate-900 font-bold px-2 py-0.5 text-[10px]">
                 {stagedCount}
@@ -991,8 +991,8 @@ export const TransferenciaReligioso: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 font-cinzel">
                       {stagedCount > 0
-                        ? `${stagedCount} transferência(s) em estudo na tabela`
-                        : 'Planejamento de Transferências (Tabela de Edição)'}
+                        ? `${stagedCount} transferência(s) em estudo no lote`
+                        : 'Planejamento de Transferências em Lote'}
                     </h3>
                     {stagedCount > 0 && (
                       <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-900 dark:bg-amber-800 dark:text-amber-100">
@@ -1299,7 +1299,7 @@ export const TransferenciaReligioso: React.FC = () => {
             </div>
           </div>
 
-          {/* TABELA DE EDIÇÃO EM MASSA */}
+          {/* TABELA DE TRANSFERÊNCIAS EM LOTE */}
           <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden dark:border-slate-800 dark:bg-[#11161d]">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1300px] text-left text-xs border-collapse">
