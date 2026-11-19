@@ -47,6 +47,17 @@ BEGIN
       email,
       encrypted_password,
       email_confirmed_at,
+      confirmation_token,
+      recovery_token,
+      email_change_token_new,
+      email_change,
+      email_change_token_current,
+      phone_change,
+      phone_change_token,
+      reauthentication_token,
+      email_change_confirm_status,
+      is_sso_user,
+      is_anonymous,
       raw_app_meta_data,
       raw_user_meta_data,
       created_at,
@@ -59,8 +70,19 @@ BEGIN
       '${email}',
       crypt('${senhaPlana}', gen_salt('bf')),
       now(),
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      0,
+      false,
+      false,
       '{"provider":"email","providers":["email"]}'::jsonb,
-      json_build_object('nome', '${nomeCompleto}', 'precisa_trocar_senha', true),
+      json_build_object('nome', '${nomeCompleto}', 'precisa_trocar_senha', true)::jsonb,
       now(),
       now()
     );
@@ -78,7 +100,7 @@ BEGIN
       ) VALUES (
         gen_random_uuid(),
         v_user_id,
-        json_build_object('sub', v_user_id::text, 'email', '${email}', 'email_verified', true)::jsonb,
+        json_build_object('sub', v_user_id::text, 'email', '${email}', 'email_verified', true, 'phone_verified', false)::jsonb,
         'email',
         v_user_id::text,
         now(),
@@ -87,9 +109,17 @@ BEGIN
       );
     END IF;
   ELSE
-    -- Atualizar senha provisória e flag de troca caso já exista
+    -- Atualizar senha provisória, flag de troca e normalizar tokens não-nulos caso já exista
     UPDATE auth.users
     SET encrypted_password = crypt('${senhaPlana}', gen_salt('bf')),
+        confirmation_token = COALESCE(confirmation_token, ''),
+        recovery_token = COALESCE(recovery_token, ''),
+        email_change_token_new = COALESCE(email_change_token_new, ''),
+        email_change = COALESCE(email_change, ''),
+        email_change_token_current = COALESCE(email_change_token_current, ''),
+        phone_change = COALESCE(phone_change, ''),
+        phone_change_token = COALESCE(phone_change_token, ''),
+        reauthentication_token = COALESCE(reauthentication_token, ''),
         raw_user_meta_data = COALESCE(raw_user_meta_data, '{}'::jsonb) || json_build_object('precisa_trocar_senha', true)::jsonb,
         updated_at = now()
     WHERE id = v_user_id;

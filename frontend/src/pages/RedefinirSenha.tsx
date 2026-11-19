@@ -80,7 +80,10 @@ export const RedefinirSenha: React.FC = () => {
 
     setSubmittingPassword(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: novaSenha });
+      const { error } = await supabase.auth.updateUser({
+        password: novaSenha,
+        data: { precisa_trocar_senha: false },
+      });
       if (error) {
         throw error;
       }

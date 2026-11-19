@@ -28,6 +28,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   logout: () => Promise<void>;
   refreshUserProfile: (userId: string) => Promise<void>;
+  marcarSenhaAtualizada: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,6 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const currentUserIdRef = useRef<string | null>(null);
+  const autoLinkAttemptedForRef = useRef<string | null>(null);
 
   const updateUserIfChanged = (nextUser: User | null) => {
     setUser(prev => {
@@ -62,9 +64,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const fetchUserProfile = async (userId: string, email: string) => {
+  const fetchUserProfile = async (
+    userId: string,
+    email: string,
+    userMetadata?: Record<string, unknown>
+  ) => {
     try {
-      const [userRes, relRes] = await Promise.all([
+      const [userRes, relRes, senhaGenericaRes] = await Promise.all([
         supabase
           .from('usuarios')
           .select('usu_nome, usu_email, usu_status, usu_acessos')
@@ -75,6 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .select('id, nome_civil, nome_religioso, grau, auth_user_id, status_cadastro')
           .eq('auth_user_id', userId)
           .maybeSingle(),
+        supabase.rpc('verificar_precisa_trocar_senha'),
       ]);
 
       if (userRes.error) {
@@ -87,11 +94,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let religiosoGrau: string | undefined;
       let religiosoStatusCadastro: string | undefined;
       let isReligioso = false;
+      const precisaTrocarSenha =
+        !senhaGenericaRes.error && typeof senhaGenericaRes.data === 'boolean'
+          ? senhaGenericaRes.data
+          : Boolean(userMetadata?.precisa_trocar_senha);
+
+      let relData = relRes.data;
 
       if (relRes.error) {
         console.error('Falha ao consultar vinculo religioso:', relRes.error.message);
-      } else if (relRes.data) {
-        const relData = relRes.data;
+      } else if (!relData && autoLinkAttemptedForRef.current !== userId) {
+        // Se o confrade ainda não tinha auth_user_id vinculado, tenta vincular automaticamente pelo e-mail confirmado
+        autoLinkAttemptedForRef.current = userId;
+        const { data: linkedId, error: linkErr } = await supabase.rpc('ensure_religious_portal_profile');
+        if (!linkErr && typeof linkedId === 'string' && linkedId) {
+          const { data: relAfterLink } = await supabase
+            .from('religiosos')
+            .select('id, nome_civil, nome_religioso, grau, auth_user_id, status_cadastro')
+            .eq('id', linkedId)
+            .maybeSingle();
+          if (relAfterLink) {
+            relData = relAfterLink;
+          }
+        }
+      }
+
+      if (relData) {
         religiosoId = relData.id;
         religiosoNome = atribuirNomeReligioso(relData.grau, relData.nome_civil) || relData.nome_religioso || relData.nome_civil;
         religiosoGrau = relData.grau;
@@ -130,6 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           religiosoStatusCadastro,
           isReligioso,
           isAdmin,
+          precisaTrocarSenha,
         });
       } else if (isReligioso) {
         const aprovado = religiosoStatusCadastro === 'Aprovado';
@@ -145,6 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           religiosoStatusCadastro,
           isReligioso: true,
           isAdmin: false,
+          precisaTrocarSenha,
         });
       } else {
         updateUserIfChanged({
@@ -155,6 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           acessos: [],
           isReligioso: false,
           isAdmin: false,
+          precisaTrocarSenha,
         });
       }
     } catch (err) {
@@ -167,6 +198,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         acessos: [],
         isReligioso: false,
         isAdmin: false,
+        precisaTrocarSenha: Boolean(userMetadata?.precisa_trocar_senha),
       });
     }
   };
@@ -255,17 +287,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const sessionUserId = session.user.id;
       const sessionUserEmail = session.user.email || '';
+      const sessionUserMeta = session.user.user_metadata as Record<string, unknown> | undefined;
 
-      // 3. Usuário já ativo (ex.: revalidação de aba em background):
+      // 3. Usuário já ativo (ex.: revalidação de aba em background ou USER_UPDATED após troca de senha):
       // Atualiza dados silenciosamente, sem ativar loading global.
       if (currentUserIdRef.current === sessionUserId) {
-        void fetchUserProfile(sessionUserId, sessionUserEmail);
+        void fetchUserProfile(sessionUserId, sessionUserEmail, sessionUserMeta);
         return;
       }
 
       // 4. Carga inicial ou novo login:
       currentUserIdRef.current = sessionUserId;
-      void fetchUserProfile(sessionUserId, sessionUserEmail).then(() => {
+      void fetchUserProfile(sessionUserId, sessionUserEmail, sessionUserMeta).then(() => {
         if (isMounted) {
           clearTimeout(safetyTimer);
           setLoading(false);
@@ -282,18 +315,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     currentUserIdRef.current = null;
+    autoLinkAttemptedForRef.current = null;
     await supabase.auth.signOut();
     setUser(null);
   };
 
   const refreshUserProfile = async (userId: string) => {
-    await fetchUserProfile(userId, user?.email || '');
+    const { data } = await supabase.auth.getSession();
+    const sessionUser = data.session?.user;
+    const email = sessionUser?.email || user?.email || '';
+    const userMetadata = sessionUser?.user_metadata as Record<string, unknown> | undefined;
+    await fetchUserProfile(userId, email, userMetadata);
+  };
+
+  const marcarSenhaAtualizada = () => {
+    setUser(prev => (prev ? { ...prev, precisaTrocarSenha: false } : prev));
   };
 
   const isAuthenticated = !!user;
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAuthenticated, logout, refreshUserProfile }}>
+    <AuthContext.Provider value={{ user, loading, isAuthenticated, logout, refreshUserProfile, marcarSenhaAtualizada }}>
       {children}
     </AuthContext.Provider>
   );

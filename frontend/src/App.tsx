@@ -5,6 +5,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { FeedbackProvider } from './contexts/FeedbackContext';
 import Layout from './components/Layout';
 import AppleErrorBoundary from './components/AppleErrorBoundary';
+import { TrocaSenhaGenericaModal } from './components/TrocaSenhaGenericaModal';
 import { isPortalPublicHost, getPortalRedirectUrl } from './lib/portalUrls';
 
 // Lazy-loaded Pages (Code-Splitting)
@@ -217,6 +218,7 @@ export const App: React.FC = () => {
         <AuthProvider>
           <FeedbackProvider>
             <BrowserRouter>
+              <TrocaSenhaGenericaModal />
               <Suspense fallback={<AppleLoadingFallback />}>
               <Routes>
                 {/* Redirecionamento permanente das rotas legadas do Portal para o domínio exclusivo */}

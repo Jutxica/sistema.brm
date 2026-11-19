@@ -363,6 +363,10 @@ export const DispararCredenciaisPage: React.FC = () => {
   const [filtroGrau, setFiltroGrau] = useState<string>('todos');
   const [filtroComunidade, setFiltroComunidade] = useState<string>('todas');
   const [filtroStatus, setFiltroStatus] = useState<'todos' | 'pendentes' | 'enviados'>('todos');
+  const [filtroSenha, setFiltroSenha] = useState<'todas' | 'generica' | 'alterada'>('todas');
+  const [statusSenhaMap, setStatusSenhaMap] = useState<Record<string, { usandoGenerica: boolean; ultimoAcesso: string | null }>>({});
+  const [senhasVerificadas, setSenhasVerificadas] = useState(false);
+  const [verificandoSenhas, setVerificandoSenhas] = useState(false);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
 
   // Execução do lote
@@ -419,6 +423,44 @@ export const DispararCredenciaisPage: React.FC = () => {
       setLoading(false);
     }
   }, [preselectedId]);
+
+  const verificarSenhasProvisorias = useCallback(async () => {
+    try {
+      setVerificandoSenhas(true);
+      const { data, error } = await supabase.rpc('listar_usuarios_senha_generica');
+      if (error) throw error;
+
+      const mapa: Record<string, { usandoGenerica: boolean; ultimoAcesso: string | null }> = {};
+      let comGenerica = 0;
+      let jaAlterada = 0;
+
+      for (const item of (data || []) as Array<{
+        religioso_id: string;
+        usando_senha_generica: boolean;
+        ultimo_acesso: string | null;
+      }>) {
+        mapa[item.religioso_id] = {
+          usandoGenerica: Boolean(item.usando_senha_generica),
+          ultimoAcesso: item.ultimo_acesso ?? null,
+        };
+        if (item.usando_senha_generica) comGenerica++;
+        else jaAlterada++;
+      }
+
+      setStatusSenhaMap(mapa);
+      setSenhasVerificadas(true);
+      showToast.success(
+        `Verificação concluída: ${comGenerica} com senha provisória e ${jaAlterada} com senha pessoal.`
+      );
+    } catch (err: any) {
+      console.error('Erro ao verificar senhas provisórias:', err);
+      showToast.error(
+        err?.message || 'Não foi possível verificar as senhas provisórias. Verifique se a migration foi aplicada.'
+      );
+    } finally {
+      setVerificandoSenhas(false);
+    }
+  }, []);
 
   // Carregar histórico de disparos
   const carregarHistorico = useCallback(async () => {
@@ -513,11 +555,28 @@ export const DispararCredenciaisPage: React.FC = () => {
         if ((r.comunidade_atual_nome || '').trim() !== filtroComunidade) return false;
       }
 
+      // Filtro de senha provisória (quando auditado)
+      if (senhasVerificadas && filtroSenha !== 'todas') {
+        const infoSenha = statusSenhaMap[r.id];
+        if (filtroSenha === 'generica' && !infoSenha?.usandoGenerica) return false;
+        if (filtroSenha === 'alterada' && (!infoSenha || infoSenha.usandoGenerica)) return false;
+      }
+
       // Busca textual
       if (!q) return true;
       return nome.includes(q) || email.includes(q) || comunidade.includes(q);
     });
-  }, [religiosos, busca, filtroStatus, filtroGrau, filtroComunidade]);
+  }, [religiosos, busca, filtroStatus, filtroGrau, filtroComunidade, senhasVerificadas, filtroSenha, statusSenhaMap]);
+
+  const contagemSenhas = useMemo(() => {
+    let generica = 0;
+    let alterada = 0;
+    for (const info of Object.values(statusSenhaMap)) {
+      if (info.usandoGenerica) generica++;
+      else alterada++;
+    }
+    return { generica, alterada };
+  }, [statusSenhaMap]);
 
   // Ações de Seleção
   const handleToggleSelect = (id: string) => {
@@ -1016,6 +1075,29 @@ export const DispararCredenciaisPage: React.FC = () => {
                 ))}
               </select>
 
+              {senhasVerificadas && (
+                <select
+                  value={filtroSenha}
+                  onChange={e => setFiltroSenha(e.target.value as 'todas' | 'generica' | 'alterada')}
+                  className="px-2.5 py-1.5 rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 focus:outline-none focus:border-[#226380]"
+                >
+                  <option value="todas">Todas as senhas</option>
+                  <option value="generica">Senha provisória ({contagemSenhas.generica})</option>
+                  <option value="alterada">Senha pessoal ({contagemSenhas.alterada})</option>
+                </select>
+              )}
+
+              <button
+                type="button"
+                disabled={verificandoSenhas}
+                onClick={() => void verificarSenhasProvisorias()}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-[#226380]/40 bg-[#226380]/5 hover:bg-[#226380]/10 text-[#113240] dark:text-[#A3C3C7] font-semibold transition cursor-pointer disabled:opacity-50"
+                title="Consulta no banco quais contas ainda utilizam a senha provisória brm@DDMMAAAA"
+              >
+                <ShieldCheck className={`w-3.5 h-3.5 ${verificandoSenhas ? 'animate-pulse' : ''}`} />
+                <span>{verificandoSenhas ? 'Verificando...' : senhasVerificadas ? 'Reverificar senhas' : 'Identificar senhas provisórias'}</span>
+              </button>
+
               <span className="text-slate-300 dark:text-slate-700">|</span>
 
               <button
@@ -1081,7 +1163,7 @@ export const DispararCredenciaisPage: React.FC = () => {
                           />
                         </td>
                         <td className="p-3 font-semibold text-slate-900 dark:text-white">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span>{nomeTratamento}</span>
                             {rel.credenciais_enviadas_em && (
                               <span 
@@ -1091,6 +1173,29 @@ export const DispararCredenciaisPage: React.FC = () => {
                                 <Check className="w-3 h-3" />
                                 <span>Notificado</span>
                               </span>
+                            )}
+                            {senhasVerificadas && statusSenhaMap[rel.id] && (
+                              statusSenhaMap[rel.id].usandoGenerica ? (
+                                <span
+                                  title={
+                                    statusSenhaMap[rel.id].ultimoAcesso
+                                      ? `Ainda usando senha provisória · Último acesso: ${new Date(statusSenhaMap[rel.id].ultimoAcesso!).toLocaleString('pt-BR')}`
+                                      : 'Ainda usando senha provisória (sem acesso registrado)'
+                                  }
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60 font-medium"
+                                >
+                                  <AlertTriangle className="w-3 h-3" />
+                                  <span>Senha provisória</span>
+                                </span>
+                              ) : (
+                                <span
+                                  title="Confrade já alterou para uma senha pessoal"
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-sky-50 text-sky-800 border border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800/60 font-medium"
+                                >
+                                  <ShieldCheck className="w-3 h-3" />
+                                  <span>Senha pessoal</span>
+                                </span>
+                              )
                             )}
                           </div>
                         </td>

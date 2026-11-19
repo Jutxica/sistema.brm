@@ -28,7 +28,6 @@ import { PortalCalendarioTab } from './tabs/PortalCalendarioTab';
 import { PortalDocumentosTab } from './tabs/PortalDocumentosTab';
 import { PortalHospedagemTab } from './tabs/PortalHospedagemTab';
 import { PortalLogin } from './PortalLogin';
-import { PortalPrimeiroAcessoSenha } from './PortalPrimeiroAcessoSenha';
 import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../../lib/religiosoNome';
 
 export type PortalSection = 'inicio' | 'perfil' | 'inscricao' | 'ficha-pdf' | 'calendario' | 'documentos' | 'anuario' | 'hospedagem';
@@ -65,7 +64,10 @@ export const PortalReligioso: React.FC = () => {
     }
     setAuthLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: recoveryPassword });
+      const { error } = await supabase.auth.updateUser({
+        password: recoveryPassword,
+        data: { precisa_trocar_senha: false },
+      });
       if (error) throw error;
       setRecoveryMode(false);
       setRecoveryPassword('');
@@ -608,20 +610,8 @@ export const PortalReligioso: React.FC = () => {
     );
   }
 
-  // SE O USUÁRIO PRECISA DEFINIR A SENHA DEFINITIVA NO 1º ACESSO:
-  if (user?.precisaTrocarSenha) {
-    return (
-      <PortalPrimeiroAcessoSenha
-        confradeNome={religiosoData?.nome_religioso || religiosoData?.nome_civil || user.nome}
-        onSuccess={async () => {
-          await refreshUserProfile(user.id);
-        }}
-        onLogout={logout}
-      />
-    );
-  }
-
   // USUÁRIO AUTENTICADO: RENDERIZA O SITE DA ÁREA DE MEMBROS (APPLE FORMAT)
+  // (Se user.precisaTrocarSenha === true, o TrocaSenhaGenericaModal global abre por cima automaticamente)
   const displayName = religiosoData?.nome_civil || user?.nome || 'Religioso Dehoniano';
   const displayGrau = religiosoData?.grau || 'Religioso SCJ';
   const displayReligiousName = atribuirNomeReligioso(displayGrau, displayName) || religiosoData?.nome_religioso || '';
