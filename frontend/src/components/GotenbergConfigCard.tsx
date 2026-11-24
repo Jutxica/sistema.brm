@@ -115,7 +115,7 @@ export const GotenbergConfigCard: React.FC = () => {
 
     try {
       let blob: Blob;
-      let nomeArquivo = `Documento_${numeroDoc.replace(/\//g, '-')}.pdf`;
+      const nomeArquivo = `Documento_${numeroDoc.replace(/\//g, '-')}.pdf`;
 
       if (tipoDoc === 'decreto') {
         blob = await gotenbergService.gerarDecretoPdf({
@@ -570,8 +570,8 @@ export const GotenbergConfigCard: React.FC = () => {
 
       {/* Modal Emissor de Documentos Canônicos */}
       {modalAberto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative w-full max-w-2xl overflow-hidden rounded-[20px] bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-800 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs motion-backdrop">
+          <div className="motion-modal relative w-full max-w-2xl overflow-hidden rounded-[20px] bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-800 shadow-2xl">
             
             {/* Topo do Modal */}
             <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">

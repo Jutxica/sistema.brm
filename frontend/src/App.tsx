@@ -47,11 +47,11 @@ const RedefinirSenha = lazy(() => import('./pages/RedefinirSenha'));
 const ComunicacaoAdmin = lazy(() => import('./pages/ComunicacaoAdmin'));
 const DispararCredenciaisPage = lazy(() => import('./pages/DispararCredenciaisPage'));
 
-// Apple Loading Spinner Fallback
+// BRM Loading Spinner Fallback
 const AppleLoadingFallback: React.FC = () => (
   <div className="flex items-center justify-center min-h-[50vh] w-full py-16">
     <div className="flex flex-col items-center gap-3">
-      <div className="w-8 h-8 rounded-full border-2 border-[#0071e3]/20 border-t-[#0071e3] animate-spin" />
+      <div className="w-8 h-8 rounded-full border-2 border-[#226380]/20 border-t-[#226380] dark:border-[#A3C3C7]/20 dark:border-t-[#A3C3C7] animate-spin" />
       <span className="text-[11px] font-medium text-[#707070] dark:text-[#86868b] tracking-wider uppercase">
         Carregando módulo...
       </span>
@@ -67,7 +67,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#f5f5f7] dark:bg-[#0d1117]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-[#0071e3]/20 border-t-[#0071e3] animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-[#226380]/20 border-t-[#226380] dark:border-[#A3C3C7]/20 dark:border-t-[#A3C3C7] animate-spin" />
           <span className="text-xs font-medium text-[#707070] dark:text-[#86868b]">Verificando sessão...</span>
         </div>
       </div>

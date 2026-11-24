@@ -1,4 +1,4 @@
-﻿/**
+/**
  * UTXICA Motion Design System & Animation Engine
  * Based on Emil Kowalski's Design Engineering Philosophy & UTXICA.ANIMACAO
  */
@@ -9,9 +9,11 @@ export const MOTION_TOKENS = {
   easeSpring: 'cubic-bezier(0.175, 0.885, 0.32, 1.15)',
   easeSmooth: 'cubic-bezier(0.16, 1, 0.3, 1)',
   easeDrawer: 'cubic-bezier(0.32, 0.72, 0, 1)',
+  durationInstant: 100,
   durationFast: 160,
   durationNormal: 220,
   durationModal: 280,
+  durationSlow: 360,
   durationCounter: 650,
 } as const;
 
@@ -44,7 +46,16 @@ export interface AnimateNumberOptions {
 }
 
 /**
+ * Check if client prefers reduced motion
+ */
+export function isReducedMotionPreferred(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/**
  * 60FPS Hardware-synchronized requestAnimationFrame counter
+ * Immediately resolves to target value if prefers-reduced-motion is active.
  */
 export function animateNumber({
   from = 0,
@@ -54,7 +65,11 @@ export function animateNumber({
   onUpdate,
   onComplete,
 }: AnimateNumberOptions): () => void {
-
+  if (isReducedMotionPreferred()) {
+    onUpdate(to);
+    if (onComplete) onComplete();
+    return () => {};
+  }
 
   let startTime: number | null = null;
   let rafId: number | null = null;
@@ -87,6 +102,7 @@ export function animateNumber({
 /**
  * Stagger child elements using Web Animations API (WAAPI)
  * Runs off the main thread where possible for zero frame drops.
+ * Gracefully sets static state if prefers-reduced-motion is active.
  */
 export function staggerEntrance(
   container: HTMLElement | null,
@@ -99,10 +115,17 @@ export function staggerEntrance(
 ) {
   if (!container) return;
 
-
-
-  const { staggerMs = 40, durationMs = 240, distancePx = 8 } = options;
   const elements = container.querySelectorAll<HTMLElement>(childSelector);
+
+  if (isReducedMotionPreferred()) {
+    elements.forEach((el) => {
+      el.style.opacity = '1';
+      el.style.transform = 'none';
+    });
+    return;
+  }
+
+  const { staggerMs = 35, durationMs = 220, distancePx = 6 } = options;
 
   elements.forEach((el, index) => {
     el.animate(

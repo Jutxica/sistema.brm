@@ -378,7 +378,7 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 ref={cancelBtnRef}
                 type="button"
                 onClick={() => confirmState.resolve(false)}
-                className="px-4 py-2 text-xs font-semibold rounded-[6px] border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+                className="motion-press px-4 py-2 text-xs font-semibold rounded-[6px] border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-colors cursor-pointer shadow-xs"
               >
                 {confirmState.options.cancelLabel || 'Cancelar'}
               </button>
@@ -387,7 +387,7 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 ref={confirmBtnRef}
                 type="button"
                 onClick={() => confirmState.resolve(true)}
-                className={`px-4 py-2 text-xs font-semibold rounded-[6px] text-white transition-all cursor-pointer shadow-xs flex items-center gap-1.5 active:scale-[0.98] ${
+                className={`motion-press px-4 py-2 text-xs font-semibold rounded-[6px] text-white transition-colors cursor-pointer shadow-xs flex items-center gap-1.5 ${
                   confirmState.options.tone === 'danger'
                     ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'
                     : confirmState.options.tone === 'warning'
@@ -450,13 +450,13 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               <button
                 type="button"
                 onClick={() => promptState.resolve(null)}
-                className="px-4 py-2 text-xs font-semibold rounded-[6px] border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer"
+                className="motion-press px-4 py-2 text-xs font-semibold rounded-[6px] border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 {promptState.options.cancelLabel || 'Cancelar'}
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 text-xs font-semibold rounded-[6px] bg-[#113240] hover:bg-[#226380] dark:bg-[#226380] text-white transition-all cursor-pointer"
+                className="motion-press px-4 py-2 text-xs font-semibold rounded-[6px] bg-[#113240] hover:bg-[#226380] dark:bg-[#226380] text-white transition-colors cursor-pointer"
               >
                 {promptState.options.confirmLabel || 'Continuar'}
               </button>
@@ -545,7 +545,7 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 ref={alertBtnRef}
                 type="button"
                 onClick={() => alertState.resolve()}
-                className="px-5 py-2 text-xs font-semibold rounded-[6px] bg-[#113240] hover:bg-[#226380] dark:bg-[#226380] dark:hover:bg-[#1a4e66] text-white transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+                className="motion-press px-5 py-2 text-xs font-semibold rounded-[6px] bg-[#113240] hover:bg-[#226380] dark:bg-[#226380] dark:hover:bg-[#1a4e66] text-white transition-colors cursor-pointer shadow-xs"
               >
                 {alertState.options.buttonLabel || 'Entendido'}
               </button>
@@ -562,7 +562,7 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto bg-white/95 dark:bg-[#161b22]/95 backdrop-blur-md rounded-[8px] border shadow-xl p-3.5 flex items-start gap-3 transition-all duration-300 ease-out transform translate-y-0 opacity-100 ${
+            className={`pointer-events-auto bg-white/95 dark:bg-[#161b22]/95 backdrop-blur-md rounded-[8px] border shadow-xl p-3.5 flex items-start gap-3 motion-toast ${
               t.type === 'success'
                 ? 'border-emerald-500/30 shadow-emerald-500/5'
                 : t.type === 'error'
@@ -595,7 +595,7 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             <button
               type="button"
               onClick={() => removeToast(t.id)}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-0.5 cursor-pointer"
+              className="motion-press text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-0.5 cursor-pointer"
               aria-label="Fechar notificação"
             >
               <X className="w-3.5 h-3.5" />

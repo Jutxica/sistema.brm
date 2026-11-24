@@ -48,15 +48,17 @@
   --success: #34c759;
   --electric-blue: #226380;
 
-  /* UTXICA Design Engineering Motion Tokens */
+  /* UTXICA Design Engineering Motion Tokens (Stripe × Linear × Apple × Vercel) */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.15);
   --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --duration-instant: 100ms;
   --duration-fast: 160ms;
   --duration-normal: 220ms;
   --duration-modal: 280ms;
+  --duration-slow: 360ms;
 }
 
 .dark {
@@ -440,43 +442,142 @@ select:not(.font-mono):not(.font-cinzel) {
   }
 }
 
-/* UTXICA & Emil Kowalski Motion Design Utilities */
+/* =========================================================================
+   UTXICA WEB ANIMATION SYSTEM (Emil Kowalski × Stripe × Apple × Vercel)
+   ========================================================================= */
+
+/* 1. Micro-interactions: Tactile Press Feedback */
 @utility motion-press {
-  transition: transform 160ms var(--ease-out);
+  transition: transform var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out);
   cursor: pointer;
   user-select: none;
   &:active {
-    transform: scale(0.97);
+    transform: scale(0.975);
   }
 }
+.motion-press {
+  transition: transform var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out);
+  cursor: pointer;
+  user-select: none;
+}
+.motion-press:active {
+  transform: scale(0.975);
+}
 
+/* 2. Micro-interactions: Card Hover Lift with Touch Pointer Gating */
 @utility motion-lift {
-  transition: transform 220ms var(--ease-out), box-shadow 220ms var(--ease-out), border-color 220ms ease;
+  transition: transform var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-out), border-color var(--duration-fast) ease;
   will-change: transform;
-  &:hover {
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -4px rgba(17, 50, 64, 0.08), 0 4px 6px -2px rgba(17, 50, 64, 0.03);
+    }
+  }
+}
+.motion-lift {
+  transition: transform var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-out), border-color var(--duration-fast) ease;
+  will-change: transform;
+}
+@media (hover: hover) and (pointer: fine) {
+  .motion-lift:hover {
     transform: translateY(-2px);
     box-shadow: 0 10px 25px -4px rgba(17, 50, 64, 0.08), 0 4px 6px -2px rgba(17, 50, 64, 0.03);
   }
+  .dark .motion-lift:hover {
+    box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.45);
+  }
 }
 
-.dark .motion-lift:hover {
-  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.45);
-}
-
-@utility motion-dropdown {
-  transform-origin: top right;
-  animation: dropdownIn 180ms var(--ease-out) forwards;
-}
-
+/* 3. Surface & Overlay Transitions: Modals & Dialogs */
 @utility motion-modal {
-  transform-origin: center;
-  animation: modalScaleIn 240ms var(--ease-out) forwards;
+  transform-origin: center center;
+  animation: modalScaleIn var(--duration-modal) var(--ease-out) both;
+  will-change: transform, opacity;
+}
+.motion-modal {
+  transform-origin: center center;
+  animation: modalScaleIn var(--duration-modal) var(--ease-out) both;
+  will-change: transform, opacity;
 }
 
 @utility motion-backdrop {
-  animation: backdropFadeIn 200ms var(--ease-out) forwards;
+  animation: backdropFadeIn var(--duration-fast) var(--ease-out) both;
+  will-change: opacity;
+}
+.motion-backdrop {
+  animation: backdropFadeIn var(--duration-fast) var(--ease-out) both;
+  will-change: opacity;
 }
 
+/* 4. Popovers & Menus: Dropdowns */
+@utility motion-dropdown {
+  transform-origin: top right;
+  animation: dropdownIn var(--duration-fast) var(--ease-out) both;
+  will-change: transform, opacity;
+}
+.motion-dropdown {
+  transform-origin: top right;
+  animation: dropdownIn var(--duration-fast) var(--ease-out) both;
+  will-change: transform, opacity;
+}
+
+/* 5. Notifications: Floating Toasts */
+@utility motion-toast {
+  animation: toastSlideIn var(--duration-normal) var(--ease-out) both;
+  will-change: transform, opacity;
+}
+.motion-toast {
+  animation: toastSlideIn var(--duration-normal) var(--ease-out) both;
+  will-change: transform, opacity;
+}
+
+/* 6. Drawers & Sheets: Mobile Sidebar / Panels */
+@utility motion-drawer-left {
+  animation: drawerSlideInLeft var(--duration-modal) var(--ease-drawer) both;
+  will-change: transform;
+}
+.motion-drawer-left {
+  animation: drawerSlideInLeft var(--duration-modal) var(--ease-drawer) both;
+  will-change: transform;
+}
+
+@utility motion-drawer-right {
+  animation: drawerSlideInRight var(--duration-modal) var(--ease-drawer) both;
+  will-change: transform;
+}
+.motion-drawer-right {
+  animation: drawerSlideInRight var(--duration-modal) var(--ease-drawer) both;
+  will-change: transform;
+}
+
+/* 7. Tabs & Switchers: Smooth Content Crossfade */
+@utility motion-tab-pane {
+  animation: tabPaneFadeIn var(--duration-fast) var(--ease-out) both;
+}
+.motion-tab-pane {
+  animation: tabPaneFadeIn var(--duration-fast) var(--ease-out) both;
+}
+
+/* 8. Choreography: Staggered Lists and Table Rows */
+.motion-stagger-item {
+  opacity: 0;
+  animation: staggerFadeIn var(--duration-normal) var(--ease-out) forwards;
+  animation-delay: calc(var(--stagger-base, 0ms) + var(--stagger-index, 0) * 35ms);
+  will-change: transform, opacity;
+}
+
+/* 9. Loading: Shimmer Pulse */
+@utility motion-shimmer {
+  background-size: 200% 100%;
+  animation: shimmerPulse 1.8s linear infinite;
+}
+.motion-shimmer {
+  background-size: 200% 100%;
+  animation: shimmerPulse 1.8s linear infinite;
+}
+
+/* 10. Hardware-Accelerated Keyframes */
 @keyframes dropdownIn {
   from {
     opacity: 0;
@@ -491,7 +592,7 @@ select:not(.font-mono):not(.font-cinzel) {
 @keyframes modalScaleIn {
   from {
     opacity: 0;
-    transform: scale(0.96) translateY(-6px);
+    transform: scale(0.96) translateY(8px);
   }
   to {
     opacity: 1;
@@ -508,6 +609,46 @@ select:not(.font-mono):not(.font-cinzel) {
   }
 }
 
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes drawerSlideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes drawerSlideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes tabPaneFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes staggerFadeIn {
   from {
     opacity: 0;
@@ -519,16 +660,75 @@ select:not(.font-mono):not(.font-cinzel) {
   }
 }
 
-.motion-stagger-item {
-  opacity: 0;
-  animation: staggerFadeIn 280ms var(--ease-out) forwards;
-  animation-delay: calc(var(--stagger-base, 0ms) + var(--stagger-index, 0) * 40ms);
+@keyframes shimmerPulse {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
+/* 11. Compatibility Polyfills for Tailwind Animation Classes */
+.animate-in {
+  animation-duration: var(--duration-normal);
+  animation-timing-function: var(--ease-out);
+  animation-fill-mode: both;
+}
+.animate-in.fade-in,
+.animate-fade-in {
+  animation-name: backdropFadeIn;
+}
+.animate-in.zoom-in-95 {
+  animation-name: modalScaleIn;
+}
+.animate-in.slide-in-from-bottom-2 {
+  animation-name: staggerFadeIn;
+}
+
+/* 12. Strict Accessibility: Prefers-Reduced-Motion */
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
   .motion-press:active,
-  .motion-lift:hover {
+  .motion-lift:hover,
+  .hover-lift:hover,
+  [class*="active:scale-"] {
     transform: none !important;
+  }
+
+  .motion-modal,
+  .motion-dropdown,
+  .motion-backdrop,
+  .motion-toast,
+  .motion-drawer-left,
+  .motion-drawer-right,
+  .motion-tab-pane,
+  .motion-stagger-item,
+  .animate-in,
+  .animate-fade-in,
+  .brm-enter-card,
+  .brm-enter-crest,
+  .brm-enter-rise,
+  .brm-enter-word,
+  .brm-enter-line,
+  .brm-enter-fade,
+  .brm-button-sheen::after {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    transition: none !important;
+  }
+
+  .brm-atmosphere {
+    animation: none !important;
   }
 }
 

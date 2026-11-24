@@ -79,9 +79,9 @@ export const TrocaSenhaGenericaModal: React.FC = () => {
       role="dialog"
       aria-modal="true"
       aria-labelledby="titulo-troca-senha-obrigatoria"
-      className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/65 backdrop-blur-xs p-4"
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/65 backdrop-blur-xs p-4 motion-backdrop"
     >
-      <div className="w-full max-w-md rounded-2xl border border-[#DCE4E2] dark:border-[#22333B] bg-white dark:bg-[#131F26] shadow-2xl overflow-hidden">
+      <div className="w-full max-w-md rounded-2xl border border-[#DCE4E2] dark:border-[#22333B] bg-white dark:bg-[#131F26] shadow-2xl overflow-hidden motion-modal">
         {/* Faixa superior institucional */}
         <div className="bg-[#113240] px-6 py-5 border-b border-[#226380]/40">
           <div className="flex items-start gap-3">
@@ -182,7 +182,7 @@ export const TrocaSenhaGenericaModal: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 px-4 rounded-lg bg-[#113240] hover:bg-[#19485c] text-white text-[13.5px] font-semibold cursor-pointer disabled:opacity-50 disabled:pointer-events-none transition-colors flex items-center justify-center gap-2"
+                className="motion-press w-full py-2.5 px-4 rounded-lg bg-[#113240] hover:bg-[#19485c] text-white text-[13.5px] font-semibold cursor-pointer disabled:opacity-50 disabled:pointer-events-none transition-colors flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -198,7 +198,7 @@ export const TrocaSenhaGenericaModal: React.FC = () => {
                 type="button"
                 disabled={loading}
                 onClick={() => void logout()}
-                className="w-full py-2 px-3 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                className="motion-press w-full py-2 px-3 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Sair da conta</span>

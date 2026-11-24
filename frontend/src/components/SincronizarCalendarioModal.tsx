@@ -39,8 +39,8 @@ export const SincronizarCalendarioModal: React.FC<SincronizarCalendarioModalProp
   const festasLiturgicas = icalService.gerarFestasLiturgicasIgreja(new Date().getFullYear());
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl overflow-hidden rounded-[24px] bg-white dark:bg-[#161617] border border-[#d6d6d6]/60 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.15)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs motion-backdrop">
+      <div className="motion-modal relative w-full max-w-xl overflow-hidden rounded-[24px] bg-white dark:bg-[#161617] border border-[#d6d6d6]/60 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.15)]">
         
         {/* Cabeçalho */}
         <div className="flex items-center justify-between p-6 border-b border-[#d6d6d6]/40 dark:border-white/10">

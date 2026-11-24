@@ -76,13 +76,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, mobil
           type="button"
           aria-label="Fechar navegação"
           onClick={() => setMobileOpen(false)}
-          className="fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-[1px] md:hidden print:hidden"
+          className="fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-[1px] md:hidden print:hidden motion-backdrop"
         />
       )}
       <aside
         id="administrative-sidebar"
         aria-label="Navegação principal"
-        className={`brm-sidebar fixed inset-y-0 left-0 z-50 w-[min(18rem,calc(100vw-2.5rem))] border-r border-[#dce4e2] bg-white text-[#203136] transition-[width,transform] duration-200 dark:border-[#354246] dark:bg-[#1c2427] dark:text-[#edf2f1] md:z-30 md:translate-x-0 print:hidden
+        className={`brm-sidebar fixed inset-y-0 left-0 z-50 w-[min(18rem,calc(100vw-2.5rem))] border-r border-[#dce4e2] bg-white text-[#203136] transition-[width,transform] duration-250 ease-[var(--ease-drawer)] dark:border-[#354246] dark:bg-[#1c2427] dark:text-[#edf2f1] md:z-30 md:translate-x-0 print:hidden
           ${collapsed ? 'md:w-20' : 'md:w-64'}
           ${mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}
       >
@@ -282,12 +282,12 @@ const SidebarGroup: React.FC<{
       aria-label={collapsed ? label : undefined}
       aria-expanded={open}
       title={collapsed ? label : undefined}
-      className={`brm-sidebar-group-trigger flex min-h-10 w-full items-center gap-3 rounded-lg px-3 py-2 font-cinzel text-[11px] font-semibold tracking-wider uppercase text-[#52636a] transition-colors hover:bg-slate-100 hover:text-[#113240] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white ${open ? 'bg-slate-100/80 dark:bg-white/5 text-[#113240]' : ''}`}
+      className={`motion-press brm-sidebar-group-trigger flex min-h-10 w-full items-center gap-3 rounded-lg px-3 py-2 font-cinzel text-[11px] font-semibold tracking-wider uppercase text-[#52636a] transition-colors hover:bg-slate-100 hover:text-[#113240] dark:text-[#a3aaad] dark:hover:bg-white/5 dark:hover:text-white ${open ? 'bg-slate-100/80 dark:bg-white/5 text-[#113240]' : ''}`}
     >
       <Icon className="h-4 w-4 shrink-0" />
-      {!collapsed && <><span className="flex-1 text-left">{label}</span><ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`} /></>}
+      {!collapsed && <><span className="flex-1 text-left">{label}</span><ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ease-[var(--ease-out)] ${open ? 'rotate-180' : ''}`} /></>}
     </button>
-    {open && !collapsed && <ul className="mt-1 space-y-0.5">{children}</ul>}
+    {open && !collapsed && <ul className="motion-tab-pane mt-1 space-y-0.5">{children}</ul>}
   </li>
 );
 

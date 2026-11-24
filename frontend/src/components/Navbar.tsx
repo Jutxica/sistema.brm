@@ -189,7 +189,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileNavigationOpen, onMobileMe
           onClick={toggleTheme}
           aria-label={theme === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
           title="Alternar tema"
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-[#52636a] transition-colors hover:bg-slate-100 dark:text-[#a3aaad] dark:hover:bg-white/10"
+          className="motion-press flex h-9 w-9 items-center justify-center rounded-lg text-[#52636a] transition-colors hover:bg-slate-100 dark:text-[#a3aaad] dark:hover:bg-white/10"
         >
           {theme === 'dark' ? <Sun className="h-4 w-4 text-[#F2C894]" /> : <Moon className="h-4 w-4 text-[#113240]" />}
         </button>
@@ -205,7 +205,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileNavigationOpen, onMobileMe
               setNotificationOpen(open => !open);
               void loadNotifications();
             }}
-            className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[#52636a] transition-colors hover:bg-slate-100 dark:text-[#a3aaad] dark:hover:bg-white/10"
+            className="motion-press relative flex h-9 w-9 items-center justify-center rounded-lg text-[#52636a] transition-colors hover:bg-slate-100 dark:text-[#a3aaad] dark:hover:bg-white/10"
           >
               <Bell className="h-4 w-4" />
             {unreadCount > 0 && <span className="absolute -right-1 -top-1 min-w-4 h-4 rounded-full bg-rose-600 px-1 text-[9px] font-bold leading-4 text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>}
@@ -214,7 +214,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileNavigationOpen, onMobileMe
           {notificationOpen && (
             <>
               <button aria-label="Fechar notificações" className="fixed inset-0 z-30 cursor-default" onClick={() => setNotificationOpen(false)} />
-              <div className="absolute right-0 z-40 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#1c2128]">
+              <div className="motion-dropdown absolute right-0 z-40 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#1c2128]">
                 <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
                   <p className="text-sm font-semibold text-[#113240] dark:text-white">Notificações</p>
                   <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Inscrições, pendências e atividades</p>
@@ -258,7 +258,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileNavigationOpen, onMobileMe
         <div className="relative">
           <button
             onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-            className="flex items-center gap-2.5 p-1 pl-1.5 pr-2.5 rounded-[6px] border border-transparent hover:border-slate-200 dark:hover:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+            className="motion-press flex items-center gap-2.5 p-1 pl-1.5 pr-2.5 rounded-[6px] border border-transparent hover:border-slate-200 dark:hover:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
           >
             <div className="flex items-center justify-center w-7 h-7 rounded-[6px] bg-[#113240]/10 text-[#113240] dark:bg-[#226380]/20 dark:text-[#A3C3C7] border border-black/5 dark:border-white/10">
               <UserIcon className="w-3.5 h-3.5" />
@@ -275,7 +275,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileNavigationOpen, onMobileMe
                 className="fixed inset-0 z-30" 
                 onClick={() => setProfileDropdownOpen(false)}
               />
-              <div className="absolute right-0 mt-2 w-60 rounded-[8px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1c2128] shadow-lg p-2 z-40">
+              <div className="motion-dropdown absolute right-0 mt-2 w-60 rounded-[8px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1c2128] shadow-lg p-2 z-40">
                 <div className="px-3 py-2.5 border-b border-[#e5e5ea] dark:border-white/10">
                   <p className="text-xs font-semibold text-[#113240] dark:text-white truncate">{user?.nome}</p>
                   <p className="text-[11px] text-[#707070] dark:text-[#86868b] truncate mt-0.5">{user?.email}</p>
@@ -285,7 +285,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileNavigationOpen, onMobileMe
                     setProfileDropdownOpen(false);
                     logout();
                   }}
-                  className="flex items-center gap-2.5 w-full px-3 py-2 text-left rounded-[6px] text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 font-medium mt-1 transition-colors cursor-pointer"
+                  className="motion-press flex items-center gap-2.5 w-full px-3 py-2 text-left rounded-[6px] text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 font-medium mt-1 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Sair do sistema</span>
