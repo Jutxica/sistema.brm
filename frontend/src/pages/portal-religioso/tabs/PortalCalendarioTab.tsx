@@ -1,13 +1,12 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { SincronizarCalendarioModal } from '../../../components/SincronizarCalendarioModal';
 import {
-  ArrowLeft, Calendar, CalendarDays, CalendarPlus, Search, X, Loader2,
-  Smartphone, FileText, MapPin, Clock, CheckCircle2, Users, List, LayoutGrid, Sparkles
+  ArrowLeft, Calendar, CalendarDays, CalendarPlus, Search, X,
+  Smartphone, FileText, MapPin, Clock, CheckCircle2, Users, List, LayoutGrid
 } from 'lucide-react';
 import type { EventoProvincial, FormularioSecretaria, RespostaFormulario } from '../../../types/secretaria';
 import type { ReligiosoPortalData } from '../../../types/religioso';
 import { AgendaVisualizacao } from '../../../components/AgendaVisualizacao';
-import { staggerStyle } from '../../../hooks/useMotion';
 import { showToast } from '../../../hooks/useFeedback';
 import { icalService } from '../../../services/icalService';
 import { dataHojeSaoPaulo } from '../../../utils/dateUtils';
@@ -38,8 +37,8 @@ const MESES_EXTENSO = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ];
-const MESES_ABREV = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
-const DIAS_SEMANA_ABREV = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+const DIAS_SEMANA_ABREV = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 const TIPOS_AGENDA = [
   'Todos',
@@ -52,65 +51,6 @@ const TIPOS_AGENDA = [
   'Formação',
   'Outro',
 ] as const;
-
-interface TipoVisualStyle {
-  accentBar: string;
-  badge: string;
-  dot: string;
-}
-
-const getTipoVisual = (tipo: string): TipoVisualStyle => {
-  switch (tipo) {
-    case 'Assembleia':
-      return {
-        accentBar: 'bg-[#B58A55]',
-        badge: 'bg-[#B58A55]/12 text-[#7c5a2c] dark:text-[#e6c391] border-[#B58A55]/30',
-        dot: 'bg-[#B58A55]',
-      };
-    case 'Retiro':
-      return {
-        accentBar: 'bg-[#226380]',
-        badge: 'bg-[#226380]/10 text-[#1b5068] dark:text-[#A3C3C7] border-[#226380]/25',
-        dot: 'bg-[#226380]',
-      };
-    case 'Reunião':
-      return {
-        accentBar: 'bg-[#113240] dark:bg-[#7fa8b8]',
-        badge: 'bg-[#113240]/8 text-[#113240] dark:bg-white/10 dark:text-slate-200 border-[#113240]/20 dark:border-white/15',
-        dot: 'bg-[#113240] dark:bg-[#A3C3C7]',
-      };
-    case 'Encontro':
-      return {
-        accentBar: 'bg-[#2e7d8a]',
-        badge: 'bg-[#A3C3C7]/25 text-[#174657] dark:text-[#A3C3C7] border-[#2e7d8a]/25',
-        dot: 'bg-[#2e7d8a]',
-      };
-    case 'Celebração / Solenidade':
-      return {
-        accentBar: 'bg-[#9b2c3e]',
-        badge: 'bg-rose-500/10 text-rose-800 dark:text-rose-300 border-rose-500/25',
-        dot: 'bg-[#9b2c3e]',
-      };
-    case 'Visita Canônica':
-      return {
-        accentBar: 'bg-indigo-600',
-        badge: 'bg-indigo-500/10 text-indigo-800 dark:text-indigo-300 border-indigo-500/25',
-        dot: 'bg-indigo-500',
-      };
-    case 'Formação':
-      return {
-        accentBar: 'bg-emerald-600',
-        badge: 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-500/25',
-        dot: 'bg-emerald-500',
-      };
-    default:
-      return {
-        accentBar: 'bg-slate-400',
-        badge: 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300 border-slate-200 dark:border-white/15',
-        dot: 'bg-slate-400',
-      };
-  }
-};
 
 const parseIsoLocalDate = (iso: string): Date | null => {
   const match = iso?.slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -125,10 +65,10 @@ const calcularDiasDiferenca = (deIso: string, paraIso: string): number | null =>
   return Math.round((para.getTime() - de.getTime()) / (1000 * 60 * 60 * 24));
 };
 
-const obterSeloProximidade = (
+const obterProximidade = (
   evt: EventoProvincial,
   hojeIso: string,
-): { label: string; className: string } | null => {
+): { label: string; emAndamento: boolean; urgente: boolean } | null => {
   const inicio = evt.data_inicio?.slice(0, 10);
   const fim = (evt.data_fim && evt.data_fim >= evt.data_inicio ? evt.data_fim : evt.data_inicio)?.slice(0, 10);
   if (!inicio || !fim) return null;
@@ -136,56 +76,51 @@ const obterSeloProximidade = (
   if (hojeIso >= inicio && hojeIso <= fim) {
     return {
       label: inicio === fim ? 'Hoje' : 'Em andamento',
-      className: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
+      emAndamento: true,
+      urgente: true,
     };
   }
 
   const diffInicio = calcularDiasDiferenca(hojeIso, inicio);
   if (diffInicio === 1) {
-    return {
-      label: 'Amanhã',
-      className: 'bg-[#B58A55]/15 text-[#7c5a2c] dark:text-[#e6c391] border-[#B58A55]/35',
-    };
+    return { label: 'Amanhã', emAndamento: false, urgente: true };
   }
   if (diffInicio !== null && diffInicio > 1 && diffInicio <= 14) {
-    return {
-      label: `Em ${diffInicio} dias`,
-      className: 'bg-[#226380]/10 text-[#226380] dark:text-[#A3C3C7] border-[#226380]/20',
-    };
+    return { label: `Em ${diffInicio} dias`, emAndamento: false, urgente: false };
   }
 
   const diffFim = calcularDiasDiferenca(fim, hojeIso);
   if (diffFim !== null && diffFim >= 1) {
-    return {
-      label: 'Encerrado recentemente',
-      className: 'bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300 border-slate-200 dark:border-white/10',
-    };
+    return { label: 'Encerrado ontem', emAndamento: false, urgente: false };
   }
 
   return null;
 };
 
-const extrairBlocoData = (inicioIso: string, fimIso?: string | null) => {
+const extrairColunaData = (inicioIso: string, fimIso?: string | null) => {
   const dtInicio = parseIsoLocalDate(inicioIso);
   if (!dtInicio) {
-    return { mes: '—', diaTexto: '—', semana: '' };
+    return { diaTexto: '—', legenda: '' };
   }
-  const mesIdx = dtInicio.getMonth();
-  const diaI = String(dtInicio.getDate()).padStart(2, '0');
+  const diaI = String(dtInicio.getDate());
+  const mesNome = MESES_ABREV[dtInicio.getMonth()];
   const semI = DIAS_SEMANA_ABREV[dtInicio.getDay()];
 
   if (!fimIso || fimIso.slice(0, 10) === inicioIso.slice(0, 10)) {
-    return { mes: MESES_ABREV[mesIdx], diaTexto: diaI, semana: semI };
+    return { diaTexto: diaI, legenda: `${semI}, ${mesNome}` };
   }
 
   const dtFim = parseIsoLocalDate(fimIso);
   if (dtFim && dtFim.getMonth() === dtInicio.getMonth() && dtFim.getFullYear() === dtInicio.getFullYear()) {
-    const diaF = String(dtFim.getDate()).padStart(2, '0');
-    const semF = DIAS_SEMANA_ABREV[dtFim.getDay()];
-    return { mes: MESES_ABREV[mesIdx], diaTexto: `${diaI}–${diaF}`, semana: `${semI}–${semF}` };
+    const diaF = String(dtFim.getDate());
+    return { diaTexto: `${diaI}–${diaF}`, legenda: mesNome };
   }
 
-  return { mes: MESES_ABREV[mesIdx], diaTexto: `${diaI}+`, semana: semI };
+  if (dtFim) {
+    return { diaTexto: `${diaI}`, legenda: `${mesNome}–${MESES_ABREV[dtFim.getMonth()]}` };
+  }
+
+  return { diaTexto: diaI, legenda: `${semI}, ${mesNome}` };
 };
 
 export const PortalCalendarioTab: React.FC<PortalCalendarioTabProps> = ({
@@ -212,6 +147,7 @@ export const PortalCalendarioTab: React.FC<PortalCalendarioTabProps> = ({
 
   const hojeIso = dataHojeSaoPaulo();
   const mesAtualPrefixo = hojeIso.slice(0, 7);
+
   const anoExibicao = useMemo(() => {
     const anos = eventos
       .map((e) => Number(e.data_inicio?.slice(0, 4)))
@@ -230,14 +166,31 @@ export const PortalCalendarioTab: React.FC<PortalCalendarioTabProps> = ({
       .sort((a, b) => a.data_inicio.localeCompare(b.data_inicio))[0];
   }, [eventos, hojeIso]);
 
+  const encontrarInscricaoUsuario = useCallback(
+    (evt: EventoProvincial) =>
+      respostasInscricoes.find(
+        (r) =>
+          (r.evento_id === evt.id || (evt.formulario_id && r.formulario_id === evt.formulario_id)) &&
+          (r.dados?.email === (religiosoData?.email_institucional || userEmail) ||
+            r.dados?.nome_religioso === religiosoData?.nome_religioso ||
+            r.dados?.nome_completo === religiosoData?.nome_civil),
+      ),
+    [respostasInscricoes, religiosoData, userEmail],
+  );
+
   const eventosNoMes = useMemo(
     () => eventos.filter((evt) => evt.data_inicio?.slice(0, 7) === mesAtualPrefixo).length,
     [eventos, mesAtualPrefixo],
   );
 
   const eventosComInscricao = useMemo(
-    () => eventos.filter((evt) => evt.exige_inscricao).length,
+    () => eventos.filter((evt) => evt.exige_inscricao),
     [eventos],
+  );
+
+  const inscricoesConfirmadasUsuario = useMemo(
+    () => eventosComInscricao.filter((evt) => Boolean(encontrarInscricaoUsuario(evt))).length,
+    [eventosComInscricao, encontrarInscricaoUsuario],
   );
 
   const gruposPorMes = useMemo(() => {
@@ -252,7 +205,7 @@ export const PortalCalendarioTab: React.FC<PortalCalendarioTabProps> = ({
         const titulo =
           mesIdx >= 0 && mesIdx < 12 && anoStr
             ? `${MESES_EXTENSO[mesIdx]} de ${anoStr}`
-            : 'Próximos compromissos';
+            : 'Compromissos';
         mapa.set(chave, { chave, titulo, itens: [] });
       }
       mapa.get(chave)!.itens.push(evt);
@@ -261,506 +214,483 @@ export const PortalCalendarioTab: React.FC<PortalCalendarioTabProps> = ({
     return Array.from(mapa.values());
   }, [eventosFiltrados]);
 
+  const tiposVisiveis = useMemo(() => {
+    return TIPOS_AGENDA.filter(
+      (tipo) => tipo === 'Todos' || tipo === eventoFiltroTipo || eventos.some((e) => e.tipo === tipo),
+    );
+  }, [eventos, eventoFiltroTipo]);
+
   const hasActiveFilters = eventoFiltroTipo !== 'Todos' || eventoSearch.trim().length > 0;
-  const seloProximo = proximoEvento ? obterSeloProximidade(proximoEvento, hojeIso) : null;
+  const proximidadeProximo = proximoEvento ? obterProximidade(proximoEvento, hojeIso) : null;
+  const inscricaoProximo = proximoEvento ? encontrarInscricaoUsuario(proximoEvento) : undefined;
+  const formProximo = proximoEvento
+    ? formulariosSecretaria.find((f) => f.id === proximoEvento.formulario_id)
+    : undefined;
+
+  const abrirInscricaoEvento = (evt: EventoProvincial, formVinculado?: FormularioSecretaria) => {
+    if (formVinculado) {
+      onAbrirInscricao(evt, formVinculado);
+    } else if (formulariosError) {
+      showToast.error('Não foi possível carregar os formulários de inscrição. Tente novamente mais tarde.');
+    } else {
+      showToast.info('O formulário para este evento ainda não foi publicado pela Secretaria.');
+    }
+  };
 
   return (
-    <div className="space-y-5">
-      {/* Voltar */}
-      <div>
+    <div className="space-y-4">
+      {/* Linha de retorno e cabeçalho direto (sem hero banner, sem gradiente) */}
+      <div className="space-y-3">
         <button
           type="button"
           onClick={onVoltar}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-[#161617] border border-[#dce4e2] dark:border-white/10 text-xs font-medium text-[#113240] dark:text-[#f5f5f7] hover:bg-[#f4f6f5] dark:hover:bg-[#262628] transition-all cursor-pointer shadow-xs"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-[#4f5f66] dark:text-[#a8b3b8] hover:text-[#113240] dark:hover:text-white transition-colors cursor-pointer"
         >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Voltar ao Painel do Religioso</span>
+          <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
+          <span>Painel do Religioso</span>
         </button>
-      </div>
 
-      {/* Hero Institucional da Agenda */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#113240] via-[#164154] to-[#205a73] p-6 sm:p-8 text-white shadow-[0_14px_36px_rgba(17,50,64,0.16)]">
-        {/* Elementos arquitetônicos sutis */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full border border-white/[0.08]"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-8 -top-12 h-44 w-44 rounded-full border border-[#B58A55]/20"
-        />
-
-        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-2xl">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="h-px w-5 bg-[#B58A55]" aria-hidden="true" />
-              <span className="font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.2em] text-[#A3C3C7]">
-                Província BRM • Calendário Litúrgico e Provincial
-              </span>
-            </div>
-            <h2 className="text-2xl sm:text-[28px] font-semibold tracking-tight text-white leading-tight">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#113240] dark:text-white leading-tight">
               Agenda Provincial {anoExibicao}
-            </h2>
-            <p className="mt-1.5 text-xs sm:text-sm text-white/75 leading-relaxed">
-              Acompanhe os retiros, assembleias, celebrações patronais e encontros oficiais da Província Brasileira Meridional.
+            </h1>
+            <p className="mt-1 text-sm text-[#4f5f66] dark:text-[#a8b3b8]">
+              {proximoEvento
+                ? `Próximo compromisso: ${proximoEvento.titulo} em ${formatPeriodo(proximoEvento.data_inicio, proximoEvento.data_fim)}${proximidadeProximo ? ` (${proximidadeProximo.label.toLowerCase()})` : ''}.`
+                : 'Compromissos, retiros, assembleias e celebrações oficiais da Província BRM.'}
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => setModalSyncAberto(true)}
-              className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/12 px-4 py-2 text-xs font-medium text-white backdrop-blur-xs transition-all hover:bg-white/20 cursor-pointer"
-            >
-              <Smartphone className="w-3.5 h-3.5 text-[#A3C3C7]" />
-              <span>Sincronizar no Celular</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setModalSyncAberto(true)}
+            className="inline-flex h-9 shrink-0 items-center justify-center gap-2 self-start rounded-lg border border-[#cad5d3] dark:border-[#343b3f] bg-white dark:bg-[#161617] px-3.5 text-xs font-medium text-[#113240] dark:text-[#edf2f1] hover:border-[#226380] hover:text-[#226380] dark:hover:border-[#A3C3C7] dark:hover:text-[#A3C3C7] transition-colors cursor-pointer sm:self-auto"
+          >
+            <Smartphone className="w-3.5 h-3.5 text-[#55646b] dark:text-[#9ea9ae]" aria-hidden="true" />
+            <span>Sincronizar no celular (.ics)</span>
+          </button>
         </div>
+      </div>
 
-        {/* Faixa de Destaque: Próximo Compromisso + Resumo */}
-        <div className="relative mt-6 pt-5 border-t border-white/12 grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
-          <div className="lg:col-span-8">
-            {proximoEvento ? (
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3.5 rounded-xl bg-white/[0.08] border border-white/12 px-4 py-3 backdrop-blur-xs">
-                <div className="flex items-center gap-2.5 shrink-0">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#B58A55]/20 border border-[#B58A55]/40 text-[#f3d4a7]">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  <div className="sm:hidden">
-                    <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f3d4a7]">
-                      Próximo compromisso
-                    </span>
-                    {seloProximo && (
-                      <span className="text-[11px] font-medium text-white/85">{seloProximo.label}</span>
-                    )}
-                  </div>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="hidden sm:flex items-center gap-2 mb-0.5">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f3d4a7]">
-                      Próximo compromisso
-                    </span>
-                    {seloProximo && (
-                      <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-medium text-white">
-                        {seloProximo.label}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm font-semibold text-white truncate">
-                    {proximoEvento.titulo}
-                  </p>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/75">
-                    <span className="inline-flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-[#A3C3C7]" />
-                      {formatPeriodo(proximoEvento.data_inicio, proximoEvento.data_fim)}
-                    </span>
-                    {proximoEvento.horario && (
-                      <span className="inline-flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-[#A3C3C7]" />
-                        {proximoEvento.horario}
-                      </span>
-                    )}
-                    {proximoEvento.local && (
-                      <span className="inline-flex items-center gap-1 truncate">
-                        <MapPin className="w-3 h-3 text-[#A3C3C7] shrink-0" />
-                        <span className="truncate">{proximoEvento.local}</span>
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-xl bg-white/[0.06] border border-white/10 px-4 py-3 text-xs text-white/75">
-                Não há próximos compromissos programados no momento.
-              </div>
+      {/* Faixa Única de Resumo (dividida por linhas de 1px, sem ícones em caixas, sem sombras) */}
+      <section
+        aria-label="Resumo da agenda"
+        className="rounded-xl border border-[#dce4e2] dark:border-[#2a2f32] bg-white dark:bg-[#161617] grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-[#e8eeec] dark:divide-[#262b2e]"
+      >
+        {/* Bloco principal: Próximo compromisso */}
+        <div className="lg:col-span-6 p-4 sm:p-5 flex flex-col justify-between gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-medium text-[#4f5f66] dark:text-[#9ea9ae]">
+              Próximo compromisso
+            </span>
+            {proximidadeProximo && (
+              <span className="inline-flex items-center rounded px-2 py-0.5 text-[11px] font-medium bg-[#e8f1f4] text-[#17485c] dark:bg-[#226380]/25 dark:text-[#A3C3C7]">
+                {proximidadeProximo.label}
+              </span>
             )}
           </div>
 
-          <div className="lg:col-span-4 grid grid-cols-2 gap-2.5">
-            <div className="rounded-xl bg-white/[0.07] border border-white/10 px-3.5 py-2.5">
-              <span className="block text-[10px] font-medium uppercase tracking-wider text-white/65">
-                Na agenda
-              </span>
-              <span className="mt-0.5 block text-lg font-semibold text-white tabular-nums">
-                {eventos.length}{' '}
-                <span className="text-[11px] font-normal text-white/70">
-                  {eventos.length === 1 ? 'evento' : 'eventos'}
+          {proximoEvento ? (
+            <div className="space-y-1.5">
+              <p className="text-base font-semibold text-[#113240] dark:text-white leading-snug">
+                {proximoEvento.titulo}
+              </p>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#4f5f66] dark:text-[#a8b3b8]">
+                <span className="inline-flex items-center gap-1.5 font-medium text-[#113240] dark:text-[#edf2f1] tabular-nums">
+                  <Calendar className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7]" aria-hidden="true" />
+                  {formatPeriodo(proximoEvento.data_inicio, proximoEvento.data_fim)}
+                  {proximoEvento.horario ? ` às ${proximoEvento.horario}` : ''}
                 </span>
-              </span>
+                {proximoEvento.local && (
+                  <span className="inline-flex items-center gap-1.5 min-w-0">
+                    <MapPin className="w-3.5 h-3.5 text-[#55646b] dark:text-[#9ea9ae] shrink-0" aria-hidden="true" />
+                    <span className="truncate">
+                      {proximoEvento.local}
+                      {proximoEvento.cidade ? `, ${proximoEvento.cidade}/${proximoEvento.uf}` : ''}
+                    </span>
+                  </span>
+                )}
+              </div>
+              {proximoEvento.exige_inscricao && (
+                <div className="pt-1">
+                  {inscricaoProximo ? (
+                    <button
+                      type="button"
+                      onClick={() => abrirInscricaoEvento(proximoEvento, formProximo)}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#e6f4ec] dark:bg-[#172a1d] px-3 text-xs font-medium text-[#155134] dark:text-[#6fd39b] hover:bg-[#d8eee1] transition-colors cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>Inscrito · {inscricaoProximo.protocolo}</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => abrirInscricaoEvento(proximoEvento, formProximo)}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#113240] dark:bg-white px-3 text-xs font-medium text-white dark:text-[#113240] hover:bg-[#1b4a5e] dark:hover:bg-slate-200 transition-colors cursor-pointer"
+                    >
+                      <FileText className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>Inscrever-se agora</span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-            <div className="rounded-xl bg-white/[0.07] border border-white/10 px-3.5 py-2.5">
-              <span className="block text-[10px] font-medium uppercase tracking-wider text-white/65">
-                {eventosComInscricao > 0 ? 'Com inscrição' : 'Neste mês'}
-              </span>
-              <span className="mt-0.5 block text-lg font-semibold text-white tabular-nums">
-                {eventosComInscricao > 0 ? eventosComInscricao : eventosNoMes}{' '}
-                <span className="text-[11px] font-normal text-white/70">
-                  {(eventosComInscricao > 0 ? eventosComInscricao : eventosNoMes) === 1 ? 'ativo' : 'ativos'}
-                </span>
-              </span>
-            </div>
+          ) : (
+            <p className="text-sm text-[#4f5f66] dark:text-[#a8b3b8]">
+              Nenhum evento futuro publicado — aguarde novas datas da Secretaria.
+            </p>
+          )}
+        </div>
+
+        {/* Métricas reais somadas dos eventos exibidos */}
+        <div className="lg:col-span-3 p-4 sm:p-5 flex flex-col justify-between gap-1">
+          <span className="text-xs font-medium text-[#4f5f66] dark:text-[#9ea9ae]">
+            Eventos ativos
+          </span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-medium text-[#113240] dark:text-white tabular-nums">
+              {eventos.length}
+            </span>
+            <span className="text-xs text-[#4f5f66] dark:text-[#9ea9ae] tabular-nums">
+              {eventosNoMes} neste mês
+            </span>
           </div>
+          <span className="text-xs text-[#55646b] dark:text-[#9ea9ae]">
+            {hasActiveFilters
+              ? `${eventosFiltrados.length} exibido${eventosFiltrados.length === 1 ? '' : 's'} no filtro atual`
+              : 'Calendário oficial da Província'}
+          </span>
+        </div>
+
+        <div className="lg:col-span-3 p-4 sm:p-5 flex flex-col justify-between gap-1">
+          <span className="text-xs font-medium text-[#4f5f66] dark:text-[#9ea9ae]">
+            Inscrições abertas
+          </span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-medium text-[#113240] dark:text-white tabular-nums">
+              {eventosComInscricao.length}
+            </span>
+            <span className="text-xs text-[#4f5f66] dark:text-[#9ea9ae]">
+              {eventosComInscricao.length === 1 ? 'evento' : 'eventos'}
+            </span>
+          </div>
+          <span className="text-xs text-[#55646b] dark:text-[#9ea9ae] tabular-nums">
+            {eventosComInscricao.length === 0
+              ? 'Nenhuma inscrição exigida no momento'
+              : `${inscricoesConfirmadasUsuario} de ${eventosComInscricao.length} confirmada${inscricoesConfirmadasUsuario === 1 ? '' : 's'} por você`}
+          </span>
         </div>
       </section>
 
-      {/* Barra Unificada de Busca, Visualização e Filtros */}
-      <section className="rounded-2xl border border-[#dce4e2] dark:border-white/10 bg-white dark:bg-[#161617] p-4 sm:p-5 shadow-[0_2px_14px_rgba(17,50,64,0.03)] space-y-3.5">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          {/* Busca */}
-          <div className="relative flex-1 min-w-0">
-            <Search
-              className="w-4 h-4 pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
-              aria-hidden="true"
-            />
-            <input
-              type="text"
-              value={eventoSearch}
-              onChange={(e) => setEventoSearch(e.target.value)}
-              aria-label="Buscar evento, local ou cidade"
-              placeholder="Buscar por evento, local, cidade ou público..."
-              className="h-10 w-full rounded-xl bg-[#f4f6f5] dark:bg-[#222225] pl-10 pr-9 text-xs sm:text-sm text-[#113240] dark:text-[#f5f5f7] border border-transparent focus:border-[#226380] focus:bg-white dark:focus:bg-[#161617] focus:ring-2 focus:ring-[#226380]/15 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all outline-none"
-            />
-            {eventoSearch && (
+      {/* Folha Principal da Agenda: Controles + Lista/Calendário/Quadro */}
+      <section className="rounded-xl border border-[#dce4e2] dark:border-[#2a2f32] bg-white dark:bg-[#161617] overflow-hidden">
+        {/* Barra de Controles */}
+        <div className="p-4 border-b border-[#e8eeec] dark:border-[#262b2e] space-y-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            {/* Busca */}
+            <div className="relative flex-1 min-w-0">
+              <Search
+                className="w-3.5 h-3.5 pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#55646b] dark:text-[#9ea9ae]"
+                aria-hidden="true"
+              />
+              <input
+                type="text"
+                value={eventoSearch}
+                onChange={(e) => setEventoSearch(e.target.value)}
+                aria-label="Buscar evento, local ou cidade"
+                placeholder="Buscar por evento, local, cidade ou público"
+                className="h-9 w-full rounded-lg border border-[#cad5d3] dark:border-[#343b3f] bg-white dark:bg-[#111416] pl-9 pr-8 text-sm text-[#113240] dark:text-[#edf2f1] placeholder:text-[#5c6c73] dark:placeholder:text-[#94a0a5] focus:border-[#226380] focus:outline-none transition-colors"
+              />
+              {eventoSearch && (
+                <button
+                  type="button"
+                  onClick={() => setEventoSearch('')}
+                  aria-label="Limpar busca"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-[#55646b] hover:text-[#113240] dark:text-[#9ea9ae] dark:hover:text-white cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" aria-hidden="true" />
+                </button>
+              )}
+            </div>
+
+            {/* Seletor de Modo (largura ajustada às opções) */}
+            <div
+              role="group"
+              aria-label="Modo de visualização da agenda"
+              className="inline-flex h-9 items-center self-start rounded-lg bg-[#eef2f1] dark:bg-[#222629] p-0.5 sm:self-auto shrink-0"
+            >
+              {([
+                ['lista', 'Lista', List],
+                ['calendario', 'Calendário', CalendarDays],
+                ['quadro', 'Quadro', LayoutGrid],
+              ] as const).map(([modo, label, Icon]) => {
+                const ativo = eventoVisualizacao === modo;
+                return (
+                  <button
+                    key={modo}
+                    type="button"
+                    onClick={() => setEventoVisualizacao(modo)}
+                    aria-pressed={ativo}
+                    className={`inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium transition-colors cursor-pointer ${
+                      ativo
+                        ? 'bg-white dark:bg-[#161617] text-[#113240] dark:text-white border border-[#dce4e2] dark:border-[#343b3f]'
+                        : 'text-[#4f5f66] dark:text-[#a8b3b8] hover:text-[#113240] dark:hover:text-white border border-transparent'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+                    <span>{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Filtros por Tipo (neutros, sem arco-íris, exibindo tipos presentes na agenda) */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {tiposVisiveis.map((tipo) => {
+                const count = tipo === 'Todos' ? eventos.length : eventos.filter((e) => e.tipo === tipo).length;
+                const ativo = eventoFiltroTipo === tipo;
+                return (
+                  <button
+                    key={tipo}
+                    type="button"
+                    onClick={() => setEventoFiltroTipo(tipo)}
+                    aria-pressed={ativo}
+                    className={`inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors cursor-pointer ${
+                      ativo
+                        ? 'bg-[#113240] text-white dark:bg-white dark:text-[#113240]'
+                        : 'bg-[#f4f6f5] dark:bg-[#222629] text-[#4f5f66] dark:text-[#b4bfc4] hover:bg-[#e7eded] hover:text-[#113240] dark:hover:bg-[#2c3135] dark:hover:text-white'
+                    }`}
+                  >
+                    <span>{tipo}</span>
+                    <span
+                      className={`text-[11px] tabular-nums ${
+                        ativo ? 'text-white/80 dark:text-[#113240]/75' : 'text-[#5c6c73] dark:text-[#94a0a5]'
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {hasActiveFilters && (
               <button
                 type="button"
-                onClick={() => setEventoSearch('')}
-                aria-label="Limpar busca"
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full text-slate-400 hover:text-[#113240] dark:hover:text-white cursor-pointer"
+                onClick={() => {
+                  setEventoFiltroTipo('Todos');
+                  setEventoSearch('');
+                }}
+                className="inline-flex items-center gap-1 text-xs font-medium text-[#226380] dark:text-[#A3C3C7] hover:underline cursor-pointer shrink-0"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Limpar filtros</span>
               </button>
             )}
           </div>
-
-          {/* Seletor de Modo de Visualização */}
-          <div className="inline-flex items-center p-1 rounded-xl bg-[#f4f6f5] dark:bg-[#222225] border border-[#dce4e2]/70 dark:border-white/5 self-start sm:self-auto shrink-0">
-            {([
-              ['lista', 'Lista', List],
-              ['calendario', 'Calendário', CalendarDays],
-              ['quadro', 'Quadro', LayoutGrid],
-            ] as const).map(([modo, label, Icon]) => {
-              const ativo = eventoVisualizacao === modo;
-              return (
-                <button
-                  key={modo}
-                  type="button"
-                  onClick={() => setEventoVisualizacao(modo)}
-                  aria-pressed={ativo}
-                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all cursor-pointer ${
-                    ativo
-                      ? 'bg-white text-[#113240] shadow-xs dark:bg-[#161617] dark:text-white'
-                      : 'text-slate-500 hover:text-[#113240] dark:text-slate-400 dark:hover:text-white'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{label}</span>
-                </button>
-              );
-            })}
-          </div>
         </div>
 
-        {/* Filtros por Tipo */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100 dark:border-white/5">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {TIPOS_AGENDA.map((tipo) => {
-              const count = tipo === 'Todos' ? eventos.length : eventos.filter((e) => e.tipo === tipo).length;
-              const ativo = eventoFiltroTipo === tipo;
-              const visual = tipo !== 'Todos' ? getTipoVisual(tipo) : null;
-              return (
-                <button
-                  key={tipo}
-                  type="button"
-                  onClick={() => setEventoFiltroTipo(tipo)}
-                  aria-pressed={ativo}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all cursor-pointer ${
-                    ativo
-                      ? 'bg-[#113240] text-white shadow-xs dark:bg-[#226380] dark:text-white'
-                      : count === 0 && tipo !== 'Todos'
-                        ? 'bg-[#f4f6f5]/70 text-slate-400 hover:bg-[#e8eeed] hover:text-slate-600 dark:bg-white/[0.03] dark:text-slate-500 dark:hover:bg-white/10'
-                        : 'bg-[#f4f6f5] text-slate-600 hover:bg-[#e6eded] hover:text-[#113240] dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white'
-                  }`}
-                >
-                  {visual && (
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full ${ativo ? 'bg-white/90' : visual.dot}`}
-                      aria-hidden="true"
-                    />
-                  )}
-                  <span>{tipo}</span>
-                  {count > 0 && (
-                    <span className={`text-[10px] tabular-nums ${ativo ? 'text-white/80' : 'text-slate-400 dark:text-slate-500'}`}>
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={() => {
-                setEventoFiltroTipo('Todos');
-                setEventoSearch('');
-              }}
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-[#226380] dark:text-[#A3C3C7] hover:underline cursor-pointer shrink-0"
-            >
-              <X className="w-3 h-3" />
-              <span>Limpar filtros</span>
-            </button>
-          )}
-        </div>
-      </section>
-
-      {/* Conteúdo Principal: Lista Editorial / Calendário / Quadro */}
-      {loadingEventos ? (
-        <div className="rounded-2xl border border-[#dce4e2] dark:border-white/10 bg-white dark:bg-[#161617] py-16 flex flex-col items-center justify-center text-center">
-          <Loader2 className="w-6 h-6 animate-spin text-[#226380] mb-2.5" />
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            Carregando agenda provincial...
-          </span>
-        </div>
-      ) : eventosFiltrados.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[#dce4e2] dark:border-white/15 bg-white dark:bg-[#161617] py-14 px-6 text-center space-y-2">
-          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-[#f4f6f5] dark:bg-white/5 text-[#226380] dark:text-[#A3C3C7]">
-            <Calendar className="w-5 h-5" />
-          </div>
-          <p className="text-sm font-semibold text-[#113240] dark:text-white">
-            {eventosError
-              ? 'Não foi possível carregar a agenda provincial'
-              : 'Nenhum evento encontrado'}
-          </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-            {eventosError
-              ? 'Verifique sua conexão e tente novamente em alguns instantes.'
-              : hasActiveFilters
-                ? 'Nenhum compromisso corresponde à busca ou ao filtro selecionado.'
-                : 'Não há eventos ativos publicados no portal neste momento.'}
-          </p>
-          {hasActiveFilters && !eventosError && (
-            <button
-              type="button"
-              onClick={() => {
-                setEventoFiltroTipo('Todos');
-                setEventoSearch('');
-              }}
-              className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#113240] px-4 py-1.5 text-xs font-medium text-white hover:bg-[#226380] transition-colors cursor-pointer"
-            >
-              Mostrar todos os eventos
-            </button>
-          )}
-        </div>
-      ) : eventoVisualizacao === 'lista' ? (
-        <div className="space-y-6">
-          {gruposPorMes.map((grupo) => (
-            <section key={grupo.chave} className="space-y-3">
-              {/* Cabeçalho do Mês */}
-              <div className="flex items-center gap-3 px-1">
-                <span className="h-2 w-2 rounded-full bg-[#B58A55] shrink-0" aria-hidden="true" />
-                <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-[#113240] dark:text-[#A3C3C7] whitespace-nowrap">
-                  {grupo.titulo}
-                </h3>
-                <div className="h-px flex-1 bg-[#dce4e2] dark:bg-white/10" aria-hidden="true" />
-                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums shrink-0">
-                  {grupo.itens.length} {grupo.itens.length === 1 ? 'evento' : 'eventos'}
-                </span>
+        {/* Corpo da Agenda */}
+        {loadingEventos ? (
+          <div className="divide-y divide-[#eef2f1] dark:divide-[#24292c]" aria-busy="true" aria-label="Carregando agenda provincial">
+            {[0, 1, 2].map((item) => (
+              <div key={item} className="px-4 sm:px-5 py-4 flex items-center gap-5">
+                <div className="w-16 space-y-1.5 shrink-0">
+                  <div className="h-5 w-10 rounded bg-[#eef2f1] dark:bg-[#24292c]" />
+                  <div className="h-3 w-14 rounded bg-[#f4f6f5] dark:bg-[#1e2225]" />
+                </div>
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-56 max-w-full rounded bg-[#eef2f1] dark:bg-[#24292c]" />
+                  <div className="h-3 w-80 max-w-full rounded bg-[#f4f6f5] dark:bg-[#1e2225]" />
+                </div>
               </div>
+            ))}
+          </div>
+        ) : eventosError ? (
+          <div className="p-6 text-sm text-[#4f5f66] dark:text-[#a8b3b8] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p>Não foi possível carregar a agenda provincial. Tente recarregar a página em instantes.</p>
+          </div>
+        ) : eventosFiltrados.length === 0 ? (
+          <div className="p-6">
+            <div className="rounded-lg border border-dashed border-[#cad5d3] dark:border-[#343b3f] px-4 py-8 text-center space-y-2">
+              <p className="text-sm font-medium text-[#113240] dark:text-white">
+                {hasActiveFilters
+                  ? 'Nenhum evento encontrado para o filtro selecionado.'
+                  : 'Nenhum evento publicado na agenda provincial no momento.'}
+              </p>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEventoFiltroTipo('Todos');
+                    setEventoSearch('');
+                  }}
+                  className="inline-flex h-8 items-center rounded-lg border border-[#cad5d3] dark:border-[#343b3f] bg-white dark:bg-[#161617] px-3 text-xs font-medium text-[#113240] dark:text-white hover:border-[#226380] transition-colors cursor-pointer"
+                >
+                  Limpar filtros
+                </button>
+              )}
+            </div>
+          </div>
+        ) : eventoVisualizacao === 'lista' ? (
+          <div>
+            {gruposPorMes.map((grupo, grupoIdx) => (
+              <div key={grupo.chave} className={grupoIdx > 0 ? 'border-t border-[#e8eeec] dark:border-[#262b2e]' : ''}>
+                {/* Cabeçalho do Mês — faixa tonal plana, sentence case */}
+                <div className="flex items-center justify-between bg-[#f7f9f8] dark:bg-[#1c2023] px-4 sm:px-5 py-2 border-b border-[#e8eeec] dark:border-[#262b2e]">
+                  <h2 className="text-xs font-semibold text-[#4f5f66] dark:text-[#b4bfc4]">
+                    {grupo.titulo}
+                  </h2>
+                  <span className="text-xs text-[#55646b] dark:text-[#9ea9ae] tabular-nums">
+                    {grupo.itens.length} {grupo.itens.length === 1 ? 'evento' : 'eventos'}
+                  </span>
+                </div>
 
-              {/* Cards de Evento do Mês */}
-              <div className="space-y-3">
-                {grupo.itens.map((evt, idx) => {
-                  const visual = getTipoVisual(evt.tipo);
-                  const blocoData = extrairBlocoData(evt.data_inicio, evt.data_fim);
-                  const proximidade = obterSeloProximidade(evt, hojeIso);
-                  const linkGoogle = icalService.gerarLinkGoogleCalendar(evt);
+                {/* Linhas Cronológicas da Pauta */}
+                <div className="divide-y divide-[#eef2f1] dark:divide-[#24292c]">
+                  {grupo.itens.map((evt) => {
+                    const colData = extrairColunaData(evt.data_inicio, evt.data_fim);
+                    const proximidade = obterProximidade(evt, hojeIso);
+                    const jaInscrito = evt.exige_inscricao ? encontrarInscricaoUsuario(evt) : undefined;
+                    const formVinculado = evt.exige_inscricao
+                      ? formulariosSecretaria.find((f) => f.id === evt.formulario_id)
+                      : undefined;
+                    const linkGoogle = icalService.gerarLinkGoogleCalendar(evt);
 
-                  return (
-                    <article
-                      key={evt.id}
-                      style={staggerStyle(idx)}
-                      className="motion-stagger-item group relative overflow-hidden rounded-2xl border border-[#dce4e2] dark:border-white/10 bg-white dark:bg-[#161617] p-4 sm:p-5 pl-5 sm:pl-6 shadow-[0_2px_10px_rgba(17,50,64,0.02)] hover:border-[#226380]/45 hover:shadow-[0_10px_28px_rgba(17,50,64,0.07)] transition-all"
-                    >
-                      {/* Faixa lateral semântica */}
-                      <span
-                        aria-hidden="true"
-                        className={`absolute inset-y-0 left-0 w-1 ${visual.accentBar}`}
-                      />
-
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                        {/* Bloco Arquitetural de Data */}
-                        <div className="flex sm:flex-col items-center justify-between sm:justify-center sm:w-[78px] shrink-0 rounded-xl bg-[#f4f6f5] dark:bg-[#1f2428] border border-[#dce4e2]/80 dark:border-white/10 px-3.5 py-2 sm:px-2 sm:py-2.5 text-center">
-                          <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#226380] dark:text-[#A3C3C7]">
-                            {blocoData.mes}
+                    return (
+                      <article
+                        key={evt.id}
+                        className="px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-5 hover:bg-[#f9fbfa] dark:hover:bg-white/[0.02] transition-colors"
+                      >
+                        {/* Coluna Fixa de Data (alinhamento vertical consistente) */}
+                        <div
+                          className={`flex sm:flex-col items-baseline sm:items-start gap-2 sm:gap-0.5 sm:w-[92px] shrink-0 ${
+                            proximidade?.emAndamento
+                              ? 'sm:border-l-2 sm:border-[#226380] dark:sm:border-[#A3C3C7] sm:pl-3'
+                              : ''
+                          }`}
+                        >
+                          <span className="text-lg font-semibold text-[#113240] dark:text-white tabular-nums leading-none">
+                            {colData.diaTexto}
                           </span>
-                          <span className="text-base sm:text-xl font-bold leading-tight text-[#113240] dark:text-white tabular-nums sm:mt-0.5">
-                            {blocoData.diaTexto}
+                          <span className="text-xs text-[#55646b] dark:text-[#9ea9ae]">
+                            {colData.legenda}
                           </span>
-                          {blocoData.semana && (
-                            <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500 sm:mt-0.5">
-                              {blocoData.semana}
-                            </span>
-                          )}
                         </div>
 
-                        {/* Corpo do Evento */}
-                        <div className="flex-1 min-w-0 space-y-2">
-                          {/* Selos */}
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-semibold border ${visual.badge}`}>
-                              <span className={`h-1.5 w-1.5 rounded-full ${visual.dot}`} aria-hidden="true" />
+                        {/* Conteúdo do Evento */}
+                        <div className="flex-1 min-w-0 space-y-1.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-sm font-semibold text-[#113240] dark:text-white leading-snug">
+                              {evt.titulo}
+                            </h3>
+
+                            <span className="inline-flex h-5 items-center rounded bg-[#f1f4f3] dark:bg-[#24292c] px-2 text-[11px] font-medium text-[#3b4d54] dark:text-[#c7d1d5]">
                               {evt.tipo}
                             </span>
 
-                            {evt.publico_alvo && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-medium bg-[#f4f6f5] dark:bg-white/5 text-slate-600 dark:text-slate-300 border border-[#dce4e2]/70 dark:border-white/10">
-                                <Users className="w-2.5 h-2.5 text-slate-400" />
-                                {evt.publico_alvo}
-                              </span>
-                            )}
-
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-medium text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/10">
-                              <span
-                                className={`h-1.5 w-1.5 rounded-full ${
-                                  evt.status === 'Confirmado'
-                                    ? 'bg-emerald-500'
-                                    : evt.status === 'Previsto'
-                                      ? 'bg-amber-500'
-                                      : 'bg-slate-400'
-                                }`}
-                                aria-hidden="true"
-                              />
-                              {evt.status}
-                            </span>
-
                             {proximidade && (
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10.5px] font-semibold border ${proximidade.className}`}>
+                              <span className="inline-flex h-5 items-center rounded bg-[#e8f1f4] dark:bg-[#226380]/25 px-2 text-[11px] font-medium text-[#17485c] dark:text-[#A3C3C7]">
                                 {proximidade.label}
                               </span>
                             )}
 
-                            {evt.exige_inscricao && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-semibold bg-[#113240]/10 text-[#113240] dark:bg-[#A3C3C7]/15 dark:text-[#A3C3C7] border border-[#113240]/15 dark:border-[#A3C3C7]/25">
-                                <FileText className="w-2.5 h-2.5" />
-                                Inscrição aberta
+                            {evt.status === 'Previsto' && (
+                              <span className="inline-flex h-5 items-center rounded bg-[#fef6e4] dark:bg-[#332712] border border-[#f5dfa8] dark:border-[#5c451d] px-2 text-[11px] font-medium text-[#7c4d0f] dark:text-[#f0c674]">
+                                Previsto
                               </span>
                             )}
                           </div>
 
-                          {/* Título */}
-                          <h4 className="text-[15px] sm:text-base font-semibold tracking-[-0.015em] text-[#113240] dark:text-white leading-snug group-hover:text-[#226380] dark:group-hover:text-[#A3C3C7] transition-colors">
-                            {evt.titulo}
-                          </h4>
-
-                          {/* Descrição */}
                           {evt.descricao && (
-                            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2 max-w-2xl">
+                            <p className="text-xs text-[#4f5f66] dark:text-[#a8b3b8] leading-relaxed line-clamp-2 max-w-2xl">
                               {evt.descricao}
                             </p>
                           )}
 
-                          {/* Metadados: Data completa, Horário, Local */}
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                            <span className="inline-flex items-center gap-1.5 font-medium text-[#113240]/85 dark:text-slate-200">
-                              <Calendar className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7] shrink-0" />
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#55646b] dark:text-[#9ea9ae]">
+                            <span className="inline-flex items-center gap-1.5 tabular-nums">
+                              <Calendar className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                               {formatPeriodo(evt.data_inicio, evt.data_fim)}
                             </span>
 
                             {evt.horario && (
-                              <span className="inline-flex items-center gap-1.5">
-                                <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className="inline-flex items-center gap-1.5 tabular-nums">
+                                <Clock className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                                 {evt.horario}
                               </span>
                             )}
 
                             {evt.local && (
                               <span className="inline-flex items-center gap-1.5 min-w-0">
-                                <MapPin className="w-3.5 h-3.5 text-[#226380] dark:text-[#A3C3C7] shrink-0" />
+                                <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                                 <span className="truncate">
                                   {evt.local}
-                                  {evt.cidade ? ` • ${evt.cidade}${evt.uf ? `/${evt.uf}` : ''}` : ''}
+                                  {evt.cidade ? `, ${evt.cidade}${evt.uf ? `/${evt.uf}` : ''}` : ''}
                                 </span>
+                              </span>
+                            )}
+
+                            {evt.publico_alvo && (
+                              <span className="inline-flex items-center gap-1.5">
+                                <Users className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                                {evt.publico_alvo}
                               </span>
                             )}
                           </div>
                         </div>
 
                         {/* Ações à Direita */}
-                        <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-white/5 shrink-0">
-                          {evt.exige_inscricao && (() => {
-                            const jaInscrito = respostasInscricoes.find(
-                              (r) =>
-                                (r.evento_id === evt.id || (evt.formulario_id && r.formulario_id === evt.formulario_id)) &&
-                                (r.dados?.email === (religiosoData?.email_institucional || userEmail) ||
-                                  r.dados?.nome_religioso === religiosoData?.nome_religioso ||
-                                  r.dados?.nome_completo === religiosoData?.nome_civil),
-                            );
-
-                            const formVinculado = formulariosSecretaria.find((f) => f.id === evt.formulario_id);
-
-                            if (jaInscrito) {
-                              return (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (formVinculado) {
-                                      onAbrirInscricao(evt, formVinculado);
-                                    }
-                                  }}
-                                  className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 whitespace-nowrap cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition-colors"
-                                >
-                                  <CheckCircle2 className="w-3.5 h-3.5" />
-                                  <span>Inscrito ({jaInscrito.protocolo})</span>
-                                </button>
-                              );
-                            }
-
-                            return (
+                        <div className="flex items-center gap-2 shrink-0 sm:self-center pt-1 sm:pt-0">
+                          {evt.exige_inscricao && (
+                            jaInscrito ? (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (formVinculado) {
-                                    onAbrirInscricao(evt, formVinculado);
-                                  } else if (formulariosError) {
-                                    showToast.error('Não foi possível carregar os formulários de inscrição. Tente novamente mais tarde.');
-                                  } else {
-                                    showToast.info('O formulário para este evento ainda não foi publicado pela Secretaria.');
-                                  }
-                                }}
-                                className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold bg-[#113240] text-white hover:bg-[#226380] whitespace-nowrap shadow-xs cursor-pointer transition-all active:scale-95"
+                                onClick={() => abrirInscricaoEvento(evt, formVinculado)}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#e6f4ec] dark:bg-[#172a1d] px-3 text-xs font-medium text-[#155134] dark:text-[#6fd39b] hover:bg-[#d8eee1] transition-colors whitespace-nowrap cursor-pointer"
                               >
-                                <FileText className="w-3.5 h-3.5" />
+                                <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+                                <span>Inscrito · {jaInscrito.protocolo}</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => abrirInscricaoEvento(evt, formVinculado)}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#113240] dark:bg-white px-3.5 text-xs font-medium text-white dark:text-[#113240] hover:bg-[#1b4a5e] dark:hover:bg-slate-200 transition-colors whitespace-nowrap cursor-pointer"
+                              >
+                                <FileText className="w-3.5 h-3.5" aria-hidden="true" />
                                 <span>Inscrever-se</span>
                               </button>
-                            );
-                          })()}
+                            )
+                          )}
 
                           <a
                             href={linkGoogle}
                             target="_blank"
                             rel="noopener noreferrer"
                             title="Adicionar este evento ao Google Agenda"
-                            className="inline-flex items-center gap-1.5 rounded-full border border-[#dce4e2] dark:border-white/10 bg-[#f4f6f5] dark:bg-white/5 px-3 py-1.5 text-[11px] font-medium text-[#113240] dark:text-slate-200 hover:border-[#226380]/40 hover:bg-[#226380]/10 hover:text-[#226380] dark:hover:text-[#A3C3C7] whitespace-nowrap transition-colors"
+                            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#cad5d3] dark:border-[#343b3f] bg-white dark:bg-[#161617] px-2.5 text-xs font-medium text-[#4f5f66] dark:text-[#b4bfc4] hover:border-[#226380] hover:text-[#113240] dark:hover:border-[#A3C3C7] dark:hover:text-white transition-colors whitespace-nowrap"
                           >
-                            <CalendarPlus className="w-3.5 h-3.5" />
-                            <span>Salvar na agenda</span>
+                            <CalendarPlus className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span>Google Agenda</span>
                           </a>
                         </div>
-                      </div>
-                    </article>
-                  );
-                })}
+                      </article>
+                    );
+                  })}
+                </div>
               </div>
-            </section>
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-[#dce4e2] dark:border-white/10 bg-white dark:bg-[#161617] p-4 sm:p-5 shadow-[0_2px_14px_rgba(17,50,64,0.03)]">
-          <AgendaVisualizacao modo={eventoVisualizacao} eventos={eventosFiltrados} />
-        </div>
-      )}
+            ))}
+          </div>
+        ) : (
+          <div className="p-4 sm:p-5">
+            <AgendaVisualizacao modo={eventoVisualizacao} eventos={eventosFiltrados} />
+          </div>
+        )}
+      </section>
 
       <SincronizarCalendarioModal
         aberto={modalSyncAberto}
