@@ -21,6 +21,7 @@ import type {
   EventoProvincial
 } from '../types/secretaria';
 import { confirmAction, showToast } from '../hooks/useFeedback';
+import { eventoVisivelNoPortal } from '../utils/dateUtils';
 
 export type { TipoEvento, StatusEvento, EventoProvincial };
 
@@ -800,6 +801,14 @@ export const AgendaAdmin: React.FC = () => {
                             {evt.limite_vagas ? ` (${evt.limite_vagas} vagas)` : ''}
                           </span>
                         )}
+                        {evt.publicado_portal !== false && evt.status !== 'Cancelado' && !eventoVisivelNoPortal(evt) && (
+                          <span
+                            className="text-[9px] font-mono px-2 py-0.5 rounded-[4px] bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/30"
+                            title="Mais de 1 dia após o término: removido do Portal dos Confrades e reservado à gestão da Secretaria."
+                          >
+                            Reservado à Secretaria (fora do portal)
+                          </span>
+                        )}
                       </div>
 
                       <h4 className="text-[14px] font-semibold text-[#113240] dark:text-white leading-snug">
@@ -1160,16 +1169,21 @@ export const AgendaAdmin: React.FC = () => {
 
               {/* Inscrição Canônica & Construtor de Formulários */}
               <div className="p-4 rounded-[6px] bg-[#226380]/5 dark:bg-[#226380]/15 border border-[#226380]/30 space-y-3">
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-start gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={formPublicadoPortal}
                     onChange={(e) => setFormPublicadoPortal(e.target.checked)}
-                    className="accent-[#226380] w-4 h-4 rounded-[4px] cursor-pointer"
+                    className="accent-[#226380] w-4 h-4 mt-0.5 rounded-[4px] cursor-pointer"
                   />
-                  <span className="text-xs font-semibold text-[#113240] dark:text-white">
-                    Exibir este evento no calendário dos religiosos
-                  </span>
+                  <div>
+                    <span className="text-xs font-semibold text-[#113240] dark:text-white block">
+                      Exibir este evento no calendário dos religiosos
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Permanece visível no Portal dos Confrades até 1 dia após o término; depois fica reservado à Secretaria.
+                    </span>
+                  </div>
                 </label>
                 <div className="flex items-center justify-between">
                   <label className="flex items-center gap-2 cursor-pointer">

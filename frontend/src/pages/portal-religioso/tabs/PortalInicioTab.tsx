@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
-  MapPin, ArrowRight, Calendar, FileText, Hotel, 
-  User, Printer, BookOpen, Download, Building2, Church 
+  MapPin, ArrowRight, FileText, 
+  BookOpen, Download 
 } from 'lucide-react';
 import type { PortalSection } from '../PortalReligioso';
 import type { ReligiosoPortalData } from '../../../types/religioso';
@@ -88,7 +88,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
               </p>
             )}
             <p className="mt-1 text-xs text-white/75 leading-relaxed">
-              Espaço digital de comunhão, serviços e acompanhamento canônico da Província BRM.
+              Espaço digital de comunhão e serviços da Província BRM.
             </p>
 
             <div className="mt-3.5 flex items-center justify-between gap-3 border-t border-white/15 pt-3">
@@ -194,9 +194,8 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
           <div className="grid grid-cols-2 gap-3">
             {([
               { id: 'documentos', label: 'Documentos', detail: `${documentos.length} publicações`, icon: FileText },
-              { id: 'hospedagem', label: 'Hospedagem', detail: 'Casas da Província', icon: Hotel },
+              { id: 'anuario', label: 'Elenco BRM', detail: 'Diretório da Província', icon: BookOpen },
             ] as const).map(item => {
-              const Icon = item.icon;
               return (
                 <button
                   key={item.id}
@@ -259,7 +258,7 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
                 </p>
               )}
               <p className="text-xs sm:text-sm text-[#707070] dark:text-[#86868b] font-normal mt-1 leading-relaxed">
-                Bem-vindo ao espaço digital de comunhão, serviços e acompanhamento canônico da Província BRM.
+                Bem-vindo ao espaço digital de comunhão e serviços da Província BRM.
               </p>
             </div>
 
@@ -558,31 +557,37 @@ export const PortalInicioTab: React.FC<PortalInicioTabProps> = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {eventos.slice(0, 3).map((evt, idx) => (
-              <div
-                key={evt.id}
-                style={staggerStyle(idx)}
-                className="p-4 rounded-xl bg-[#fbfbfd] dark:bg-[#1f1f21] border border-[#d6d6d6]/60 dark:border-white/10 flex flex-col justify-between gap-3 motion-lift motion-press motion-stagger-item"
-              >
-                <div className="space-y-1.5">
-                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getTipoCor()}`}>
-                    {evt.tipo}
-                  </span>
-                  <h4 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] leading-snug">
-                    {evt.titulo}
-                  </h4>
-                  <span className="text-xs text-[#707070] dark:text-[#86868b] flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-red-500 shrink-0" />
-                    <span className="truncate">{evt.local}</span>
-                  </span>
+          {eventos.length === 0 ? (
+            <p className="text-xs sm:text-sm text-[#707070] dark:text-[#86868b] py-4">
+              Não há eventos ativos na agenda provincial no momento.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {eventos.slice(0, 3).map((evt, idx) => (
+                <div
+                  key={evt.id}
+                  style={staggerStyle(idx)}
+                  className="p-4 rounded-xl bg-[#fbfbfd] dark:bg-[#1f1f21] border border-[#d6d6d6]/60 dark:border-white/10 flex flex-col justify-between gap-3 motion-lift motion-press motion-stagger-item"
+                >
+                  <div className="space-y-1.5">
+                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getTipoCor()}`}>
+                      {evt.tipo}
+                    </span>
+                    <h4 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] leading-snug">
+                      {evt.titulo}
+                    </h4>
+                    <span className="text-xs text-[#707070] dark:text-[#86868b] flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+                      <span className="truncate">{evt.local}</span>
+                    </span>
+                  </div>
+                  <div className="pt-2 border-t border-[#d6d6d6]/40 dark:border-white/5 text-[11px] font-medium text-[#226380] dark:text-[#A3C3C7]">
+                    {formatPeriodo(evt.data_inicio, evt.data_fim)}
+                  </div>
                 </div>
-                <div className="pt-2 border-t border-[#d6d6d6]/40 dark:border-white/5 text-[11px] font-medium text-[#226380] dark:text-[#A3C3C7]">
-                  {formatPeriodo(evt.data_inicio, evt.data_fim)}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>

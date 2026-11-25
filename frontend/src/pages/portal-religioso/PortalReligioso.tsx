@@ -1,39 +1,33 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
-  User, Lock, Mail, Phone, Calendar, BookOpen, FileText,
-  Hotel, LogOut, Loader2, AlertCircle, CheckCircle2, Eye, EyeOff,
-  Home, Clock, ExternalLink, ArrowRight, ArrowLeft,
-  ChevronDown, Printer, MapPin, Download, Search, X, Menu
+  User, Calendar, BookOpen, FileText,
+  LogOut, Loader2, AlertCircle, CheckCircle2,
+  Home, Clock, ExternalLink, ArrowLeft,
+  ChevronDown, Printer, X, Menu
 } from 'lucide-react';
 import MeuPerfilReligioso from '../MeuPerfilReligioso';
 import AnuarioBRM from '../AnuarioBRM';
 import CadastroReligiosoPublico from '../CadastroReligiosoPublico';
-import { validateCpf } from '../../lib/cpf';
 import FichaCanonicaPDF from './FichaCanonicaPDF';
 import type { DocumentoProvincial, CategoriaDocumento, EventoProvincial, FormularioSecretaria, RespostaFormulario } from '../../types/secretaria';
-import type { CasaAcolhida } from '../../types/obra';
 import type { ReligiosoPortalData } from '../../types/religioso';
-import { staggerStyle } from '../../hooks/useMotion';
 import { FormularioTimbrado } from '../../components/FormularioTimbrado';
 import { LeitorDocumentoModal } from '../../components/LeitorDocumentoModal';
-import { downloadArquivo } from '../../lib/downloadHelper';
 import { showToast } from '../../hooks/useFeedback';
-import { getPortalRedirectUrl, getPasswordResetRedirectUrl } from '../../lib/portalUrls';
-import { AgendaVisualizacao } from '../../components/AgendaVisualizacao';
 import { PortalInicioTab } from './tabs/PortalInicioTab';
 import { PortalCalendarioTab } from './tabs/PortalCalendarioTab';
 import { PortalDocumentosTab } from './tabs/PortalDocumentosTab';
-import { PortalHospedagemTab } from './tabs/PortalHospedagemTab';
 import { PortalLogin } from './PortalLogin';
 import { atribuirNomeReligioso, formatarComunidadeReligiosa } from '../../lib/religiosoNome';
+import { dataHojeSaoPaulo, eventoVisivelNoPortal } from '../../utils/dateUtils';
 
-export type PortalSection = 'inicio' | 'perfil' | 'inscricao' | 'ficha-pdf' | 'calendario' | 'documentos' | 'anuario' | 'hospedagem';
+export type PortalSection = 'inicio' | 'perfil' | 'inscricao' | 'ficha-pdf' | 'calendario' | 'documentos' | 'anuario';
 
 export const VALID_PORTAL_SECTIONS: readonly PortalSection[] = [
-  'inicio', 'perfil', 'inscricao', 'ficha-pdf', 'calendario', 'documentos', 'anuario', 'hospedagem'
+  'inicio', 'perfil', 'inscricao', 'ficha-pdf', 'calendario', 'documentos', 'anuario'
 ] as const;
 
 
@@ -45,10 +39,11 @@ const getRegistrationErrorMessage = (error: unknown) => {
   return 'Não foi possível iniciar o Cadastro BRM. Tente novamente ou contate a Secretaria Provincial.';
 };
 
-const dataElencoHoje = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+const dataElencoHoje = () => dataHojeSaoPaulo();
 
 export const PortalReligioso: React.FC = () => {
   const { user, loading: authLoadingProfile, logout, refreshUserProfile } = useAuth();
+  const navigate = useNavigate();
 
 
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -79,7 +74,7 @@ export const PortalReligioso: React.FC = () => {
     }
   };
 
-  // Active View inside Member Area: 'inicio' | 'perfil' | 'inscricao' | 'ficha-pdf' | 'calendario' | 'documentos' | 'anuario' | 'hospedagem'
+  // Active View inside Member Area: 'inicio' | 'perfil' | 'inscricao' | 'ficha-pdf' | 'calendario' | 'documentos' | 'anuario'
   const [searchParams, setSearchParams] = useSearchParams();
   const urlSection = searchParams.get('aba');
   const [activeSection, setActiveSectionState] = useState<PortalSection>(() => {
@@ -91,6 +86,7 @@ export const PortalReligioso: React.FC = () => {
 
   // Preserva abas visitadas montadas no DOM (display toggle) para nunca perder dados digitados ao navegar entre seções
   const [visitedSections, setVisitedSections] = useState<Set<PortalSection>>(() => new Set([activeSection]));
+  const wasUnauthenticatedRef = useRef(false);
 
   useEffect(() => {
     setVisitedSections(prev => {
@@ -100,8 +96,6 @@ export const PortalReligioso: React.FC = () => {
       return next;
     });
   }, [activeSection]);
-
-  const initialDraftCheckedRef = useRef(false);
 
   const setActiveSection = React.useCallback((section: PortalSection) => {
     setActiveSectionState(section);
@@ -116,19 +110,34 @@ export const PortalReligioso: React.FC = () => {
     }, { replace: true });
   }, [setSearchParams]);
 
+  // Garante que, ao iniciar sessão a partir da tela de login, o portal abra sempre na página inicial
+  useEffect(() => {
+    if (!user && !authLoadingProfile) {
+      wasUnauthenticatedRef.current = true;
+      return;
+    }
+    if (user && wasUnauthenticatedRef.current) {
+      wasUnauthenticatedRef.current = false;
+      setActiveSection('inicio');
+      setVisitedSections(new Set(['inicio']));
+      if (typeof window !== 'undefined') {
+        if (window.location.pathname === '/login') {
+          navigate('/', { replace: true });
+        }
+        window.scrollTo({ top: 0 });
+      }
+    }
+  }, [user, authLoadingProfile, setActiveSection, navigate]);
+
   // Sincroniza se o usuário navegar pelo histórico (voltar/avançar do navegador)
   useEffect(() => {
     const currentAba = searchParams.get('aba');
     if (currentAba && (VALID_PORTAL_SECTIONS as readonly string[]).includes(currentAba)) {
       setActiveSectionState(currentAba as PortalSection);
-    } else if (!currentAba) {
+    } else {
       setActiveSectionState('inicio');
     }
   }, [searchParams]);
-
-  // Casas e Obras da Província BRM para Hospedagem
-  const [casasAcolhida, setCasasAcolhida] = useState<CasaAcolhida[]>([]);
-  const [loadingCasas, setLoadingCasas] = useState(false);
 
   // Documentos Oficiais da Província BRM
   const [documentos, setDocumentos] = useState<DocumentoProvincial[]>([]);
@@ -161,6 +170,14 @@ export const PortalReligioso: React.FC = () => {
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const mobileMoreCloseRef = useRef<HTMLButtonElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  const handleLogout = React.useCallback(async () => {
+    setUserMenuOpen(false);
+    setMobileMoreOpen(false);
+    setActiveSection('inicio');
+    setVisitedSections(new Set(['inicio']));
+    await logout();
+  }, [logout, setActiveSection]);
 
   // Religious Profile Data
   const [religiosoData, setReligiosoData] = useState<ReligiosoPortalData | null>(null);
@@ -265,27 +282,6 @@ export const PortalReligioso: React.FC = () => {
           fotoUrl = signedPhoto.signedUrl;
         }
         setReligiosoData({ ...data, comunidade_atual_nome: comunidadeAtual, obra_atual_nome: obraAtual, foto_url: fotoUrl });
-        if (officialData?.id && user?.id) {
-          const { data: savedDraft, error: draftError } = await supabase
-            .from('religiosos_rascunhos')
-            .select('id')
-            .eq('usuario_id', user.id)
-            .eq('chave', `member:${officialData.id}`)
-            .maybeSingle();
-          if (draftError) {
-            console.error('Não foi possível verificar o rascunho da ficha do Portal do Confrade:', draftError);
-            setRegistrationError('Não foi possível verificar se há um rascunho da ficha. Você ainda pode abrir o Cadastro BRM pelo menu.');
-          } else if (savedDraft) {
-            // Apenas abre a ficha na carga inicial se o usuário não tiver selecionado outra aba explicitamente
-            if (!initialDraftCheckedRef.current) {
-              const currentAba = new URLSearchParams(window.location.search).get('aba');
-              if (!currentAba || currentAba === 'inicio') {
-                setActiveSection('inscricao');
-              }
-            }
-          }
-          initialDraftCheckedRef.current = true;
-        }
       } else {
         setReligiosoData(null);
       }
@@ -335,42 +331,6 @@ export const PortalReligioso: React.FC = () => {
     }
   };
 
-  // Carregar Casas e Obras oficiais da Província BRM para Hospedagem
-  useEffect(() => {
-    if (!canAccessPortal) return;
-
-    const fetchCasas = async () => {
-      setLoadingCasas(true);
-      try {
-        const { data } = await supabase
-          .from('religiosos_obras_referencia')
-          .select('id, nome, tipo, cidade, localidade, uf, endereco, telefone, email, site')
-          .in('tipo', ['Casa', 'Obra'])
-          .eq('status', 'Ativa')
-          .order('nome');
-
-        if (data && data.length > 0) {
-          setCasasAcolhida(data);
-        } else {
-          // Fallback gracioso se tipo estiver vazio
-          const { data: allData } = await supabase
-            .from('religiosos_obras_referencia')
-            .select('id, nome, tipo, cidade, localidade, uf, endereco, telefone, email, site')
-            .eq('status', 'Ativa')
-            .order('nome')
-            .limit(8);
-          if (allData) setCasasAcolhida(allData);
-        }
-      } catch (err) {
-        console.error('Erro ao carregar casas de hospedagem:', err);
-      } finally {
-        setLoadingCasas(false);
-      }
-    };
-
-    fetchCasas();
-  }, [canAccessPortal]);
-
   // Carregar Documentos Oficiais e Agenda da Província BRM
   useEffect(() => {
     if (!canAccessPortal) return;
@@ -407,7 +367,10 @@ export const PortalReligioso: React.FC = () => {
           .order('data_inicio', { ascending: true });
 
         if (error) throw error;
-        setEventos((data || []) as EventoProvincial[]);
+        const eventosPortal = ((data || []) as EventoProvincial[]).filter((evt) =>
+          eventoVisivelNoPortal(evt),
+        );
+        setEventos(eventosPortal);
         setEventosError(false);
       } catch (err) {
         console.warn('Erro ao carregar eventos:', err);
@@ -603,8 +566,12 @@ export const PortalReligioso: React.FC = () => {
     return (
       <PortalLogin
         onSuccess={async (userId) => {
-          await refreshUserProfile(userId);
           setActiveSection('inicio');
+          setVisitedSections(new Set(['inicio']));
+          if (typeof window !== 'undefined' && window.location.pathname === '/login') {
+            navigate('/', { replace: true });
+          }
+          await refreshUserProfile(userId);
         }}
       />
     );
@@ -679,7 +646,7 @@ export const PortalReligioso: React.FC = () => {
           </div>
           <button
             type="button"
-            onClick={() => void logout()}
+            onClick={() => void handleLogout()}
             className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#d6d6d6] px-4 text-sm font-medium text-[#203136] transition-colors hover:bg-[#f5f5f7] dark:border-white/10 dark:text-[#edf2f1] dark:hover:bg-[#262628]"
           >
             <LogOut className="h-4 w-4" />
@@ -1048,8 +1015,7 @@ export const PortalReligioso: React.FC = () => {
                   type="button"
                   data-testid="menu-item-logout"
                   onClick={() => {
-                    setUserMenuOpen(false);
-                    logout();
+                    void handleLogout();
                   }}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-[14px] text-left text-xs font-medium text-[#c92a2a] hover:bg-[#fff2f2] dark:hover:bg-[#321417] transition-colors cursor-pointer"
                 >
@@ -1141,19 +1107,6 @@ export const PortalReligioso: React.FC = () => {
             >
               <BookOpen className="w-4 h-4" />
               <span>Elenco BRM</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveSection('hospedagem')}
-              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-lg font-cinzel text-xs font-semibold tracking-wider uppercase transition-all duration-200 text-left cursor-pointer ${
-                activeSection === 'hospedagem'
-                  ? 'bg-white dark:bg-[#161617] text-[#226380] dark:text-[#A3C3C7] shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#d6d6d6]/40 dark:border-white/5 font-semibold'
-                  : 'text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-white/60 dark:hover:bg-[#161617]/60'
-              }`}
-            >
-              <Hotel className="w-4 h-4" />
-              <span>Pedir Hospedagem</span>
             </button>
           </div>
 
@@ -1383,17 +1336,6 @@ export const PortalReligioso: React.FC = () => {
               />
             </div>
           )}
-
-          {/* SEÇÃO: PEDIR HOSPEDAGEM */}
-          {visitedSections.has('hospedagem') && (
-            <div className={activeSection === 'hospedagem' ? '' : 'hidden'} aria-hidden={activeSection !== 'hospedagem'}>
-              <PortalHospedagemTab
-                casasAcolhida={casasAcolhida}
-                loadingCasas={loadingCasas}
-                onVoltar={() => setActiveSection('inicio')}
-              />
-            </div>
-          )}
         </main>
       </div>
 
@@ -1431,7 +1373,7 @@ export const PortalReligioso: React.FC = () => {
             aria-label="Abrir mais opções do portal"
             onClick={() => setMobileMoreOpen(true)}
             className={`flex min-h-16 flex-col items-center justify-center gap-1 px-1 text-[10px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[#226380] ${
-              mobileMoreOpen || ['perfil', 'ficha-pdf', 'documentos', 'anuario', 'hospedagem'].includes(activeSection)
+              mobileMoreOpen || ['perfil', 'ficha-pdf', 'documentos', 'anuario'].includes(activeSection)
                 ? 'text-[#226380] dark:text-[#A3C3C7]'
                 : 'text-[#707070] dark:text-[#a1a1a6]'
             }`}
@@ -1476,7 +1418,6 @@ export const PortalReligioso: React.FC = () => {
                 { id: 'documentos', label: 'Documentos', icon: FileText },
                 { id: 'ficha-pdf', label: 'Minha ficha', icon: Printer },
                 { id: 'anuario', label: 'Elenco BRM', icon: BookOpen },
-                { id: 'hospedagem', label: 'Hospedagem', icon: Hotel },
               ] as const).map(item => {
                 const Icon = item.icon;
                 return (
@@ -1495,8 +1436,7 @@ export const PortalReligioso: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                setMobileMoreOpen(false);
-                logout();
+                void handleLogout();
               }}
               className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-600 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-300"
             >
