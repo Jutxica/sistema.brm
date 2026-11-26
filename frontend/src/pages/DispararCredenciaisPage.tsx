@@ -6,6 +6,7 @@ import {
   History, Sparkles, ShieldCheck, Eye, Layers, Clock
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import { useAuth } from '../contexts/AuthContext';
 import { showToast, confirmAction } from '../hooks/useFeedback';
 import { atribuirNomeReligioso } from '../lib/religiosoNome';
 import type { Religioso } from '../types/religioso';
@@ -283,8 +284,11 @@ function gerarHtmlCredenciaisPreview(
 
 export const DispararCredenciaisPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const preselectedId = searchParams.get('religioso');
+  const operadorNomeAtual = user?.religiosoNome || user?.nome || 'Secretaria Provincial';
+  const operadorIdAtual = user?.id || null;
 
   const [religiosos, setReligiosos] = useState<Religioso[]>([]);
   const [loading, setLoading] = useState(true);
@@ -396,6 +400,7 @@ export const DispararCredenciaisPage: React.FC = () => {
   // Histórico de disparos
   const [historico, setHistorico] = useState<RegistroHistorico[]>([]);
   const [carregandoHistorico, setCarregandoHistorico] = useState(false);
+  const [erroHistorico, setErroHistorico] = useState<string | null>(null);
   const [historicoItemAberto, setHistoricoItemAberto] = useState<string | null>(null);
 
   // Carregar lista de religiosos da base
@@ -462,6 +467,19 @@ export const DispararCredenciaisPage: React.FC = () => {
     }
   }, []);
 
+  const formatarErroTabelaHistorico = (error: { code?: string; message?: string } | null | undefined) => {
+    const msg = error?.message || '';
+    const tabelaAusente =
+      error?.code === '42P01' ||
+      error?.code === 'PGRST205' ||
+      msg.toLowerCase().includes('does not exist') ||
+      msg.toLowerCase().includes('schema cache');
+    if (tabelaAusente) {
+      return 'A tabela "comunicados_disparos" ainda não foi criada no Supabase. Execute a migração SQL (20261126084500_garantir_tabela_e_permissoes_comunicados_disparos.sql) no SQL Editor do Supabase para ativar o histórico.';
+    }
+    return msg || 'Não foi possível acessar o histórico de disparos.';
+  };
+
   // Carregar histórico de disparos
   const carregarHistorico = useCallback(async () => {
     try {
@@ -473,16 +491,86 @@ export const DispararCredenciaisPage: React.FC = () => {
         .limit(40);
 
       if (error) {
-        // Se a tabela ainda não existir no banco do usuário, trata graciosamente
-        console.warn('Aviso ao carregar histórico (tabela comunicados_disparos pode estar pendente de migração):', error.message);
+        console.warn('Aviso ao carregar histórico (comunicados_disparos):', error.message);
+        setErroHistorico(formatarErroTabelaHistorico(error));
         setHistorico([]);
       } else {
+        setErroHistorico(null);
         setHistorico((data || []) as RegistroHistorico[]);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Erro ao consultar histórico:', err);
+      setErroHistorico(formatarErroTabelaHistorico(err));
     } finally {
       setCarregandoHistorico(false);
+    }
+  }, []);
+
+  const registrarHistoricoDisparo = useCallback(async (params: {
+    tipo_mensagem: TipoMensagem;
+    assunto: string;
+    subtitulo_cabecalho?: string;
+    corpo_texto?: string;
+    bloco_destaque?: string;
+    botao_texto?: string;
+    botao_url?: string;
+    total_destinatarios: number;
+    total_sucessos: number;
+    total_falhas: number;
+    relatorio_envio: Array<{
+      id?: string;
+      nome: string;
+      email?: string;
+      status: string;
+      resendId?: string;
+      motivo?: string;
+    }>;
+  }): Promise<boolean> => {
+    try {
+      const { error } = await supabase.from('comunicados_disparos').insert({
+        operador_id: operadorIdAtual,
+        operador_nome: operadorNomeAtual,
+        tipo_mensagem: params.tipo_mensagem,
+        assunto: params.assunto,
+        subtitulo_cabecalho: params.subtitulo_cabecalho || null,
+        corpo_texto: params.corpo_texto || null,
+        bloco_destaque: params.bloco_destaque || null,
+        botao_texto: params.botao_texto || null,
+        botao_url: params.botao_url || null,
+        total_destinatarios: params.total_destinatarios,
+        total_sucessos: params.total_sucessos,
+        total_falhas: params.total_falhas,
+        relatorio_envio: params.relatorio_envio,
+      });
+
+      if (error) {
+        console.error('Erro ao salvar histórico em comunicados_disparos:', error);
+        const mensagemErro = formatarErroTabelaHistorico(error);
+        setErroHistorico(mensagemErro);
+        showToast.warning(`E-mail disparado, mas não foi possível gravar o histórico: ${mensagemErro}`);
+        return false;
+      }
+
+      setErroHistorico(null);
+      return true;
+    } catch (err: any) {
+      console.error('Exceção ao salvar histórico em comunicados_disparos:', err);
+      setErroHistorico(formatarErroTabelaHistorico(err));
+      return false;
+    }
+  }, [operadorIdAtual, operadorNomeAtual]);
+
+  const verificarSeEdgeJaRegistrou = useCallback(async (inicioIso: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('comunicados_disparos')
+        .select('id')
+        .gte('criado_em', inicioIso)
+        .limit(1);
+      if (error) return false;
+      return Boolean(data && data.length > 0);
+    } catch {
+      return false;
     }
   }, []);
 
@@ -509,7 +597,7 @@ export const DispararCredenciaisPage: React.FC = () => {
 
   // Estatísticas da base
   const stats = useMemo(() => {
-    let total = religiosos.length;
+    const total = religiosos.length;
     let aptos = 0;
     let semEmail = 0;
     let jaEnviados = 0;
@@ -578,6 +666,15 @@ export const DispararCredenciaisPage: React.FC = () => {
     return { generica, alterada };
   }, [statusSenhaMap]);
 
+  const enviosCredenciaisNoElenco = useMemo(() => {
+    return religiosos
+      .filter(r => Boolean(r.credenciais_enviadas_em))
+      .sort((a, b) =>
+        new Date(b.credenciais_enviadas_em || 0).getTime() -
+        new Date(a.credenciais_enviadas_em || 0).getTime()
+      );
+  }, [religiosos]);
+
   // Ações de Seleção
   const handleToggleSelect = (id: string) => {
     setSelecionados(prev => {
@@ -609,6 +706,7 @@ export const DispararCredenciaisPage: React.FC = () => {
     setEnviandoTeste(true);
     setResultadoTeste(null);
     setErroPublicacaoEdgeFunction(false);
+    const inicioDisparoIso = new Date().toISOString();
 
     try {
       const res = await supabase.functions.invoke('disparar-credenciais-religioso', {
@@ -626,7 +724,9 @@ export const DispararCredenciaisPage: React.FC = () => {
           assinatura_texto: assinaturaTexto.trim() || undefined,
           nome_teste: nomeTeste.trim() || 'Pe. João da Silva, SCJ',
           senha_teste: senhaTeste.trim() || 'brm@15081978',
-          operador_nome: 'Secretaria Provincial',
+          operador_id: operadorIdAtual,
+          operador_nome: operadorNomeAtual,
+          registrar_historico: false,
         },
       });
 
@@ -639,7 +739,36 @@ export const DispararCredenciaisPage: React.FC = () => {
           itens: data.resultados,
         });
 
+        const sucessos = data.resultados.filter((it: any) => it.ok).length;
         const erros = data.resultados.filter((it: any) => !it.ok);
+
+        const jaRegistrado =
+          data.historico_salvo === true ||
+          (data.historico_salvo === undefined && await verificarSeEdgeJaRegistrou(inicioDisparoIso));
+
+        if (!jaRegistrado) {
+          await registrarHistoricoDisparo({
+            tipo_mensagem: tipoMensagem,
+            assunto: `[TESTE] ${assunto.trim() || (tipoMensagem === 'credenciais' ? 'Credenciais de Acesso ao Portal' : 'Comunicado Oficial')}`,
+            subtitulo_cabecalho: subtituloCabecalho.trim() || undefined,
+            corpo_texto: corpoTexto.trim() || undefined,
+            bloco_destaque: blocoDestaque.trim() || undefined,
+            botao_texto: botaoTexto.trim() || undefined,
+            botao_url: botaoUrl.trim() || undefined,
+            total_destinatarios: data.resultados.length,
+            total_sucessos: sucessos,
+            total_falhas: erros.length,
+            relatorio_envio: data.resultados.map((it: any) => ({
+              nome: nomeTeste.trim() || 'Destinatário de Teste',
+              email: it.email,
+              status: it.ok ? 'enviado' : 'erro',
+              resendId: it.id,
+              motivo: it.error,
+            })),
+          });
+        }
+        void carregarHistorico();
+
         if (erros.length === 0) {
           showToast.success(`E-mail de teste enviado com sucesso para ${destinatarios.length} destinatário(s)!`);
         } else {
@@ -706,6 +835,16 @@ export const DispararCredenciaisPage: React.FC = () => {
 
     let sucessosCount = 0;
     let falhasCount = 0;
+    const inicioLoteIso = new Date().toISOString();
+    let edgeSalvouHistorico = false;
+    const relatorioLote: Array<{
+      id: string;
+      nome: string;
+      email?: string;
+      status: string;
+      resendId?: string;
+      motivo?: string;
+    }> = [];
 
     for (let i = 0; i < listaParaEnviar.length; i++) {
       if (abortBatchRef.current) {
@@ -729,6 +868,13 @@ export const DispararCredenciaisPage: React.FC = () => {
 
       if (!email || !email.includes('@')) {
         falhasCount++;
+        relatorioLote.push({
+          id: rel.id,
+          nome: nomeTratamento,
+          email: '',
+          status: 'ignorado',
+          motivo: 'Sem e-mail cadastrado',
+        });
         setLogsLote(prev => prev.map(item => 
           item.id === rel.id ? { ...item, status: 'erro', mensagem: 'Sem e-mail cadastrado' } : item
         ));
@@ -750,16 +896,28 @@ export const DispararCredenciaisPage: React.FC = () => {
             botao_texto: botaoTexto.trim() || undefined,
             botao_url: botaoUrl.trim() || undefined,
             assinatura_texto: assinaturaTexto.trim() || undefined,
-            operador_nome: 'Secretaria Provincial',
+            operador_id: operadorIdAtual,
+            operador_nome: operadorNomeAtual,
+            registrar_historico: false,
           },
         });
 
         if (res.error) throw res.error;
 
         const data = res.data;
+        if (data?.historico_salvo === true) {
+          edgeSalvouHistorico = true;
+        }
         if (data && data.enviados > 0) {
           sucessosCount++;
           const envioInfo = data.relatorio?.[0];
+          relatorioLote.push({
+            id: rel.id,
+            nome: nomeTratamento,
+            email,
+            status: 'enviado',
+            resendId: envioInfo?.resendId || 'OK',
+          });
           setLogsLote(prev => prev.map(item => 
             item.id === rel.id ? { 
               ...item, 
@@ -771,6 +929,13 @@ export const DispararCredenciaisPage: React.FC = () => {
         } else {
           falhasCount++;
           const erroInfo = data.relatorio?.[0];
+          relatorioLote.push({
+            id: rel.id,
+            nome: nomeTratamento,
+            email,
+            status: 'erro',
+            motivo: erroInfo?.motivo || 'Falha no envio via Resend',
+          });
           setLogsLote(prev => prev.map(item => 
             item.id === rel.id ? { 
               ...item, 
@@ -783,6 +948,13 @@ export const DispararCredenciaisPage: React.FC = () => {
         falhasCount++;
         const msg = err?.message || String(err || '');
         const isNotFound = msg.includes('Failed to send a request') || msg.includes('FunctionsFetchError') || msg.includes('NOT_FOUND') || msg.includes('404');
+        relatorioLote.push({
+          id: rel.id,
+          nome: nomeTratamento,
+          email,
+          status: 'erro',
+          motivo: isNotFound ? 'Edge Function não publicada no Supabase' : (err.message || 'Erro de conexão'),
+        });
 
         setLogsLote(prev => prev.map(item => 
           item.id === rel.id ? { 
@@ -806,6 +978,25 @@ export const DispararCredenciaisPage: React.FC = () => {
       }));
 
       await new Promise(r => setTimeout(r, 700));
+    }
+
+    if (relatorioLote.length > 0) {
+      const jaRegistrado = edgeSalvouHistorico || await verificarSeEdgeJaRegistrou(inicioLoteIso);
+      if (!jaRegistrado) {
+        await registrarHistoricoDisparo({
+          tipo_mensagem: tipoMensagem,
+          assunto: assunto.trim() || (tipoMensagem === 'credenciais' ? 'Credenciais de Acesso ao Portal' : rotuloTipo),
+          subtitulo_cabecalho: subtituloCabecalho.trim() || undefined,
+          corpo_texto: corpoTexto.trim() || undefined,
+          bloco_destaque: blocoDestaque.trim() || undefined,
+          botao_texto: botaoTexto.trim() || undefined,
+          botao_url: botaoUrl.trim() || undefined,
+          total_destinatarios: relatorioLote.length,
+          total_sucessos: sucessosCount,
+          total_falhas: falhasCount,
+          relatorio_envio: relatorioLote,
+        });
+      }
     }
 
     setDisparandoLote(false);
@@ -844,6 +1035,8 @@ export const DispararCredenciaisPage: React.FC = () => {
 
     if (!confirmou) return;
 
+    const inicioDisparoIso = new Date().toISOString();
+
     try {
       showToast.info(`Enviando para ${email}...`);
       const res = await supabase.functions.invoke('disparar-credenciais-religioso', {
@@ -859,13 +1052,52 @@ export const DispararCredenciaisPage: React.FC = () => {
           botao_texto: botaoTexto.trim() || undefined,
           botao_url: botaoUrl.trim() || undefined,
           assinatura_texto: assinaturaTexto.trim() || undefined,
-          operador_nome: 'Secretaria Provincial',
+          operador_id: operadorIdAtual,
+          operador_nome: operadorNomeAtual,
+          registrar_historico: false,
         },
       });
 
       if (res.error) throw res.error;
 
-      showToast.success(`E-mail enviado com sucesso para ${nomeTratamento}!`);
+      const data = res.data;
+      const envioInfo = data?.relatorio?.[0];
+      const enviouOk = Boolean(data && data.enviados > 0);
+
+      const jaRegistrado =
+        data?.historico_salvo === true ||
+        (data?.historico_salvo === undefined && await verificarSeEdgeJaRegistrou(inicioDisparoIso));
+
+      if (!jaRegistrado) {
+        await registrarHistoricoDisparo({
+          tipo_mensagem: tipoMensagem,
+          assunto: assunto.trim() || (tipoMensagem === 'credenciais' ? 'Credenciais de Acesso ao Portal' : rotuloTipo),
+          subtitulo_cabecalho: subtituloCabecalho.trim() || undefined,
+          corpo_texto: corpoTexto.trim() || undefined,
+          bloco_destaque: blocoDestaque.trim() || undefined,
+          botao_texto: botaoTexto.trim() || undefined,
+          botao_url: botaoUrl.trim() || undefined,
+          total_destinatarios: 1,
+          total_sucessos: enviouOk ? 1 : 0,
+          total_falhas: enviouOk ? 0 : 1,
+          relatorio_envio: [
+            {
+              id: rel.id,
+              nome: nomeTratamento,
+              email,
+              status: enviouOk ? 'enviado' : 'erro',
+              resendId: envioInfo?.resendId,
+              motivo: enviouOk ? undefined : (envioInfo?.motivo || 'Falha no envio via Resend'),
+            },
+          ],
+        });
+      }
+
+      if (enviouOk) {
+        showToast.success(`E-mail enviado com sucesso para ${nomeTratamento}!`);
+      } else {
+        showToast.warning(envioInfo?.motivo || `Não foi possível enviar para ${nomeTratamento}.`);
+      }
       void carregarReligiosos();
       void carregarHistorico();
     } catch (err: any) {
@@ -1781,6 +2013,19 @@ export const DispararCredenciaisPage: React.FC = () => {
             </button>
           </div>
 
+          {erroHistorico && (
+            <div
+              role="alert"
+              className="rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-950/30 p-4 flex items-start gap-3 text-xs text-amber-900 dark:text-amber-200"
+            >
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+              <div className="space-y-1">
+                <p className="font-semibold">Atenção ao registro de histórico no banco de dados</p>
+                <p className="leading-relaxed">{erroHistorico}</p>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
@@ -1878,6 +2123,41 @@ export const DispararCredenciaisPage: React.FC = () => {
               </table>
             </div>
           </div>
+
+          {enviosCredenciaisNoElenco.length > 0 && (
+            <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161b22] overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-[#10171B] flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider font-cinzel">
+                    Últimos envios de credenciais registrados no elenco ({enviosCredenciaisNoElenco.length})
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Carimbo gravado diretamente na ficha de cada religioso após envio bem-sucedido de credenciais.
+                  </p>
+                </div>
+              </div>
+              <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
+                {enviosCredenciaisNoElenco.map(rel => {
+                  const nome = atribuirNomeReligioso(rel.grau, rel.nome_elenco || rel.nome_religioso || rel.nome_civil);
+                  const email = rel.email_institucional || rel.email_pessoal || '—';
+                  return (
+                    <div key={rel.id} className="px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="font-semibold text-slate-900 dark:text-white">{nome}</span>
+                        <span className="ml-2 text-slate-500 dark:text-slate-400 font-mono text-[11px]">{email}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
+                        <span>{rel.credenciais_enviadas_por || 'Secretaria Provincial'}</span>
+                        <span className="font-mono">
+                          {rel.credenciais_enviadas_em ? new Date(rel.credenciais_enviadas_em).toLocaleString('pt-BR') : '—'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

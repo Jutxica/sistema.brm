@@ -492,7 +492,9 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json().catch(() => ({}));
     const modo = body.modo || "teste";
+    const operadorId = typeof body.operador_id === "string" && body.operador_id.trim() ? body.operador_id.trim() : null;
     const operadorNome = body.operador_nome || "Secretaria Provincial";
+    const registrarHistorico = body.registrar_historico !== false;
     const tipoMensagem = body.tipo_mensagem || "credenciais";
     const assuntoPersonalizado = (body.assunto || "").trim();
     const tituloCabecalho = (body.titulo_cabecalho || "").trim();
@@ -571,12 +573,53 @@ Deno.serve(async (req: Request) => {
         });
       }
 
+      let historicoSalvo = false;
+      let historicoErro: string | null = null;
+      if (registrarHistorico) {
+        const sucessosTeste = resultados.filter((r) => r.ok).length;
+        const falhasTeste = resultados.length - sucessosTeste;
+        const { data: histRow, error: histErr } = await supabase
+          .from("comunicados_disparos")
+          .insert({
+            operador_id: operadorId,
+            operador_nome: operadorNome,
+            tipo_mensagem: tipoMensagem,
+            assunto: `[TESTE] ${assuntoPersonalizado || (tipoMensagem === "credenciais" ? "Credenciais de Acesso ao Portal" : "Comunicado Oficial")}`,
+            subtitulo_cabecalho: subtituloCabecalho || null,
+            corpo_texto: corpoTexto || null,
+            bloco_destaque: blocoDestaque || null,
+            botao_texto: botaoTexto || null,
+            botao_url: botaoUrl || null,
+            total_destinatarios: resultados.length,
+            total_sucessos: sucessosTeste,
+            total_falhas: falhasTeste,
+            relatorio_envio: resultados.map((r) => ({
+              nome: body.nome_teste || "Destinatário de Teste",
+              email: r.email,
+              status: r.ok ? "enviado" : "erro",
+              resendId: r.id,
+              motivo: r.error,
+            })),
+          })
+          .select("id")
+          .maybeSingle();
+
+        if (histErr) {
+          historicoErro = histErr.message;
+          console.error("Erro ao salvar histórico de teste em comunicados_disparos:", histErr);
+        } else {
+          historicoSalvo = Boolean(histRow?.id);
+        }
+      }
+
       return corsResponse({
         ok: true,
         modo: "teste",
         tipo_mensagem: tipoMensagem,
         total: resultados.length,
         resultados,
+        historico_salvo: historicoSalvo,
+        historico_erro: historicoErro,
       });
     }
 
@@ -665,24 +708,36 @@ Deno.serve(async (req: Request) => {
       await new Promise((resolve) => setTimeout(resolve, 600));
     }
 
-    // Registrar histórico na tabela comunicados_disparos
-    try {
-      await supabase.from("comunicados_disparos").insert({
-        operador_nome: operadorNome,
-        tipo_mensagem: tipoMensagem,
-        assunto: assuntoPersonalizado || (tipoMensagem === "credenciais" ? "Credenciais de Acesso ao Portal" : "Comunicado Oficial"),
-        subtitulo_cabecalho: subtituloCabecalho || null,
-        corpo_texto: corpoTexto || null,
-        bloco_destaque: blocoDestaque || null,
-        botao_texto: botaoTexto || null,
-        botao_url: botaoUrl || null,
-        total_destinatarios: religiosos.length,
-        total_sucessos: enviados,
-        total_falhas: falhas,
-        relatorio_envio: relatorioEnvio,
-      });
-    } catch (saveErr) {
-      console.warn("Aviso ao salvar histórico em comunicados_disparos:", saveErr);
+    // Registrar histórico na tabela comunicados_disparos (quando não delegado ao cliente)
+    let historicoSalvo = false;
+    let historicoErro: string | null = null;
+    if (registrarHistorico) {
+      const { data: histRow, error: histErr } = await supabase
+        .from("comunicados_disparos")
+        .insert({
+          operador_id: operadorId,
+          operador_nome: operadorNome,
+          tipo_mensagem: tipoMensagem,
+          assunto: assuntoPersonalizado || (tipoMensagem === "credenciais" ? "Credenciais de Acesso ao Portal" : "Comunicado Oficial"),
+          subtitulo_cabecalho: subtituloCabecalho || null,
+          corpo_texto: corpoTexto || null,
+          bloco_destaque: blocoDestaque || null,
+          botao_texto: botaoTexto || null,
+          botao_url: botaoUrl || null,
+          total_destinatarios: religiosos.length,
+          total_sucessos: enviados,
+          total_falhas: falhas,
+          relatorio_envio: relatorioEnvio,
+        })
+        .select("id")
+        .maybeSingle();
+
+      if (histErr) {
+        historicoErro = histErr.message;
+        console.error("Erro ao salvar histórico em comunicados_disparos:", histErr);
+      } else {
+        historicoSalvo = Boolean(histRow?.id);
+      }
     }
 
     return corsResponse({
@@ -693,6 +748,8 @@ Deno.serve(async (req: Request) => {
       enviados,
       falhas,
       relatorio: relatorioEnvio,
+      historico_salvo: historicoSalvo,
+      historico_erro: historicoErro,
     });
   } catch (error) {
     console.error("Erro interno ao disparar credenciais:", error);
